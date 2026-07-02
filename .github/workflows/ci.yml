@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    name: PHPCS + PHPUnit + snapshot gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP (fleet minimum)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: PHPCS — WordPress-Extra + WordPress.Security.* as errors (SEC08)
+        run: vendor/bin/phpcs
+
+      - name: PHPUnit — unit suite (§5.2 shared logic)
+        run: vendor/bin/phpunit --testsuite unit
+
+      - name: Rendered-markup snapshot gate (FLEET01)
+        run: vendor/bin/phpunit --testsuite snapshot
+
+  js:
+    name: ESLint + Stylelint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - run: npm ci
+
+      - name: ESLint
+        run: npm run lint:js
+
+      - name: Stylelint
+        run: npm run lint:css
+
+  integrity:
+    name: Artifact integrity (FLEET08)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Rebuild assets/dist and fail on any byte difference
+        run: |
+          npm run build
+          git add -A assets/dist
+          git diff --cached --exit-code --stat -- assets/dist
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Re-vendor runtime libs from lock and byte-compare committed vendor/
+        run: |
+          COMPOSER_VENDOR_DIR=/tmp/vendor-check composer install --no-dev --prefer-dist --no-progress --no-plugins
+          diff -r vendor/enshrined /tmp/vendor-check/enshrined
+
+  slugs:
+    name: Slug stability (FLEET07)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Registry matches field code (no stale registry)
+        run: php bin/extract-slugs.php --check
+
+      - name: No slug removed without major bump or migration entry
+        run: php bin/check-slug-stability.php

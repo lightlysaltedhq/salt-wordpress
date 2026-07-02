@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<ruleset name="Salt">
+	<description>Salt parent theme — WordPress-Extra with WordPress.Security.* enforced as errors (SEC08).</description>
+
+	<file>.</file>
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/assets/dist/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg value="ps"/>
+	<arg name="parallel" value="8"/>
+
+	<config name="minimum_wp_version" value="6.5"/>
+
+	<!-- Errors block CI; warnings are printed but advisory. The security
+	     sniffs below are forced to error type so they always block (SEC08). -->
+	<config name="ignore_warnings_on_exit" value="1"/>
+
+	<rule ref="WordPress-Extra"/>
+
+	<!--
+	SEC08: the security sniff families are errors, never warnings.
+	A PR that echoes unescaped output, reads unvalidated input, or skips
+	nonce verification fails CI — it cannot ship as a "warning".
+	-->
+	<rule ref="WordPress.Security.EscapeOutput">
+		<type>error</type>
+		<!-- CLI tooling and the test suite have no XSS surface. -->
+		<exclude-pattern>*/bin/*</exclude-pattern>
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.Security.ValidatedSanitizedInput">
+		<type>error</type>
+	</rule>
+	<rule ref="WordPress.Security.NonceVerification">
+		<type>error</type>
+	</rule>
+	<rule ref="WordPress.Security.SafeRedirect">
+		<type>error</type>
+	</rule>
+	<rule ref="WordPress.Security.PluginMenuSlug">
+		<type>error</type>
+	</rule>
+
+	<!-- i18n: single text domain from line one (§16 baseline). -->
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="salt"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- All globals prefixed salt_/SALT_ so child themes and plugins never collide. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="salt"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Dev tooling and tests are not shipped theme code: relax WP file/method
+	     naming and WP-runtime alternatives (WP_Filesystem etc.) there. -->
+	<rule ref="WordPress.Files.FileName">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+		<exclude-pattern>*/bin/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.ValidFunctionName">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+	<!-- The test/tooling WP shims must define WordPress-named functions. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+		<exclude-pattern>*/bin/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions">
+		<exclude-pattern>*/bin/*</exclude-pattern>
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+</ruleset>

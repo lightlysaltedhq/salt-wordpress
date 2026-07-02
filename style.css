@@ -1,0 +1,22 @@
+/*
+Theme Name: Salt
+Theme URI: https://github.com/otigs/salt
+Author: Lightly Salted
+Author URI: https://lightlysalted.agency
+Description: Private, opinionated WordPress parent theme for the Lightly Salted fleet. Composable ACF section library, OKLCH design tokens, Gutenberg disabled. Customised per site via child themes; never edited on a site.
+Version: 0.1.0
+Requires at least: 6.5
+Requires PHP: 8.2
+License: Proprietary
+License URI: https://lightlysalted.agency
+Text Domain: salt
+Update URI: https://github.com/otigs/salt
+GitHub Theme URI: otigs/salt
+Primary Branch: main
+*/
+
+/*
+This file is the theme header only. All styles ship pre-built and
+content-hashed in assets/dist/ (built once in core CI — see docs/BUILD-BRIEF.md §3).
+This stylesheet is intentionally not enqueued.
+*/

@@ -1,0 +1,24 @@
+{
+    "name": "salt-theme",
+    "private": true,
+    "description": "Dev-only asset toolchain for the salt parent theme. Runs once in core CI — never on a client site.",
+    "type": "module",
+    "engines": {
+        "node": ">=22"
+    },
+    "scripts": {
+        "build": "node bin/build-assets.mjs",
+        "lint:js": "eslint .",
+        "lint:css": "stylelint \"assets/src/**/*.css\""
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.30.0",
+        "@tailwindcss/cli": "^4.1.0",
+        "esbuild": "^0.25.0",
+        "eslint": "^9.30.0",
+        "globals": "^16.0.0",
+        "stylelint": "^16.21.0",
+        "stylelint-config-standard": "^38.0.0",
+        "tailwindcss": "^4.1.0"
+    }
+}

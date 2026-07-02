@@ -1,0 +1,14 @@
+/*
+ * Salt core stylesheet — Tailwind v4, CSS-first.
+ *
+ * The three-tier OKLCH token system (primitives → semantic roles →
+ * components) lands here in Phase 1 (spec §13). Components consume
+ * ONLY semantic role tokens.
+ */
+
+@import "tailwindcss";
+
+@theme {
+	/* Token tiers are authored in Phase 1 (§5.1). */
+	--color-salt-placeholder: oklch(55% 0.02 260deg);
+}

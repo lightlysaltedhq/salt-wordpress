@@ -1,0 +1,20 @@
+# Dependencies (dev-only; never shipped)
+node_modules/
+
+# Composer: ignore everything EXCEPT the vendored runtime SVG sanitiser,
+# which ships with the theme (SEC04/DEP02 — pinned in composer.lock and
+# byte-verified against source in CI, FLEET08).
+# assets/dist/ is deliberately NOT ignored — built once in core CI and shipped.
+/vendor/*
+!/vendor/enshrined/
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Logs / caches
+*.log
+.phpunit.result.cache
+.phpunit.cache/
+.stylelintcache
+.eslintcache

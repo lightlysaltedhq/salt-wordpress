@@ -1,0 +1,32 @@
+{
+    "name": "lightly-salted/salt",
+    "description": "Salt — private, opinionated WordPress parent theme for the Lightly Salted fleet.",
+    "type": "wordpress-theme",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.2",
+        "enshrined/svg-sanitize": "0.22.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5",
+        "squizlabs/php_codesniffer": "^3.13",
+        "wp-coding-standards/wpcs": "^3.1",
+        "phpcsstandards/phpcsextra": "^1.2",
+        "phpcsstandards/phpcsutils": "^1.0",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        },
+        "autoloader-suffix": "SaltTheme",
+        "platform": {
+            "php": "8.2.99"
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "lint": "phpcs",
+        "test": "phpunit"
+    }
+}
