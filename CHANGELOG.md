@@ -6,6 +6,15 @@ docs/RELEASE-POLICY.md. Releases with breaking changes carry a **BREAKING**
 section enumerating changed components/sections at args-signature and
 markup granularity (cross-reference your site's override manifest).
 
+## [3.0.3] — 2026-07-02
+
+### Fixed
+- Rebuilt `assets/dist/` to match source (FLEET08 artifact-integrity gate):
+  the committed CSS predated a template's use of the `shadow` utility, so
+  a fresh build differed by one rule. No code or markup change; the live
+  effect was a single missing box-shadow. Release gates now always rebuild
+  and commit `assets/dist/` before tagging.
+
 ## [3.0.2] — 2026-07-02
 
 ### Fixed
