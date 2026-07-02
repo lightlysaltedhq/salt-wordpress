@@ -41,9 +41,23 @@ plus WP core surfaces salt owns (`image_editor_output_format`,
 `robots_txt`, `wp_sitemaps_post_types`, `tiny_mce_before_init`,
 `mce_buttons`, `http_request_args` for updater auth).
 
-**Deliberately un-filterable** (security invariants): `salt_consent()`
-(fail-closed stub, PRIV01), `salt_allowed_html()` (widening is a
-security-reviewed parent release, §16a).
+Consent + contact seams (v2 — see docs/PRIVACY-RESPONSIBILITIES.md):
+- `salt_consent_state( bool $granted, string $category )` — CMP glue for
+  plugins without WP Consent API support. Only a strict `true` grants.
+- `salt_consent_api_category( string $api, string $salt )` — remap salt
+  categories onto the site CMP's taxonomy.
+- `salt_consent_api_active( bool )` — force the filter bridge over the
+  WP Consent API.
+- `salt_contact_form_enabled( bool $configured )` — kill-switch for the
+  live form (defaults to "recipient configured").
+- Client-side: dispatch `salt:consent` / listen for `salt:contact-sent`;
+  `window.salt.track( name, props )` forwards custom events to both
+  analytics providers.
+
+**Deliberately un-filterable** (security invariants):
+`salt_allowed_html()` (widening is a security-reviewed parent release,
+§16a); `salt_consent()`'s deny-paths (the bridge grants only on a strict
+CMP verdict — no filter can turn an ambiguous state into an allow).
 
 ## Template overrides (native hierarchy)
 

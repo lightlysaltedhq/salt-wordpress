@@ -12,15 +12,16 @@
  *     hint per field, an always-on honeypot, submit button) rendered ONLY
  *     when apply_filters( 'salt_contact_form_enabled', false ) is true.
  *
- * THE WIRING POINT (SEC01/SEC02/PRIV06 deferral): NO live submission
- * endpoint exists in this build, so the filter defaults FALSE — every v1
- * site renders the details + form_intro + a mailto CTA button instead of
- * the form. The compliance phase supplies the POST handler (nonce,
- * capability/rate limiting, sanitisation, routing — §9) and flips the
- * filter on (priority 20+). The form posts to action="" method="post"
- * (same URL) so the handler needs no markup change. The honeypot field
- * ('salt_hp', visually hidden + aria-hidden + tabindex="-1") ships in the
- * markup NOW so the handler can rely on it from day one.
+ * LIVE from v2.0.0: the form renders when a recipient is configured in
+ * Site Settings → Contact (salt_contact_configured(); the
+ * 'salt_contact_form_enabled' filter remains a kill-switch at 20+).
+ * Submission: no-JS POST to admin-post.php (action salt_contact) with a
+ * redirect-back status read into the aria-live region (A11Y09);
+ * sections/contact.js progressively upgrades to the REST endpoint.
+ * Defences (SEC01/SEC02): honeypot, signed time-trap, nonce, rate limit,
+ * CAPTCHA (provider widget on the JS path; <noscript> arithmetic
+ * challenge on the no-JS path). Privacy-policy line at collection
+ * (PRIV06 code-half) from the contact_privacy_page option.
  *
  * NO map: maps are absent from this build (deferred — §9).
  *
@@ -61,16 +62,7 @@ $salt_address  = $salt_show_address ? trim( (string) get_field( 'company_address
 
 $salt_has_details = '' !== $salt_org_name || '' !== $salt_phone || '' !== $salt_email || '' !== $salt_address;
 
-/**
- * Whether the live contact form renders (SEC01/SEC02/PRIV06 wiring point).
- *
- * DEFAULT FALSE: no submission endpoint exists in this build. The
- * compliance phase registers the POST handler and returns true here
- * (priority 20+). See the file docblock.
- *
- * @param bool $enabled Default false.
- */
-$salt_form_enabled = (bool) apply_filters( 'salt_contact_form_enabled', false );
+$salt_form_enabled = salt_contact_configured();
 
 if (
 	! $salt_has_details
@@ -184,10 +176,20 @@ salt_section(
 		}
 
 		if ( $salt_form_enabled ) {
-			// Full accessible form MARKUP; the compliance phase supplies
-			// the handler behind action="" (see file docblock).
+			$salt_status  = salt_contact_request_status();
+			$salt_types   = salt_contact_enquiry_types();
+			$salt_privacy = get_field( 'contact_privacy_page', 'option' );
 			?>
-			<form class="x-contact-form flex w-full flex-col gap-4" action="" method="post" novalidate>
+			<div id="salt-contact-form" class="x-contact-status w-full" role="status" aria-live="polite" data-salt-contact-status>
+				<?php if ( '' !== $salt_status['status'] ) : ?>
+					<p class="<?php echo esc_attr( 'ok' === $salt_status['status'] ? 'rounded-md bg-brand-tint p-3 text-ink' : 'rounded-md border border-error p-3 text-error' ); ?>"><?php echo esc_html( $salt_status['message'] ); ?></p>
+				<?php endif; ?>
+			</div>
+			<form class="x-contact-form flex w-full flex-col gap-4" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post" novalidate>
+				<input type="hidden" name="action" value="salt_contact">
+				<input type="hidden" name="salt_contact_nonce" value="<?php echo esc_attr( wp_create_nonce( 'salt_contact' ) ); ?>">
+				<input type="hidden" name="salt_time" value="<?php echo esc_attr( salt_contact_time_token() ); ?>">
+				<input type="hidden" name="salt_page_url" value="<?php echo esc_url( home_url( add_query_arg( array() ) ) ); ?>">
 				<p class="visually-hidden" aria-hidden="true">
 					<label for="salt-contact-hp"><?php esc_html_e( 'Leave this field empty', 'salt' ); ?></label>
 					<input type="text" id="salt-contact-hp" name="salt_hp" value="" tabindex="-1" autocomplete="off">
@@ -207,6 +209,39 @@ salt_section(
 					<textarea class="rounded-md border border-border bg-surface px-3 py-2 text-ink" id="salt-contact-message" name="salt_contact_message" rows="5" required aria-describedby="salt-contact-message-hint"></textarea>
 					<span class="text-sm text-ink-muted" id="salt-contact-message-hint"><?php esc_html_e( 'How can we help?', 'salt' ); ?></span>
 				</p>
+				<?php if ( count( $salt_types ) > 1 ) : ?>
+				<p class="flex flex-col gap-1">
+					<label class="font-medium" for="salt-contact-type"><?php esc_html_e( 'What is this about?', 'salt' ); ?></label>
+					<select class="rounded-md border border-border bg-surface px-3 py-2 text-ink" id="salt-contact-type" name="salt_contact_type">
+						<?php foreach ( $salt_types as $salt_type_label ) : ?>
+							<option value="<?php echo esc_attr( $salt_type_label ); ?>"><?php echo esc_html( $salt_type_label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</p>
+				<?php endif; ?>
+				<?php if ( '' !== salt_captcha_provider() ) : ?>
+					<?php echo salt_captcha_widget_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed provider markup, site key escaped inside. ?>
+					<noscript>
+						<?php $salt_challenge = salt_challenge_create(); ?>
+						<p class="flex flex-col gap-1">
+							<label class="font-medium" for="salt-contact-challenge"><?php echo esc_html( $salt_challenge['question'] ); ?></label>
+							<input type="hidden" name="salt_challenge_token" value="<?php echo esc_attr( $salt_challenge['token'] ); ?>">
+							<input class="rounded-md border border-border bg-surface px-3 py-2 text-ink" type="text" id="salt-contact-challenge" name="salt_challenge_answer" inputmode="numeric" required aria-describedby="salt-contact-challenge-hint">
+							<span class="text-sm text-ink-muted" id="salt-contact-challenge-hint"><?php esc_html_e( 'Anti-spam check for submissions without JavaScript.', 'salt' ); ?></span>
+						</p>
+					</noscript>
+				<?php endif; ?>
+				<?php if ( is_int( $salt_privacy ) && $salt_privacy > 0 ) : ?>
+				<p class="text-sm text-ink-muted">
+					<?php
+					printf(
+						/* translators: %s: privacy policy link. */
+						esc_html__( 'By sending this form you agree to us handling your details to respond to your enquiry — see our %s.', 'salt' ),
+						'<a class="text-brand underline" href="' . esc_url( (string) get_permalink( $salt_privacy ) ) . '">' . esc_html__( 'privacy policy', 'salt' ) . '</a>'
+					);
+					?>
+				</p>
+				<?php endif; ?>
 				<button class="x-button x-button-primary inline-flex items-center justify-center gap-2 rounded-md font-medium focus-visible:outline-2 focus-visible:outline-offset-2 bg-brand text-on-brand hover:bg-brand-strong px-5 py-2.5" type="submit"><?php esc_html_e( 'Send message', 'salt' ); ?></button>
 			</form>
 			<?php

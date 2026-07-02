@@ -7,13 +7,20 @@ move through the same pinned/canary discipline as the theme.
 
 | salt release | WordPress core | ACF Pro | PHP | Updater |
 |---|---|---|---|---|
-| v0.2.x (foundation) | 6.5 – 6.8 | ≥ 6.3.0 (pinned min, `SALT_MIN_ACF_VERSION`) | 8.2+ | Git Updater ≥ 12 or git-deploy |
+| v2.0.x | 6.5 – 6.8 | ≥ 6.3.0 (pinned min, `SALT_MIN_ACF_VERSION`) | 8.2+ | Git Updater ≥ 12 or git-deploy |
+| v0.2.x – v1.0.x | 6.5 – 6.8 | ≥ 6.3.0 | 8.2+ | Git Updater ≥ 12 or git-deploy |
+
+Optional per-site plugins (v2 integrations): a WP Consent API-compatible
+CMP (Complianz/CookieYes/Cookiebot…) — without one, analytics stays
+cookieless/denied and maps/embeds facades never load third parties.
 
 ## Vendored runtime libraries (SEC04/DEP02)
 
 | Library | Version | Pin location | CVE owner |
 |---|---|---|---|
 | enshrined/svg-sanitize | 0.22.0 | composer.lock (committed) + vendor/enshrined (committed, CI byte-verified — FLEET08) | Parent-theme maintainer: watches GitHub security advisories + `composer audit` in every CI run; a disclosed bypass triggers a fast-tracked patch release (auto-update-eligible, RELEASE-POLICY.md) |
+| posthog-js | ^1.396 (package-lock) | Bundled first-party into assets/dist/analytics/posthog.*.js (CI byte-verified) | Maintainer; npm audit in CI; bundle rebuilt per release |
+| maplibre-gl | ^5.24 (package-lock) | Bundled into assets/dist/maps/maplibre.*.js, loaded only on user click | Maintainer; npm audit in CI |
 
 ## Single points of failure
 

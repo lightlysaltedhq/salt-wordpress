@@ -43,11 +43,29 @@
 			"postcode",
 			"region"
 		],
+		"group_salt_options_analytics": [
+			"ga4_enabled",
+			"ga4_id",
+			"posthog_enabled",
+			"posthog_host",
+			"posthog_host_custom",
+			"posthog_key",
+			"posthog_session_recording"
+		],
+		"group_salt_options_booking": [
+			"booking_provider",
+			"booking_url"
+		],
 		"group_salt_options_brand": [
 			"brand_accent",
 			"brand_primary",
 			"brand_secondary",
 			"dark_mode"
+		],
+		"group_salt_options_captcha": [
+			"captcha_provider",
+			"captcha_recaptcha_site_key",
+			"captcha_turnstile_site_key"
 		],
 		"group_salt_options_company": [
 			"company_email",
@@ -58,6 +76,25 @@
 			"org_same_as",
 			"url"
 		],
+		"group_salt_options_contact": [
+			"contact_autoreply",
+			"contact_autoreply_body",
+			"contact_autoreply_subject",
+			"contact_recipient",
+			"contact_routes",
+			"enquiry_type",
+			"events",
+			"recipient",
+			"url",
+			"webhook_targets"
+		],
+		"group_salt_options_contact_form": [
+			"contact_privacy_page"
+		],
+		"group_salt_options_maps": [
+			"maps_enabled",
+			"maps_tile_url"
+		],
 		"group_salt_options_modules": [
 			"module_dark_mode",
 			"module_display_preferences",
@@ -67,6 +104,10 @@
 			"module_team_member",
 			"module_testimonial",
 			"module_work"
+		],
+		"group_salt_options_submissions": [
+			"submissions_retention_days",
+			"submissions_store"
 		],
 		"group_salt_sections": [
 			"align",

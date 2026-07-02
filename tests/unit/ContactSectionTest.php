@@ -133,7 +133,11 @@ final class ContactSectionTest extends SaltTestCase {
 		$html = $this->render_contact_section( array( 'heading' => 'Get in touch' ) );
 
 		$this->assertStringContainsString( '<form', $html );
-		$this->assertStringContainsString( 'action="" method="post"', $html );
+		$this->assertStringContainsString( 'action="https://example.test/wp-admin/admin-post.php"', $html );
+		$this->assertStringContainsString( 'name="action" value="salt_contact"', $html );
+		$this->assertStringContainsString( 'name="salt_contact_nonce"', $html );
+		$this->assertStringContainsString( 'name="salt_time"', $html );
+		$this->assertStringContainsString( 'data-salt-contact-status', $html, 'aria-live status region present (A11Y09).' );
 
 		// Honeypot: present, hidden, unreachable by tab/AT.
 		$this->assertStringContainsString( 'name="salt_hp"', $html );

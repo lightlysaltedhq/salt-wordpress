@@ -819,3 +819,138 @@ if ( ! function_exists( 'is_singular' ) ) {
 		return (bool) ( $GLOBALS['salt_test_is_singular'] ?? true );
 	}
 }
+
+if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
+	define( 'HOUR_IN_SECONDS', 3600 );
+}
+
+if ( ! function_exists( 'wp_salt' ) ) {
+	/**
+	 * wp_salt shim — stable per suite run.
+	 *
+	 * @param string $scheme Salt scheme.
+	 * @return string
+	 */
+	function wp_salt( string $scheme = 'auth' ): string {
+		return 'salt-test-' . $scheme;
+	}
+}
+
+if ( ! function_exists( 'wp_create_nonce' ) ) {
+	/**
+	 * Nonce shims — deterministic HMAC pair (create/verify agree).
+	 *
+	 * @param string $action Action.
+	 * @return string
+	 */
+	function wp_create_nonce( string $action = '-1' ): string {
+		return substr( hash_hmac( 'sha256', $action, wp_salt( 'nonce' ) ), 0, 10 );
+	}
+}
+
+if ( ! function_exists( 'wp_verify_nonce' ) ) {
+	/**
+	 * wp_verify_nonce shim.
+	 *
+	 * @param string $nonce  Nonce value.
+	 * @param string $action Action.
+	 * @return int|false
+	 */
+	function wp_verify_nonce( string $nonce, string $action = '-1' ) {
+		return hash_equals( wp_create_nonce( $action ), $nonce ) ? 1 : false;
+	}
+}
+
+if ( ! function_exists( 'sanitize_textarea_field' ) ) {
+	/**
+	 * sanitize_textarea_field shim — strips tags, keeps newlines.
+	 *
+	 * @param string $str Raw value.
+	 * @return string
+	 */
+	function sanitize_textarea_field( string $str ): string {
+		$filtered = wp_strip_all_tags( $str );
+		return trim( preg_replace( '/[ \t]+/', ' ', $filtered ) ?? '' );
+	}
+}
+
+if ( ! function_exists( 'sanitize_text_field' ) ) {
+	/**
+	 * sanitize_text_field shim.
+	 *
+	 * @param string $str Raw value.
+	 * @return string
+	 */
+	function sanitize_text_field( string $str ): string {
+		return trim( preg_replace( '/[\r\n\t ]+/', ' ', wp_strip_all_tags( $str ) ) ?? '' );
+	}
+}
+
+if ( ! function_exists( 'esc_url_raw' ) ) {
+	/**
+	 * esc_url_raw shim.
+	 *
+	 * @param string $url Raw URL.
+	 * @return string
+	 */
+	function esc_url_raw( string $url ): string {
+		return esc_url( $url );
+	}
+}
+
+if ( ! function_exists( 'wp_unslash' ) ) {
+	/**
+	 * wp_unslash shim.
+	 *
+	 * @param mixed $value Value.
+	 * @return mixed
+	 */
+	function wp_unslash( $value ) {
+		return is_array( $value ) ? array_map( 'wp_unslash', $value ) : ( is_string( $value ) ? stripslashes( $value ) : $value );
+	}
+}
+
+if ( ! function_exists( 'admin_url' ) ) {
+	/**
+	 * admin_url shim.
+	 *
+	 * @param string $path Path.
+	 * @return string
+	 */
+	function admin_url( string $path = '' ): string {
+		return 'https://example.test/wp-admin/' . ltrim( $path, '/' );
+	}
+}
+
+if ( ! function_exists( 'add_query_arg' ) ) {
+	/**
+	 * add_query_arg shim — the two salt call shapes only.
+	 *
+	 * @param mixed  $key   Key or array.
+	 * @param string $value Value (when key is a string; doubles as URL).
+	 * @param string $url   URL when key/value used.
+	 * @return string
+	 */
+	function add_query_arg( $key = array(), $value = '', $url = '' ) {
+		if ( is_array( $key ) ) {
+			return '' !== $value ? $value : '/current-page/';
+		}
+		$base = '' !== $url ? $url : '/current-page/';
+		return $base . ( str_contains( $base, '?' ) ? '&' : '?' ) . rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value );
+	}
+}
+
+if ( ! function_exists( 'is_email' ) ) {
+	/**
+	 * is_email shim — WP-like: filter_var plus CR/LF rejection.
+	 *
+	 * @param string $email Candidate.
+	 * @return string|false The email when valid, false otherwise.
+	 */
+	function is_email( string $email ) {
+		if ( preg_match( '/[\r\n]/', $email ) ) {
+			return false;
+		}
+		return false !== filter_var( $email, FILTER_VALIDATE_EMAIL ) ? $email : false;
+	}
+}

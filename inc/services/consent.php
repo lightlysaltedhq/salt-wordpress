@@ -1,14 +1,24 @@
 <?php
 /**
- * Consent service — fail-closed stub (PRIV01).
+ * Consent gate — fail-closed BRIDGE to a per-site consent plugin (PRIV01).
  *
- * BUILD-BRIEF locked decision: the full consent store is deferred to the
- * Compliance & Integrations phase. This stub DENIES every non-essential
- * category, so NO third-party asset, script, font, tile, or beacon can
- * load in this build. It is intentionally FINAL and un-overridable: no
- * filter, no pluggable wrapper, no option — no site can wire a third
- * party before the Compliance & Integrations phase replaces this module.
- * The replacement ships as a parent theme release.
+ * Compliance is deliberately NOT built into salt: each site chooses its own
+ * consent-management plugin (CMP). This gate stays the single chokepoint
+ * every third-party load checks, and it resolves, in order:
+ *
+ *   1. 'essential' is always granted (first-party, strictly necessary).
+ *   2. The WP Consent API (the wp-consent-api plugin — the standard that
+ *      Complianz / CookieYes / Cookiebot etc. integrate with): when
+ *      wp_has_consent() exists, its verdict wins, via the category map
+ *      below.
+ *   3. The 'salt_consent_state' filter — the documented bridge for CMPs
+ *      without Consent-API support (site glue code hooks at priority 20+
+ *      and returns the visitor's stored choice).
+ *   4. Otherwise: DENY. No CMP wired = nothing non-essential loads.
+ *
+ * Every ambiguous path fails closed. The banner, records of processing,
+ * lawful-basis and policy content are the SITE's responsibility — see
+ * docs/PRIVACY-RESPONSIBILITIES.md for the exact boundary.
  *
  * @package Salt
  */
@@ -18,24 +28,41 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * The fixed set of consent categories. Final — not filterable.
+ * The fixed consent category taxonomy (single source of truth).
  *
- * @return string[] Category slugs.
+ * @return string[]
  */
 function salt_consent_categories(): array {
 	return array( 'essential', 'analytics', 'maps', 'embeds', 'marketing' );
 }
 
 /**
- * Whether the visitor has consented to a category.
+ * Map a salt category to a WP Consent API category.
  *
- * Fail-closed stub (PRIV01): only 'essential' returns true; every other
- * category — known or unknown — is denied. Final: no filter, no
- * pluggability, no option. Replaced wholesale in the Compliance &
- * Integrations phase via a parent release.
+ * Maps/embeds default to 'marketing' (embedded third parties can set their
+ * own cookies); a site whose CMP uses finer categories can remap via the
+ * 'salt_consent_api_category' filter (priority 20+).
  *
- * @param string $category Consent category slug.
- * @return bool True only for 'essential'.
+ * @param string $category Salt category.
+ * @return string WP Consent API category.
+ */
+function salt_consent_api_category( string $category ): string {
+	$map = array(
+		'essential' => 'functional',
+		'analytics' => 'statistics',
+		'maps'      => 'marketing',
+		'embeds'    => 'marketing',
+		'marketing' => 'marketing',
+	);
+
+	return (string) apply_filters( 'salt_consent_api_category', $map[ $category ] ?? 'marketing', $category );
+}
+
+/**
+ * Whether the visitor has consented to a category. FAIL-CLOSED.
+ *
+ * @param string $category One of salt_consent_categories().
+ * @return bool
  */
 function salt_consent( string $category ): bool {
 	if ( 'essential' === $category ) {
@@ -43,8 +70,20 @@ function salt_consent( string $category ): bool {
 	}
 
 	if ( ! in_array( $category, salt_consent_categories(), true ) ) {
-		salt_log( sprintf( 'salt_consent: unknown category "%s" denied (fail-closed stub, PRIV01).', $category ) );
+		salt_log( sprintf( 'salt_consent: unknown category "%s" — denied (fail-closed).', $category ) );
+		return false;
 	}
 
-	return false;
+	// 1. WP Consent API bridge (Complianz, CookieYes, Cookiebot, …).
+	// The availability check is filterable ('salt_consent_api_active',
+	// priority 20+) so a site can force the filter bridge instead — and so
+	// the suite can exercise both paths.
+	$api_active = (bool) apply_filters( 'salt_consent_api_active', function_exists( 'wp_has_consent' ) );
+	if ( $api_active && function_exists( 'wp_has_consent' ) ) {
+		return true === wp_has_consent( salt_consent_api_category( $category ) );
+	}
+
+	// 2. Documented CMP-bridge filter. Default false: a site with no glue
+	// code and no Consent API gets a hard deny, never a silent allow.
+	return true === apply_filters( 'salt_consent_state', false, $category );
 }

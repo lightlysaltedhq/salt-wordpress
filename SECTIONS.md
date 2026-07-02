@@ -59,7 +59,7 @@ recipe end-to-end — copy it.
 | 16 | Gallery | `gallery` | inline | — | Carousel = scroll-snap base + JS enhancement (FAIL02) |
 | 17 | Blog Teaser | `blog_teaser` | `post` ✦ | — | Never paginates (§6 teaser rule) |
 | 18 | Scroll Carousel | `scroll_carousel` | inline repeater | — | Scroll-snap base + JS enhancement |
-| 19 | Contact | `contact` | inline + options | ContactPoint | **Markup + fields only — form gated OFF** (`salt_contact_form_enabled`, default false) until the compliance phase (SEC01/02, PRIV06) |
+| 19 | Contact | `contact` | inline + options | ContactPoint | **LIVE (v2)**: REST + no-JS paths, honeypot/time-trap/rate-limit/CAPTCHA (SEC01/02), privacy link at collection; goes live when a recipient is configured (`salt_contact_form_enabled` kill-switch remains) |
 | 20 | Locations | `locations` | `location` ✦ | LocalBusiness (+ OpeningHoursSpecification; `parentOrganization` linked, SEO01) | Zero-JS accordion; status pill via `salt_location_status`; OSM directions link; no map in v1 |
 
 ✦ = CPT-backed; all seven resolve through `salt_resolve_query()` +

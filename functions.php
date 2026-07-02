@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SALT_VERSION', '1.0.0' );
+define( 'SALT_VERSION', '2.0.0' );
 define( 'SALT_DIR', get_template_directory() );
 define( 'SALT_URI', get_template_directory_uri() );
 
@@ -33,6 +33,16 @@ require_once SALT_DIR . '/inc/services/svg.php';
 require_once SALT_DIR . '/inc/services/consent.php';
 require_once SALT_DIR . '/inc/services/location-status.php';
 require_once SALT_DIR . '/inc/services/updater.php';
+require_once SALT_DIR . '/inc/services/rate-limit.php';
+require_once SALT_DIR . '/inc/services/captcha.php';
+require_once SALT_DIR . '/inc/services/mailer.php';
+require_once SALT_DIR . '/inc/services/webhooks.php';
+require_once SALT_DIR . '/inc/services/submissions.php';
+require_once SALT_DIR . '/inc/services/contact.php';
+require_once SALT_DIR . '/inc/services/analytics.php';
+require_once SALT_DIR . '/inc/services/maps.php';
+require_once SALT_DIR . '/inc/services/booking.php';
+require_once SALT_DIR . '/inc/cpt/submission.php';
 require_once SALT_DIR . '/inc/security.php';
 require_once SALT_DIR . '/inc/setup.php';
 require_once SALT_DIR . '/inc/performance.php';
@@ -44,6 +54,13 @@ require_once SALT_DIR . '/inc/cpt/work.php';
 require_once SALT_DIR . '/inc/cpt/faq.php';
 require_once SALT_DIR . '/inc/cpt/location.php';
 require_once SALT_DIR . '/inc/fields/options.php';
+require_once SALT_DIR . '/inc/fields/options-captcha.php';
+require_once SALT_DIR . '/inc/fields/options-contact.php';
+require_once SALT_DIR . '/inc/fields/options-contact-form.php';
+require_once SALT_DIR . '/inc/fields/options-submissions.php';
+require_once SALT_DIR . '/inc/fields/options-analytics.php';
+require_once SALT_DIR . '/inc/fields/options-maps.php';
+require_once SALT_DIR . '/inc/fields/options-booking.php';
 require_once SALT_DIR . '/inc/fields/cpt-service.php';
 require_once SALT_DIR . '/inc/fields/cpt-testimonial.php';
 require_once SALT_DIR . '/inc/fields/cpt-team-member.php';

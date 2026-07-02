@@ -1,6 +1,13 @@
 {
-	"app.css": "app.ccd29da56a.css",
+	"analytics/consent.js": "analytics/consent.92c1c22151.js",
+	"analytics/events.js": "analytics/events.d38d22575a.js",
+	"analytics/posthog.js": "analytics/posthog.3b3b52d45f.js",
+	"app.css": "app.07eee4e173.css",
 	"app.js": "app.f2979a93a3.js",
+	"booking.js": "booking.69ab18ff0e.js",
+	"maps.js": "maps.941f63babf.js",
+	"maps/maplibre.js": "maps/maplibre.daa1846e81.js",
+	"sections/contact.js": "sections/contact.f9db9cdeb4.js",
 	"sections/gallery.js": "sections/gallery.a2ad5b3431.js",
 	"sections/scroll-carousel.js": "sections/scroll-carousel.5d59f4e875.js",
 	"sections/testimonials.js": "sections/testimonials.61e5030f0d.js"

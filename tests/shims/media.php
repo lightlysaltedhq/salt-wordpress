@@ -76,8 +76,11 @@ if ( ! function_exists( 'wp_get_attachment_image_srcset' ) ) {
 
 if ( ! function_exists( 'get_post_meta' ) ) {
 	/**
-	 * get_post_meta shim — media-scoped: resolves _wp_attachment_image_alt
-	 * from the attachment fixture set; any other key returns the empty value.
+	 * get_post_meta shim — resolves _wp_attachment_image_alt from the
+	 * attachment fixture set, then falls through to the shared generic meta
+	 * store $GLOBALS['salt_test_meta'] (see tests/shims/submissions.php) so
+	 * other domains' meta shims stay compatible when the whole suite runs;
+	 * any other unset key returns the empty value.
 	 *
 	 * @param int    $post_id Post (attachment) ID.
 	 * @param string $key     Meta key.
@@ -88,6 +91,10 @@ if ( ! function_exists( 'get_post_meta' ) ) {
 		if ( '_wp_attachment_image_alt' === $key ) {
 			$alt = (string) ( $GLOBALS['salt_test_attachments'][ $post_id ]['alt'] ?? '' );
 			return $single ? $alt : array( $alt );
+		}
+		if ( isset( $GLOBALS['salt_test_meta'][ $post_id ][ $key ] ) ) {
+			$value = $GLOBALS['salt_test_meta'][ $post_id ][ $key ];
+			return $single ? $value : array( $value );
 		}
 		return $single ? '' : array();
 	}

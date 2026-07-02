@@ -16,6 +16,8 @@ final class ContactSectionSnapshotTest extends SaltSnapshotTestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
+		// Freeze the form's time-trap token so snapshots are byte-stable.
+		add_filter( 'salt_contact_clock', static fn(): int => 1783000000, 20 );
 		salt_test_seed_fc( array() );
 
 		$GLOBALS['salt_test_fields']['option'] = array(

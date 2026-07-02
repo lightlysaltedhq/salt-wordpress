@@ -6,6 +6,42 @@ docs/RELEASE-POLICY.md. Releases with breaking changes carry a **BREAKING**
 section enumerating changed components/sections at args-signature and
 markup granularity (cross-reference your site's override manifest).
 
+## [2.0.0] — 2026-07-02 — contact backend + integrations
+
+Compliance is now **per-site by design**: each site picks a consent plugin;
+salt ships privacy-safe mechanics + seams (docs/PRIVACY-RESPONSIBILITIES.md).
+
+### Added
+- **Live contact form** (SEC01/SEC02/SEC10/SEC11): REST + no-JS paths
+  through one hardened handler — honeypot with fake-success, signed
+  time-trap, nonce, proxy-aware rate limiting; Turnstile (default) /
+  reCAPTCHA with server-side fail-closed verification; no-JS arithmetic
+  challenge; routed email + auto-reply; HMAC-signed HTTPS webhooks with
+  retry; privacy-policy link at collection.
+- **Optional submission storage** (default OFF): locked-down private CPT,
+  hardened 90-day retention purge (cron + catch-up + health notice),
+  per-record DSAR export (SEC09/PRIV03/PRIV06).
+- **Analytics — PostHog + GA4** with salt-instrumented events (cta_click,
+  form_start/submit, accordion_open, carousel_interact, section_view +
+  window.salt.track): GA4 boots with Consent Mode v2 all-denied defaults;
+  PostHog is bundled first-party, cookieless until consent; both flipped by
+  WP Consent API events or the salt:consent bridge.
+- **Maps** (MapLibre bundled, click-to-load facade, consent-gated,
+  per-site tile provider) and **booking facades** (Cal.com/Calendly, plain
+  link until consent).
+- Per-integration CSP composition (origins added only while active).
+
+### Changed
+- **BREAKING**: `salt_consent()` is now a fail-closed bridge (WP Consent
+  API → `salt_consent_state` filter → deny) instead of an unfilterable
+  stub. Contact section markup restructured (live form, status region,
+  CAPTCHA slot, privacy line) — re-verify any child override of
+  `template-parts/sections/contact.php`.
+
+### Deferred
+- Contact-form file uploads (SEC07) — deliberate scope cut; newsletter CTA
+  variant; WP-CLI content importer (DATA01).
+
 ## [1.0.0] — 2026-07-02 — production-ready v1
 
 ### Added
