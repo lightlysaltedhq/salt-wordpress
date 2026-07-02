@@ -1,11 +1,9 @@
 <?php
 /**
- * Template: index.
- *
- * Stub — composed per spec §6 in Phase 1.
+ * Mandatory final fallback (spec §6) — same composition as the generic
+ * archive so any unmatched route still gets a correct outline.
  *
  * @package Salt
  */
 
-get_header();
-get_footer();
+require __DIR__ . '/archive.php';

@@ -783,3 +783,28 @@ if ( ! function_exists( 'wp_enqueue_script' ) ) {
 		$GLOBALS['salt_test_enqueued']['scripts'][ $handle ] = compact( 'src', 'deps', 'ver', 'args' );
 	}
 }
+
+if ( ! function_exists( 'wp_parse_url' ) ) {
+	/**
+	 * wp_parse_url shim.
+	 *
+	 * @param string $url       URL.
+	 * @param int    $component PHP_URL_* component.
+	 * @return mixed
+	 */
+	function wp_parse_url( string $url, int $component = -1 ) {
+		return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
+	}
+}
+
+if ( ! function_exists( 'home_url' ) ) {
+	/**
+	 * home_url shim.
+	 *
+	 * @param string $path Path to append.
+	 * @return string
+	 */
+	function home_url( string $path = '' ): string {
+		return 'https://example.test' . $path;
+	}
+}

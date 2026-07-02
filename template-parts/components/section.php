@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$args = salt_require_args(
+$salt_args = salt_require_args(
 	$args ?? array(),
 	array(
 		'name'       => array(
@@ -88,9 +88,9 @@ foreach ( array(
 	'background' => $salt_background_classes,
 	'container'  => $salt_container_classes,
 ) as $salt_arg => $salt_map ) {
-	if ( ! isset( $salt_map[ $args[ $salt_arg ] ] ) ) {
-		salt_log( sprintf( 'x-section: unknown %s "%s" — using default.', $salt_arg, $args[ $salt_arg ] ) );
-		$args[ $salt_arg ] = array(
+	if ( ! isset( $salt_map[ $salt_args[ $salt_arg ] ] ) ) {
+		salt_log( sprintf( 'x-section: unknown %s "%s" — using default.', $salt_arg, $salt_args[ $salt_arg ] ) );
+		$salt_args[ $salt_arg ] = array(
 			'spacing'    => 'md',
 			'background' => 'surface',
 			'container'  => 'default',
@@ -101,17 +101,17 @@ foreach ( array(
 $salt_classes = salt_classnames(
 	array(
 		'x-section',
-		'section-' . $args['name'],
-		$salt_spacing_classes[ $args['spacing'] ],
-		$salt_background_classes[ $args['background'] ],
+		'section-' . $salt_args['name'],
+		$salt_spacing_classes[ $salt_args['spacing'] ],
+		$salt_background_classes[ $salt_args['background'] ],
 	)
 );
 ?>
-<section<?php echo '' !== $args['anchor'] ? ' id="' . esc_attr( $args['anchor'] ) . '"' : ''; ?> class="<?php echo esc_attr( $salt_classes ); ?>" data-section="<?php echo esc_attr( $args['name'] ); ?>">
-	<div class="<?php echo esc_attr( $salt_container_classes[ $args['container'] ] ); ?>">
-		<?php echo $args['slots']['default'] ?? ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Slot HTML is pre-rendered by the section partial, which escapes at print. ?>
+<section<?php echo '' !== $salt_args['anchor'] ? ' id="' . esc_attr( $salt_args['anchor'] ) . '"' : ''; ?> class="<?php echo esc_attr( $salt_classes ); ?>" data-section="<?php echo esc_attr( $salt_args['name'] ); ?>">
+	<div class="<?php echo esc_attr( $salt_container_classes[ $salt_args['container'] ] ); ?>">
+		<?php echo $salt_args['slots']['default'] ?? ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Slot HTML is pre-rendered by the section partial, which escapes at print. ?>
 	</div>
-	<?php if ( $args['divider'] ) : ?>
+	<?php if ( $salt_args['divider'] ) : ?>
 		<hr class="x-section-divider mx-auto w-full max-w-5xl border-border">
 	<?php endif; ?>
 </section>

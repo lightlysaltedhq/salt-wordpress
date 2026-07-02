@@ -38,7 +38,24 @@ if ( ! function_exists( 'acf_add_local_field_group' ) ) {
 	}
 }
 
-// Load every field-registration module, then fire the hooks registration runs on.
+if ( ! function_exists( 'salt_log' ) ) {
+	/**
+	 * Log shim for the extractor context.
+	 *
+	 * @param string $message Log line.
+	 * @return void
+	 */
+	function salt_log( string $message ): void {
+		fwrite( STDERR, 'salt: ' . $message . "\n" );
+	}
+}
+
+// Foundation modules field registration depends on, then the field modules,
+// then fire the hooks registration runs on.
+require_once $salt_root . '/inc/helpers.php';
+require_once $salt_root . '/inc/modules.php';
+require_once $salt_root . '/inc/acf.php';
+
 $salt_fields_files = glob( $salt_root . '/inc/fields/*.php' );
 foreach ( false === $salt_fields_files ? array() : $salt_fields_files as $salt_fields_file ) {
 	require_once $salt_fields_file;

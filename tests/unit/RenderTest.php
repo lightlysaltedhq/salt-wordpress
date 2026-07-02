@@ -18,7 +18,16 @@ final class RenderTest extends SaltTestCase {
 		$this->expectException( InvalidArgumentException::class );
 
 		try {
-			salt_require_args( array(), array( 'label' => array( 'type' => 'string', 'required' => true ) ), 'button' );
+			salt_require_args(
+				array(),
+				array(
+					'label' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
+				'button'
+			);
 		} finally {
 			$this->assertNotEmpty( $this->logs() );
 			$this->assertStringContainsString( 'label', $this->logs()[0] );

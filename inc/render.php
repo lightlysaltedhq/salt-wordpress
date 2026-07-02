@@ -290,40 +290,47 @@ function salt_anchor_id( string $raw ): string {
  */
 function salt_section( array $args, callable $content ): void {
 	$contract = array(
-		'name'       => array(
+		'name'        => array(
 			'type'     => 'string',
 			'required' => true,
 		),
-		'spacing'    => array(
+		'spacing'     => array(
 			'type'    => 'string',
 			'default' => 'md',
 		),
-		'background' => array(
+		'background'  => array(
 			'type'    => 'string',
 			'default' => 'surface',
 		),
-		'container'  => array(
+		'container'   => array(
 			'type'    => 'string',
 			'default' => 'default',
 		),
-		'anchor'     => array(
+		'anchor'      => array(
 			'type'    => 'string',
 			'default' => '',
 		),
-		'divider'    => array(
+		'divider'     => array(
 			'type'    => 'bool',
 			'default' => false,
 		),
-		'is_primary' => array(
+		'is_primary'  => array(
 			'type'    => 'bool',
 			'default' => false,
+		),
+		'has_heading' => array(
+			'type'    => 'bool',
+			'default' => true,
 		),
 	);
 
 	$args = salt_require_args( $args, $contract, 'section' );
 
+	// Claim the H1 only when this section will actually RENDER a heading —
+	// a heading-less primary section must not consume the claim, or the
+	// page-level fallback H1 could never fire (A11Y01).
 	$level = 2;
-	if ( $args['is_primary'] && salt_claim_h1( 'section:' . $args['name'] ) ) {
+	if ( $args['is_primary'] && $args['has_heading'] && salt_claim_h1( 'section:' . $args['name'] ) ) {
 		$level = 1;
 	}
 
@@ -346,6 +353,34 @@ function salt_section( array $args, callable $content ): void {
 			'index'      => $index,
 		),
 		array( 'default' => $body )
+	);
+}
+
+/**
+ * Build the x-section wrapper args for the current Flexible Content row:
+ * the shared §11 Advanced-tab controls + loop context (AMBIG03).
+ *
+ * @param string              $name    Section slug (hyphenated).
+ * @param array<string,mixed> $context Loop context: index, is_primary.
+ * @return array<string,mixed>
+ */
+function salt_section_wrapper_args( string $name, array $context = array() ): array {
+	$sub = static function ( string $field, string $fallback ): string {
+		if ( ! function_exists( 'get_sub_field' ) ) {
+			return $fallback;
+		}
+		$value = get_sub_field( $field );
+		return is_string( $value ) && '' !== $value ? $value : $fallback;
+	};
+
+	return array(
+		'name'       => $name,
+		'spacing'    => $sub( 'section_spacing', 'md' ),
+		'background' => $sub( 'section_background', 'surface' ),
+		'container'  => $sub( 'section_container', 'default' ),
+		'anchor'     => $sub( 'section_anchor', '' ),
+		'divider'    => function_exists( 'get_sub_field' ) ? (bool) get_sub_field( 'section_divider' ) : false,
+		'is_primary' => (bool) ( $context['is_primary'] ?? false ),
 	);
 }
 
