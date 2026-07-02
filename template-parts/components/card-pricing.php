@@ -112,7 +112,7 @@ $salt_classes = salt_classnames(
 ?>
 <article class="<?php echo esc_attr( $salt_classes ); ?>">
 	<?php if ( $args['featured'] ) : ?>
-	<span class="x-card-pricing-badge absolute -top-3 right-6 rounded-full bg-brand px-3 py-1 text-sm font-medium text-on-brand"><?php echo esc_html( __( 'Most popular', 'salt' ) ); ?></span>
+	<span class="x-card-pricing-badge absolute -top-3 end-6 rounded-full bg-brand px-3 py-1 text-sm font-medium text-on-brand"><?php echo esc_html( __( 'Most popular', 'salt' ) ); ?></span>
 	<?php endif; ?>
 	<?php
 	printf(

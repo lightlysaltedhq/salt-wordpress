@@ -58,7 +58,7 @@ $salt_args = salt_require_args(
 
 $salt_align_classes = array(
 	'left'   => array(
-		'wrapper' => 'text-left',
+		'wrapper' => 'text-start',
 		'row'     => 'justify-start',
 	),
 	'center' => array(

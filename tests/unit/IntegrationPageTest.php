@@ -13,6 +13,12 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../shims/acf.php';
 
+// The representative-page test renders CPT sections — load every slice shim.
+foreach ( glob( __DIR__ . '/../shims/*.php' ) as $salt_shim_file ) {
+	require_once $salt_shim_file;
+}
+unset( $salt_shim_file );
+
 final class IntegrationPageTest extends SaltTestCase {
 
 	protected function setUp(): void {
@@ -151,5 +157,116 @@ final class IntegrationPageTest extends SaltTestCase {
 	public function test_page_without_sections_enqueues_no_section_assets(): void {
 		salt_enqueue_section_assets();
 		$this->assertSame( array(), $GLOBALS['salt_test_enqueued']['scripts'] );
+	}
+
+	public function test_representative_cpt_page_graph_is_valid_and_linked(): void {
+		$this->seed_posts(
+			array(
+				array(
+					'ID'         => 201,
+					'post_type'  => 'service',
+					'post_title' => 'Web design',
+					'menu_order' => 1,
+				),
+				array(
+					'ID'         => 301,
+					'post_type'  => 'testimonial',
+					'post_title' => 'Alice Client',
+				),
+				array(
+					'ID'         => 401,
+					'post_type'  => 'location',
+					'post_title' => 'Worcester office',
+					'menu_order' => 1,
+				),
+			)
+		);
+		$GLOBALS['salt_test_fields']['201']['summary'] = 'We design websites.';
+		$GLOBALS['salt_test_fields']['301']['quote']   = 'Superb work.';
+		$GLOBALS['salt_test_fields']['301']['rating']  = 5;
+		$GLOBALS['salt_test_fields']['301']['service'] = 201;
+		$GLOBALS['salt_test_fields']['401']['address'] = array(
+			'line1'    => '1 High St',
+			'city'     => 'Worcester',
+			'postcode' => 'WR1 1AA',
+			'country'  => 'GB',
+		);
+		$GLOBALS['salt_test_fields']['401']['opening_hours'] = array(
+			array(
+				'day'              => 'monday',
+				'open'             => '09:00',
+				'close'            => '17:00',
+				'appointment_only' => false,
+			),
+		);
+
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'hero',
+					'fields' => array(
+						'variant' => 'minimal',
+						'heading' => 'Representative page',
+					),
+				),
+				array(
+					'layout' => 'services',
+					'fields' => array( 'heading' => 'What we do' ),
+				),
+				array(
+					'layout' => 'testimonials',
+					'fields' => array( 'heading' => 'Kind words' ),
+				),
+				array(
+					'layout' => 'locations',
+					'fields' => array( 'heading' => 'Find us' ),
+				),
+			)
+		);
+
+		ob_start();
+		get_template_part( 'template-parts/flexible-content' );
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match_all( '/<h1[\s>]/', $html ), 'One H1 on the representative page.' );
+
+		$graph   = salt_schema_graph(
+			array(
+				'home_url'   => 'https://example.test',
+				'page_url'   => 'https://example.test/rep',
+				'page_title' => 'Representative page',
+				'site_name'  => 'Fixture Co',
+				'org'        => array( 'name' => 'Fixture Co' ),
+			)
+		);
+		$decoded = json_decode( (string) wp_json_encode( $graph ), true );
+		$this->assertIsArray( $decoded );
+		$nodes = $decoded['@graph'];
+
+		$by_type = static fn( string $type ): array => array_values(
+			array_filter( $nodes, static fn( array $n ): bool => ( $n['@type'] ?? '' ) === $type )
+		);
+
+		$this->assertNotEmpty( $by_type( 'Service' ), 'Service node emitted.' );
+
+		$reviews = $by_type( 'Review' );
+		$this->assertNotEmpty( $reviews, 'Review node emitted for the service-linked testimonial.' );
+		$this->assertSame( 'Service', $reviews[0]['itemReviewed']['@type'] ?? '', 'Review scoped to the Service, never the Organization (SEO02).' );
+
+		$offices = $by_type( 'LocalBusiness' );
+		$this->assertNotEmpty( $offices, 'Office LocalBusiness node emitted.' );
+		$this->assertSame(
+			array( '@id' => 'https://example.test#organization' ),
+			$offices[0]['parentOrganization'] ?? null,
+			'Office linked to the brand Organization via parentOrganization (SEO01).'
+		);
+		$this->assertNotEmpty( $offices[0]['openingHoursSpecification'] ?? array(), 'OpeningHoursSpecification present.' );
+
+		$org_nodes = $by_type( 'Organization' );
+		$this->assertCount( 1, $org_nodes, 'Exactly one brand Organization node.' );
+		$this->assertArrayNotHasKey( 'aggregateRating', $org_nodes[0], 'No self-serving org rating (SEO02).' );
+
+		$ids = array_filter( array_map( static fn( array $n ) => $n['@id'] ?? null, $nodes ) );
+		$this->assertSame( count( $ids ), count( array_unique( $ids ) ), 'De-duplicated @ids across the whole graph.' );
 	}
 }
