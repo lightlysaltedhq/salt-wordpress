@@ -134,7 +134,7 @@ salt_section(
 				$salt_slides .= '<div class="x-gallery-slide w-4/5 shrink-0 snap-start sm:w-3/5 lg:w-2/5">' . $salt_figure( $salt_item, 'gallery' ) . '</div>';
 			}
 			printf(
-				'<div class="x-gallery-track flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4" data-salt-carousel role="region" tabindex="0" aria-label="%1$s" data-salt-prev-label="%2$s" data-salt-next-label="%3$s">%4$s</div>',
+				'<div class="x-gallery-track flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4" data-salt-carousel="gallery" role="region" tabindex="0" aria-label="%1$s" data-salt-prev-label="%2$s" data-salt-next-label="%3$s">%4$s</div>',
 				esc_attr__( 'Image gallery', 'salt' ),
 				esc_attr__( 'Previous images', 'salt' ),
 				esc_attr__( 'Next images', 'salt' ),

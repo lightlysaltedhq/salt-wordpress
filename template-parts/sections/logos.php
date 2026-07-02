@@ -118,17 +118,20 @@ salt_section(
 			);
 
 			echo '<li class="x-logos-item flex items-center">';
-			if ( '' !== $salt_logo['url'] ) {
+			if ( '' !== $salt_logo['url'] && ( '' !== $salt_logo['name'] || '' !== $salt_logo['alt'] ) ) {
 				// External logo links are allowed (plain <a> — see docblock).
+				// The accessible name comes from the label or the image alt —
+				// a link with neither renders unlinked below instead.
 				printf(
-					'<a href="%1$s"%2$s>%3$s</a>',
+					'<a href="%1$s" aria-label="%2$s">%3$s</a>',
 					esc_url( $salt_logo['url'] ),
-					'' !== $salt_logo['name']
-						? ' aria-label="' . esc_attr( $salt_logo['name'] ) . '"'
-						: '',
+					esc_attr( '' !== $salt_logo['name'] ? $salt_logo['name'] : $salt_logo['alt'] ),
 					$salt_img // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- x-image escapes internally.
 				);
 			} else {
+				if ( '' !== $salt_logo['url'] ) {
+					salt_log( 'section logos: linked logo has no name or alt — rendered unlinked (accessible-name rule).' );
+				}
 				echo $salt_img; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- x-image escapes internally.
 			}
 			echo '</li>';

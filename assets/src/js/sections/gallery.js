@@ -17,7 +17,7 @@
 (() => {
 	'use strict';
 
-	const TRIGGER = '[data-salt-carousel]';
+	const TRIGGER = '[data-salt-carousel="gallery"]';
 
 	/**
 	 * Read the track's inter-item gap in px (falls back to 16 = gap-4).
@@ -42,6 +42,8 @@
 		track.dataset.saltCarouselEnhanced = 'true';
 
 		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+		// RTL: scrollLeft runs 0 → negative and "next" scrolls negative-left.
+		const isRtl = window.getComputedStyle(track).direction === 'rtl';
 
 		const scrollAmount = () => {
 			const first = track.firstElementChild;
@@ -55,13 +57,14 @@
 			button.className =
 				'x-gallery-button inline-flex items-center justify-center rounded-full border border-border bg-surface p-2 text-ink disabled:opacity-40';
 			button.setAttribute('aria-label', label);
+			const back = direction < 0;
 			button.innerHTML =
-				direction < 0
+				back !== isRtl
 					? '<span aria-hidden="true">&larr;</span>'
 					: '<span aria-hidden="true">&rarr;</span>';
 			button.addEventListener('click', () => {
 				track.scrollBy({
-					left: direction * scrollAmount(),
+					left: (isRtl ? -direction : direction) * scrollAmount(),
 					behavior: reducedMotion.matches ? 'auto' : 'smooth',
 				});
 			});
@@ -76,9 +79,24 @@
 		controls.append(prev, next);
 		track.after(controls);
 
+		const setDisabled = (button, disabled, sibling) => {
+			// Never let a disabling button swallow keyboard focus.
+			if (disabled && document.activeElement === button) {
+				if (sibling.disabled) {
+					track.setAttribute('tabindex', track.getAttribute('tabindex') || '-1');
+					track.focus();
+				} else {
+					sibling.focus();
+				}
+			}
+			button.disabled = disabled;
+		};
+
 		const update = () => {
-			prev.disabled = track.scrollLeft <= 0;
-			next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 1;
+			// Math.abs: RTL scrollLeft is negative over the same magnitude range.
+			const pos = Math.abs(track.scrollLeft);
+			setDisabled(prev, pos <= 0, next);
+			setDisabled(next, pos + track.clientWidth >= track.scrollWidth - 1, prev);
 		};
 		track.addEventListener('scroll', update, { passive: true });
 		window.addEventListener('resize', update);

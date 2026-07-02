@@ -298,7 +298,7 @@ final class ServicesSectionTest extends SaltTestCase {
 		$this->assertSame( 'Web Design', $services[0]['name'] );
 		$this->assertSame( 'https://example.test/services/service-5/', $services[0]['url'] );
 		$this->assertSame( 'Fast, accessible sites.', $services[0]['description'] );
-		$this->assertSame( 'https://example.test/p#service-1', $services[0]['@id'] );
+		$this->assertSame( 'https://example.test/services/service-5/#service', $services[0]['@id'], 'Stable permalink-derived @id so Service nodes dedupe and merge with Review.itemReviewed (SEO01).' );
 	}
 
 	public function test_schema_omits_empty_description(): void {

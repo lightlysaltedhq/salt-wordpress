@@ -58,6 +58,12 @@ foreach ( $salt_rows_raw as $salt_i => $salt_row ) {
 	$salt_heading   = trim( (string) ( $salt_row['heading'] ?? '' ) );
 	$salt_content   = trim( (string) ( $salt_row['content'] ?? '' ) );
 
+	// A deleted attachment must not count as row content (COMPL02).
+	if ( $salt_image_id > 0 && null === salt_image_data( $salt_image_id, 'half' ) ) {
+		salt_log( sprintf( 'section media-text: row %d image %d is unresolvable — treated as absent.', (int) $salt_i, $salt_image_id ) );
+		$salt_image_id = 0;
+	}
+
 	if ( 0 >= $salt_image_id && '' === $salt_heading && '' === $salt_content ) {
 		salt_log( sprintf( 'section media-text: row %d has no image, heading or content — skipped.', (int) $salt_i ) );
 		continue;

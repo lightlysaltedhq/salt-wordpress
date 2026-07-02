@@ -177,7 +177,7 @@ salt_section(
 			$track_items .= '<div class="x-scroll-carousel-item w-5/6 shrink-0 snap-start sm:w-2/5 lg:w-1/3">' . $render_card( $item ) . '</div>';
 		}
 		printf(
-			'<div class="x-scroll-carousel-track flex snap-x snap-mandatory gap-6 overflow-x-auto pb-4" data-salt-carousel role="region" tabindex="0" aria-label="%1$s" data-salt-prev-label="%2$s" data-salt-next-label="%3$s">%4$s</div>',
+			'<div class="x-scroll-carousel-track flex snap-x snap-mandatory gap-6 overflow-x-auto pb-4" data-salt-carousel="scroll-carousel" role="region" tabindex="0" aria-label="%1$s" data-salt-prev-label="%2$s" data-salt-next-label="%3$s">%4$s</div>',
 			'' !== trim( $salt_heading ) ? esc_attr( $salt_heading ) : esc_attr__( 'Carousel', 'salt' ),
 			esc_attr__( 'Previous cards', 'salt' ),
 			esc_attr__( 'Next cards', 'salt' ),

@@ -6,6 +6,32 @@ docs/RELEASE-POLICY.md. Releases with breaking changes carry a **BREAKING**
 section enumerating changed components/sections at args-signature and
 markup granularity (cross-reference your site's override manifest).
 
+## [1.0.0] — 2026-07-02 — production-ready v1
+
+### Added
+- **The full section library** (20 sections, SECTIONS.md registry): Hero,
+  Intro, Rich Text, Services, Feature Grid, Media+Text, Stats,
+  Testimonials, Logo Strip, CTA, Pricing, Team, FAQ, Process, Work,
+  Gallery, Blog Teaser, Scroll Carousel, Contact (markup+fields only,
+  form gated off pending the compliance phase), Locations.
+- **Six CPTs** (service, testimonial, team_member, work, faq, location)
+  with module gating, Appendix-A fields, display-only posture for
+  private types (SEC09), and seven-CPT resolver coverage (SCOPE01).
+- Per-section asset enqueue from a server-side Flexible Content pre-scan;
+  section JS as separate hashed bundles (gallery, scroll-carousel,
+  testimonials — scroll-snap no-JS bases, FAIL02).
+- Cross-section integration tests: one-H1 outlines, single deduplicated
+  `@graph` (one FAQPage; Review→Service; office `parentOrganization`),
+  scan-driven enqueue. RTL logical-property pass. A11Y07 sign-off
+  checklist, CWV method doc, CONTRIBUTING, CODEOWNERS, §8 traceability
+  (docs/TRACEABILITY.md).
+
+### Deferred (Compliance & Integrations phase)
+- Live contact submission (SEC01/SEC02/PRIV06), submissions CPT
+  (SEC07/SEC09/PRIV03), consent store + banner (PRIV01 — fail-closed stub
+  ships), maps/analytics/booking/video/embeds, DPA register (PRIV05),
+  WP-CLI content importer (DATA01).
+
 ## [0.2.0] — 2026-07-02 — "foundation"
 
 ### Added

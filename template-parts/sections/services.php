@@ -79,6 +79,9 @@ foreach ( $salt_cards as $salt_card ) {
 		'name'  => $salt_card['title'],
 	);
 	if ( '' !== $salt_card['url'] ) {
+		// Stable entity @id (SEO01): identical services dedupe across
+		// sections and merge with Review.itemReviewed references.
+		$salt_node['@id'] = $salt_card['url'] . '#service';
 		$salt_node['url'] = $salt_card['url'];
 	}
 	if ( '' !== $salt_card['summary'] ) {

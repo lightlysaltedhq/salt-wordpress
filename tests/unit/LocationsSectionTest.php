@@ -175,9 +175,10 @@ final class LocationsSectionTest extends SaltTestCase {
 		$this->assertStringContainsString( 'Bath office', $html );
 		$this->assertStringNotContainsString( '<script', $html );
 
-		// Primary section heading claims the H1; office names step to h2.
+		// Primary section heading claims the H1; office names are styled
+		// spans inside <summary> (not headings — AT exposure is unreliable).
 		$this->assertSame( 1, preg_match_all( '/<h1[\s>]/', $html ) );
-		$this->assertMatchesRegularExpression( '/<h2[^>]*>Bath office<\/h2>/', $html );
+		$this->assertMatchesRegularExpression( '/<span class="text-lg font-semibold">Bath office<\/span>/', $html );
 
 		// Contact surface.
 		$this->assertStringContainsString( 'href="tel:+441225000000"', $html );
@@ -198,7 +199,7 @@ final class LocationsSectionTest extends SaltTestCase {
 		$html = $this->render_locations( array( 'heading' => 'Find us' ) );
 
 		$this->assertSame( 3, preg_match_all( '/<details[\s>]/', $html ) );
-		$this->assertSame( 3, substr_count( $html, 'name="locations"' ) );
+		$this->assertSame( 3, substr_count( $html, 'name="locations-0"' ), 'Exclusive-open group is scoped per section INSTANCE (index-suffixed).' );
 		$this->assertStringNotContainsString( '<script', $html );
 	}
 
@@ -210,7 +211,8 @@ final class LocationsSectionTest extends SaltTestCase {
 		$this->assertSame( 0, preg_match_all( '/<h1[\s>]/', $html ) );
 		$this->assertFalse( salt_h1_claimed() );
 		// Office names sit one level below the (unrendered, level-2) main heading.
-		$this->assertMatchesRegularExpression( '/<h3[^>]*>Bath office<\/h3>/', $html );
+		$this->assertMatchesRegularExpression( '/<span class="text-lg font-semibold">Bath office<\/span>/', $html, 'Office names are styled spans, not headings — heading semantics in <summary> are unreliably exposed to AT.' );
+		$this->assertDoesNotMatchRegularExpression( '/<h[1-6][^>]*>Bath office/', $html );
 	}
 
 	public function test_broken_office_without_title_is_skipped_and_logged(): void {

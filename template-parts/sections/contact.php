@@ -141,11 +141,17 @@ salt_section(
 				printf( '<p class="font-medium">%s</p>', esc_html( $salt_org_name ) );
 			}
 			if ( '' !== $salt_phone ) {
-				printf(
-					'<p><a class="text-brand underline" href="%1$s">%2$s</a></p>',
-					esc_url( 'tel:' . preg_replace( '/[^0-9+]/', '', $salt_phone ) ),
-					esc_html( $salt_phone )
-				);
+				$salt_dialable = (string) preg_replace( '/[^0-9+]/', '', $salt_phone );
+				if ( '' !== $salt_dialable ) {
+					printf(
+						'<p><a class="text-brand underline" href="%1$s">%2$s</a></p>',
+						esc_url( 'tel:' . $salt_dialable ),
+						esc_html( $salt_phone )
+					);
+				} else {
+					// No dialable digits: plain text, never a dead tel: link.
+					printf( '<p>%s</p>', esc_html( $salt_phone ) );
+				}
 			}
 			if ( '' !== $salt_email ) {
 				printf(

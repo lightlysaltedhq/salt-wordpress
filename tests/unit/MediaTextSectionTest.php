@@ -381,9 +381,10 @@ final class MediaTextSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( '<!-- salt: x-image missing attachment -->', $html );
+		$this->assertStringNotContainsString( 'x-image missing attachment', $html, 'Broken attachments are zeroed up front (COMPL02) — no comment placeholder inside the row.' );
 		$this->assertStringNotContainsString( '<img', $html );
 		$this->assertStringContainsString( 'Broken image row', $html, 'The row still renders its text.' );
+		$this->assertStringContainsString( 'unresolvable', implode( ' ', $this->logs() ), 'The zeroed attachment is logged.' );
 	}
 
 	public function test_wysiwyg_content_is_sanitized(): void {

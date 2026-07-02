@@ -172,13 +172,24 @@ salt_section(
 				$salt_node['email'] = $salt_email;
 			}
 
+			// A day with ANY appointment-only row renders as "By appointment"
+			// (salt_location_status semantics) — the WHOLE day must be
+			// excluded from openingHoursSpecification, or the schema would
+			// publish hours the page contradicts (pill/schema agreement).
+			$salt_appointment_days = array();
+			foreach ( $salt_hours as $salt_row ) {
+				if ( is_array( $salt_row ) && ! empty( $salt_row['appointment_only'] ) && is_string( $salt_row['day'] ?? null ) ) {
+					$salt_appointment_days[ strtolower( $salt_row['day'] ) ] = true;
+				}
+			}
+
 			$salt_specs = array();
 			foreach ( $salt_hours as $salt_row ) {
 				// Same validation as salt_location_status(), which has
 				// already logged any malformed rows — skip silently here.
 				$salt_day = is_array( $salt_row ) && is_string( $salt_row['day'] ?? null ) ? strtolower( $salt_row['day'] ) : '';
-				if ( ! isset( $salt_schema_days[ $salt_day ] ) || ! empty( $salt_row['appointment_only'] ) ) {
-					continue; // Appointment-only days are omitted from openingHoursSpecification.
+				if ( ! isset( $salt_schema_days[ $salt_day ] ) || isset( $salt_appointment_days[ $salt_day ] ) ) {
+					continue; // Appointment-only DAYS are omitted from openingHoursSpecification.
 				}
 				if ( null === salt_location_minutes( $salt_row['open'] ?? null ) || null === salt_location_minutes( $salt_row['close'] ?? null ) ) {
 					continue;
@@ -198,18 +209,16 @@ salt_section(
 
 			// --- Office markup (x-accordion class coupling — see docblock).
 			?>
-			<details class="x-accordion-item group border-b border-border" name="locations">
+			<details class="x-accordion-item group border-b border-border" name="<?php echo esc_attr( 'locations-' . (int) ( $args['index'] ?? 0 ) ); ?>">
 				<summary class="x-accordion-summary list-none flex items-center justify-between gap-4 py-4 font-medium cursor-pointer">
 					<span class="flex flex-wrap items-center gap-x-3 gap-y-1">
 						<?php
-						salt_component(
-							'heading',
-							array(
-								'text'    => $salt_name,
-								'level'   => $level + 1,
-								'size'    => 'sm',
-								'classes' => 'inline',
-							)
+						// Not a heading: heading semantics inside <summary> are
+						// inconsistently exposed to AT; offices are accordion
+						// entries, the outline is owned by the section heading.
+						printf(
+							'<span class="text-lg font-semibold">%s</span>',
+							esc_html( $salt_name )
 						);
 						if ( isset( $salt_pill_classes[ $salt_status['status'] ] ) ) {
 							printf(
@@ -236,8 +245,13 @@ salt_section(
 						<?php endif; ?>
 						<?php if ( '' !== $salt_phone || '' !== $salt_email ) : ?>
 						<ul class="flex flex-col gap-1">
-							<?php if ( '' !== $salt_phone ) : ?>
-							<li><a class="text-brand underline" href="<?php echo esc_url( 'tel:' . preg_replace( '/[^0-9+]/', '', $salt_phone ) ); ?>"><?php echo esc_html( $salt_phone ); ?></a></li>
+							<?php
+							$salt_dialable = (string) preg_replace( '/[^0-9+]/', '', $salt_phone );
+							if ( '' !== $salt_phone && '' !== $salt_dialable ) :
+								?>
+							<li><a class="text-brand underline" href="<?php echo esc_url( 'tel:' . $salt_dialable ); ?>"><?php echo esc_html( $salt_phone ); ?></a></li>
+							<?php elseif ( '' !== $salt_phone ) : ?>
+							<li><?php echo esc_html( $salt_phone ); ?></li>
 							<?php endif; ?>
 							<?php if ( '' !== $salt_email ) : ?>
 							<li><a class="text-brand underline" href="<?php echo esc_url( 'mailto:' . $salt_email ); ?>"><?php echo esc_html( $salt_email ); ?></a></li>

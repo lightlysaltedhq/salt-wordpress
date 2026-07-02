@@ -45,6 +45,13 @@ if ( ! in_array( $salt_variant, array( 'full-bleed', 'split', 'minimal' ), true 
 	$salt_variant = 'full-bleed';
 }
 
+// Validate the attachment up front: a deleted image must zero the ID so
+// an image-only hero 0-states instead of rendering a blank band (COMPL02).
+if ( $salt_image_id > 0 && null === salt_image_data( $salt_image_id, 'hero' ) ) {
+	salt_log( sprintf( 'section hero: image %d is unresolvable — treated as absent.', $salt_image_id ) );
+	$salt_image_id = 0;
+}
+
 if ( '' === trim( $salt_heading ) && 0 === $salt_image_id ) {
 	return; // 0-state: skip the section entirely (COMPL02).
 }
