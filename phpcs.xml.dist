@@ -70,10 +70,20 @@
 	<rule ref="WordPress.NamingConventions.ValidFunctionName">
 		<exclude-pattern>*/tests/*</exclude-pattern>
 	</rule>
-	<!-- The test/tooling WP shims must define WordPress-named functions. -->
+	<!-- The test/tooling WP shims must define WordPress-named functions,
+	     call PHP DOM APIs (camelCase), and pass variables to i18n shims. -->
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<exclude-pattern>*/tests/*</exclude-pattern>
 		<exclude-pattern>*/bin/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.ValidVariableName">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.I18n">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="Universal.Files.SeparateFunctionsFromOO">
+		<exclude-pattern>*/tests/*</exclude-pattern>
 	</rule>
 	<rule ref="WordPress.WP.AlternativeFunctions">
 		<exclude-pattern>*/bin/*</exclude-pattern>
