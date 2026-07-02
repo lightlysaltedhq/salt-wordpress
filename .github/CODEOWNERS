@@ -1,0 +1,12 @@
+# salt parent theme — review ownership.
+# The whole repo is fleet infrastructure: every PR needs a maintainer review.
+* @otigs
+
+# Contract-critical surfaces (semver/security implications — see
+# docs/RELEASE-POLICY.md and docs/contracts/):
+/inc/sanitization.php @otigs
+/inc/services/consent.php @otigs
+/inc/security.php @otigs
+/template-parts/components/ @otigs
+/docs/contracts/ @otigs
+/tests/snapshot/__snapshots__/ @otigs

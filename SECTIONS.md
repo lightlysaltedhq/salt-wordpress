@@ -39,10 +39,31 @@ recipe end-to-end — copy it.
 
 ## Section registry
 
-| # | Section | Layout slug | Source | Schema | Status |
+| # | Section | Layout slug | Source | Schema | Notes |
 |---|---|---|---|---|---|
-| 3 | Rich Text | `rich_text` | inline | — | ✅ foundation exemplar |
-| 1,2,4–20 | (Phase 2) | | | | pending fan-out |
+| 1 | Hero | `hero` | inline | — | Image only in v1 (video absent this build); LCP image eager |
+| 2 | Intro / Lead | `intro` | inline | — | |
+| 3 | Rich Text | `rich_text` | inline | — | The §17 exemplar |
+| 4 | Services | `services` | `service` ✦ | Service | Default = legacy parity (DATA04) |
+| 5 | Feature Grid | `features` | inline repeater | — | |
+| 6 | Media + Text | `media_text` | inline repeater | — | Alternating mode auto-flips |
+| 7 | Stats | `stats` | inline repeater | — | `x-stat`; no count-up JS (INP) |
+| 8 | Testimonials | `testimonials` | `testimonial` ✦ | Review (itemReviewed = related Service, SEO02) | Slider = scroll-snap base + JS enhancement; no AggregateRating in v1 |
+| 9 | Logo Strip | `logos` | inline repeater | — | Also the "as featured in" home |
+| 10 | Call to Action | `cta` | inline | — | Newsletter variant deferred (compliance phase) |
+| 11 | Pricing | `pricing` | inline repeater | — | Offer schema deferred |
+| 12 | Team | `team` | `team_member` ✦ | Person (no PII in graph) | CPT not public in v1 |
+| 13 | FAQ | `faq` | `faq` ✦ | FAQPage (merged once per page, SEO03) | Native `<details>`, zero JS |
+| 14 | Process | `process` | inline repeater | HowTo (opt-in toggle, AEO) | `<ol>` semantics |
+| 15 | Portfolio / Work | `work` | `work` ✦ | CreativeWork | Client-side filtering not in v1 |
+| 16 | Gallery | `gallery` | inline | — | Carousel = scroll-snap base + JS enhancement (FAIL02) |
+| 17 | Blog Teaser | `blog_teaser` | `post` ✦ | — | Never paginates (§6 teaser rule) |
+| 18 | Scroll Carousel | `scroll_carousel` | inline repeater | — | Scroll-snap base + JS enhancement |
+| 19 | Contact | `contact` | inline + options | ContactPoint | **Markup + fields only — form gated OFF** (`salt_contact_form_enabled`, default false) until the compliance phase (SEC01/02, PRIV06) |
+| 20 | Locations | `locations` | `location` ✦ | LocalBusiness (+ OpeningHoursSpecification; `parentOrganization` linked, SEO01) | Zero-JS accordion; status pill via `salt_location_status`; OSM directions link; no map in v1 |
+
+✦ = CPT-backed; all seven resolve through `salt_resolve_query()` +
+`salt_query_control_fields()` (SCOPE01 — Locations included).
 
 ## Component args registry
 

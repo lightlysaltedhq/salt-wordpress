@@ -1,0 +1,380 @@
+<?php
+/**
+ * Process / Steps slice unit tests: x-process-step component contract
+ * (Appendix B), layout shape (DATA02), section 0/1/N states (COMPL02),
+ * <ol> semantics with position-derived numbers, malformed rows skipped +
+ * logged, and the OPT-IN HowTo schema (default OFF — AEO not SEO, §15).
+ *
+ * @package Salt\Tests
+ */
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../shims/acf.php';
+
+final class ProcessSectionTest extends SaltTestCase {
+
+	protected function setUp(): void {
+		parent::setUp();
+		salt_test_seed_fc( array() );
+	}
+
+	/**
+	 * Render ONE process section row.
+	 *
+	 * @param array<string,mixed> $fields  Row sub-field fixtures.
+	 * @param array<string,mixed> $context Loop context.
+	 * @return string
+	 */
+	private function render_process_section( array $fields = array(), array $context = array(
+		'index'      => 0,
+		'is_primary' => true,
+	) ): string {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'process',
+					'fields' => $fields,
+				),
+			)
+		);
+		$this->assertTrue( have_rows( 'sections' ) );
+		the_row();
+
+		ob_start();
+		salt_render_section( 'process', $context );
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * The current schema @graph for the fixture page.
+	 *
+	 * @return array<int,array<string,mixed>>
+	 */
+	private function graph(): array {
+		return salt_schema_graph(
+			array(
+				'home_url' => 'https://example.test',
+				'page_url' => 'https://example.test/p',
+			)
+		)['@graph'];
+	}
+
+	/**
+	 * Three valid step fixtures.
+	 *
+	 * @return array<int,array<string,string>>
+	 */
+	private function three_steps(): array {
+		return array(
+			array(
+				'title' => 'Discover',
+				'text'  => 'We learn about your goals.',
+				'icon'  => 'check',
+			),
+			array(
+				'title' => 'Design',
+				'text'  => 'We shape the solution.',
+			),
+			array(
+				'title' => 'Deliver',
+				'text'  => 'We ship and iterate.',
+			),
+		);
+	}
+
+	// -----------------------------------------------------------------
+	// x-process-step component (Appendix B).
+	// -----------------------------------------------------------------
+
+	public function test_process_step_component_renders_number_title_and_text(): void {
+		$html = salt_get_component(
+			'process-step',
+			array(
+				'number' => '2',
+				'title'  => 'Design',
+				'text'   => 'We shape the solution.',
+				'level'  => 3,
+			)
+		);
+
+		$this->assertStringContainsString( 'x-process-step-number', $html );
+		$this->assertStringContainsString( '>2</span>', $html );
+		$this->assertStringContainsString( 'aria-hidden="true"', $html, 'Visible number is decorative — the <ol> carries semantics (A11Y01).' );
+		$this->assertSame( 1, preg_match_all( '/<h3\b/', $html ), 'Title renders at the passed level.' );
+		$this->assertStringContainsString( 'Design', $html );
+		$this->assertStringContainsString( 'We shape the solution.', $html );
+	}
+
+	public function test_process_step_component_escapes_values(): void {
+		$html = salt_get_component(
+			'process-step',
+			array(
+				'number' => '1',
+				'title'  => '<script>1</script>',
+				'text'   => '<em>text</em>',
+			)
+		);
+
+		$this->assertStringNotContainsString( '<script', $html );
+		$this->assertStringNotContainsString( '<em>', $html );
+	}
+
+	public function test_process_step_component_omits_empty_text_and_icon(): void {
+		$html = salt_get_component(
+			'process-step',
+			array(
+				'number' => '1',
+				'title'  => 'Discover',
+			)
+		);
+
+		$this->assertStringNotContainsString( 'x-process-step-text', $html );
+		$this->assertStringNotContainsString( 'x-icon', $html );
+	}
+
+	public function test_process_step_component_with_blank_title_renders_nothing(): void {
+		$this->assertSame(
+			'',
+			trim(
+				salt_get_component(
+					'process-step',
+					array(
+						'number' => '1',
+						'title'  => '   ',
+					)
+				)
+			)
+		);
+	}
+
+	// -----------------------------------------------------------------
+	// Layout shape (DATA02 / FLEET07).
+	// -----------------------------------------------------------------
+
+	public function test_layout_file_shape_and_key_conventions(): void {
+		$layout = include dirname( __DIR__, 2 ) . '/inc/fields/layouts/process.php';
+
+		$this->assertSame( 'process', $layout['name'] );
+		$this->assertSame( 'layout_salt_process', $layout['key'] );
+
+		$names = array_map(
+			static fn( array $field ): string => (string) ( $field['name'] ?? '' ),
+			$layout['sub_fields']
+		);
+
+		// Content fields first, wrapper controls last.
+		$this->assertSame(
+			array( 'heading', 'eyebrow', 'layout', 'steps', 'schema_toggle' ),
+			array_slice( array_values( array_filter( $names ) ), 0, 5 )
+		);
+		$this->assertGreaterThan( array_search( 'schema_toggle', $names, true ), array_search( 'section_spacing', $names, true ) );
+
+		$steps  = null;
+		$toggle = null;
+		foreach ( $layout['sub_fields'] as $field ) {
+			if ( 'steps' === ( $field['name'] ?? '' ) ) {
+				$steps = $field;
+			}
+			if ( 'schema_toggle' === ( $field['name'] ?? '' ) ) {
+				$toggle = $field;
+			}
+		}
+
+		$this->assertNotNull( $steps );
+		$this->assertSame( 'repeater', $steps['type'] );
+		$this->assertSame(
+			array( 'title', 'text', 'icon' ),
+			array_map( static fn( array $sub ): string => (string) $sub['name'], $steps['sub_fields'] )
+		);
+		foreach ( $steps['sub_fields'] as $sub ) {
+			$this->assertStringStartsWith( 'field_salt_process_steps_', (string) $sub['key'] );
+		}
+
+		$this->assertNotNull( $toggle );
+		$this->assertSame( 'true_false', $toggle['type'] );
+		$this->assertSame( 0, $toggle['default_value'], 'HowTo schema is OPT-IN — default OFF (§15).' );
+	}
+
+	// -----------------------------------------------------------------
+	// States (COMPL02).
+	// -----------------------------------------------------------------
+
+	public function test_zero_steps_renders_nothing(): void {
+		$this->assertSame( '', $this->render_process_section( array( 'heading' => 'How we work' ) ) );
+		$this->assertSame( '', $this->render_process_section( array( 'steps' => array() ) ) );
+		$this->assertSame( '', $this->render_process_section( array( 'steps' => 'not-an-array' ) ) );
+	}
+
+	public function test_single_step_is_a_valid_static_layout(): void {
+		$html = $this->render_process_section(
+			array(
+				'heading' => 'How we work',
+				'steps'   => array(
+					array(
+						'title' => 'Discover',
+						'text'  => 'We learn about your goals.',
+					),
+				),
+			)
+		);
+
+		$this->assertStringContainsString( '<ol', $html );
+		$this->assertSame( 1, preg_match_all( '/<li\b/', $html ) );
+		$this->assertStringContainsString( '<h1', $html, 'Primary section with heading claims the H1.' );
+		$this->assertStringNotContainsString( '<script', $html, 'No JS in the process section.' );
+	}
+
+	public function test_n_steps_render_as_an_ordered_list_with_position_numbers(): void {
+		$html = $this->render_process_section(
+			array(
+				'heading' => 'How we work',
+				'steps'   => $this->three_steps(),
+			)
+		);
+
+		$this->assertSame( 1, preg_match_all( '/<ol\b/', $html ), 'Ordered-list semantics.' );
+		$this->assertSame( 3, preg_match_all( '/<li\b/', $html ) );
+		$this->assertSame( 3, preg_match_all( '/x-process-step-number/', $html ) );
+		// Numbers derive from position, in order.
+		$this->assertMatchesRegularExpression( '/>1<\/span>.*>2<\/span>.*>3<\/span>/s', $html );
+		// Step titles step to level + 1 (section heading is h1 here).
+		$this->assertSame( 3, preg_match_all( '/<h2\b/', $html ) );
+	}
+
+	public function test_timeline_is_the_default_and_cards_switches_the_grid(): void {
+		$timeline = $this->render_process_section(
+			array(
+				'steps'  => $this->three_steps(),
+				'layout' => 'unknown-value',
+			)
+		);
+		$this->assertStringContainsString( 'x-process-timeline', $timeline );
+		$this->assertStringContainsString( 'border-s border-border', $timeline, 'Timeline draws its connector line via a border.' );
+
+		$cards = $this->render_process_section(
+			array(
+				'steps'  => $this->three_steps(),
+				'layout' => 'cards',
+			)
+		);
+		$this->assertStringContainsString( 'x-process-cards', $cards );
+		$this->assertStringContainsString( 'grid', $cards );
+		$this->assertStringNotContainsString( 'x-process-timeline', $cards );
+	}
+
+	public function test_malformed_steps_are_skipped_and_logged(): void {
+		$html = $this->render_process_section(
+			array(
+				'heading' => 'How we work',
+				'steps'   => array(
+					array( 'title' => 'Kept' ),
+					array(
+						'title' => '   ',
+						'text'  => 'Blank title',
+					),
+					'not-a-row',
+					array( 'text' => 'Missing title' ),
+				),
+			)
+		);
+
+		$this->assertSame( 1, preg_match_all( '/<li\b/', $html ), 'Only the valid step renders.' );
+		$logs = implode( ' ', $this->logs() );
+		$this->assertStringContainsString( 'process section: step 1 has no title', $logs );
+		$this->assertStringContainsString( 'process section: step 2 is not a row array', $logs );
+		$this->assertStringContainsString( 'process section: step 3 has no title', $logs );
+	}
+
+	public function test_all_steps_malformed_renders_nothing(): void {
+		$html = $this->render_process_section(
+			array( 'steps' => array( array( 'text' => 'no title' ) ) )
+		);
+
+		$this->assertSame( '', $html, 'Never a blank band (COMPL02).' );
+		$this->assertNotSame( array(), $this->logs() );
+	}
+
+	public function test_headingless_section_does_not_claim_the_h1(): void {
+		$html = $this->render_process_section(
+			array( 'steps' => array( array( 'title' => 'Discover' ) ) )
+		);
+
+		$this->assertStringNotContainsString( '<h1', $html );
+		$this->assertFalse( salt_h1_claimed(), 'Heading-less primary section must not consume the H1 claim (A11Y01).' );
+	}
+
+	// -----------------------------------------------------------------
+	// HowTo schema — OPT-IN, default OFF (§15).
+	// -----------------------------------------------------------------
+
+	public function test_no_schema_node_is_queued_by_default(): void {
+		salt_schema_reset();
+		$baseline = count( $this->graph() );
+
+		$this->render_process_section(
+			array(
+				'heading' => 'How we work',
+				'steps'   => $this->three_steps(),
+			)
+		);
+
+		$this->assertCount( $baseline, $this->graph(), 'schema_toggle defaults OFF — no HowTo node.' );
+	}
+
+	public function test_toggled_on_queues_one_howto_node_with_positioned_steps(): void {
+		salt_schema_reset();
+
+		$this->render_process_section(
+			array(
+				'heading'       => 'How we work',
+				'schema_toggle' => 1,
+				'steps'         => $this->three_steps(),
+			)
+		);
+
+		$howto = null;
+		foreach ( $this->graph() as $node ) {
+			if ( 'HowTo' === ( $node['@type'] ?? '' ) ) {
+				$howto = $node;
+			}
+		}
+
+		$this->assertNotNull( $howto, 'Exactly one HowTo node is queued when toggled on.' );
+		$this->assertSame( 'How we work', $howto['name'] );
+		$this->assertCount( 3, $howto['step'] );
+		$this->assertSame(
+			array( 1, 2, 3 ),
+			array_map( static fn( array $step ): int => (int) $step['position'], $howto['step'] )
+		);
+		$this->assertSame( 'HowToStep', $howto['step'][0]['@type'] );
+		$this->assertSame( 'Discover', $howto['step'][0]['name'] );
+		$this->assertSame( 'We learn about your goals.', $howto['step'][0]['text'] );
+	}
+
+	public function test_howto_step_text_falls_back_to_the_title_and_skipped_rows_are_excluded(): void {
+		salt_schema_reset();
+
+		$this->render_process_section(
+			array(
+				'heading'       => 'How we work',
+				'schema_toggle' => 1,
+				'steps'         => array(
+					array( 'title' => 'Only title' ),
+					array( 'text' => 'broken — no title' ),
+				),
+			)
+		);
+
+		$howto = null;
+		foreach ( $this->graph() as $node ) {
+			if ( 'HowTo' === ( $node['@type'] ?? '' ) ) {
+				$howto = $node;
+			}
+		}
+
+		$this->assertNotNull( $howto );
+		$this->assertCount( 1, $howto['step'], 'Skipped rows never reach the schema node.' );
+		$this->assertSame( 'Only title', $howto['step'][0]['text'], 'Empty text falls back to the step title.' );
+	}
+}

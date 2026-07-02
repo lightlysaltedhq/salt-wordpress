@@ -232,3 +232,77 @@ function salt_enqueue_assets(): void {
 	}
 }
 add_action( 'wp_enqueue_scripts', 'salt_enqueue_assets' );
+
+/**
+ * Quiet manifest probe — like salt_asset() but a miss is EXPECTED and not
+ * logged. Used for per-section assets, where most sections ship no JS by
+ * design (§7).
+ *
+ * @param string $logical Logical file name, e.g. 'sections/gallery.js'.
+ * @return string|null URI on hit, null (silently) on miss.
+ */
+function salt_asset_optional( string $logical ): ?string {
+	$hashed = salt_asset_manifest()[ $logical ] ?? null;
+
+	if ( ! is_string( $hashed ) || '' === $hashed ) {
+		return null;
+	}
+
+	return get_template_directory_uri() . '/assets/dist/' . $hashed;
+}
+
+/**
+ * Server-side pre-scan of the current page's Flexible Content rows —
+ * which section layouts does this page actually contain?
+ *
+ * Drives per-section asset enqueue (CSS/JS load only for sections on the
+ * page — closing the spec's §7 conditional-enqueue silence) and is
+ * available to templates that must make decisions before the loop runs.
+ *
+ * @return string[] Hyphenated section slugs, unique, in page order.
+ */
+function salt_page_section_slugs(): array {
+	if ( ! salt_acf_active() || ! is_singular() ) {
+		return array();
+	}
+
+	$rows = get_field( 'sections' );
+	if ( ! is_array( $rows ) ) {
+		return array();
+	}
+
+	$slugs = array();
+	foreach ( $rows as $row ) {
+		if ( is_array( $row ) && isset( $row['acf_fc_layout'] ) ) {
+			$slugs[] = str_replace( '_', '-', (string) $row['acf_fc_layout'] );
+		}
+	}
+
+	return array_values( array_unique( $slugs ) );
+}
+
+/**
+ * Enqueue per-section JS modules for the sections present on this page
+ * ('wp_enqueue_scripts'). Modules are progressive enhancements (FAIL02) —
+ * a section with no module entry simply has none.
+ *
+ * @return void
+ */
+function salt_enqueue_section_assets(): void {
+	foreach ( salt_page_section_slugs() as $slug ) {
+		$src = salt_asset_optional( 'sections/' . $slug . '.js' );
+		if ( null !== $src ) {
+			wp_enqueue_script(
+				'salt-section-' . $slug,
+				$src,
+				array(),
+				null,
+				array(
+					'strategy'  => 'defer',
+					'in_footer' => true,
+				)
+			);
+		}
+	}
+}
+add_action( 'wp_enqueue_scripts', 'salt_enqueue_section_assets', 20 );

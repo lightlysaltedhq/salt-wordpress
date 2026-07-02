@@ -808,3 +808,14 @@ if ( ! function_exists( 'home_url' ) ) {
 		return 'https://example.test' . $path;
 	}
 }
+
+if ( ! function_exists( 'is_singular' ) ) {
+	/**
+	 * is_singular shim (fixture-controlled; defaults true).
+	 *
+	 * @return bool
+	 */
+	function is_singular(): bool {
+		return (bool) ( $GLOBALS['salt_test_is_singular'] ?? true );
+	}
+}

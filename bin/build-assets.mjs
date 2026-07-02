@@ -34,28 +34,50 @@ try {
 		{ cwd: root, stdio: 'inherit' }
 	);
 
-	// 2. JS via esbuild (bundled, minified, ES2020 for broad SME-browser reach).
+	// 2. JS via esbuild: the core entry plus one bundle per section module
+	// (assets/src/js/sections/*.js — enqueued only when the section is on
+	// the page; see salt_enqueue_section_assets()).
+	const sectionEntries = fs.existsSync(path.join(root, 'assets/src/js/sections'))
+		? fs.readdirSync(path.join(root, 'assets/src/js/sections')).filter((f) => f.endsWith('.js')).sort()
+		: [];
+
 	execFileSync(
 		bin('esbuild'),
 		[
 			'assets/src/js/app.js',
 			'--bundle',
 			'--minify',
-			'--format=esm',
+			'--format=iife',
 			'--target=es2020',
 			`--outfile=${path.join(tmp, 'app.js')}`,
 		],
 		{ cwd: root, stdio: 'inherit' }
 	);
 
+	fs.mkdirSync(path.join(tmp, 'sections'), { recursive: true });
+	for (const entry of sectionEntries) {
+		execFileSync(
+			bin('esbuild'),
+			[
+				`assets/src/js/sections/${entry}`,
+				'--bundle',
+				'--minify',
+				'--format=iife',
+				'--target=es2020',
+				`--outfile=${path.join(tmp, 'sections', entry)}`,
+			],
+			{ cwd: root, stdio: 'inherit' }
+		);
+	}
+
 	// 3. Content-hash into a clean dist/ and write the manifest.
 	fs.rmSync(dist, { recursive: true, force: true });
-	fs.mkdirSync(dist, { recursive: true });
+	fs.mkdirSync(path.join(dist, 'sections'), { recursive: true });
 
 	const manifest = {};
-	for (const logical of [ 'app.css', 'app.js' ]) {
+	for (const logical of [ 'app.css', 'app.js', ...sectionEntries.map((e) => `sections/${e}`) ]) {
 		const contents = fs.readFileSync(path.join(tmp, logical));
-		const outName = hashedName(logical, contents);
+		const outName = path.posix.join(path.posix.dirname(logical) === '.' ? '' : path.posix.dirname(logical), hashedName(path.posix.basename(logical), contents));
 		fs.writeFileSync(path.join(dist, outName), contents);
 		manifest[logical] = outName;
 	}
