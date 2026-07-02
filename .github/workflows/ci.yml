@@ -34,6 +34,9 @@ jobs:
       - name: Rendered-markup snapshot gate (FLEET01)
         run: vendor/bin/phpunit --testsuite snapshot
 
+      - name: DEP01 — theme survives with ACF absent (no fatal)
+        run: php bin/check-acf-absent.php
+
   js:
     name: ESLint + Stylelint
     runs-on: ubuntu-latest

@@ -6,6 +6,22 @@ docs/RELEASE-POLICY.md. Releases with breaking changes carry a **BREAKING**
 section enumerating changed components/sections at args-signature and
 markup granularity (cross-reference your site's override manifest).
 
+## [3.0.1] — 2026-07-02
+
+### Fixed
+- **DEP01 (Blocker) regression**: the theme white-screened (HTTP 500) on a
+  site without ACF Pro instead of showing the admin notice + safe
+  fallbacks. `salt_module_enabled()` and ~25 other option reads call
+  `get_field()` on render hooks; with ACF absent that function is undefined
+  and fataled during CPT registration on `init`. Fixed with a boot-time
+  safety net (`salt_ensure_acf_fallbacks()`, inc/acf.php) that defines
+  null/false-returning stubs for ACF's read API when ACF is absent, so
+  every consumer degrades to its documented default. The PHPUnit harness
+  masked this by always defining `get_field()`; added
+  `bin/check-acf-absent.php` (in CI) which reproduces a genuinely ACF-less
+  request and drives the CPT-registration path that fataled. Patch per
+  RELEASE-POLICY.md (non-markup PHP internals; no field/args/markup change).
+
 ## [3.0.0] — 2026-07-02 — Site Settings IA + appearance controls
 
 ### Added
