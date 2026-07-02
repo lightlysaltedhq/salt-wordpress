@@ -10,7 +10,7 @@
  * API map) is granted client-side. Fail-closed: no CMP on the page means
  * the click shows a consent notice, never a tile request.
  *
- * The tile provider is per-site configurable (inc/fields/options-maps.php);
+ * The tile provider is per-site configurable (inc/fields/options-integrations.php);
  * the CSP is widened for exactly that one origin, only while maps are
  * enabled, via the dedicated 'salt_csp_policy' callback below.
  *

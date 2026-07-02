@@ -47,6 +47,7 @@ $salt_modules = array(
 	'/inc/services/contact.php',
 	'/inc/services/analytics.php',
 	'/inc/performance.php',
+	'/inc/setup.php',
 	'/inc/render.php',
 	'/inc/acf.php',
 	'/inc/security.php',

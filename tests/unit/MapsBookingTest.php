@@ -16,8 +16,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 require_once __DIR__ . '/../shims/acf.php';
 require_once dirname( __DIR__, 2 ) . '/inc/services/maps.php';
 require_once dirname( __DIR__, 2 ) . '/inc/services/booking.php';
-require_once dirname( __DIR__, 2 ) . '/inc/fields/options-maps.php';
-require_once dirname( __DIR__, 2 ) . '/inc/fields/options-booking.php';
+require_once dirname( __DIR__, 2 ) . '/inc/fields/options.php';
+require_once dirname( __DIR__, 2 ) . '/inc/fields/options-integrations.php';
 
 final class MapsBookingTest extends SaltTestCase {
 

@@ -25,6 +25,30 @@ if ( ! function_exists( 'acf_add_local_field_group' ) ) {
 	}
 }
 
+if ( ! function_exists( 'acf_add_options_page' ) ) {
+	/**
+	 * acf_add_options_page capture shim.
+	 *
+	 * @param array<string,mixed> $page Options page definition.
+	 * @return void
+	 */
+	function acf_add_options_page( array $page ): void {
+		$GLOBALS['salt_test_acf_pages'][] = $page;
+	}
+}
+
+if ( ! function_exists( 'acf_add_options_sub_page' ) ) {
+	/**
+	 * acf_add_options_sub_page capture shim.
+	 *
+	 * @param array<string,mixed> $page Options sub-page definition.
+	 * @return void
+	 */
+	function acf_add_options_sub_page( array $page ): void {
+		$GLOBALS['salt_test_acf_subpages'][] = $page;
+	}
+}
+
 if ( ! function_exists( 'have_rows' ) ) {
 	/**
 	 * have_rows shim.

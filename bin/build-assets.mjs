@@ -38,8 +38,8 @@ try {
 	// Entry groups: sections/* (per-section enhancements), analytics/*
 	// (PostHog bundle, consent wiring, events adapter), maps/* + booking.js +
 	// maps.js (integration loaders). lib/ is never an entry (shared imports).
-	const ENTRY_DIRS = [ 'sections', 'analytics', 'maps' ];
-	const ROOT_ENTRIES = [ 'maps.js', 'booking.js' ];
+	const ENTRY_DIRS = [ 'sections', 'analytics', 'maps', 'admin' ];
+	const ROOT_ENTRIES = [ 'maps.js', 'booking.js', 'display-prefs.js' ];
 
 	const jsEntries = [];
 	for (const dir of ENTRY_DIRS) {

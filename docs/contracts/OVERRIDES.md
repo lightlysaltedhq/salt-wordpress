@@ -50,7 +50,8 @@ Consent + contact seams (v2 — see docs/PRIVACY-RESPONSIBILITIES.md):
   WP Consent API.
 - `salt_contact_form_enabled( bool $configured )` — kill-switch for the
   live form (defaults to "recipient configured").
-- Client-side: dispatch `salt:consent` / listen for `salt:contact-sent`;
+- Client-side: dispatch `salt:consent` / listen for `salt:contact-sent` and
+  `salt:prefs-changed` (Display Preferences);
   `window.salt.track( name, props )` forwards custom events to both
   analytics providers.
 
@@ -58,6 +59,15 @@ Consent + contact seams (v2 — see docs/PRIVACY-RESPONSIBILITIES.md):
 `salt_allowed_html()` (widening is a security-reviewed parent release,
 §16a); `salt_consent()`'s deny-paths (the bridge grants only on a strict
 CMP verdict — no filter can turn an ambiguous state into an allow).
+
+## v3 chrome seams
+
+`template-parts/header/site-header.php` and
+`template-parts/footer/site-footer.php` carry all header/footer option
+reads (the `header.php`/`footer.php` shells stay thin) — override the
+PARTS, not the shells. `Salt_Nav_Walker` renders core menus (locations:
+`primary`, `footer`). `salt_options_subpages()` (inc/fields/options.php)
+is the Site Settings menu registry — one array entry per sub-page.
 
 ## Template overrides (native hierarchy)
 

@@ -12,7 +12,7 @@
  * loads on our page).
  *
  * Provider + URL are site-configurable non-secrets
- * (inc/fields/options-booking.php). The CSP is widened for exactly the
+ * (inc/fields/options-integrations.php). The CSP is widened for exactly the
  * configured provider's origins via the dedicated 'salt_csp_policy'
  * callback below, only while the integration is configured.
  *

@@ -16,7 +16,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../shims/acf.php';
 require_once __DIR__ . '/../shims/http.php';
 require_once __DIR__ . '/../../inc/services/captcha.php';
-require_once __DIR__ . '/../../inc/fields/options-captcha.php';
+require_once __DIR__ . '/../../inc/fields/options.php';
+require_once __DIR__ . '/../../inc/fields/options-contact.php';
 
 final class CaptchaTest extends SaltTestCase {
 
@@ -454,7 +455,7 @@ final class CaptchaTest extends SaltTestCase {
 		$group = $GLOBALS['salt_test_acf_groups'][0];
 
 		$this->assertSame( 'group_salt_options_captcha', $group['key'] );
-		$this->assertSame( 'salt-settings', $group['location'][0][0]['value'] );
+		$this->assertSame( 'salt-settings-contact', $group['location'][0][0]['value'] );
 		$this->assertSame( array(), $this->logs(), 'No DATA02 key-convention drift.' );
 
 		$provider = null;

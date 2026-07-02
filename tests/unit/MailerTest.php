@@ -19,6 +19,7 @@ require_once __DIR__ . '/../shims/mail.php';
 require_once __DIR__ . '/../shims/webhooks.php';
 require_once dirname( __DIR__, 2 ) . '/inc/services/webhooks.php';
 require_once dirname( __DIR__, 2 ) . '/inc/services/mailer.php';
+require_once dirname( __DIR__, 2 ) . '/inc/fields/options.php';
 require_once dirname( __DIR__, 2 ) . '/inc/fields/options-contact.php';
 
 final class MailerTest extends SaltTestCase {

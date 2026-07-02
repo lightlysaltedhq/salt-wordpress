@@ -19,11 +19,16 @@
  *     mainEntity array merges (in order) into the single {page}#faq node.
  *  4. SEO01: office LocalBusiness nodes (type LocalBusiness, or any subtype
  *     flagged 'salt_office' => true) reference the brand via
- *     parentOrganization; the brand node itself is always Organization —
- *     this builder never emits a brand-level LocalBusiness.
+ *     parentOrganization. The brand node is Organization by default; the
+ *     org_type option may promote it to LocalBusiness ONLY when no office
+ *     node is queued — the brand is never a LocalBusiness alongside offices.
  *  5. SEO02: aggregateRating on an Organization/LocalBusiness node is
- *     self-serving and stripped; any aggregateRating with a zero
- *     ratingCount/reviewCount is stripped (omit-when-zero).
+ *     self-serving and stripped; any node carrying the brand @id
+ *     ({home}#organization) has aggregateRating/review stripped regardless
+ *     of its @type (subtype leak); any aggregateRating with a zero
+ *     ratingCount/reviewCount is stripped (omit-when-zero). The strip
+ *     re-runs on every same-@id merge result so a queued node cannot
+ *     smuggle a rating into the brand node via the shallow merge.
  *  6. Deterministic order: Organization, WebSite, WebPage, BreadcrumbList,
  *     then queued nodes in insertion order.
  *
@@ -96,21 +101,30 @@ function salt_schema_reset(): void {
 /**
  * Police aggregateRating on a node (SEO02).
  *
- * Organization/LocalBusiness self-ratings are stripped outright; any
- * aggregateRating whose ratingCount/reviewCount is zero is stripped
- * (omit-when-zero).
+ * Organization/LocalBusiness self-ratings are stripped outright; any node
+ * carrying the brand @id has aggregateRating AND review stripped regardless
+ * of its @type (a Dentist-typed node with the org @id is still the brand —
+ * subtype leak); any aggregateRating whose ratingCount/reviewCount is zero
+ * is stripped (omit-when-zero).
  *
  * @param array<string,mixed> $node      Node (with '@id' already assigned).
  * @param bool                $is_office Whether the node is an office LocalBusiness (SEO01 flag).
+ * @param string              $org_id    The brand @id ({home}#organization); '' skips the @id check.
  * @return array<string,mixed>
  */
-function salt_schema_police_rating( array $node, bool $is_office ): array {
-	if ( ! array_key_exists( 'aggregateRating', $node ) ) {
+function salt_schema_police_rating( array $node, bool $is_office, string $org_id = '' ): array {
+	$type = (string) ( $node['@type'] ?? '' );
+	$id   = (string) ( $node['@id'] ?? '' );
+
+	if ( '' !== $org_id && $id === $org_id && ( array_key_exists( 'aggregateRating', $node ) || array_key_exists( 'review', $node ) ) ) {
+		unset( $node['aggregateRating'], $node['review'] );
+		salt_log( sprintf( 'schema: stripped self-serving aggregateRating/review from brand-@id node %s "%s" (SEO02).', $type, $id ) );
 		return $node;
 	}
 
-	$type = (string) ( $node['@type'] ?? '' );
-	$id   = (string) ( $node['@id'] ?? '' );
+	if ( ! array_key_exists( 'aggregateRating', $node ) ) {
+		return $node;
+	}
 
 	if ( $is_office || in_array( $type, array( 'Organization', 'LocalBusiness' ), true ) ) {
 		unset( $node['aggregateRating'] );
@@ -166,7 +180,7 @@ function salt_schema_merge_node( array $existing, array $incoming ): array {
  *     page_url?: string,
  *     page_title?: string,
  *     site_name?: string,
- *     org?: array{name?:string,legal_name?:string,logo?:string,same_as?:string[],phone?:string,email?:string},
+ *     org?: array{name?:string,legal_name?:string,logo?:string,same_as?:string[],phone?:string,email?:string,address?:string,type?:string},
  *     breadcrumbs?: array<int,array{name?:string,url?:string}>,
  *     is_archive?: bool
  * } $context Page context (all optional, fixture-driven).
@@ -197,10 +211,29 @@ function salt_schema_graph( array $context ): array {
 		$graph[]                                     = $node;
 	};
 
+	// SEO01: any queued office node (LocalBusiness, or a flagged subtype)
+	// pins the brand to Organization — never a brand-level LocalBusiness.
+	$has_office = false;
+	foreach ( salt_schema_queue() as $queued ) {
+		if ( 'LocalBusiness' === (string) $queued['@type'] || ! empty( $queued['salt_office'] ) ) {
+			$has_office = true;
+			break;
+		}
+	}
+
+	$brand_type = 'Organization';
+	if ( 'local_business' === (string) ( $org['type'] ?? '' ) ) {
+		if ( $has_office ) {
+			salt_log( 'schema: org_type "local_business" ignored — office nodes are queued, brand stays Organization (SEO01).' );
+		} else {
+			$brand_type = 'LocalBusiness';
+		}
+	}
+
 	// 1. Organization ({home}#organization) — omitted when the org name is empty.
 	if ( $has_org ) {
 		$node = array(
-			'@type' => 'Organization',
+			'@type' => $brand_type,
 			'@id'   => $org_id,
 			'name'  => $org_name,
 		);
@@ -214,9 +247,11 @@ function salt_schema_graph( array $context ): array {
 			$node['logo'] = $org['logo'];
 		}
 		$same_as = array_values(
-			array_filter(
-				(array) ( $org['same_as'] ?? array() ),
-				static fn( $url ): bool => is_string( $url ) && '' !== $url
+			array_unique(
+				array_filter(
+					(array) ( $org['same_as'] ?? array() ),
+					static fn( $url ): bool => is_string( $url ) && '' !== $url
+				)
 			)
 		);
 		if ( array() !== $same_as ) {
@@ -227,6 +262,12 @@ function salt_schema_graph( array $context ): array {
 		}
 		if ( is_string( $org['email'] ?? null ) && '' !== $org['email'] ) {
 			$node['email'] = $org['email'];
+		}
+		$org_address = is_string( $org['address'] ?? null ) ? trim( $org['address'] ) : '';
+		if ( '' !== $org_address ) {
+			// schema.org accepts Text for address — the free-text option is
+			// passed through verbatim, never decomposed into a PostalAddress.
+			$node['address'] = $org_address;
 		}
 		$append( $node );
 	}
@@ -316,11 +357,18 @@ function salt_schema_graph( array $context ): array {
 			$node['parentOrganization'] = array( '@id' => $org_id );
 		}
 
-		$node = salt_schema_police_rating( $node, $is_office );
+		$node = salt_schema_police_rating( $node, $is_office, $org_id );
 
 		$id = (string) $node['@id'];
 		if ( isset( $index_of[ $id ] ) ) {
-			$graph[ $index_of[ $id ] ] = salt_schema_merge_node( $graph[ $index_of[ $id ] ], $node );
+			// SEO02: re-police the merge RESULT — the shallow merge adds
+			// missing keys, so a queued node sharing the brand @id could
+			// otherwise smuggle aggregateRating/review into the org node.
+			$graph[ $index_of[ $id ] ] = salt_schema_police_rating(
+				salt_schema_merge_node( $graph[ $index_of[ $id ] ], $node ),
+				$is_office,
+				$org_id
+			);
 			salt_log( sprintf( 'schema: duplicate @id "%s" merged — first node wins per key.', $id ) );
 			continue;
 		}
@@ -380,6 +428,17 @@ function salt_schema_wp_context(): array {
 		)
 	);
 
+	// The review profile is a public brand profile — it joins sameAs (the
+	// graph builder dedupes). Only honoured while a provider is selected;
+	// the URL field is conditionally hidden but its value persists.
+	$reviews_provider = salt_schema_option_string( 'reviews_provider' );
+	$reviews_url      = salt_schema_option_string( 'reviews_profile_url' );
+	if ( '' !== $reviews_provider && '' !== $reviews_url ) {
+		$same_as[] = $reviews_url;
+	}
+
+	$org_type = salt_schema_option_string( 'org_type' );
+
 	$context = array(
 		'home_url'    => (string) home_url( '/' ),
 		'page_url'    => $page_url,
@@ -390,8 +449,10 @@ function salt_schema_wp_context(): array {
 			'legal_name' => salt_schema_option_string( 'org_legal_name' ),
 			'logo'       => salt_schema_option_string( 'org_logo' ),
 			'same_as'    => $same_as,
-			'phone'      => salt_schema_option_string( 'org_phone' ),
-			'email'      => salt_schema_option_string( 'org_email' ),
+			'phone'      => salt_schema_option_string( 'company_phone' ),
+			'email'      => salt_schema_option_string( 'company_email' ),
+			'address'    => trim( salt_schema_option_string( 'company_address' ) ),
+			'type'       => 'local_business' === $org_type ? 'local_business' : 'organization',
 		),
 		'breadcrumbs' => array(),
 		'is_archive'  => (bool) is_archive(),

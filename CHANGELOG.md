@@ -6,6 +6,43 @@ docs/RELEASE-POLICY.md. Releases with breaking changes carry a **BREAKING**
 section enumerating changed components/sections at args-signature and
 markup granularity (cross-reference your site's override manifest).
 
+## [3.0.0] — 2026-07-02 — Site Settings IA + appearance controls
+
+### Added
+- **Site Settings restructured into seven sub-pages** ordered as the
+  day-one setup walk: Company & Schema, Brand & Design, Logo & Fonts,
+  Header & Footer, Contact, Integrations, Advanced. All existing values
+  survive untouched (field names/keys frozen; page location is
+  presentation, not storage).
+- **Self-hosted fonts** (upload woff2/woff/ttf per weight, format
+  preference, ≤2 preloads, `--font-heading`/`--font-body` role tokens).
+- **Logo panel**: light/dark display logos (attribute-driven dark swap),
+  height token, text fallback — distinct from the schema logo.
+- **Header & Footer options**: sticky header with automatic anchor offset
+  (§12a), header CTA, footer line + social icons; `Salt_Nav_Walker` with
+  registered `primary`/`footer` menu locations.
+- **Display Preferences widget** (§14, off by default): font size steps,
+  high contrast, grayscale, dark mode, motion — token-level, localStorage
+  persisted, pre-paint init, never an overlay.
+- **Admin live contrast checker** on Brand & Design: WCAG AA pass/fail for
+  the derived pairs in light AND dark, with a PHP↔JS colour-math parity
+  gate in CI.
+- Schema: `org_type` (single-location LocalBusiness), review profile into
+  `sameAs`, `company_address` passthrough; SEO02 hardening (@id-based
+  self-rating policing incl. post-merge).
+
+### Fixed
+- `company_address` was consumed by the Contact section but never
+  registered; the schema builder read `org_phone`/`org_email` instead of
+  the registered `company_phone`/`company_email`.
+
+### Changed
+- **BREAKING**: `header.php`/`footer.php` now render the site chrome
+  (header/footer parts, logo, menus) on every page — child themes
+  overriding either shell or styling the header area must re-verify.
+  New template parts under `template-parts/header|footer/`. The consent
+  init script grew preference keys (same nonce'd-script contract).
+
 ## [2.0.0] — 2026-07-02 — contact backend + integrations
 
 Compliance is now **per-site by design**: each site picks a consent plugin;

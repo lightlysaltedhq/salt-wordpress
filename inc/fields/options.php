@@ -1,11 +1,16 @@
 <?php
 /**
- * Options pages + global fields: Brand & Design, Company/Schema, Modules
- * (spec §13; DATA02 keys).
+ * Site Settings — page registrar ONLY (spec §13; approved v3 IA).
  *
- * Registered on acf/init (fires only when ACF is active — DEP01 guard is
- * structural). Values live in the DATABASE (wp_options) — see the
- * what-travels-where table in docs/contracts/DATA-BOUNDARIES.md (DATA03).
+ * One top-level menu + seven sub-pages ordered as the day-one setup walk:
+ * identity → look → assets → chrome → conversion → third parties →
+ * developer switches. Field groups live in inc/fields/options-{page}.php,
+ * one file per sub-page, each targeting its sub-page slug.
+ *
+ * Values live in wp_options as options_{field_name} regardless of page —
+ * page slugs and group locations are presentation, never storage (that is
+ * why this restructure needs no migration; field NAMES/KEYS stay frozen,
+ * FLEET07/DATA02).
  *
  * @package Salt
  */
@@ -15,12 +20,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Register the theme options pages.
+ * The Site Settings sub-pages, in menu order (pure — unit-testable).
+ *
+ * Array order IS the menu order (ACF renders sub-pages in registration
+ * order). Adding a sub-page later = one entry here + a group file
+ * targeting the slug. Slug convention: salt-settings-{scope}, matching
+ * the group scope group_salt_options_{scope}.
+ *
+ * @return array<string,array{title: string}>
+ */
+function salt_options_subpages(): array {
+	return array(
+		'salt-settings-company'       => array( 'title' => __( 'Company & Schema', 'salt' ) ),
+		'salt-settings-brand'         => array( 'title' => __( 'Brand & Design', 'salt' ) ),
+		'salt-settings-logo-fonts'    => array( 'title' => __( 'Logo & Fonts', 'salt' ) ),
+		'salt-settings-header-footer' => array( 'title' => __( 'Header & Footer', 'salt' ) ),
+		'salt-settings-contact'       => array( 'title' => __( 'Contact', 'salt' ) ),
+		'salt-settings-integrations'  => array( 'title' => __( 'Integrations', 'salt' ) ),
+		'salt-settings-advanced'      => array( 'title' => __( 'Advanced', 'salt' ) ),
+	);
+}
+
+/**
+ * Register the Site Settings parent + sub-pages.
+ *
+ * redirect => true: the parent holds no groups; admin.php?page=salt-settings
+ * lands on the first sub-page, so pre-v3 bookmarks keep working.
  *
  * @return void
  */
 function salt_register_options_pages(): void {
-	if ( ! function_exists( 'acf_add_options_page' ) ) {
+	if ( ! function_exists( 'acf_add_options_page' ) || ! function_exists( 'acf_add_options_sub_page' ) ) {
 		return;
 	}
 
@@ -30,157 +60,38 @@ function salt_register_options_pages(): void {
 			'menu_title' => __( 'Site Settings', 'salt' ),
 			'menu_slug'  => 'salt-settings',
 			'capability' => 'manage_options',
-			'redirect'   => false,
+			'redirect'   => true,
 		)
 	);
+
+	foreach ( salt_options_subpages() as $slug => $def ) {
+		acf_add_options_sub_page(
+			array(
+				'page_title'  => $def['title'],
+				'menu_title'  => $def['title'],
+				'menu_slug'   => $slug,
+				'parent_slug' => 'salt-settings',
+				'capability'  => 'manage_options',
+			)
+		);
+	}
 }
 add_action( 'acf/init', 'salt_register_options_pages' );
 
 /**
- * Register the global option field groups.
+ * Location rule targeting one Site Settings sub-page (registration helper).
  *
- * @return void
+ * @param string $slug Sub-page slug.
+ * @return array<int,array<int,array<string,string>>>
  */
-function salt_register_options_fields(): void {
-	// Brand & Design.
-	salt_register_field_group(
+function salt_options_location( string $slug ): array {
+	return array(
 		array(
-			'key'      => 'group_salt_options_brand',
-			'title'    => __( 'Brand & Design', 'salt' ),
-			'fields'   => array(
-				array(
-					'key'          => 'field_salt_options_brand_primary',
-					'name'         => 'brand_primary',
-					'label'        => __( 'Primary colour', 'salt' ),
-					'instructions' => __( 'The whole palette is derived from this colour (shade ramps, text pairings, focus ring). Contrast-safe text is derived automatically.', 'salt' ),
-					'type'         => 'color_picker',
-				),
-				array(
-					'key'   => 'field_salt_options_brand_secondary',
-					'name'  => 'brand_secondary',
-					'label' => __( 'Secondary colour (optional)', 'salt' ),
-					'type'  => 'color_picker',
-				),
-				array(
-					'key'   => 'field_salt_options_brand_accent',
-					'name'  => 'brand_accent',
-					'label' => __( 'Accent colour (optional)', 'salt' ),
-					'type'  => 'color_picker',
-				),
-				array(
-					'key'           => 'field_salt_options_brand_dark_mode',
-					'name'          => 'dark_mode',
-					'label'         => __( 'Enable dark mode', 'salt' ),
-					'instructions'  => __( 'When on, the site follows the visitor\'s colour-scheme preference (semantic token inversion).', 'salt' ),
-					'type'          => 'true_false',
-					'ui'            => 1,
-					'default_value' => 0,
-				),
+			array(
+				'param'    => 'options_page',
+				'operator' => '==',
+				'value'    => $slug,
 			),
-			'location' => array(
-				array(
-					array(
-						'param'    => 'options_page',
-						'operator' => '==',
-						'value'    => 'salt-settings',
-					),
-				),
-			),
-		)
-	);
-
-	// Company & Schema.
-	salt_register_field_group(
-		array(
-			'key'      => 'group_salt_options_company',
-			'title'    => __( 'Company & Schema', 'salt' ),
-			'fields'   => array(
-				array(
-					'key'   => 'field_salt_options_company_org_name',
-					'name'  => 'org_name',
-					'label' => __( 'Organisation name', 'salt' ),
-					'type'  => 'text',
-				),
-				array(
-					'key'   => 'field_salt_options_company_org_legal_name',
-					'name'  => 'org_legal_name',
-					'label' => __( 'Legal name (optional)', 'salt' ),
-					'type'  => 'text',
-				),
-				array(
-					'key'           => 'field_salt_options_company_org_logo',
-					'name'          => 'org_logo',
-					'label'         => __( 'Schema logo', 'salt' ),
-					'type'          => 'image',
-					'return_format' => 'url',
-				),
-				array(
-					'key'   => 'field_salt_options_company_phone',
-					'name'  => 'company_phone',
-					'label' => __( 'Phone', 'salt' ),
-					'type'  => 'text',
-				),
-				array(
-					'key'   => 'field_salt_options_company_email',
-					'name'  => 'company_email',
-					'label' => __( 'Email', 'salt' ),
-					'type'  => 'email',
-				),
-				array(
-					'key'        => 'field_salt_options_company_same_as',
-					'name'       => 'org_same_as',
-					'label'      => __( 'Profiles (sameAs URLs)', 'salt' ),
-					'type'       => 'repeater',
-					'sub_fields' => array(
-						array(
-							'key'   => 'field_salt_options_company_same_as_url',
-							'name'  => 'url',
-							'label' => __( 'URL', 'salt' ),
-							'type'  => 'url',
-						),
-					),
-				),
-			),
-			'location' => array(
-				array(
-					array(
-						'param'    => 'options_page',
-						'operator' => '==',
-						'value'    => 'salt-settings',
-					),
-				),
-			),
-		)
-	);
-
-	// Modules on/off (§10b).
-	$module_fields = array();
-	foreach ( salt_modules() as $slug => $label ) {
-		$module_fields[] = array(
-			'key'           => 'field_salt_options_modules_' . $slug,
-			'name'          => 'module_' . $slug,
-			'label'         => $label,
-			'type'          => 'true_false',
-			'ui'            => 1,
-			'default_value' => 1,
-		);
-	}
-
-	salt_register_field_group(
-		array(
-			'key'      => 'group_salt_options_modules',
-			'title'    => __( 'Modules', 'salt' ),
-			'fields'   => $module_fields,
-			'location' => array(
-				array(
-					array(
-						'param'    => 'options_page',
-						'operator' => '==',
-						'value'    => 'salt-settings',
-					),
-				),
-			),
-		)
+		),
 	);
 }
-add_action( 'acf/init', 'salt_register_options_fields' );

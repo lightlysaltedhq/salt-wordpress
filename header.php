@@ -17,4 +17,5 @@
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
 <a class="visually-hidden" href="#main"><?php esc_html_e( 'Skip to content', 'salt' ); ?></a>
+<?php get_template_part( 'template-parts/header/site-header' ); ?>
 <main id="main">

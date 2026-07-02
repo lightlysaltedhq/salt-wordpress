@@ -60,7 +60,8 @@
 			"brand_accent",
 			"brand_primary",
 			"brand_secondary",
-			"dark_mode"
+			"dark_mode",
+			"reduce_motion"
 		],
 		"group_salt_options_captcha": [
 			"captcha_provider",
@@ -68,12 +69,16 @@
 			"captcha_turnstile_site_key"
 		],
 		"group_salt_options_company": [
+			"company_address",
 			"company_email",
 			"company_phone",
 			"org_legal_name",
 			"org_logo",
 			"org_name",
 			"org_same_as",
+			"org_type",
+			"reviews_profile_url",
+			"reviews_provider",
 			"url"
 		],
 		"group_salt_options_contact": [
@@ -90,6 +95,32 @@
 		],
 		"group_salt_options_contact_form": [
 			"contact_privacy_page"
+		],
+		"group_salt_options_display": [
+			"display_controls",
+			"display_preferences_enabled"
+		],
+		"group_salt_options_fonts": [
+			"file",
+			"font_body_files",
+			"font_format",
+			"font_heading_files",
+			"style",
+			"weight"
+		],
+		"group_salt_options_footer": [
+			"footer_show_social",
+			"footer_text"
+		],
+		"group_salt_options_header": [
+			"header_cta",
+			"header_sticky"
+		],
+		"group_salt_options_logo": [
+			"logo_dark",
+			"logo_height",
+			"logo_light",
+			"logo_text_fallback"
 		],
 		"group_salt_options_maps": [
 			"maps_enabled",

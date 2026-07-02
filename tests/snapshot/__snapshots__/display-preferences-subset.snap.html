@@ -1,0 +1,51 @@
+<div
+	class="x-display-preferences"
+	hidden
+	data-salt-display-prefs
+		data-motion-default="reduce"
+	>
+	<details class="x-display-preferences-panel rounded-md border border-border bg-surface text-ink">
+		<summary class="x-display-preferences-summary flex min-h-6 min-w-6 cursor-pointer items-center gap-2 p-2 text-sm font-medium">
+			Display preferences		</summary>
+		<div class="x-display-preferences-controls flex flex-col gap-2 border-t border-border p-3">
+										<div class="x-display-preferences-group flex items-center justify-between gap-4" role="group" aria-label="Font size">
+				<span class="x-display-preferences-label text-sm" aria-hidden="true">Font size</span>
+				<span class="inline-flex gap-1">
+					<button
+						type="button"
+						class="inline-flex min-h-6 min-w-6 items-center justify-center gap-2 rounded-md border border-border bg-surface p-2 text-sm text-ink aria-pressed:bg-brand aria-pressed:border-brand aria-pressed:text-on-brand focus-visible:outline-2 focus-visible:outline-offset-2"
+						data-salt-pref="scale"
+						data-salt-action="decrease"
+						aria-label="Decrease font size"
+					><span aria-hidden="true">A&minus;</span></button>
+					<button
+						type="button"
+						class="inline-flex min-h-6 min-w-6 items-center justify-center gap-2 rounded-md border border-border bg-surface p-2 text-sm text-ink aria-pressed:bg-brand aria-pressed:border-brand aria-pressed:text-on-brand focus-visible:outline-2 focus-visible:outline-offset-2"
+						data-salt-pref="scale"
+						data-salt-action="reset"
+						aria-label="Reset font size"
+					><span aria-hidden="true">A</span></button>
+					<button
+						type="button"
+						class="inline-flex min-h-6 min-w-6 items-center justify-center gap-2 rounded-md border border-border bg-surface p-2 text-sm text-ink aria-pressed:bg-brand aria-pressed:border-brand aria-pressed:text-on-brand focus-visible:outline-2 focus-visible:outline-offset-2"
+						data-salt-pref="scale"
+						data-salt-action="increase"
+						aria-label="Increase font size"
+					><span aria-hidden="true">A+</span></button>
+				</span>
+			</div>
+														<button
+				type="button"
+				class="inline-flex min-h-6 min-w-6 items-center justify-center gap-2 rounded-md border border-border bg-surface p-2 text-sm text-ink aria-pressed:bg-brand aria-pressed:border-brand aria-pressed:text-on-brand focus-visible:outline-2 focus-visible:outline-offset-2 w-full justify-between"
+				aria-pressed="false"
+				data-salt-pref="contrast"
+			>High contrast</button>
+														<button
+				type="button"
+				class="inline-flex min-h-6 min-w-6 items-center justify-center gap-2 rounded-md border border-border bg-surface p-2 text-sm text-ink aria-pressed:bg-brand aria-pressed:border-brand aria-pressed:text-on-brand focus-visible:outline-2 focus-visible:outline-offset-2 w-full justify-between"
+				aria-pressed="false"
+				data-salt-pref="motion"
+			>Reduce motion</button>
+									</div>
+	</details>
+</div>

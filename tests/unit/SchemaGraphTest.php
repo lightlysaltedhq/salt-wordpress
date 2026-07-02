@@ -82,6 +82,16 @@ final class SchemaGraphTest extends SaltTestCase {
 	}
 
 	/**
+	 * The default fixture org block with overrides (for context( array( 'org' => … ) )).
+	 *
+	 * @param array<string,mixed> $overrides Org key overrides.
+	 * @return array<string,mixed>
+	 */
+	private function org( array $overrides = array() ): array {
+		return array_merge( $this->context()['org'], $overrides );
+	}
+
+	/**
 	 * A FAQPage node with $count fixture questions labelled by $prefix.
 	 *
 	 * @param int    $count  Question count.
@@ -608,12 +618,14 @@ final class SchemaGraphTest extends SaltTestCase {
 
 	public function test_wp_context_builder_reads_options_and_conditionals(): void {
 		$GLOBALS['salt_test_fields']['option'] = array(
-			'org_name'       => 'Option Org',
-			'org_legal_name' => 'Option Org Ltd',
-			'org_logo'       => array( 'url' => 'https://example.test/media/logo.svg' ),
-			'org_same_as'    => array( 'https://www.linkedin.com/company/option', '' ),
-			'org_phone'      => '+44 20 7946 0000',
-			'org_email'      => 'hi@example.test',
+			'org_name'        => 'Option Org',
+			'org_legal_name'  => 'Option Org Ltd',
+			'org_logo'        => array( 'url' => 'https://example.test/media/logo.svg' ),
+			'org_same_as'     => array( 'https://www.linkedin.com/company/option', '' ),
+			'company_phone'   => '+44 20 7946 0000',
+			'company_email'   => 'hi@example.test',
+			'company_address' => "1 Example Street\nExampleton EX1 2AB\n",
+			'org_type'        => 'local_business',
 		);
 
 		$context = salt_schema_wp_context();
@@ -631,6 +643,8 @@ final class SchemaGraphTest extends SaltTestCase {
 				'same_as'    => array( 'https://www.linkedin.com/company/option' ),
 				'phone'      => '+44 20 7946 0000',
 				'email'      => 'hi@example.test',
+				'address'    => "1 Example Street\nExampleton EX1 2AB",
+				'type'       => 'local_business',
 			),
 			$context['org']
 		);
@@ -667,5 +681,204 @@ final class SchemaGraphTest extends SaltTestCase {
 
 		$this->assertSame( self::PAGE, $context['page_url'] );
 		$this->assertTrue( $context['is_archive'] );
+	}
+
+	// -----------------------------------------------------------------------
+	// 9. org_type — brand LocalBusiness promotion (SEO01 guard).
+	// -----------------------------------------------------------------------
+
+	public function test_org_type_local_business_promotes_brand_when_no_offices(): void {
+		$document = salt_schema_graph( $this->context( array( 'org' => $this->org( array( 'type' => 'local_business' ) ) ) ) );
+
+		$brand = $this->node_by_id( $document, self::HOME . '#organization' );
+		$this->assertNotNull( $brand );
+		$this->assertSame( 'LocalBusiness', $brand['@type'], 'Single-location sites may promote the brand node to LocalBusiness.' );
+
+		// SEO05 linkage survives the promotion.
+		$website = $this->node_by_id( $document, self::HOME . '#website' );
+		$this->assertSame( array( '@id' => self::HOME . '#organization' ), $website['publisher'] );
+		$this->assert_unique_ids( $document );
+	}
+
+	public function test_org_type_local_business_ignored_when_offices_queued(): void {
+		salt_schema_add(
+			array(
+				'@type' => 'LocalBusiness',
+				'name'  => 'Example Co London',
+			)
+		);
+
+		$document = salt_schema_graph( $this->context( array( 'org' => $this->org( array( 'type' => 'local_business' ) ) ) ) );
+
+		$brand = $this->node_by_id( $document, self::HOME . '#organization' );
+		$this->assertSame( 'Organization', $brand['@type'], 'The brand node is never a LocalBusiness alongside offices (SEO01).' );
+
+		$office = $this->nodes_of_type( $document, 'LocalBusiness' )[0];
+		$this->assertSame(
+			array( '@id' => self::HOME . '#organization' ),
+			$office['parentOrganization'],
+			'Offices keep their parentOrganization reference when the promotion is refused.'
+		);
+		$this->assertNotEmpty(
+			array_filter( $this->logs(), static fn( string $line ): bool => str_contains( $line, 'local_business' ) ),
+			'Refusing the LocalBusiness promotion must be logged.'
+		);
+		$this->assert_unique_ids( $document );
+	}
+
+	public function test_org_type_local_business_ignored_when_flagged_subtype_office_queued(): void {
+		salt_schema_add(
+			array(
+				'@type'       => 'Dentist',
+				'name'        => 'Example Dental',
+				'salt_office' => true,
+			)
+		);
+
+		$document = salt_schema_graph( $this->context( array( 'org' => $this->org( array( 'type' => 'local_business' ) ) ) ) );
+		$this->assertSame( 'Organization', $this->node_by_id( $document, self::HOME . '#organization' )['@type'] );
+	}
+
+	public function test_org_type_defaults_to_organization(): void {
+		$document = salt_schema_graph( $this->context() );
+		$this->assertSame( 'Organization', $this->node_by_id( $document, self::HOME . '#organization' )['@type'] );
+	}
+
+	// -----------------------------------------------------------------------
+	// 10. sameAs — reviews profile URL + dedupe; address passthrough.
+	// -----------------------------------------------------------------------
+
+	public function test_org_same_as_is_deduped(): void {
+		$document = salt_schema_graph(
+			$this->context(
+				array(
+					'org' => $this->org(
+						array(
+							'same_as' => array(
+								'https://www.linkedin.com/company/example',
+								'https://g.page/example-co',
+								'https://www.linkedin.com/company/example',
+							),
+						)
+					),
+				)
+			)
+		);
+
+		$brand = $this->node_by_id( $document, self::HOME . '#organization' );
+		$this->assertSame(
+			array( 'https://www.linkedin.com/company/example', 'https://g.page/example-co' ),
+			$brand['sameAs'],
+			'sameAs must be deduped with the original order preserved.'
+		);
+	}
+
+	public function test_wp_context_appends_reviews_profile_url_to_same_as(): void {
+		$GLOBALS['salt_test_fields']['option'] = array(
+			'org_name'            => 'Option Org',
+			'org_same_as'         => array( 'https://www.linkedin.com/company/option' ),
+			'reviews_provider'    => 'google',
+			'reviews_profile_url' => 'https://g.page/option-org',
+		);
+
+		$context = salt_schema_wp_context();
+		$this->assertSame(
+			array( 'https://www.linkedin.com/company/option', 'https://g.page/option-org' ),
+			$context['org']['same_as']
+		);
+	}
+
+	public function test_wp_context_reviews_url_deduped_in_graph_and_ignored_without_provider(): void {
+		// A profile URL already present in org_same_as must not repeat.
+		$GLOBALS['salt_test_fields']['option'] = array(
+			'org_name'            => 'Option Org',
+			'org_same_as'         => array( 'https://g.page/option-org' ),
+			'reviews_provider'    => 'google',
+			'reviews_profile_url' => 'https://g.page/option-org',
+		);
+
+		$brand = $this->node_by_id( salt_schema_graph( salt_schema_wp_context() ), self::HOME . '/#organization' );
+		$this->assertSame( array( 'https://g.page/option-org' ), $brand['sameAs'], 'The reviews profile URL must dedupe against org_same_as.' );
+
+		// The URL field's value persists when the provider is unset — ignore it.
+		$GLOBALS['salt_test_fields']['option']['reviews_provider'] = '';
+		$context = salt_schema_wp_context();
+		$this->assertSame( array( 'https://g.page/option-org' ), $context['org']['same_as'] );
+	}
+
+	public function test_company_address_passes_through_as_text(): void {
+		$address  = "1 Example Street\nExampleton EX1 2AB";
+		$document = salt_schema_graph( $this->context( array( 'org' => $this->org( array( 'address' => $address . "\n" ) ) ) ) );
+
+		$brand = $this->node_by_id( $document, self::HOME . '#organization' );
+		$this->assertSame( $address, $brand['address'], 'company_address is schema.org Text — trimmed, never decomposed into PostalAddress.' );
+	}
+
+	public function test_company_address_absent_when_empty(): void {
+		$document = salt_schema_graph( $this->context( array( 'org' => $this->org( array( 'address' => "  \n" ) ) ) ) );
+
+		$brand = $this->node_by_id( $document, self::HOME . '#organization' );
+		$this->assertArrayNotHasKey( 'address', $brand, 'A blank company_address must not emit an address key.' );
+	}
+
+	// -----------------------------------------------------------------------
+	// 11. SEO02 hardening — brand-@id rating smuggling.
+	// -----------------------------------------------------------------------
+
+	public function test_seo02_queued_node_cannot_smuggle_rating_into_brand_node(): void {
+		salt_schema_add(
+			array(
+				'@type'           => 'Organization',
+				'@id'             => self::HOME . '#organization',
+				'aggregateRating' => array(
+					'@type'       => 'AggregateRating',
+					'ratingValue' => 5,
+					'ratingCount' => 40,
+				),
+				'review'          => array(
+					'@type'      => 'Review',
+					'reviewBody' => 'We rate ourselves highly.',
+				),
+			)
+		);
+
+		$document = salt_schema_graph( $this->context() );
+		$brand    = $this->node_by_id( $document, self::HOME . '#organization' );
+
+		$this->assertArrayNotHasKey( 'aggregateRating', $brand, 'The merged brand node must never gain aggregateRating (SEO02).' );
+		$this->assertArrayNotHasKey( 'review', $brand, 'The merged brand node must never gain review (SEO02).' );
+		$this->assertSame( 'Example Co', $brand['name'], 'The brand node itself survives the merge.' );
+		$this->assertNotEmpty(
+			array_filter( $this->logs(), static fn( string $line ): bool => str_contains( $line, 'SEO02' ) ),
+			'Stripping a smuggled rating must be logged.'
+		);
+		$this->assert_unique_ids( $document );
+	}
+
+	public function test_seo02_subtype_with_brand_id_is_stripped(): void {
+		// No base org node (empty org) — the Dentist node stands alone with
+		// the brand @id, dodging the Organization/LocalBusiness type check.
+		salt_schema_add(
+			array(
+				'@type'           => 'Dentist',
+				'@id'             => self::HOME . '#organization',
+				'name'            => 'Example Dental',
+				'aggregateRating' => array(
+					'@type'       => 'AggregateRating',
+					'ratingValue' => 4.9,
+					'reviewCount' => 17,
+				),
+			)
+		);
+
+		$document = salt_schema_graph( $this->context( array( 'org' => array() ) ) );
+		$dentist  = $this->node_by_id( $document, self::HOME . '#organization' );
+
+		$this->assertNotNull( $dentist );
+		$this->assertSame( 'Dentist', $dentist['@type'] );
+		$this->assertArrayNotHasKey( 'aggregateRating', $dentist, 'A subtype carrying the brand @id is still self-serving (SEO02 subtype leak).' );
+		$this->assertNotEmpty(
+			array_filter( $this->logs(), static fn( string $line ): bool => str_contains( $line, 'SEO02' ) )
+		);
 	}
 }

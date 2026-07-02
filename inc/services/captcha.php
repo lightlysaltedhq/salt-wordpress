@@ -6,7 +6,7 @@
  * Providers: Cloudflare Turnstile (recommended — privacy-preserving, no
  * cookie banner interaction needed) and Google reCAPTCHA v2. The provider
  * choice and its PUBLIC site key are site-configurable ACF options
- * (inc/fields/options-captcha.php). SECRET keys are wp-config constants —
+ * (inc/fields/options-contact.php). SECRET keys are wp-config constants —
  * SALT_TURNSTILE_SECRET / SALT_RECAPTCHA_SECRET — and are NEVER stored in
  * the database (SEC03: secrets live in config custody, options hold only
  * non-secrets).

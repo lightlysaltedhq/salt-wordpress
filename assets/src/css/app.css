@@ -87,6 +87,11 @@
 	/* Typography (self-hosted per site; system-first defaults, §7). */
 	--font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 	--font-serif: ui-serif, georgia, cambria, "Times New Roman", times, serif;
+
+	/* Typography ROLES (Tier 2 — what base/components consume). Per-site
+	   uploaded fonts override these at runtime (inc/services/fonts.php). */
+	--font-heading: var(--font-sans);
+	--font-body: var(--font-sans);
 }
 
 /*
@@ -116,9 +121,26 @@
 
 @layer base {
 	html {
-		font-family: var(--font-sans);
+		font-family: var(--font-body);
+
+		/* Display-preferences font-size steps set --root-scale via
+		   [data-scale] (§14 — the documented seam). */
+		font-size: calc(100% * var(--root-scale, 1));
 		background-color: var(--color-surface);
 		color: var(--color-ink);
+
+		/* Sticky-header anchor offset (§12a) — variable emitted by
+		   salt_output_theme_vars_css() only when the header is sticky. */
+		scroll-padding-top: var(--salt-scroll-padding, 0);
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-family: var(--font-heading);
 	}
 
 	/* Global focus ring (§14 — tokens, no colour-only signalling). */
@@ -160,4 +182,95 @@
 	clip-path: inset(50%);
 	white-space: nowrap;
 	border: 0;
+}
+
+/* ---------------------------------------------------------------------- */
+
+/* Site chrome (header/logo — options-driven, see site-header.php)         */
+
+/* ---------------------------------------------------------------------- */
+
+.x-header.is-sticky {
+	position: sticky;
+	top: 0;
+	z-index: 40;
+}
+
+.x-logo img {
+	height: var(--logo-height, 3rem);
+	width: auto;
+}
+
+/* Dark-mode logo swap: attribute-driven (never <picture> media — the
+   visitor can override the OS preference). Server sets .has-dark when a
+   dark variant exists. */
+.x-logo .x-logo-dark {
+	display: none;
+}
+
+[data-theme="dark"] .x-logo.has-dark .x-logo-dark {
+	display: block;
+}
+
+[data-theme="dark"] .x-logo.has-dark .x-logo-light {
+	display: none;
+}
+
+/* ---------------------------------------------------------------------- */
+
+/* Display preferences (§14) — token-level, never CSS filters              */
+
+/* ---------------------------------------------------------------------- */
+
+/* Font-size steps (stepped enum — finite, testable). */
+[data-scale="-1"] {
+	--root-scale: 0.875;
+}
+
+[data-scale="1"] {
+	--root-scale: 1.125;
+}
+
+[data-scale="2"] {
+	--root-scale: 1.25;
+}
+
+/* High contrast (A11Y06): authored ONCE against role/ramp tokens, so it
+   works for every brand — ramps always exist (compiled defaults + runtime
+   derivation both emit 50–950). */
+[data-contrast="high"] {
+	--color-ink: #000;
+	--color-ink-muted: var(--color-neutral-900);
+	--color-surface: #fff;
+	--color-surface-alt: #fff;
+	--color-border: var(--color-neutral-700);
+	--color-brand: var(--color-primary-700);
+	--color-brand-strong: var(--color-primary-800);
+	--color-focus: #000;
+}
+
+[data-theme="dark"][data-contrast="high"] {
+	--color-ink: #fff;
+	--color-ink-muted: var(--color-neutral-100);
+	--color-surface: #000;
+	--color-surface-alt: #000;
+	--color-border: var(--color-neutral-300);
+	--color-brand: var(--color-primary-200);
+	--color-brand-strong: var(--color-primary-100);
+	--color-focus: #fff;
+}
+
+/* Grayscale (A11Y05): re-point chromatic roles at the neutral ramp +
+   achromatic status tokens at matched lightness. Meaning survives because
+   the base design bans colour-only signalling (§14). */
+[data-grayscale] {
+	--color-brand: var(--color-neutral-600);
+	--color-brand-strong: var(--color-neutral-700);
+	--color-brand-tint: var(--color-neutral-100);
+	--color-accent: var(--color-neutral-600);
+	--color-focus: var(--color-neutral-700);
+	--color-success: oklch(45% 0 0deg);
+	--color-warning: oklch(50% 0 0deg);
+	--color-error: oklch(45% 0 0deg);
+	--color-info: oklch(45% 0 0deg);
 }

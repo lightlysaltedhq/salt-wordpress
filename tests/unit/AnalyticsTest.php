@@ -1,7 +1,8 @@
 <?php
 /**
- * Tests for inc/services/analytics.php + inc/fields/options-analytics.php —
- * PostHog + GA4 (Consent Mode pattern, everything OFF by default).
+ * Tests for inc/services/analytics.php + the Analytics group in
+ * inc/fields/options-integrations.php — PostHog + GA4 (Consent Mode pattern,
+ * everything OFF by default).
  *
  * @package Salt\Tests
  */
@@ -10,7 +11,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../shims/acf.php';
 require_once dirname( __DIR__, 2 ) . '/inc/services/analytics.php';
-require_once dirname( __DIR__, 2 ) . '/inc/fields/options-analytics.php';
+require_once dirname( __DIR__, 2 ) . '/inc/fields/options.php';
+require_once dirname( __DIR__, 2 ) . '/inc/fields/options-integrations.php';
 
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -407,7 +409,7 @@ final class AnalyticsTest extends SaltTestCase {
 	// Options field group (DATA02).
 	// -----------------------------------------------------------------------
 
-	public function test_field_group_registers_on_salt_settings_with_convention_keys(): void {
+	public function test_field_group_registers_on_integrations_subpage_with_convention_keys(): void {
 		salt_register_analytics_options_fields();
 
 		$groups = $GLOBALS['salt_test_acf_groups'];
@@ -415,7 +417,7 @@ final class AnalyticsTest extends SaltTestCase {
 
 		$group = $groups[0];
 		$this->assertSame( 'group_salt_options_analytics', $group['key'] );
-		$this->assertSame( 'salt-settings', $group['location'][0][0]['value'] );
+		$this->assertSame( 'salt-settings-integrations', $group['location'][0][0]['value'] );
 
 		$names    = array_column( $group['fields'], 'name' );
 		$expected = array( 'posthog_enabled', 'posthog_key', 'posthog_host', 'posthog_host_custom', 'posthog_session_recording', 'ga4_enabled', 'ga4_id' );
