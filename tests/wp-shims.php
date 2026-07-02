@@ -117,6 +117,14 @@ if ( ! function_exists( 'do_action' ) ) {
 	 * @return void
 	 */
 	function do_action( string $hook_name, ...$args ): void {
+		// Fidelity: real do_action() passes an empty-string argument to every
+		// callback when the action carries no explicit args. A callback that
+		// type-hints its first parameter as non-string (e.g. ?array) would
+		// then TypeError-fatal in production — reproduce that here so such
+		// bugs surface in CI, not on a live front end.
+		if ( array() === $args ) {
+			$args = array( '' );
+		}
 		$callbacks = $GLOBALS['salt_test_hooks'][ $hook_name ] ?? array();
 		ksort( $callbacks );
 		foreach ( $callbacks as $batch ) {

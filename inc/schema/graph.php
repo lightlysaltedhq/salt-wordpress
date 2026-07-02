@@ -393,7 +393,7 @@ function salt_schema_graph( array $context ): array {
  * @return string
  */
 function salt_schema_option_string( string $selector ): string {
-	$value = get_field( $selector, 'option' );
+	$value = salt_option( $selector );
 	if ( is_array( $value ) ) {
 		$value = $value['url'] ?? '';
 	}
@@ -423,7 +423,7 @@ function salt_schema_wp_context(): array {
 
 	$same_as = array_values(
 		array_filter(
-			(array) ( get_field( 'org_same_as', 'option' ) ?? array() ),
+			(array) ( salt_option( 'org_same_as' ) ?? array() ),
 			static fn( $url ): bool => is_string( $url ) && '' !== $url
 		)
 	);
@@ -493,4 +493,18 @@ function salt_schema_render( ?array $context = null ): void {
 
 	echo '<script type="application/ld+json">' . $json . '</script>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON built by wp_json_encode with </ defused above; HTML-escaping would corrupt the JSON-LD payload.
 }
-add_action( 'wp_footer', 'salt_schema_render' );
+
+/**
+ * wp_footer hook callback.
+ *
+ * A dedicated parameterless wrapper because do_action( 'wp_footer' ) passes
+ * an empty-string argument to every callback — binding that to
+ * salt_schema_render()'s typed ?array $context would TypeError-fatal the
+ * whole front end. A no-param wrapper simply ignores the stray arg.
+ *
+ * @return void
+ */
+function salt_schema_render_footer(): void {
+	salt_schema_render();
+}
+add_action( 'wp_footer', 'salt_schema_render_footer' );

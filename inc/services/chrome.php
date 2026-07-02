@@ -64,7 +64,7 @@ function salt_logo_height_value( $raw ): int {
  * @return int
  */
 function salt_logo_height(): int {
-	return salt_logo_height_value( salt_acf_active() ? get_field( 'logo_height', 'option' ) : null );
+	return salt_logo_height_value( salt_acf_active() ? salt_option( 'logo_height' ) : null );
 }
 
 /**
@@ -85,7 +85,7 @@ function salt_header_runtime_css(): string {
 
 	$css = sprintf( ':root{--logo-height:%dpx}', salt_logo_height() );
 
-	if ( (bool) get_field( 'header_sticky', 'option' ) ) {
+	if ( (bool) salt_option( 'header_sticky' ) ) {
 		$css .= ':root{--salt-scroll-padding:calc(var(--logo-height,3rem) + 2.5rem)}';
 	}
 
@@ -107,9 +107,9 @@ function salt_logo_args(): array {
 	$text  = '';
 
 	if ( salt_acf_active() ) {
-		$light = absint( get_field( 'logo_light', 'option' ) );
-		$dark  = absint( get_field( 'logo_dark', 'option' ) );
-		$text  = (string) ( get_field( 'logo_text_fallback', 'option' ) ?? '' );
+		$light = absint( salt_option( 'logo_light' ) );
+		$dark  = absint( salt_option( 'logo_dark' ) );
+		$text  = (string) ( salt_option( 'logo_text_fallback' ) ?? '' );
 	}
 
 	return array(
@@ -163,7 +163,7 @@ function salt_header_cta( $link ): ?array {
  * @return array{label:string,url:string,target:string}|null
  */
 function salt_header_cta_args(): ?array {
-	return salt_acf_active() ? salt_header_cta( get_field( 'header_cta', 'option' ) ) : null;
+	return salt_acf_active() ? salt_header_cta( salt_option( 'header_cta' ) ) : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -220,7 +220,7 @@ function salt_nav_menu_fallback_reset(): void {
  * @return string
  */
 function salt_footer_copyright(): string {
-	$name = salt_acf_active() ? trim( (string) ( get_field( 'org_name', 'option' ) ?? '' ) ) : '';
+	$name = salt_acf_active() ? trim( (string) ( salt_option( 'org_name' ) ?? '' ) ) : '';
 
 	if ( '' === $name ) {
 		$name = (string) get_bloginfo( 'name' );
@@ -334,7 +334,7 @@ function salt_footer_social_links(): array {
 		return array();
 	}
 
-	$rows = get_field( 'org_same_as', 'option' );
+	$rows = salt_option( 'org_same_as' );
 	if ( ! is_array( $rows ) ) {
 		return array();
 	}

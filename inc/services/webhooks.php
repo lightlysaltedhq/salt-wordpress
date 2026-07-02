@@ -54,7 +54,7 @@ function salt_webhook_targets( string $event ): array {
 		return array();
 	}
 
-	$rows = get_field( 'webhook_targets', 'option' );
+	$rows = salt_option( 'webhook_targets' );
 	if ( ! is_array( $rows ) ) {
 		return array();
 	}

@@ -41,6 +41,25 @@ function salt_is_debug(): bool {
 }
 
 /**
+ * Read a theme OPTION field, DEP01-safe.
+ *
+ * The single accessor every runtime option read goes through. When ACF is
+ * absent its get_field() does not exist; rather than let ~25 call sites
+ * fatal (or shadow ACF's own get_field() and collide on activation), this
+ * returns null so each consumer degrades to its documented default. The
+ * theme then renders the safe fallback + the DEP01 admin notice.
+ *
+ * @param string $selector Option field name.
+ * @return mixed The stored value, or null when ACF is unavailable.
+ */
+function salt_option( string $selector ) {
+	if ( ! function_exists( 'get_field' ) ) {
+		return null;
+	}
+	return get_field( $selector, 'option' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals -- ACF read (guarded above); the ONE place get_field is called for options.
+}
+
+/**
  * Join a class list, dropping empties.
  *
  * @param array<int,string> $class_names Class name fragments.

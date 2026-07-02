@@ -140,7 +140,7 @@ function salt_fonts_config(): array {
 	$faces = array();
 
 	foreach ( $roles as $role => $config ) {
-		$rows = get_field( $config['field'], 'option' );
+		$rows = salt_option( $config['field'] );
 
 		if ( ! is_array( $rows ) ) {
 			continue;
@@ -317,7 +317,7 @@ function salt_fonts_runtime_css(): string {
 		return '';
 	}
 
-	$format = (string) ( get_field( 'font_format', 'option' ) ?? '' );
+	$format = (string) ( salt_option( 'font_format' ) ?? '' );
 
 	if ( ! isset( salt_font_mime_map()[ $format ] ) ) {
 		$format = 'woff2';

@@ -46,9 +46,9 @@ function salt_output_brand_css(): void {
 	}
 
 	$brand = array(
-		'primary'   => (string) ( get_field( 'brand_primary', 'option' ) ?? '' ),
-		'secondary' => (string) ( get_field( 'brand_secondary', 'option' ) ?? '' ),
-		'accent'    => (string) ( get_field( 'brand_accent', 'option' ) ?? '' ),
+		'primary'   => (string) ( salt_option( 'brand_primary' ) ?? '' ),
+		'secondary' => (string) ( salt_option( 'brand_secondary' ) ?? '' ),
+		'accent'    => (string) ( salt_option( 'brand_accent' ) ?? '' ),
 	);
 
 	if ( '' === implode( '', $brand ) ) {
@@ -122,9 +122,9 @@ function salt_output_theme_init_script(): void {
 
 	$script = salt_theme_init_js(
 		array(
-			'dark'                  => salt_module_enabled( 'dark_mode' ) && (bool) get_field( 'dark_mode', 'option' ),
-			'prefs'                 => salt_module_enabled( 'display_preferences' ) && (bool) get_field( 'display_preferences_enabled', 'option' ),
-			'motion_default_reduce' => (bool) get_field( 'reduce_motion', 'option' ),
+			'dark'                  => salt_module_enabled( 'dark_mode' ) && (bool) salt_option( 'dark_mode' ),
+			'prefs'                 => salt_module_enabled( 'display_preferences' ) && (bool) salt_option( 'display_preferences_enabled' ),
+			'motion_default_reduce' => (bool) salt_option( 'reduce_motion' ),
 		)
 	);
 

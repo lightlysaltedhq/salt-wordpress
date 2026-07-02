@@ -32,7 +32,7 @@ function salt_mailer_option( string $name ) {
 		return null;
 	}
 
-	return get_field( $name, 'option' );
+	return salt_option( $name );
 }
 
 /**

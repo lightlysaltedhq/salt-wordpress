@@ -6,6 +6,29 @@ docs/RELEASE-POLICY.md. Releases with breaking changes carry a **BREAKING**
 section enumerating changed components/sections at args-signature and
 markup granularity (cross-reference your site's override manifest).
 
+## [3.0.2] — 2026-07-02
+
+### Fixed
+- **Front-end white-screen for ALL sites** (found on first real deploy):
+  `salt_schema_render()` is typed `?array $context` but was hooked directly
+  to `wp_footer`; `do_action()` passes an empty string to callbacks, so the
+  argument bind TypeError-fataled every front-end page — with or without
+  ACF. Fixed with a parameterless `salt_schema_render_footer()` wrapper.
+  The PHPUnit `do_action` shim now passes the `''` argument WordPress
+  really passes (so this class of bug fails in CI), plus a `HookFiringTest`
+  that fires `wp_head`/`wp_footer`.
+- **ACF-activation fatal + DEP01, done correctly.** v3.0.1's fix defined
+  `get_field()` stubs when ACF was absent — which then collided with ACF
+  Pro on activation (`Cannot redeclare get_field()`). Replaced with a
+  single guarded accessor `salt_option()` (inc/helpers.php); all ~42
+  runtime option reads route through it, so the theme NEVER defines an ACF
+  function (no collision) and every read returns null when ACF is absent
+  (no fatal, safe fallbacks + DEP01 notice). `bin/check-acf-absent.php`
+  now also asserts the theme defines no `get_field()`.
+
+### Superseded
+- 3.0.1's `salt_ensure_acf_fallbacks()` approach (removed).
+
 ## [3.0.1] — 2026-07-02
 
 ### Fixed

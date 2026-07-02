@@ -71,7 +71,7 @@ function salt_booking_config(): ?array {
 		return null;
 	}
 
-	$provider = (string) ( get_field( 'booking_provider', 'option' ) ?? '' );
+	$provider = (string) ( salt_option( 'booking_provider' ) ?? '' );
 	if ( '' === $provider ) {
 		return null;
 	}
@@ -82,7 +82,7 @@ function salt_booking_config(): ?array {
 		return null;
 	}
 
-	$url = trim( (string) ( get_field( 'booking_url', 'option' ) ?? '' ) );
+	$url = trim( (string) ( salt_option( 'booking_url' ) ?? '' ) );
 	if ( '' === $url ) {
 		salt_log( sprintf( 'booking: provider "%s" is set but no booking URL is configured — integration disabled.', $provider ) );
 		return null;

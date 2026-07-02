@@ -91,7 +91,7 @@ function salt_captcha_site_key( string $provider ): string {
 		return '';
 	}
 
-	return (string) ( get_field( $config['site_key_field'], 'option' ) ?? '' );
+	return (string) ( salt_option( $config['site_key_field'] ) ?? '' );
 }
 
 /**
@@ -143,7 +143,7 @@ function salt_captcha_provider(): string {
 		return '';
 	}
 
-	$provider = (string) ( get_field( 'captcha_provider', 'option' ) ?? '' );
+	$provider = (string) ( salt_option( 'captcha_provider' ) ?? '' );
 	if ( '' === $provider ) {
 		return '';
 	}

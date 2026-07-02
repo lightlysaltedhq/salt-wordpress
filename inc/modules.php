@@ -52,7 +52,7 @@ function salt_module_enabled( string $slug ): bool {
 		salt_log( sprintf( 'salt_module_enabled(): unknown module slug "%s".', $slug ) );
 	}
 
-	$value   = get_field( 'module_' . $slug, 'option' );
+	$value   = salt_option( 'module_' . $slug );
 	$enabled = null === $value ? true : (bool) $value;
 
 	return (bool) apply_filters( 'salt_module_enabled', $enabled, $slug );

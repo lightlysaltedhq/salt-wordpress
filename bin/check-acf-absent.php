@@ -50,7 +50,7 @@ function salt_log( string $message ): void { // phpcs:ignore -- Pre-defined so t
 }
 
 require $salt_root . '/inc/helpers.php';
-require $salt_root . '/inc/acf.php';   // Defines the ACF-absent read-API fallbacks at require-time.
+require $salt_root . '/inc/acf.php';
 require $salt_root . '/inc/modules.php';
 
 $salt_failures = array();
@@ -60,16 +60,16 @@ if ( salt_acf_active() ) {
 	$salt_failures[] = 'salt_acf_active() should be false in a no-ACF world.';
 }
 
-// 2. The fallback shim defined the read API.
-foreach ( array( 'get_field', 'have_rows', 'get_sub_field', 'get_row_layout' ) as $salt_fn ) {
-	if ( ! function_exists( $salt_fn ) ) {
-		$salt_failures[] = "DEP01 fallback missing: {$salt_fn}() was not defined.";
-	}
+// 2. The theme must NOT define get_field() — doing so collides with ACF on
+// activation (Cannot redeclare get_field). Option reads go through the
+// guarded salt_option() accessor instead.
+if ( function_exists( 'get_field' ) ) {
+	$salt_failures[] = 'The theme must never define get_field() (ACF-activation collision).';
 }
 
-// 3. get_field returns null → consumers get their documented default.
-if ( null !== get_field( 'module_service', 'option' ) ) {
-	$salt_failures[] = 'get_field() fallback must return null.';
+// 3. salt_option() returns null when ACF is absent → consumers get defaults.
+if ( null !== salt_option( 'module_service' ) ) {
+	$salt_failures[] = 'salt_option() must return null when ACF is absent.';
 }
 
 // 4. THE regression: salt_module_enabled() must not fatal and must default

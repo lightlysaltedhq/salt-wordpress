@@ -74,7 +74,7 @@ function salt_contact_time_ok( string $token, ?int $now = null ): bool {
  * @return string[] Route labels; empty when no routes configured.
  */
 function salt_contact_enquiry_types(): array {
-	$routes = get_field( 'contact_routes', 'option' );
+	$routes = salt_option( 'contact_routes' );
 	$types  = array();
 	foreach ( is_array( $routes ) ? $routes : array() as $route ) {
 		$label = is_array( $route ) ? trim( (string) ( $route['enquiry_type'] ?? '' ) ) : '';

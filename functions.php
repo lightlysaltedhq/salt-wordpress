@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SALT_VERSION', '3.0.1' );
+define( 'SALT_VERSION', '3.0.2' );
 define( 'SALT_DIR', get_template_directory() );
 define( 'SALT_URI', get_template_directory_uri() );
 

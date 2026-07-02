@@ -36,7 +36,7 @@ function salt_maps_default_tile_url(): string {
  * @return bool
  */
 function salt_maps_enabled(): bool {
-	return salt_acf_active() && true === (bool) get_field( 'maps_enabled', 'option' );
+	return salt_acf_active() && true === (bool) salt_option( 'maps_enabled' );
 }
 
 /**
@@ -73,7 +73,7 @@ function salt_maps_tile_origin( string $url ): ?string {
  * @return string
  */
 function salt_maps_tile_url(): string {
-	$url = trim( (string) ( salt_acf_active() ? ( get_field( 'maps_tile_url', 'option' ) ?? '' ) : '' ) );
+	$url = trim( (string) ( salt_acf_active() ? ( salt_option( 'maps_tile_url' ) ?? '' ) : '' ) );
 
 	if ( '' === $url ) {
 		return salt_maps_default_tile_url();

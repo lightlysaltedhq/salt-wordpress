@@ -40,7 +40,7 @@ function salt_submissions_enabled(): bool {
 		return false;
 	}
 
-	return true === (bool) get_field( 'submissions_store', 'option' );
+	return true === (bool) salt_option( 'submissions_store' );
 }
 
 /**
@@ -51,7 +51,7 @@ function salt_submissions_enabled(): bool {
  * @return int
  */
 function salt_submissions_retention_days(): int {
-	$days = function_exists( 'get_field' ) ? get_field( 'submissions_retention_days', 'option' ) : null;
+	$days = function_exists( 'get_field' ) ? salt_option( 'submissions_retention_days' ) : null;
 
 	if ( null === $days || '' === $days ) {
 		return 90;

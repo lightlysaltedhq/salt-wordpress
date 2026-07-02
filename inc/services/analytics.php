@@ -50,11 +50,11 @@ function salt_analytics_posthog_hosts(): array {
  * @return array{key:string,host:string,recording:bool}|null
  */
 function salt_analytics_posthog_config(): ?array {
-	if ( ! salt_acf_active() || true !== (bool) get_field( 'posthog_enabled', 'option' ) ) {
+	if ( ! salt_acf_active() || true !== (bool) salt_option( 'posthog_enabled' ) ) {
 		return null;
 	}
 
-	$key = trim( (string) get_field( 'posthog_key', 'option' ) );
+	$key = trim( (string) salt_option( 'posthog_key' ) );
 	if ( '' === $key ) {
 		salt_log( 'salt_analytics: PostHog is enabled but no project API key is set — integration disabled.' );
 		return null;
@@ -68,7 +68,7 @@ function salt_analytics_posthog_config(): ?array {
 	return array(
 		'key'       => $key,
 		'host'      => $host,
-		'recording' => true === (bool) get_field( 'posthog_session_recording', 'option' ),
+		'recording' => true === (bool) salt_option( 'posthog_session_recording' ),
 	);
 }
 
@@ -78,7 +78,7 @@ function salt_analytics_posthog_config(): ?array {
  * @return string|null Origin URL without trailing slash.
  */
 function salt_analytics_posthog_host(): ?string {
-	$choice = (string) get_field( 'posthog_host', 'option' );
+	$choice = (string) salt_option( 'posthog_host' );
 	if ( '' === $choice ) {
 		$choice = 'us';
 	}
@@ -93,7 +93,7 @@ function salt_analytics_posthog_host(): ?string {
 		return null;
 	}
 
-	$custom = trim( (string) get_field( 'posthog_host_custom', 'option' ) );
+	$custom = trim( (string) salt_option( 'posthog_host_custom' ) );
 	$scheme = '' !== $custom ? wp_parse_url( $custom, PHP_URL_SCHEME ) : null;
 	$host   = '' !== $custom ? wp_parse_url( $custom, PHP_URL_HOST ) : null;
 
@@ -114,11 +114,11 @@ function salt_analytics_posthog_host(): ?string {
  * @return string|null
  */
 function salt_analytics_ga4_id(): ?string {
-	if ( ! salt_acf_active() || true !== (bool) get_field( 'ga4_enabled', 'option' ) ) {
+	if ( ! salt_acf_active() || true !== (bool) salt_option( 'ga4_enabled' ) ) {
 		return null;
 	}
 
-	$ga4_id = trim( (string) get_field( 'ga4_id', 'option' ) );
+	$ga4_id = trim( (string) salt_option( 'ga4_id' ) );
 	if ( 1 !== preg_match( '/^G-[A-Z0-9]+$/', $ga4_id ) ) {
 		salt_log( sprintf( 'salt_analytics: GA4 measurement ID "%s" is invalid (expected G-XXXXXXXXXX) — GA4 output skipped.', $ga4_id ) );
 		return null;

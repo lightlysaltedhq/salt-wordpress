@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function salt_display_preferences_active(): bool {
 	return salt_module_enabled( 'display_preferences' )
 		&& salt_acf_active()
-		&& (bool) get_field( 'display_preferences_enabled', 'option' );
+		&& (bool) salt_option( 'display_preferences_enabled' );
 }
 
 /**
@@ -51,14 +51,14 @@ function salt_display_preferences_active(): bool {
 function salt_display_preferences_controls(): array {
 	$known = array( 'font_size', 'contrast', 'grayscale', 'dark_mode', 'motion' );
 
-	$value    = salt_acf_active() ? get_field( 'display_controls', 'option' ) : null;
+	$value    = salt_acf_active() ? salt_option( 'display_controls' ) : null;
 	$controls = null === $value
 		? $known
 		: array_values( array_intersect( $known, array_map( 'strval', (array) $value ) ) );
 
 	$dark_available = salt_module_enabled( 'dark_mode' )
 		&& salt_acf_active()
-		&& (bool) get_field( 'dark_mode', 'option' );
+		&& (bool) salt_option( 'dark_mode' );
 
 	if ( ! $dark_available ) {
 		$controls = array_values( array_diff( $controls, array( 'dark_mode' ) ) );
@@ -91,7 +91,7 @@ function salt_the_display_preferences(): void {
 		'display-preferences',
 		array(
 			'controls'       => $controls,
-			'motion_default' => (bool) get_field( 'reduce_motion', 'option' ),
+			'motion_default' => (bool) salt_option( 'reduce_motion' ),
 		)
 	);
 }
