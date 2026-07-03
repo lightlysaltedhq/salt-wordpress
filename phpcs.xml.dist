@@ -89,4 +89,12 @@
 		<exclude-pattern>*/bin/*</exclude-pattern>
 		<exclude-pattern>*/tests/*</exclude-pattern>
 	</rule>
+	<!-- CLI tooling run via `wp eval-file` executes in a local method scope
+	     (WP-CLI includes the file inside a method), not the true global scope,
+	     so loop variables named like WP globals ($post, $page, …) never
+	     override anything. -->
+	<rule ref="WordPress.WP.GlobalVariablesOverride">
+		<exclude-pattern>*/bin/*</exclude-pattern>
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
 </ruleset>

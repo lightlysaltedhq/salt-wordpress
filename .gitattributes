@@ -1,0 +1,8 @@
+# Demo-content seeder — version-controlled + CI-tested in lock-step with the
+# field schema, but EXCLUDED from release archives (git archive honours
+# export-ignore). Client sites never receive the demo generator or its
+# fictional content; demo/canary boxes get it via ad-hoc scp. See
+# bin/seed-demo.php.
+/bin/seed-demo.php export-ignore
+/bin/demo/ export-ignore
+/tests/unit/DemoContentTest.php export-ignore
