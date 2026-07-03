@@ -9,12 +9,22 @@
  * no rewrite — records exist solely for the wp-admin list table.
  *
  * Capability choice (documented): capability_type 'salt_submission' with
- * map_meta_cap, and every primitive capability mapped to 'manage_options'
- * so ONLY administrators can list, read, edit or delete submissions.
- * Editors and below never see personal data (SEC09/PRIV06). The CPT itself
- * is NOT module-gated — the storage gate is the 'submissions_store' option,
- * so already-stored records stay manageable even after storage is switched
- * back off.
+ * map_meta_cap => true, and every PRIMITIVE capability mapped to
+ * 'manage_options' so ONLY administrators can list, read, edit or delete
+ * submissions. Editors and below never see personal data (SEC09/PRIV06).
+ * The CPT itself is NOT module-gated — the storage gate is the
+ * 'submissions_store' option, so already-stored records stay manageable
+ * even after storage is switched back off.
+ *
+ * CRITICAL — do NOT map the META capabilities ('edit_post', 'read_post',
+ * 'delete_post') to a shared primitive like 'manage_options'. WordPress'
+ * _post_type_meta_capabilities() registers that primitive as a meta-cap
+ * ALIAS in the global $post_type_meta_caps, so every bare
+ * current_user_can('manage_options') is then rewritten to a meta cap that
+ * needs a post ID — and denied for EVERYONE, admins included (it hides
+ * core Settings, plugin option pages, and this theme's own Site Settings).
+ * With map_meta_cap => true, WordPress derives the meta caps from the
+ * primitives below, so admin-only access is preserved either way.
  *
  * @package Salt
  */
@@ -52,14 +62,13 @@ function salt_register_cpt_submission(): void {
 			'supports'            => array( 'title' ),
 			'menu_icon'           => 'dashicons-email-alt',
 			'menu_position'       => 26,
-			// Administrators only: every primitive capability maps to
-			// manage_options (see the file docblock for the rationale).
+			// Administrators only. PRIMITIVE capabilities only — mapping the
+			// meta caps (edit_post/read_post/delete_post) here poisons
+			// manage_options globally (see the file docblock). map_meta_cap
+			// derives the meta caps from these primitives.
 			'capability_type'     => 'salt_submission',
 			'map_meta_cap'        => true,
 			'capabilities'        => array(
-				'edit_post'              => 'manage_options',
-				'read_post'              => 'manage_options',
-				'delete_post'            => 'manage_options',
 				'edit_posts'             => 'manage_options',
 				'edit_others_posts'      => 'manage_options',
 				'delete_posts'           => 'manage_options',

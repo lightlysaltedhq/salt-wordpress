@@ -319,5 +319,20 @@ final class SubmissionsTest extends SaltTestCase {
 		$this->assertSame( 'salt_submission', $args['capability_type'] );
 		$this->assertTrue( $args['map_meta_cap'] );
 		$this->assertSame( array( 'manage_options' ), array_unique( array_values( $args['capabilities'] ) ) );
+
+		// CRITICAL regression guard: the META capabilities must NOT be mapped
+		// here. WordPress' _post_type_meta_capabilities() would register the
+		// target primitive (manage_options) as a meta-cap alias in the global
+		// $post_type_meta_caps, so every bare current_user_can('manage_options')
+		// gets rewritten to a post-scoped meta cap and denied for everyone —
+		// admins included (hides Settings, plugin options, Site Settings).
+		// map_meta_cap => true derives the meta caps from the primitives above.
+		foreach ( array( 'edit_post', 'read_post', 'delete_post' ) as $meta_cap ) {
+			$this->assertArrayNotHasKey(
+				$meta_cap,
+				$args['capabilities'],
+				sprintf( 'Meta cap "%s" must not be remapped — it poisons the target primitive globally.', $meta_cap )
+			);
+		}
 	}
 }

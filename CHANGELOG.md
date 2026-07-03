@@ -6,6 +6,22 @@ docs/RELEASE-POLICY.md. Releases with breaking changes carry a **BREAKING**
 section enumerating changed components/sections at args-signature and
 markup granularity (cross-reference your site's override manifest).
 
+## [3.0.4] — 2026-07-03
+
+### Fixed
+- **Administrators lost `manage_options` — WP Admin hid Settings, plugin
+  option pages, ACF, and salt's own Site Settings** (found on the live
+  deploy). The submissions CPT (SEC09) mapped the META capabilities
+  `edit_post`/`read_post`/`delete_post` to `manage_options`; WordPress'
+  `_post_type_meta_capabilities()` then registers `manage_options` as a
+  meta-cap alias in `$post_type_meta_caps`, so every bare
+  `current_user_can('manage_options')` is rewritten to a post-scoped meta
+  cap (no post ID) and denied for everyone, admins included. Fixed by
+  mapping only the PRIMITIVE caps to `manage_options` and letting
+  `map_meta_cap => true` derive the meta caps — admin-only access is
+  unchanged, `manage_options` is no longer poisoned. Regression guard added
+  in SubmissionsTest (the CPT's `capabilities` must not remap meta caps).
+
 ## [3.0.3] — 2026-07-02
 
 ### Fixed
