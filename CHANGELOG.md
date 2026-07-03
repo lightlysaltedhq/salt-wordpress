@@ -6,6 +6,18 @@ docs/RELEASE-POLICY.md. Releases with breaking changes carry a **BREAKING**
 section enumerating changed components/sections at args-signature and
 markup granularity (cross-reference your site's override manifest).
 
+## [3.0.5] — 2026-07-03
+
+### Fixed
+- Scoped Tailwind content detection to the markup directories that carry
+  utility classes (`template-parts/`, `inc/`, `assets/src/js/`) via
+  `source(none)` + `@source` in `assets/src/css/app.css`. Tailwind v4's
+  whole-project auto-detection was scanning `.php` prose in `bin/`, `tests/`
+  and `docs/`, so unrelated text could leak candidate class names into the
+  built CSS and drift the FLEET08 artifact-integrity gate (as it did when
+  the demo seeder was added). The built CSS is now deterministic against
+  real markup only.
+
 ## [3.0.4] — 2026-07-03
 
 ### Fixed

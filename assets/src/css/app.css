@@ -15,7 +15,19 @@
  * no per-section dark variants anywhere.
  */
 
-@import "tailwindcss";
+/*
+ * Content sources are SCOPED to the markup that actually carries utility
+ * classes — the section/component templates, the PHP that emits class
+ * strings, and the JS that injects them. source(none) disables Tailwind's
+ * whole-project auto-detection so prose in bin/ (the demo seeder), tests/
+ * and docs/ can never leak candidate class names into the built CSS
+ * (which would drift the FLEET08 artifact-integrity gate).
+ */
+@import "tailwindcss" source(none);
+
+@source "../../../template-parts";
+@source "../../../inc";
+@source "../js";
 
 @theme {
 	/* ------------------------------------------------------------------ */

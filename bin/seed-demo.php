@@ -15,10 +15,13 @@
  * Dev/ops tooling only — NEVER loaded by the theme at runtime (content is
  * DB-resident, DATA03). Requires ACF Pro active (uses update_field()).
  *
+ * NOTE: no `declare(strict_types=1)` here — `wp eval-file` runs this entry
+ * file through eval(), where a declare must (and cannot) be the first
+ * statement. The required files (demo/*.php) are separate compilation units
+ * and keep their strict_types.
+ *
  * @package Salt\Demo
  */
-
-declare(strict_types=1);
 
 if ( ! defined( 'ABSPATH' ) ) {
 	fwrite( STDERR, "Run via: wp eval-file bin/seed-demo.php\n" );
