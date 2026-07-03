@@ -19,9 +19,9 @@
  * - split: md:grid-cols-2, text beside image.
  * - minimal: text only — a set image is ignored + salt_log()ged.
  *
- * IMAGE SIZING (standardised): hero media is aspect-locked + object-cover so
- * a huge upload can never blow the band out — full-bleed crops to 16/9
- * (21/9 from md up, capped at 60vh); split crops to 4/3 and rounds.
+ * IMAGE SIZING (standardised): hero media is height-clamped + object-cover so
+ * a huge upload can never blow the band out — full-bleed crops to a contained
+ * banner (clamp(220px,34vh,360px)); split crops to 4/3 and rounds.
  *
  * DEFERRAL: spec media "image OR video" — video is absent in this build
  * (§3 locked decisions: no embeds/video). Image only.
@@ -167,7 +167,10 @@ salt_section(
 		if ( 'full-bleed' === $salt_variant ) {
 			echo '<div class="x-hero x-hero-full-bleed">';
 			if ( $salt_image_id > 0 ) {
-				$salt_image( 'aspect-[16/9] max-h-[60vh] w-full object-cover md:aspect-[21/9]' );
+				// Standardised banner: a fixed, contained height so a large
+				// upload can never fill the viewport (a full-bleed hero is a
+				// banner ABOVE the heading, not a full-screen image).
+				$salt_image( 'h-[clamp(220px,34vh,360px)] w-full object-cover' );
 			}
 			// Container 'full' on the wrapper — the text re-containers itself.
 			echo '<div class="x-hero-text mx-auto w-full max-w-5xl px-4 pt-10 sm:px-6 lg:px-8">';

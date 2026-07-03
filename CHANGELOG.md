@@ -12,6 +12,21 @@ Engagement build-out: rich single templates (post/work/service), share +
 author-box components, social icon set, archive hero band. MAJOR per
 RELEASE-POLICY (changed `.snap.html` files — see BREAKING).
 
+### Fixed (post-deploy visual QA)
+- **Blog posts index rendered "Archives" as its H1** — `get_the_archive_title()`
+  has no case for the posts page (`is_home()`) and falls back to the generic
+  word. `archive.php` now uses the assigned posts-page title ("Blog").
+- **Full-bleed hero image still filled the viewport** — the 60vh cap left a
+  ~576px edge-to-edge image sitting above the heading, so interior heroes
+  read as a full-screen photo. Standardised to a contained banner
+  (`h-[clamp(220px,34vh,360px)]`): the image and the heading/CTA now share
+  the first screen. (Approach hero 1004px→754px, image 576px→326px.)
+- (Content/ops, not theme code) Stale `/blog/services/` links — the nav +
+  footer "Services" items (404) and the 6 Approach capability cards — were
+  baked by a reseed that ran before the service-CPT `with_front` fix
+  deployed. Repaired live with a serialization-safe search-replace to
+  `/services/`; future reseeds generate them correctly.
+
 ### Added
 - **`single-post.php`** — engagement-first blog single: hero with the
   primary-category badge above the H1, byline (avatar + author link),

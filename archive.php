@@ -17,9 +17,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 get_header();
 
-// Prefix is filtered to '' (salt_archive_title_prefix) so this is the bare
-// title; strip_all_tags is defence-in-depth against core's raw <span> wrap.
-$salt_archive_title       = wp_strip_all_tags( get_the_archive_title() );
+// The blog posts index (is_home) is NOT a WP "archive": get_the_archive_title()
+// has no case for it and falls back to the generic word "Archives". Use the
+// assigned posts-page title (or a "Blog" default) instead. Every other route
+// here is a real archive — prefix is filtered to '' (salt_archive_title_prefix)
+// so this is the bare title; strip_all_tags defends against core's <span> wrap.
+if ( is_home() && ! is_front_page() ) {
+	$salt_posts_page    = (int) get_option( 'page_for_posts' );
+	$salt_archive_title = $salt_posts_page > 0
+		? wp_strip_all_tags( (string) get_the_title( $salt_posts_page ) )
+		: __( 'Blog', 'salt' );
+} else {
+	$salt_archive_title = wp_strip_all_tags( get_the_archive_title() );
+}
 $salt_archive_description = trim( (string) get_the_archive_description() );
 
 echo '<header class="x-archive-header bg-surface-alt py-14 md:py-20">';
