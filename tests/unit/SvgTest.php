@@ -116,7 +116,7 @@ final class SvgTest extends SaltTestCase {
 		$svg = salt_icon_svg( $name );
 
 		$this->assertNotSame( '', $svg, "icon {$name} failed to load" );
-		$this->assertStringContainsString( 'stroke="currentColor"', $svg );
+		$this->assertMatchesRegularExpression( '/(stroke|fill)="currentColor"/', $svg );
 		$this->assertStringContainsString( 'viewBox="0 0 24 24"', $svg );
 		$this->assertNotSame( '', salt_sanitize_svg( $svg ), "icon {$name} was rejected by the sanitiser" );
 	}
@@ -138,7 +138,7 @@ final class SvgTest extends SaltTestCase {
 	}
 
 	public function test_full_icon_set_is_bundled(): void {
-		$expected = array( 'arrow-right', 'check', 'chevron-down', 'clock', 'close', 'mail', 'map-pin', 'menu', 'phone', 'star' );
+		$expected = array( 'arrow-right', 'bluesky', 'check', 'chevron-down', 'clock', 'close', 'facebook', 'github', 'globe', 'instagram', 'link', 'linkedin', 'mail', 'map-pin', 'menu', 'phone', 'pinterest', 'reddit', 'star', 'star-filled', 'tiktok', 'whatsapp', 'x', 'youtube' );
 		$found    = array_keys( self::provide_bundled_icons() );
 		sort( $found );
 

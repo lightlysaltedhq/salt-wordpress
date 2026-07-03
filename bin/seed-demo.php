@@ -76,22 +76,30 @@ foreach ( $salt_demo['terms'] as $taxonomy => $terms ) {
 salt_demo_seed_images( $salt_demo['images'] );
 
 // 4. CPT posts (create bare; stash deferred field/term/thumbnail data).
+// Everything is authored by the demo author (first administrator) — under
+// `wp eval-file` there is no current user, and post_author 0 would break
+// the single-post byline/author box.
+$salt_demo_author   = salt_demo_author_id();
 $salt_demo_deferred = array();
 
 foreach ( $salt_demo['cpts'] as $cpt => $items ) {
 	foreach ( $items as $item ) {
-		$post_id = wp_insert_post(
-			array(
-				'post_type'    => $cpt,
-				'post_status'  => 'publish',
-				'post_title'   => $item['title'],
-				'post_name'    => $item['slug'],
-				'post_content' => $item['content'] ?? '',
-				'post_excerpt' => $item['excerpt'] ?? '',
-				'menu_order'   => (int) ( $item['menu_order'] ?? 0 ),
-			),
-			true
+		$postarr = array(
+			'post_type'    => $cpt,
+			'post_status'  => 'publish',
+			'post_title'   => $item['title'],
+			'post_name'    => $item['slug'],
+			'post_content' => $item['content'] ?? '',
+			'post_excerpt' => $item['excerpt'] ?? '',
+			'menu_order'   => (int) ( $item['menu_order'] ?? 0 ),
+			'post_author'  => $salt_demo_author,
 		);
+		// Optional fixed publish date (blog posts backdate so the single's
+		// "Updated" line — modified > published — is demonstrable).
+		if ( ! empty( $item['date'] ) ) {
+			$postarr['post_date'] = (string) $item['date'];
+		}
+		$post_id = wp_insert_post( $postarr, true );
 		if ( is_wp_error( $post_id ) ) {
 			salt_demo_log( sprintf( 'failed to create %s "%s": %s', $cpt, $item['title'], $post_id->get_error_message() ) );
 			continue;
@@ -172,6 +180,27 @@ foreach ( $salt_demo['options'] as $name => $value ) {
 	update_field( $name, salt_demo_resolve_refs( $value ), 'option' );
 }
 
+// 7.5 Blog author profile — display name + bio (WP user) and the ACF
+// profile_photo user field feed the single-post byline/author box.
+if ( isset( $salt_demo['author'] ) && $salt_demo_author > 0 ) {
+	wp_update_user(
+		array(
+			'ID'           => $salt_demo_author,
+			'display_name' => (string) ( $salt_demo['author']['display_name'] ?? '' ),
+			'description'  => (string) ( $salt_demo['author']['description'] ?? '' ),
+		)
+	);
+	$salt_demo_photo = salt_demo_resolve_refs( $salt_demo['author']['photo'] ?? null );
+	if ( is_int( $salt_demo_photo ) && $salt_demo_photo > 0 ) {
+		update_field( 'profile_photo', $salt_demo_photo, 'user_' . $salt_demo_author );
+	}
+	salt_demo_log( sprintf( 'author profile set on user %d.', $salt_demo_author ) );
+}
+
+// 7.6 Permalinks: /blog/%postname%/ (fleet best practice — category-less
+// post slugs under a /blog/ prefix; CPTs are unaffected, with_front false).
+update_option( 'permalink_structure', '/blog/%postname%/' );
+
 // 8. Menus + location assignment.
 $salt_demo_locations = array();
 foreach ( $salt_demo['menus'] as $location => $items ) {
@@ -246,4 +275,23 @@ function salt_demo_purge( array $post_types, array $menus ): void {
 	if ( array() !== $posts ) {
 		salt_demo_log( sprintf( 'purged %d prior demo objects.', count( $posts ) ) );
 	}
+}
+
+/**
+ * The demo author: the first administrator by ID.
+ *
+ * @return int User ID (0 when no administrator exists).
+ */
+function salt_demo_author_id(): int {
+	$admins = get_users(
+		array(
+			'role'    => 'administrator',
+			'orderby' => 'ID',
+			'order'   => 'ASC',
+			'number'  => 1,
+			'fields'  => 'ID',
+		)
+	);
+
+	return array() !== $admins ? (int) $admins[0] : 0;
 }

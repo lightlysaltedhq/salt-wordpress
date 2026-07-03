@@ -821,10 +821,23 @@ if ( ! function_exists( 'is_singular' ) ) {
 	/**
 	 * is_singular shim (fixture-controlled; defaults true).
 	 *
+	 * With a $post_types argument it additionally matches against the
+	 * fixture post type ($GLOBALS['salt_test_singular_post_type'],
+	 * default 'page' — the FC-page fixtures).
+	 *
+	 * @param string|string[] $post_types Post type(s) to match ('' = any).
 	 * @return bool
 	 */
-	function is_singular(): bool {
-		return (bool) ( $GLOBALS['salt_test_is_singular'] ?? true );
+	function is_singular( $post_types = '' ): bool {
+		$singular = (bool) ( $GLOBALS['salt_test_is_singular'] ?? true );
+
+		if ( ! $singular || '' === $post_types || array() === $post_types ) {
+			return $singular;
+		}
+
+		$current = (string) ( $GLOBALS['salt_test_singular_post_type'] ?? 'page' );
+
+		return in_array( $current, (array) $post_types, true );
 	}
 }
 

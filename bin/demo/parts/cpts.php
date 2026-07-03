@@ -810,6 +810,7 @@ return array(
 	'post'        => array(
 		array(
 			'slug'      => 'post1',
+			'date'      => '2026-04-14 09:00:00',
 			'title'     => 'Why we design in the browser, not in a mockup',
 			'excerpt'   => 'Static mockups lie. Here is how designing with real content on real screens leads to better websites.',
 			'thumbnail' => 'ref:image/blog-1',
@@ -820,6 +821,7 @@ return array(
 		),
 		array(
 			'slug'      => 'post2',
+			'date'      => '2026-05-06 09:00:00',
 			'title'     => 'A practical guide to Core Web Vitals',
 			'excerpt'   => 'What the three Core Web Vitals actually measure, and the fixes that move them most.',
 			'thumbnail' => 'ref:image/blog-2',
@@ -830,6 +832,7 @@ return array(
 		),
 		array(
 			'slug'      => 'post3',
+			'date'      => '2026-05-27 09:00:00',
 			'title'     => 'How to run a rebrand without losing your nerve',
 			'excerpt'   => 'A rebrand is daunting. A clear process turns it from a gamble into a considered upgrade.',
 			'thumbnail' => 'ref:image/blog-3',
@@ -840,6 +843,7 @@ return array(
 		),
 		array(
 			'slug'      => 'post4',
+			'date'      => '2026-06-10 09:00:00',
 			'title'     => 'Accessibility is not a checklist',
 			'excerpt'   => 'Treating accessibility as a compliance chore misses the point — and the opportunity.',
 			'thumbnail' => 'ref:image/blog-4',
@@ -850,6 +854,7 @@ return array(
 		),
 		array(
 			'slug'      => 'post5',
+			'date'      => '2026-06-24 09:00:00',
 			'title'     => 'Is headless commerce right for you?',
 			'excerpt'   => 'Headless is powerful and overhyped in equal measure. Here is how to tell if you need it.',
 			'thumbnail' => 'ref:image/blog-5',

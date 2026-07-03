@@ -289,7 +289,15 @@ function salt_page_section_slugs(): array {
  * @return void
  */
 function salt_enqueue_section_assets(): void {
-	foreach ( salt_page_section_slugs() as $slug ) {
+	$slugs = salt_page_section_slugs();
+
+	// The share row renders on single posts outside the FC loop — its
+	// copy-link enhancement enqueues by route, not by section presence.
+	if ( is_singular( 'post' ) ) {
+		$slugs[] = 'share';
+	}
+
+	foreach ( array_unique( $slugs ) as $slug ) {
 		$src = salt_asset_optional( 'sections/' . $slug . '.js' );
 		if ( null !== $src ) {
 			wp_enqueue_script(

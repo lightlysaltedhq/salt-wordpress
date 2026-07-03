@@ -43,7 +43,10 @@ function salt_register_cpt_service(): void {
 			),
 			'public'       => true,
 			'has_archive'  => true,
-			'rewrite'      => array( 'slug' => 'services' ),
+			'rewrite'      => array(
+				'slug'       => 'services',
+				'with_front' => false,
+			),
 			'menu_icon'    => 'dashicons-hammer',
 			'show_in_rest' => false,
 			'supports'     => array( 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ),
@@ -69,7 +72,10 @@ function salt_register_cpt_service(): void {
 			'public'            => true,
 			'show_admin_column' => true,
 			'show_in_rest'      => false,
-			'rewrite'           => array( 'slug' => 'service-category' ),
+			'rewrite'           => array(
+				'slug'       => 'service-category',
+				'with_front' => false,
+			),
 		)
 	);
 }

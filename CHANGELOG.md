@@ -6,6 +6,93 @@ docs/RELEASE-POLICY.md. Releases with breaking changes carry a **BREAKING**
 section enumerating changed components/sections at args-signature and
 markup granularity (cross-reference your site's override manifest).
 
+## [4.0.0] — 2026-07-03
+
+Engagement build-out: rich single templates (post/work/service), share +
+author-box components, social icon set, archive hero band. MAJOR per
+RELEASE-POLICY (changed `.snap.html` files — see BREAKING).
+
+### Added
+- **`single-post.php`** — engagement-first blog single: hero with the
+  primary-category badge above the H1, byline (avatar + author link),
+  published date, "Updated" date (shown only when the modified day differs),
+  reading time (`salt_reading_time_minutes()`, 200 wpm), standardised 16/9
+  featured image, `.x-prose` content typography, tag list, share row,
+  author box, prev/next navigation, and a queued BlogPosting schema node.
+- **`single-work.php`** — case-study single rendering EVERY
+  `group_salt_work` field: client/industry/services fact strip (services
+  link to their singles), live-site button (`live_url`), challenge/solution
+  two-up, results as an x-stat strip, gallery grid + CreativeWork schema.
+- **`single-service.php`** — service single rendering EVERY
+  `group_salt_service` field: icon, category eyebrow, `headline` H1
+  override, summary lede, "Projects from £X" (`price_from`), benefits
+  checklist, CTA band (`cta` link), related-services card grid + Service
+  schema.
+- **x-share-links** component + `salt_share_services()` /
+  `salt_share_links()` registry (X, Facebook, LinkedIn, WhatsApp, Bluesky,
+  Reddit, email; Pinterest opt-in) and a copy-link button that ships
+  `hidden` and is activated by the new `sections/share.js` module (FAIL02).
+- **x-author-box** component — author name + bio from the WP user; avatar
+  slot. New ACF **user field `profile_photo`** (`group_salt_user`) feeds it,
+  falling back to `get_avatar()`.
+- **14 bundled icons**: linkedin, x, facebook, instagram, youtube, tiktok,
+  github, bluesky, whatsapp, reddit, pinterest, globe, link, star-filled.
+  The footer social row (salt_chrome_social_hosts) now renders icons for
+  known hosts — its designed no-code upgrade path — and the map gains
+  bsky.app, github.com and pinterest.com.
+- **`.x-prose`** long-form typography (app.css) for `the_content()` and
+  wysiwyg field output.
+- Archive loop cards: `content/card-post.php` (thumbnail/date/excerpt via
+  x-card-post) and `content/card-work.php` (client/summary via x-card-work);
+  the generic `content/card.php` now delegates to x-card so all archives
+  grid consistently.
+- Team-member `socials` platform choices extended: instagram, facebook,
+  youtube, tiktok, github, bluesky (additive; stored values unchanged).
+- Demo seeder: posts get fixed authors + backdated publish dates, the
+  first administrator gets the author profile (display name, bio,
+  profile_photo), capability cards on Approach link to their service
+  singles, hero rows standardise to `md` spacing, and permalinks are set
+  to `/blog/%postname%/`.
+
+### Fixed
+- **Work archive H1 rendered literal escaped markup** ("Archives:
+  &lt;span&gt;Work&lt;/span&gt;") — core's `get_the_archive_title()` wraps
+  the title in a raw `<span>` whenever a prefix is present, which
+  `salt_the_document_h1()` correctly escapes. New
+  `get_the_archive_title_prefix` filter returns '' (child themes re-add at
+  20+), and `archive.php` strips tags defence-in-depth.
+- **Testimonial ratings looked absent** — the card rendered N outline
+  stars, so 4/5 was indistinguishable from "no rating". x-card-testimonial
+  now always renders 5 stars: N filled (`star-filled`) + the remainder as
+  muted outlines.
+- **Hero media unbounded** — a large upload blew the band out. Hero images
+  are now aspect-locked + object-cover (full-bleed 16/9, 21/9 from md,
+  capped 60vh; split 4/3 rounded).
+- **Service CPT rewrite lacked `with_front => false`** — under a
+  /blog/%postname%/ permalink structure the service singles (and
+  service-category archives) silently moved to /blog/services/… and 404ed
+  at their real URLs. Now pinned like the work CPT.
+- **Legacy top-level post URLs 404ed after the permalink move** — /{slug}/
+  parses as a page request, which core's 404-guess ignores. New
+  `salt_redirect_moved_post()` (template_redirect) 301s a 404 whose
+  top-level pagename matches a published post slug.
+
+### Changed
+- `archive.php` renders a standard hero band (title + archive description)
+  and a responsive card grid instead of a flat bordered list.
+- Team-card social links render as icon links (aria-label "Name on
+  Platform") instead of underlined text labels.
+- `salt_enqueue_section_assets()` also enqueues route-scoped modules
+  (`sections/share.js` on single posts).
+
+### BREAKING
+Markup structure changed (snapshot evidence — diff your override manifest):
+- **x-card-testimonial** — rating group now 5 icons (filled + `span.x-card-testimonial-star-empty` outlines).
+- **x-card-team** — `.x-card-team-socials` items are icon anchors (`.x-card-team-social`), not text links.
+- **hero section** — media `<img>` carries aspect/object-cover classes in both variants.
+- **site-footer** — social row renders x-icon glyphs for known hosts (was text labels).
+- **content/card.php** (archive/search loop) — now the base x-card markup inside a grid; archive routes wrap the loop in `.x-archive-header` + `.x-archive-grid`.
+
 ## [3.0.5] — 2026-07-03
 
 ### Fixed

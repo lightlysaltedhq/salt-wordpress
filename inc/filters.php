@@ -61,3 +61,55 @@ function salt_comments_closed(): bool {
 }
 add_filter( 'comments_open', 'salt_comments_closed', 10 );
 add_filter( 'pings_open', 'salt_comments_closed', 10 );
+
+/**
+ * Archive titles without the core prefix ("Archives:", "Category:", …).
+ *
+ * Core wraps the bare title in a raw <span> whenever a prefix is present
+ * (get_the_archive_title() since WP 5.5) — that markup double-escapes to
+ * literal text inside salt_the_document_h1(). Returning an empty prefix
+ * makes core return the plain title, which is also the H1 we actually
+ * want ("Work", not "Archives: Work"). Child themes re-add context at 20+.
+ *
+ * @return string
+ */
+function salt_archive_title_prefix(): string {
+	return '';
+}
+add_filter( 'get_the_archive_title_prefix', 'salt_archive_title_prefix' );
+
+/**
+ * 301 legacy top-level post URLs to their current permalink.
+ *
+ * Moving posts under a prefix (the fleet's /blog/%postname%/ structure)
+ * leaves old /{slug}/ URLs 404ing: WP::parse_request() verifies pagename
+ * matches during rule matching, so a slug that is a POST (not a page)
+ * falls through with EMPTY query vars — core's
+ * redirect_guess_404_permalink() (which only reads the `name` var) never
+ * fires. This closes that gap: on a 404 whose request path is one bare
+ * slug segment matching a published post, redirect permanently.
+ *
+ * @return void
+ */
+function salt_redirect_moved_post(): void {
+	if ( ! is_404() ) {
+		return;
+	}
+
+	// The slug never reaches the query vars (see above) — read the path.
+	$request = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Path segment is regex-validated below; the value is only compared against stored slugs.
+	$path    = (string) wp_parse_url( $request, PHP_URL_PATH );
+	$slug    = trim( $path, '/' );
+
+	// Top-level slugs only — nested paths are genuine 404s.
+	if ( '' === $slug || 1 !== preg_match( '/^[a-z0-9-]+$/', $slug ) ) {
+		return;
+	}
+
+	$post = get_page_by_path( $slug, OBJECT, 'post' );
+	if ( $post instanceof WP_Post && 'publish' === $post->post_status ) {
+		wp_safe_redirect( (string) get_permalink( $post ), 301 );
+		exit;
+	}
+}
+add_action( 'template_redirect', 'salt_redirect_moved_post' );

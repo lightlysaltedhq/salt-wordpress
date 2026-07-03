@@ -86,6 +86,8 @@ docblock at the top of its partial (enforced at runtime by
 | x-display-preferences | components/display-preferences.php | §14 widget; server-rendered `hidden`, JS-activated (FAIL02) |
 | x-map | components/map.php | Click-to-load facade; consent-gated (v2) |
 | x-booking | components/booking.php | Provider facade; plain link until consent (v2) |
+| x-share-links | components/share-links.php | Social share intents (x/facebook/linkedin/whatsapp/bluesky/reddit/email + pinterest opt-in); copy-link button `hidden` until sections/share.js activates it (FAIL02) |
+| x-author-box | components/author-box.php | Post author attribution (name/bio from the WP user; avatar slot) |
 
 Changing any args signature or markup structure = MAJOR (RELEASE-POLICY.md;
 snapshot diff is the trigger).

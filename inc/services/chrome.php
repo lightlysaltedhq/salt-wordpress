@@ -234,9 +234,8 @@ function salt_footer_copyright(): string {
  *
  * Labels are proper nouns (not translated). The icon is only USED when the
  * built-in set ships it (salt_chrome_icon_exists()) — otherwise the label
- * renders as text (the current built-in set has no social glyphs, so text
- * is today's baseline; adding assets/src/icons/{name}.svg upgrades the row
- * without a code change).
+ * renders as text. The built-in set ships these social glyphs since 4.0.0
+ * (shared with x-share-links and the team-card socials).
  *
  * @return array<string,array{label:string,icon:string}>
  */
@@ -264,11 +263,23 @@ function salt_chrome_social_hosts(): array {
 		),
 		'twitter.com'   => array(
 			'label' => 'X',
-			'icon'  => 'x-social',
+			'icon'  => 'x',
 		),
 		'x.com'         => array(
 			'label' => 'X',
-			'icon'  => 'x-social',
+			'icon'  => 'x',
+		),
+		'bsky.app'      => array(
+			'label' => 'Bluesky',
+			'icon'  => 'bluesky',
+		),
+		'github.com'    => array(
+			'label' => 'GitHub',
+			'icon'  => 'github',
+		),
+		'pinterest.com' => array(
+			'label' => 'Pinterest',
+			'icon'  => 'pinterest',
 		),
 	);
 }

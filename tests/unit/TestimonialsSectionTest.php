@@ -373,7 +373,7 @@ final class TestimonialsSectionTest extends SaltTestCase {
 
 		$this->assertStringContainsString( 'aria-label="Rated 5 out of 5 stars"', $html );
 		$this->assertStringContainsString( 'aria-label="Rated 4 out of 5 stars"', $html );
-		$this->assertSame( 9, substr_count( $html, 'aria-hidden="true"' ), '5 + 4 decorative star icons.' );
+		$this->assertSame( 10, substr_count( $html, 'aria-hidden="true"' ), 'Two rated cards x 5 decorative stars (filled + empty).' );
 	}
 
 	// -----------------------------------------------------------------

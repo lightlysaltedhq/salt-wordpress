@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SALT_VERSION', '3.0.5' );
+define( 'SALT_VERSION', '4.0.0' );
 define( 'SALT_DIR', get_template_directory() );
 define( 'SALT_URI', get_template_directory_uri() );
 
@@ -30,6 +30,7 @@ require_once SALT_DIR . '/inc/query/controls.php';
 require_once SALT_DIR . '/inc/schema/graph.php';
 require_once SALT_DIR . '/inc/services/vendor.php';
 require_once SALT_DIR . '/inc/services/svg.php';
+require_once SALT_DIR . '/inc/services/post-meta.php';
 require_once SALT_DIR . '/inc/services/consent.php';
 require_once SALT_DIR . '/inc/services/location-status.php';
 require_once SALT_DIR . '/inc/services/updater.php';
@@ -72,4 +73,5 @@ require_once SALT_DIR . '/inc/fields/cpt-team-member.php';
 require_once SALT_DIR . '/inc/fields/cpt-work.php';
 require_once SALT_DIR . '/inc/fields/cpt-faq.php';
 require_once SALT_DIR . '/inc/fields/cpt-location.php';
+require_once SALT_DIR . '/inc/fields/user.php';
 require_once SALT_DIR . '/inc/fields/sections.php';

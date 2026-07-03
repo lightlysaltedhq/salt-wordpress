@@ -71,6 +71,10 @@ function salt_demo_image_url( array $spec ): string {
  * placehold: /{bg}/ffffff/png?text=…). We already KNOW the served type, so
  * we name the temp file ourselves and let the sideload validator pass.
  *
+ * Downloads retry (3 attempts, 2s apart) — picsum/placehold rate-limit
+ * bursts of consecutive requests, and a transient miss otherwise leaves a
+ * permanent hole in the demo content.
+ *
  * @param string $url  URL.
  * @param string $alt  Alt text.
  * @param string $slug Ref suffix, used as the stable filename stem.
@@ -78,8 +82,18 @@ function salt_demo_image_url( array $spec ): string {
  * @return int|null Attachment ID, or null on failure.
  */
 function salt_demo_sideload( string $url, string $alt, string $slug, string $ext ): ?int {
-	$tmp = download_url( $url );
-	if ( is_wp_error( $tmp ) ) {
+	$tmp = null;
+	for ( $attempt = 1; $attempt <= 3; $attempt++ ) {
+		$tmp = download_url( $url, 30 );
+		if ( ! is_wp_error( $tmp ) ) {
+			break;
+		}
+		salt_demo_log( sprintf( 'image "%s" download attempt %d failed (%s) — %s.', $slug, $attempt, $tmp->get_error_message(), $attempt < 3 ? 'retrying' : 'giving up' ) );
+		if ( $attempt < 3 ) {
+			sleep( 2 );
+		}
+	}
+	if ( is_wp_error( $tmp ) || null === $tmp ) {
 		return null;
 	}
 

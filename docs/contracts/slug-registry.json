@@ -227,6 +227,9 @@
 			"role",
 			"service"
 		],
+		"group_salt_user": [
+			"profile_photo"
+		],
 		"group_salt_work": [
 			"challenge",
 			"client",

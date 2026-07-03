@@ -196,8 +196,8 @@ final class ChromeTest extends SaltTestCase {
 
 		$this->assertSame( 'https://www.facebook.com/saltagency', $link['url'] );
 		$this->assertSame( 'Facebook', $link['label'] );
-		// The built-in icon set ships no social glyphs today — text label.
-		$this->assertSame( '', $link['icon'] );
+		// The built-in set ships social glyphs since 3.1.0 — icon name resolves.
+		$this->assertSame( 'facebook', $link['icon'] );
 	}
 
 	public function test_social_link_matches_known_host_subdomains(): void {

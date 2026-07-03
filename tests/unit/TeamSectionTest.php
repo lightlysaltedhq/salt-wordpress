@@ -200,7 +200,7 @@ final class TeamSectionTest extends SaltTestCase {
 		$html = $this->render_team( array( 'heading' => 'Meet the team' ) );
 
 		$this->assertStringContainsString( 'https://example.test/in/jane', $html );
-		$this->assertStringContainsString( '>LinkedIn<', $html );
+		$this->assertStringContainsString( 'aria-label="Jane Doe on LinkedIn"', $html );
 		$this->assertStringNotContainsString( 'myspace', $html );
 		$logs = implode( ' ', $this->logs() );
 		$this->assertStringContainsString( 'unknown platform "myspace"', $logs );
@@ -364,7 +364,7 @@ final class TeamSectionTest extends SaltTestCase {
 			array_map( static fn( array $f ): string => (string) $f['name'], $socials['sub_fields'] )
 		);
 		$this->assertSame(
-			array( 'linkedin', 'x', 'other' ),
+			array( 'linkedin', 'x', 'instagram', 'facebook', 'youtube', 'tiktok', 'github', 'bluesky', 'other' ),
 			array_keys( $socials['sub_fields'][0]['choices'] )
 		);
 

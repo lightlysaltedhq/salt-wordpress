@@ -12,10 +12,13 @@
  *                             (href digits/+ only; the visible text keeps formatting).
  *   media   string  ''        PRE-RENDERED HTML slot (an x-image headshot render).
  *                             Printed raw — the producer escapes at print.
- *   socials array   []        Rows: array{platform: 'linkedin'|'x'|'other', url: string}.
- *                             Unknown platform or empty url ⇒ row skipped + salt_log()ged.
- *                             External hrefs allowed here by assignment (socials);
- *                             rel="noopener noreferrer" is applied.
+ *   socials array   []        Rows: array{platform: string, url: string} — platform
+ *                             one of salt-known keys (linkedin|x|instagram|facebook|
+ *                             youtube|tiktok|github|bluesky|other). Rendered as an
+ *                             icon link (bundled icon set, shared with x-share-links);
+ *                             unknown platform or empty url ⇒ row skipped +
+ *                             salt_log()ged. External hrefs allowed here by
+ *                             assignment (socials); rel="noopener noreferrer".
  *   level   int     3         Name heading level, clamped 1..6 (out of range is
  *                             clamped + salt_log()ged).
  *   classes string  ''        Extra utility classes appended to the class list.
@@ -98,17 +101,25 @@ if ( '' !== $salt_phone && '' === $salt_tel ) {
 }
 
 // Validated social links (unknown platform / empty url ⇒ skipped + logged).
-$salt_platform_labels = array(
-	'linkedin' => __( 'LinkedIn', 'salt' ),
-	'x'        => __( 'X', 'salt' ),
-	'other'    => __( 'Website', 'salt' ),
+// Each platform maps to a bundled icon (assets/src/icons — the same set the
+// x-share-links component draws from).
+$salt_platforms    = array(
+	'linkedin'  => array( __( 'LinkedIn', 'salt' ), 'linkedin' ),
+	'x'         => array( __( 'X', 'salt' ), 'x' ),
+	'instagram' => array( __( 'Instagram', 'salt' ), 'instagram' ),
+	'facebook'  => array( __( 'Facebook', 'salt' ), 'facebook' ),
+	'youtube'   => array( __( 'YouTube', 'salt' ), 'youtube' ),
+	'tiktok'    => array( __( 'TikTok', 'salt' ), 'tiktok' ),
+	'github'    => array( __( 'GitHub', 'salt' ), 'github' ),
+	'bluesky'   => array( __( 'Bluesky', 'salt' ), 'bluesky' ),
+	'other'     => array( __( 'Website', 'salt' ), 'globe' ),
 );
-$salt_social_links    = array();
+$salt_social_links = array();
 foreach ( (array) $args['socials'] as $salt_social ) {
 	$salt_platform = is_array( $salt_social ) ? (string) ( $salt_social['platform'] ?? '' ) : '';
 	$salt_url      = is_array( $salt_social ) ? trim( (string) ( $salt_social['url'] ?? '' ) ) : '';
 
-	if ( ! isset( $salt_platform_labels[ $salt_platform ] ) ) {
+	if ( ! isset( $salt_platforms[ $salt_platform ] ) ) {
 		salt_log( sprintf( 'x-card-team: social row with unknown platform "%s" skipped.', $salt_platform ) );
 		continue;
 	}
@@ -118,7 +129,13 @@ foreach ( (array) $args['socials'] as $salt_social ) {
 	}
 
 	$salt_social_links[] = array(
-		'label' => $salt_platform_labels[ $salt_platform ],
+		'label' => sprintf(
+			/* translators: 1: member name. 2: social platform. */
+			__( '%1$s on %2$s', 'salt' ),
+			$args['name'],
+			$salt_platforms[ $salt_platform ][0]
+		),
+		'icon'  => $salt_platforms[ $salt_platform ][1],
 		'url'   => $salt_url,
 	);
 }
@@ -154,9 +171,21 @@ foreach ( (array) $args['socials'] as $salt_social ) {
 		</ul>
 		<?php endif; ?>
 		<?php if ( array() !== $salt_social_links ) : ?>
-		<ul class="x-card-team-socials flex flex-wrap gap-4 text-sm">
+		<ul class="x-card-team-socials mt-1 flex flex-wrap gap-2">
 			<?php foreach ( $salt_social_links as $salt_link ) : ?>
-			<li><a class="text-ink-muted underline" href="<?php echo esc_url( $salt_link['url'] ); ?>" rel="noopener noreferrer"><?php echo esc_html( $salt_link['label'] ); ?></a></li>
+			<li>
+				<a class="x-card-team-social inline-flex size-9 items-center justify-center rounded-full border border-border text-ink-muted transition-colors hover:border-brand hover:text-brand" href="<?php echo esc_url( $salt_link['url'] ); ?>" aria-label="<?php echo esc_attr( $salt_link['label'] ); ?>" rel="noopener noreferrer">
+					<?php
+					salt_component(
+						'icon',
+						array(
+							'name' => $salt_link['icon'],
+							'size' => 'sm',
+						)
+					);
+					?>
+				</a>
+			</li>
 			<?php endforeach; ?>
 		</ul>
 		<?php endif; ?>

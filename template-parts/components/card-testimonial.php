@@ -102,7 +102,20 @@ $salt_classes = salt_classnames(
 	<?php if ( $salt_rating >= 1 ) : ?>
 	<div class="x-card-testimonial-rating flex gap-1 text-brand" role="img" aria-label="<?php echo esc_attr( $salt_rating_label ); ?>">
 		<?php
-		for ( $salt_star = 0; $salt_star < $salt_rating; $salt_star++ ) {
+		// Always 5 stars: {rating} filled + the remainder muted outlines, so
+		// a 3/5 is visually distinct from a 5/5 (not just fewer glyphs).
+		for ( $salt_star = 1; $salt_star <= 5; $salt_star++ ) {
+			if ( $salt_star <= $salt_rating ) {
+				salt_component(
+					'icon',
+					array(
+						'name' => 'star-filled',
+						'size' => 'sm',
+					)
+				);
+				continue;
+			}
+			echo '<span class="x-card-testimonial-star-empty text-border">';
 			salt_component(
 				'icon',
 				array(
@@ -110,6 +123,7 @@ $salt_classes = salt_classnames(
 					'size' => 'sm',
 				)
 			);
+			echo '</span>';
 		}
 		?>
 	</div>
