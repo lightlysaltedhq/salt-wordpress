@@ -30,7 +30,8 @@ function salt_demo_seed_images( array $images ): void {
 
 	foreach ( $images as $ref_suffix => $spec ) {
 		$url = salt_demo_image_url( $spec );
-		$id  = salt_demo_sideload( $url, (string) ( $spec['alt'] ?? $ref_suffix ) );
+		$ext = ( 'logo' === ( $spec['type'] ?? 'photo' ) ) ? 'png' : 'jpg';
+		$id  = salt_demo_sideload( $url, (string) ( $spec['alt'] ?? $ref_suffix ), (string) $ref_suffix, $ext );
 
 		if ( null !== $id ) {
 			salt_demo_ref_set( 'image/' . $ref_suffix, $id );
@@ -63,19 +64,41 @@ function salt_demo_image_url( array $spec ): string {
 /**
  * Sideload a remote image into the media library and mark it demo content.
  *
- * @param string $url URL.
- * @param string $alt Alt text.
+ * Uses download_url() + media_handle_sideload() rather than
+ * media_sideload_image() because the latter derives (and validates) the
+ * attachment filename from a file extension in the URL — which the
+ * deterministic sources here deliberately lack (picsum: /seed/{s}/{w}/{h};
+ * placehold: /{bg}/ffffff/png?text=…). We already KNOW the served type, so
+ * we name the temp file ourselves and let the sideload validator pass.
+ *
+ * @param string $url  URL.
+ * @param string $alt  Alt text.
+ * @param string $slug Ref suffix, used as the stable filename stem.
+ * @param string $ext  File extension to give the download (jpg|png).
  * @return int|null Attachment ID, or null on failure.
  */
-function salt_demo_sideload( string $url, string $alt ): ?int {
-	$id = media_sideload_image( $url, 0, $alt, 'id' );
+function salt_demo_sideload( string $url, string $alt, string $slug, string $ext ): ?int {
+	$tmp = download_url( $url );
+	if ( is_wp_error( $tmp ) ) {
+		return null;
+	}
 
-	if ( is_wp_error( $id ) || ! is_int( $id ) ) {
+	$file = array(
+		'name'     => sanitize_file_name( $slug . '.' . $ext ),
+		'tmp_name' => $tmp,
+	);
+
+	$id = media_handle_sideload( $file, 0, $alt );
+
+	if ( is_wp_error( $id ) ) {
+		if ( file_exists( $tmp ) ) {
+			wp_delete_file( $tmp );
+		}
 		return null;
 	}
 
 	update_post_meta( $id, '_salt_demo', 1 );
 	update_post_meta( $id, '_wp_attachment_image_alt', $alt );
 
-	return $id;
+	return (int) $id;
 }
