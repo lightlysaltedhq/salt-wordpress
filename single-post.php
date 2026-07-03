@@ -126,7 +126,7 @@ while ( have_posts() ) {
 	// ------------------------------------------------------------------
 	$salt_thumbnail_id = (int) get_post_thumbnail_id( $salt_post_id );
 	if ( $salt_thumbnail_id > 0 ) {
-		echo '<div class="x-post-media mx-auto w-full max-w-5xl px-4 pt-10 sm:px-6 lg:px-8">';
+		echo '<div class="x-post-media mx-auto w-full max-w-5xl px-4 pt-10 sm:px-6 lg:px-8 md:pt-14">';
 		salt_component(
 			'image',
 			array(
@@ -143,7 +143,7 @@ while ( have_posts() ) {
 	// ------------------------------------------------------------------
 	// Content.
 	// ------------------------------------------------------------------
-	echo '<div class="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8">';
+	echo '<div class="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
 	echo '<div class="x-prose">';
 	the_content();
 	echo '</div>';

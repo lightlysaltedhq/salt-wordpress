@@ -67,4 +67,65 @@ final class SectionSnapshotTest extends SaltSnapshotTestCase {
 			)
 		);
 	}
+
+	// -----------------------------------------------------------------------
+	// Same-background adjacency collapse (4.1.0).
+	// -----------------------------------------------------------------------
+
+	public function test_adjacent_same_background_collapses_top_padding(): void {
+		$first  = $this->render_section( array( 'name' => 'intro' ) );
+		$second = $this->render_section( array( 'name' => 'rich-text' ) );
+
+		$this->assertStringNotContainsString( 'pt-0', $first, 'First section keeps its full spacing.' );
+		$this->assertMatchesHtmlSnapshot( 'section-adjacent-collapse', $second );
+	}
+
+	public function test_adjacent_background_change_keeps_the_full_gap(): void {
+		$this->render_section( array( 'name' => 'intro' ) );
+		$second = $this->render_section(
+			array(
+				'name'       => 'rich-text',
+				'background' => 'surface-alt',
+			)
+		);
+
+		$this->assertStringNotContainsString( 'pt-0', $second );
+	}
+
+	public function test_divider_is_a_boundary_no_collapse(): void {
+		$this->render_section(
+			array(
+				'name'    => 'intro',
+				'divider' => true,
+			)
+		);
+		$second = $this->render_section( array( 'name' => 'rich-text' ) );
+
+		$this->assertStringNotContainsString( 'pt-0', $second, 'A divider keeps the full gap between same-bg sections.' );
+	}
+
+	public function test_spacing_none_never_collapses(): void {
+		$this->render_section( array( 'name' => 'intro' ) );
+		$second = $this->render_section(
+			array(
+				'name'    => 'rich-text',
+				'spacing' => 'none',
+			)
+		);
+
+		$this->assertStringNotContainsString( 'pt-0', $second );
+	}
+
+	public function test_flush_top_forces_the_collapse(): void {
+		$this->assertMatchesHtmlSnapshot(
+			'section-flush-top',
+			$this->render_section(
+				array(
+					'name'      => 'hero',
+					'container' => 'full',
+					'flush_top' => true,
+				)
+			)
+		);
+	}
 }

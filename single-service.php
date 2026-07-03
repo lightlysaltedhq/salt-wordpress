@@ -108,7 +108,7 @@ while ( have_posts() ) {
 		}
 	}
 	if ( array() !== $salt_benefit_items ) {
-		echo '<div class="x-service-benefits mx-auto w-full max-w-5xl px-4 pt-14 sm:px-6 lg:px-8">';
+		echo '<div class="x-service-benefits mx-auto w-full max-w-5xl px-4 pt-14 sm:px-6 lg:px-8 md:pt-20">';
 		salt_component(
 			'heading',
 			array(
@@ -138,7 +138,7 @@ while ( have_posts() ) {
 	// Editor content.
 	// ------------------------------------------------------------------
 	if ( '' !== trim( (string) get_post_field( 'post_content', $salt_service_id ) ) ) {
-		echo '<div class="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8">';
+		echo '<div class="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
 		echo '<div class="x-prose">';
 		the_content();
 		echo '</div>';
@@ -168,14 +168,14 @@ while ( have_posts() ) {
 	// Related services grid.
 	// ------------------------------------------------------------------
 	if ( array() !== $salt_related_ids ) {
-		echo '<div class="x-service-related mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">';
+		echo '<div class="x-service-related mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
 		salt_component(
 			'heading',
 			array(
 				'text'    => __( 'Related services', 'salt' ),
 				'level'   => 2,
-				'size'    => 'lg',
-				'classes' => 'mb-8',
+				'size'    => 'md',
+				'classes' => 'mb-6',
 			)
 		);
 		echo '<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">';

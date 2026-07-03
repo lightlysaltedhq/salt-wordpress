@@ -143,17 +143,19 @@ function salt_component( string $name, array $args = array(), array $slots = arr
  * @param string      $op    'get'|'set'|'reset'.
  * @param string|null $key   Key when setting.
  * @param mixed       $value Value when setting.
- * @return array{h1_claimed: bool, h1_source: string, section_index: int, anchors: array<string,bool>}
+ * @return array{h1_claimed: bool, h1_source: string, section_index: int, anchors: array<string,bool>, last_background: string, last_divider: bool}
  */
 function salt_render_state( string $op = 'get', ?string $key = null, $value = null ): array {
 	static $state = null;
 
 	if ( null === $state || 'reset' === $op ) {
 		$state = array(
-			'h1_claimed'    => false,
-			'h1_source'     => '',
-			'section_index' => 0,
-			'anchors'       => array(),
+			'h1_claimed'      => false,
+			'h1_source'       => '',
+			'section_index'   => 0,
+			'anchors'         => array(),
+			'last_background' => '',
+			'last_divider'    => false,
 		);
 	}
 
@@ -284,7 +286,8 @@ function salt_anchor_id( string $raw ): string {
  * renders the body inside the wrapper component.
  *
  * @param array<string,mixed> $args    Wrapper args: name (required), spacing,
- *                                     background, container, anchor, divider, is_primary.
+ *                                     background, container, anchor, divider,
+ *                                     is_primary, has_heading, flush_top.
  * @param callable            $content function( int $heading_level ): void — echoes the body.
  * @return void
  */
@@ -322,6 +325,10 @@ function salt_section( array $args, callable $content ): void {
 			'type'    => 'bool',
 			'default' => true,
 		),
+		'flush_top'   => array(
+			'type'    => 'bool',
+			'default' => false,
+		),
 	);
 
 	$args = salt_require_args( $args, $contract, 'section' );
@@ -334,8 +341,24 @@ function salt_section( array $args, callable $content ): void {
 		$level = 1;
 	}
 
-	$index = salt_render_state()['section_index'];
+	$state = salt_render_state();
+	$index = $state['section_index'];
 	salt_render_state( 'set', 'section_index', $index + 1 );
+
+	// Same-background adjacency collapse: two neighbouring sections sharing a
+	// background have no visual boundary, so their paddings stack into a dead
+	// zone (pb + pt of the same colour). The later section drops its top
+	// padding — ONE unit of spacing between them, not two. A divider on the
+	// previous section is a boundary and keeps the full gap. A section may
+	// also force the collapse itself (flush_top — e.g. the full-bleed hero
+	// banner meeting the header).
+	$collapse_top = $args['flush_top']
+		|| ( 'none' !== $args['spacing']
+			&& '' !== $state['last_background']
+			&& $state['last_background'] === $args['background']
+			&& ! $state['last_divider'] );
+	salt_render_state( 'set', 'last_background', $args['background'] );
+	salt_render_state( 'set', 'last_divider', $args['divider'] );
 
 	ob_start();
 	$content( $level );
@@ -344,13 +367,14 @@ function salt_section( array $args, callable $content ): void {
 	salt_component(
 		'section',
 		array(
-			'name'       => $args['name'],
-			'spacing'    => $args['spacing'],
-			'background' => $args['background'],
-			'container'  => $args['container'],
-			'anchor'     => salt_anchor_id( $args['anchor'] ),
-			'divider'    => $args['divider'],
-			'index'      => $index,
+			'name'         => $args['name'],
+			'spacing'      => $args['spacing'],
+			'background'   => $args['background'],
+			'container'    => $args['container'],
+			'anchor'       => salt_anchor_id( $args['anchor'] ),
+			'divider'      => $args['divider'],
+			'index'        => $index,
+			'collapse_top' => $collapse_top,
 		),
 		array( 'default' => $body )
 	);

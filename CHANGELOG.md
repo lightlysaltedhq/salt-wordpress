@@ -6,6 +6,38 @@ docs/RELEASE-POLICY.md. Releases with breaking changes carry a **BREAKING**
 section enumerating changed components/sections at args-signature and
 markup granularity (cross-reference your site's override manifest).
 
+## [4.1.0] — 2026-07-03
+
+Spacing-rhythm pass from a rendered-page UI audit of every nav destination.
+
+### Added
+- **Same-background adjacency collapse**: two neighbouring sections sharing a
+  background have no visual boundary, so their paddings stacked into dead
+  zones (~16rem on the FAQ page, ~13rem on Team). `salt_section()` now tracks
+  the previous section's background in the render state and passes a new
+  OPTIONAL `collapse_top` arg to x-section (additive — defaults render 4.0.0
+  markup byte-identically), which drops the later section's top padding
+  (`pt-0 md:pt-0`). A divider on the previous section is a boundary and keeps
+  the full gap; `spacing: none` never collapses. Also exposed as a
+  `flush_top` wrapper arg for sections that force it.
+- Pagination styling for core `the_posts_pagination()` (chip treatment
+  matching the share/social buttons).
+
+### Changed
+- **Full-bleed hero banner now sits flush against the header** (flush_top when
+  an image is set) — removes the dead strip above the image. This alters the
+  existing `hero-full-bleed.snap.html` (wrapper gains `pt-0 md:pt-0`); semver
+  call for the tag owner — shipped as MINOR because 4.0.0 is untagged and the
+  x-section change itself is additive.
+- Singles normalised to one padding rule (content bands `py-14 md:py-20`,
+  media bands `pt-10 md:pt-14`, benefits `pt-14 md:pt-20`, work
+  challenge/solution `pb-14 md:pb-20`, gallery + related `py-14 md:py-20`);
+  the service "Related services" heading drops lg → md (in-flow sub-section,
+  not a page band).
+- Demo seeder alternates section backgrounds so no two adjacent seeded
+  sections share one (home logos/services swapped, team + faq + about
+  rich-text rows → surface-alt) — belt and braces with the collapse.
+
 ## [4.0.0] — 2026-07-03
 
 Engagement build-out: rich single templates (post/work/service), share +

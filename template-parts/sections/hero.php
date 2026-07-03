@@ -95,6 +95,11 @@ $salt_wrapper = salt_section_wrapper_args( 'hero', $args ?? array() );
 if ( 'full-bleed' === $salt_variant ) {
 	// Edge-to-edge image: the wrapper goes full; text re-containers itself.
 	$salt_wrapper['container'] = 'full';
+	// The banner meets the header — no dead strip above the image. Text-only
+	// full-bleed keeps its top padding (nothing to bleed).
+	if ( $salt_image_id > 0 ) {
+		$salt_wrapper['flush_top'] = true;
+	}
 }
 
 salt_section(

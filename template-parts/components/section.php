@@ -4,14 +4,20 @@
  *
  * ARGS CONTRACT (v1 — changing this signature or the markup structure is a
  * MAJOR semver bump, §4/§12):
- *   name       string  required  Section slug (data attribute + class hook).
- *   spacing    string  'md'      none|sm|md|lg.
- *   background string  'surface' surface|surface-alt|brand-tint|inverse (semantic tokens only).
- *   container  string  'default' full|wide|default|narrow.
- *   anchor     string  ''        Pre-sanitised anchor ID (salt_anchor_id()).
- *   divider    bool    false     Rule line at the section boundary.
- *   index      int     0         Document position (from the section loop).
- *   slots      array             'default' => pre-rendered body HTML.
+ *   name         string  required  Section slug (data attribute + class hook).
+ *   spacing      string  'md'      none|sm|md|lg.
+ *   background   string  'surface' surface|surface-alt|brand-tint|inverse (semantic tokens only).
+ *   container    string  'default' full|wide|default|narrow.
+ *   anchor       string  ''        Pre-sanitised anchor ID (salt_anchor_id()).
+ *   divider      bool    false     Rule line at the section boundary.
+ *   index        int     0         Document position (from the section loop).
+ *   collapse_top bool    false     Drop the top padding (pt-0 md:pt-0) — set by
+ *                                  salt_section() when the previous section
+ *                                  shares this background (adjacency collapse)
+ *                                  or the section forces flush_top. Added in
+ *                                  4.1.0 (additive — default renders v4.0.0
+ *                                  markup byte-identically).
+ *   slots        array             'default' => pre-rendered body HTML.
  *
  * Render via salt_section() (which derives the heading level and sanitises
  * the anchor) — not directly.
@@ -26,35 +32,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 $salt_args = salt_require_args(
 	$args ?? array(),
 	array(
-		'name'       => array(
+		'name'         => array(
 			'type'     => 'string',
 			'required' => true,
 		),
-		'spacing'    => array(
+		'spacing'      => array(
 			'type'    => 'string',
 			'default' => 'md',
 		),
-		'background' => array(
+		'background'   => array(
 			'type'    => 'string',
 			'default' => 'surface',
 		),
-		'container'  => array(
+		'container'    => array(
 			'type'    => 'string',
 			'default' => 'default',
 		),
-		'anchor'     => array(
+		'anchor'       => array(
 			'type'    => 'string',
 			'default' => '',
 		),
-		'divider'    => array(
+		'divider'      => array(
 			'type'    => 'bool',
 			'default' => false,
 		),
-		'index'      => array(
+		'index'        => array(
 			'type'    => 'int',
 			'default' => 0,
 		),
-		'slots'      => array(
+		'collapse_top' => array(
+			'type'    => 'bool',
+			'default' => false,
+		),
+		'slots'        => array(
 			'type'    => 'array',
 			'default' => array(),
 		),
@@ -103,6 +113,10 @@ $salt_classes = salt_classnames(
 		'x-section',
 		'section-' . $salt_args['name'],
 		$salt_spacing_classes[ $salt_args['spacing'] ],
+		// Adjacency collapse: pt-0 sorts after py-* in the built sheet (base)
+		// and md:pt-0 covers the breakpoint tier, so the collapse wins at
+		// every width without restructuring the spacing tiers.
+		$salt_args['collapse_top'] && '' !== $salt_spacing_classes[ $salt_args['spacing'] ] ? 'pt-0 md:pt-0' : '',
 		$salt_background_classes[ $salt_args['background'] ],
 	)
 );

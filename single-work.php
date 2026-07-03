@@ -127,7 +127,7 @@ while ( have_posts() ) {
 	// ------------------------------------------------------------------
 	$salt_thumbnail_id = (int) get_post_thumbnail_id( $salt_work_id );
 	if ( $salt_thumbnail_id > 0 ) {
-		echo '<div class="x-work-media mx-auto w-full max-w-5xl px-4 pt-10 sm:px-6 lg:px-8">';
+		echo '<div class="x-work-media mx-auto w-full max-w-5xl px-4 pt-10 sm:px-6 lg:px-8 md:pt-14">';
 		salt_component(
 			'image',
 			array(
@@ -145,7 +145,7 @@ while ( have_posts() ) {
 	// Editor content.
 	// ------------------------------------------------------------------
 	if ( '' !== trim( (string) get_post_field( 'post_content', $salt_work_id ) ) ) {
-		echo '<div class="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8">';
+		echo '<div class="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
 		echo '<div class="x-prose">';
 		the_content();
 		echo '</div>';
@@ -156,7 +156,7 @@ while ( have_posts() ) {
 	// Challenge / solution.
 	// ------------------------------------------------------------------
 	if ( '' !== trim( $salt_challenge ) || '' !== trim( $salt_solution ) ) {
-		echo '<div class="mx-auto w-full max-w-5xl px-4 pb-14 sm:px-6 lg:px-8">';
+		echo '<div class="mx-auto w-full max-w-5xl px-4 pb-14 sm:px-6 lg:px-8 md:pb-20">';
 		echo '<div class="grid gap-10 md:grid-cols-2">';
 		foreach ( array(
 			array( __( 'The challenge', 'salt' ), $salt_challenge ),
@@ -231,7 +231,7 @@ while ( have_posts() ) {
 	// Gallery grid.
 	// ------------------------------------------------------------------
 	if ( array() !== $salt_gallery ) {
-		echo '<div class="x-work-gallery mx-auto w-full max-w-5xl px-4 py-14 sm:px-6 lg:px-8">';
+		echo '<div class="x-work-gallery mx-auto w-full max-w-5xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
 		echo '<div class="grid gap-6 sm:grid-cols-2">';
 		foreach ( $salt_gallery as $salt_image_id ) {
 			if ( $salt_image_id <= 0 ) {
