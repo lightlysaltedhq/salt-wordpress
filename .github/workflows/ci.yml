@@ -37,6 +37,57 @@ jobs:
       - name: DEP01 — theme survives with ACF absent (no fatal)
         run: php bin/check-acf-absent.php
 
+      # This gate existed and worked, but nothing ran it: it was absent from CI and from
+      # package.json, and only comments referenced it. tests/unit/ColorVectorsTest.php's
+      # docstring describes it as the JS half of a PHP<->JS parity pair, so half the pair
+      # was unenforced. Wiring it in costs one line.
+      - name: PHP↔JS colour-math parity (§13) — the JS port matches the fixture
+        run: node bin/check-color-parity.mjs
+
+  conformance:
+    name: Conformance vs base-design-system
+    runs-on: ubuntu-latest
+    steps:
+      # Side-by-side layout: tests/conformance/BaseConformanceTest.php resolves the contract
+      # at ../base-design-system, so this repo needs an explicit path too — the default
+      # checkout would land in $GITHUB_WORKSPACE itself and the sibling would not exist.
+      #
+      #   $GITHUB_WORKSPACE/
+      #     salt/                  <- this repo
+      #     base-design-system/    <- the contract
+      - name: Check out this repo
+        uses: actions/checkout@v4
+        with:
+          path: salt
+
+      # base-design-system is private, so the default GITHUB_TOKEN cannot read it — it is
+      # scoped to this repo alone. BASE_DS_KEY is the private half of a read-only deploy key
+      # registered on base-design-system. Deploy keys do not expire; a PAT would, and both
+      # consumers' CI would go red on the same day for a reason nobody remembers.
+      - name: Check out the contract
+        uses: actions/checkout@v4
+        with:
+          repository: otigs/base-design-system
+          ssh-key: ${{ secrets.BASE_DS_KEY }}
+          path: base-design-system
+
+      - name: Set up PHP (fleet minimum)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Install Composer dependencies
+        working-directory: salt
+        run: composer install --prefer-dist --no-progress
+
+      # Fails closed and never skips: salt cannot claim to conform to a contract it cannot
+      # read. Both of this fleet's gates once returned 0 on skip, so CI passed green while
+      # verifying nothing (fixed in ls-design-system@eb3011b). Do not reintroduce it.
+      - name: Derivation vs frozen vectors + required role vocabulary
+        working-directory: salt
+        run: vendor/bin/phpunit --testsuite conformance
+
   js:
     name: ESLint + Stylelint
     runs-on: ubuntu-latest
