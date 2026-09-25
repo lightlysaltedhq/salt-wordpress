@@ -304,8 +304,12 @@ function salt_text_on( string $background_hex ): string {
  * '#4b5563' so a fresh install is always legible (FAIL03).
  *
  * Emits, per role, --color-{role}-{step} for all 11 ramp steps plus
- * --color-on-{role} (the AA text colour for step 600). Output order is fixed
- * (primary, secondary, accent; steps ascending) regardless of input order.
+ * --color-on-{role} (the AA text colour for step 600). Primary also gets
+ * --color-on-primary-{step} for each step a display mode fills `brand` with,
+ * because --color-on-brand follows the mode (assets/src/css/app.css): a
+ * single light-mode on-colour measured 2.35:1 on the dark theme's
+ * primary-400 (otigs/salt#3). Output order is fixed (primary, secondary,
+ * accent; steps ascending) regardless of input order.
  *
  * @param array<string, mixed> $brand Brand colours keyed by role.
  * @return string ':root{...}' CSS block.
@@ -351,6 +355,18 @@ function salt_brand_css( array $brand ): string {
 			$css .= sprintf( '--color-%s-%d:%s;', $role, $step, $step_hex );
 		}
 		$css .= sprintf( '--color-on-%s:%s;', $role, salt_text_on( $ramp[600] ) );
+
+		if ( 'primary' !== $role ) {
+			continue;
+		}
+
+		// The brand fill steps: 600 light, 400 dark, 700 high contrast, 200
+		// dark + high contrast. A step app.css starts using without being
+		// listed here keeps the neutral default's on-colour on every
+		// configured site; the conformance suite fails when that happens.
+		foreach ( array( 200, 400, 600, 700 ) as $step ) {
+			$css .= sprintf( '--color-on-primary-%d:%s;', $step, salt_text_on( $ramp[ $step ] ) );
+		}
 	}
 	$css .= '}';
 

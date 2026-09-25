@@ -47,22 +47,51 @@
  * overlap only on ramps, and that overlap is the point: if salt's colour maths
  * ever drifts, both trip.
  *
+ * CONTRAST
+ * --------
+ * Every rule in `contrast.requirements`, and every rule in
+ * `contrast.conditionalRequirements` whose `when` roles app.css declares (in
+ * 2.1.0 that is one: `ink` on `brand.tint`), is evaluated in every display
+ * mode a visitor can combine (MODES: light or dark, with or without high
+ * contrast, with or without grayscale), at rest and on hover (HOVER), for
+ * each of the contract's frozen seeds as salt_brand_css() emits it and for
+ * the compiled defaults a site with no brand set renders. Ratios come from
+ * salt_derive_ramp(), salt_text_on() and salt_contrast_ratio(), salt's own
+ * maths. Contrast failures turned up three times before this existed
+ * (otigs/salt#3, otigs/salt#4, and a photo hero on a client site).
+ *
+ * The values come from app.css read as a table of rules, not from a model
+ * of the browser. colour_rules() says what it accepts and refuses the rest,
+ * and tokens() refuses to rank two equally specific rules that disagree:
+ * that tie is what a browser settles by source order, and it is how #4
+ * shipped.
+ *
  * WHAT THIS DOES NOT CHECK
  * ------------------------
- * - The contract's contrast section (`contrast.requirements` and
- *   `contrast.conditionalRequirements`). Those are properties of the rendered
- *   palette, per theme mode and per brand seed, and this suite measures none
- *   of them.
- * - That a required role RESOLVES. The role check finds a declaration such as
- *   `--color-brand-tint:` in app.css and reads nothing after the colon, so a
- *   role pointing at a ramp step that does not exist, or at nothing, passes.
+ * - Pairs the contract has no rule for. salt also paints `text-brand` on
+ *   `surface` (links, eyebrows) and a `focus` ring that needs 3:1; neither
+ *   is measured.
+ * - Brands outside the frozen seeds. On-brand at rest holds for any seed by
+ *   construction (salt_text_on()); hover and every other pair are measured
+ *   for these seeds only.
+ * - Hover anywhere HOVER does not name. It is declared from the templates,
+ *   not read from them.
+ * - The built stylesheet. Tailwind drops theme variables that nothing
+ *   reads, so a role measured here from app.css can be absent from
+ *   assets/dist. Today `accent` is declared there only under grayscale, and
+ *   `on-accent` only arrives with salt_brand_css()'s block when a brand is
+ *   set (measured in Chrome 148.0.7778.96 against app.59614ed624.css).
+ * - That surface.alt, border and focus RESOLVE. The role check finds a
+ *   declaration such as `--color-border:` in app.css and reads nothing after
+ *   the colon; only the roles a contrast pair names are resolved.
  * - That components consume roles rather than raw ramps. The contract's tier
  *   model says components MUST NOT consume Tier 1 directly (a ramp step such
  *   as `bg-primary-600`); nothing here looks at a template.
  *
  * A green run here says the vocabulary's rules are the ones last read, the
- * derivation reproduces the frozen vectors and every required role is
- * declared. It says nothing about contrast, resolution or component
+ * derivation reproduces the frozen vectors, every required role is declared
+ * and the contract's contrast rules hold in every display mode for the
+ * frozen seeds. It says nothing about other pairs, other brands or component
  * discipline.
  *
  * FAILS CLOSED. If the package or any file it exports is absent, this test
@@ -107,6 +136,31 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	private const PINNED = '2.1.0';
 
 	private const VOCABULARY_SHA256 = '845fa7153858d66cd544b9e9911a1ff800567e6a6c7af5b18b53cd0ea38d155c';
+
+	private const APP_CSS = __DIR__ . '/../../assets/src/css/app.css';
+
+	/**
+	 * The mode table: each display mode <html> can carry, as the attribute
+	 * selector app.css writes it with. salt_theme_init_js() sets these before
+	 * paint and assets/src/js/display-prefs.js toggles them, so a visitor can
+	 * hold any combination, and every one of the 2^3 is evaluated. A colour
+	 * token declared under any other selector fails the suite: nothing here
+	 * could say when it applies.
+	 */
+	private const MODES = array(
+		'dark'          => '[data-theme="dark"]',
+		'high contrast' => '[data-contrast="high"]',
+		'grayscale'     => '[data-grayscale]',
+	);
+
+	/**
+	 * What a fill becomes on hover. Each element painted `bg-brand
+	 * text-on-brand` that changes on hover goes to `hover:bg-brand-strong`
+	 * (button.php, contact.php, booking.php, map.php), so on-brand is measured
+	 * on brand.strong as well. No other contract pair changes on hover in
+	 * salt's templates.
+	 */
+	private const HOVER = array( 'brand' => 'brand.strong' );
 
 	/**
 	 * Decode a JSON file, failing by name if it is absent or not an object.
@@ -311,6 +365,270 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
+	 * Every rule in app.css that declares a colour token: the @theme block at
+	 * rank 0, and one rule per combination of MODES at a rank equal to the
+	 * number of modes it names. Every attribute selector weighs the same, so
+	 * that rank is the rule's specificity.
+	 *
+	 * Only those two shapes are read. A colour token declared under any other
+	 * selector (a selector list, `:root[...]`, a mode spelled differently from
+	 * MODES), inside a nested block such as @media or @layer, with
+	 * !important, twice in one rule, or in a second rule for a combination
+	 * that already has one, fails here by name. Each of those would make the
+	 * outcome depend on something rank cannot see, so the suite refuses it
+	 * rather than guess.
+	 *
+	 * @return list<array{selector: string, modes: list<string>, rank: int, set: array<string, string>}>
+	 */
+	private static function colour_rules(): array {
+		// Comments go first, but not the `/*` in `@source "../../../*.php"`: a
+		// match that ignored strings would eat everything up to the next `*/`.
+		$css = (string) preg_replace_callback(
+			'#("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\')|/\*.*?\*/#s',
+			static fn( array $found ): string => $found[1] ?? '',
+			(string) file_get_contents( self::APP_CSS )
+		);
+
+		$length = strlen( $css );
+		$rules  = array();
+		$depth  = 0;
+		$start  = 0;
+		$open   = 0;
+
+		for ( $i = 0; $i < $length; $i++ ) {
+			$char = $css[ $i ];
+
+			if ( '"' === $char || "'" === $char ) {
+				$close = strpos( $css, $char, $i + 1 );
+				if ( false === $close ) {
+					self::fail( 'app.css has an unterminated string at byte ' . $i . '.' );
+				}
+				$i = $close;
+			} elseif ( '{' === $char ) {
+				if ( 0 === $depth ) {
+					$open = $i + 1;
+				}
+				++$depth;
+			} elseif ( '}' === $char ) {
+				--$depth;
+				if ( 0 === $depth ) {
+					$rule = self::colour_rule( trim( substr( $css, $start, $open - 1 - $start ) ), substr( $css, $open, $i - $open ) );
+					if ( null !== $rule ) {
+						if ( array_key_exists( $rule['selector'], $rules ) ) {
+							self::fail( "app.css declares colour tokens in two `{$rule['selector']}` rules. Which one wins would come down to source order; merge them." );
+						}
+						$rules[ $rule['selector'] ] = $rule;
+					}
+					$start = $i + 1;
+				}
+			} elseif ( ';' === $char && 0 === $depth ) {
+				$start = $i + 1;
+			}
+		}
+
+		if ( 0 !== $depth ) {
+			self::fail( 'app.css has unbalanced braces, so this suite cannot read its rules.' );
+		}
+
+		$rules = array_values( $rules );
+		if ( 1 !== count( array_filter( $rules, static fn( array $rule ): bool => 0 === $rule['rank'] ) ) ) {
+			self::fail( 'app.css has no @theme block declaring colour tokens, so there is no base palette to evaluate.' );
+		}
+
+		return $rules;
+	}
+
+	/**
+	 * One top-level app.css rule read as a row of the mode table, or null
+	 * when it declares no colour token.
+	 *
+	 * @param string $prelude Selector or at-rule before the brace.
+	 * @param string $body    Everything between the braces.
+	 * @return array{selector: string, modes: list<string>, rank: int, set: array<string, string>}|null
+	 */
+	private static function colour_rule( string $prelude, string $body ): ?array {
+		$prelude = (string) preg_replace( '/\s+/', ' ', $prelude );
+
+		if ( 0 === preg_match( '/(?:^|[;{\s])(--color-[\w-]+)\s*:/', $body, $first ) ) {
+			return null;
+		}
+
+		if ( str_contains( $body, '{' ) ) {
+			self::fail( "app.css declares {$first[1]} inside a block nested under `{$prelude}`. This suite reads colour tokens from @theme and the display-mode rules only, and cannot rank a nested declaration against them. Move it into one of those." );
+		}
+
+		$modes = array();
+		if ( '@theme' !== $prelude ) {
+			preg_match_all( '/\[[^\]]*\]/', $prelude, $attributes );
+			foreach ( $attributes[0] as $attribute ) {
+				$mode = array_search( $attribute, self::MODES, true );
+				if ( false !== $mode && ! in_array( $mode, $modes, true ) ) {
+					$modes[] = $mode;
+				}
+			}
+
+			if ( array() === $modes || implode( '', $attributes[0] ) !== $prelude || count( $modes ) !== count( $attributes[0] ) ) {
+				self::fail(
+					"app.css declares {$first[1]} under `{$prelude}`, which is neither @theme nor a combination of the display modes as the mode table spells them ("
+					. implode( ', ', self::MODES ) . "). This suite cannot say when that rule applies or what it beats, so it refuses to guess.\n"
+					. '  If it is a new mode, add it to MODES in ' . __FILE__ . '; otherwise move the declaration into the rule for the combination it belongs to.'
+				);
+			}
+
+			// One key per combination, whatever order the attributes were written in.
+			$modes = array_values( array_intersect( array_keys( self::MODES ), $modes ) );
+		}
+
+		$set = array();
+		foreach ( explode( ';', $body ) as $declaration ) {
+			if ( '' === trim( $declaration ) ) {
+				continue;
+			}
+
+			$parts = explode( ':', $declaration, 2 );
+			$prop  = trim( $parts[0] );
+			if ( ! str_starts_with( $prop, '--color-' ) ) {
+				continue;
+			}
+
+			$value = trim( $parts[1] ?? '' );
+			if ( 1 === preg_match( '/!\s*important/i', $value ) ) {
+				self::fail( "app.css marks {$prop} !important under `{$prelude}`. !important overrides every rank this suite reads, so it cannot evaluate the modes around it." );
+			}
+			if ( array_key_exists( $prop, $set ) ) {
+				self::fail( "app.css declares {$prop} twice under `{$prelude}`." );
+			}
+			$set[ $prop ] = $value;
+		}
+
+		return array(
+			'selector' => '@theme' === $prelude ? '@theme' : implode( '', array_map( static fn( string $mode ): string => self::MODES[ $mode ], $modes ) ),
+			'modes'    => $modes,
+			'rank'     => count( $modes ),
+			'set'      => $set,
+		);
+	}
+
+	/**
+	 * The `:root` block salt_brand_css() prints for one primary seed, as
+	 * property => value. It is unlayered and prints after the stylesheet, so
+	 * it beats @theme. It would tie with a one-mode rule on specificity, so
+	 * test_colour_tokens_are_declared_only_where_they_can_be_ranked() refuses
+	 * any property the two share.
+	 *
+	 * @param string $seed Primary brand colour.
+	 * @return array<string, string>
+	 */
+	private static function runtime( string $seed ): array {
+		static $cache = array();
+
+		if ( ! isset( $cache[ $seed ] ) ) {
+			$css = salt_brand_css( array( 'primary' => $seed ) );
+			if ( 1 !== preg_match( '/^:root\{((?:--color-[\w-]+:#[0-9a-f]{6};)+)\}$/', $css, $block ) ) {
+				self::fail( "salt_brand_css() printed a block this suite cannot read: {$css}" );
+			}
+
+			$cache[ $seed ] = array();
+			foreach ( explode( ';', rtrim( $block[1], ';' ) ) as $declaration ) {
+				list( $prop, $value )    = explode( ':', $declaration, 2 );
+				$cache[ $seed ][ $prop ] = $value;
+			}
+		}
+
+		return $cache[ $seed ];
+	}
+
+	/**
+	 * Every colour token's value in one combination of display modes: @theme,
+	 * then the runtime block, then each applicable mode rule, the highest rank
+	 * winning. Two rules of equal rank that set a token differently cannot be
+	 * ranked: a browser would take whichever comes later in app.css. That
+	 * token is left null, which measure() reports as unrankable, and the tie
+	 * is described in $ties.
+	 *
+	 * @param list<array{selector: string, modes: list<string>, rank: int, set: array<string, string>}> $rules   colour_rules().
+	 * @param list<string>                                                                          $combo   Mode names in force.
+	 * @param array<string, string>                                                                 $runtime runtime(), or array() for the compiled defaults.
+	 * @param array<string, string>                                                                 $ties    Receives one description per unrankable token.
+	 * @return array<string, string|null>
+	 */
+	private static function tokens( array $rules, array $combo, array $runtime, array &$ties ): array {
+		$tokens = array();
+		$best   = array();
+
+		foreach ( $rules as $rule ) {
+			if ( 0 === $rule['rank'] ) {
+				$tokens = array_merge( $rule['set'], $runtime );
+			}
+		}
+
+		foreach ( $rules as $rule ) {
+			if ( 0 === $rule['rank'] || array() !== array_diff( $rule['modes'], $combo ) ) {
+				continue;
+			}
+			foreach ( $rule['set'] as $prop => $value ) {
+				if ( ! isset( $best[ $prop ] ) || $rule['rank'] > $best[ $prop ]['rank'] ) {
+					$best[ $prop ] = array(
+						'rank' => $rule['rank'],
+						'by'   => array(),
+					);
+				}
+				if ( $rule['rank'] === $best[ $prop ]['rank'] ) {
+					$best[ $prop ]['by'][ $rule['selector'] ] = $value;
+				}
+			}
+		}
+
+		foreach ( $best as $prop => $winner ) {
+			if ( 1 === count( array_unique( $winner['by'] ) ) ) {
+				$tokens[ $prop ] = reset( $winner['by'] );
+				continue;
+			}
+
+			$tokens[ $prop ] = null;
+			$claims          = array();
+			foreach ( $winner['by'] as $selector => $value ) {
+				$claims[] = "{$selector} sets it to {$value}";
+			}
+			$ties[ $prop ] = "{$prop}: " . implode( ', ', $claims ) . ', at the same specificity, and no rule for this combination settles it. A browser takes whichever comes later in app.css; add a rule for the combination instead.';
+		}
+
+		return $tokens;
+	}
+
+	/**
+	 * The hex colour a role resolves to, following var() chains, or null and
+	 * the reason it cannot be measured.
+	 *
+	 * @param array<string, string|null> $tokens tokens().
+	 * @param string                     $role   Contract role id, e.g. 'brand.tint'.
+	 * @return array{0: string|null, 1: string}
+	 */
+	private static function measure( array $tokens, string $role ): array {
+		$prop = '--color-' . str_replace( '.', '-', $role );
+
+		for ( $hop = 0; $hop < 12; $hop++ ) {
+			if ( ! array_key_exists( $prop, $tokens ) ) {
+				return array( null, "{$prop} is not declared" );
+			}
+			if ( null === $tokens[ $prop ] ) {
+				return array( null, "{$prop} cannot be ranked" );
+			}
+
+			$value = $tokens[ $prop ];
+			if ( 1 === preg_match( '/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i', $value ) ) {
+				return array( strtolower( $value ), '' );
+			}
+			if ( 1 !== preg_match( '/^var\(\s*(--[\w-]+)\s*\)$/', $value, $reference ) ) {
+				return array( null, "{$prop} is `{$value}`, which is not a colour this suite can measure" );
+			}
+			$prop = $reference[1];
+		}
+
+		return array( null, "the var() chain from --color-{$role} is longer than 12 steps" );
+	}
+
+	/**
 	 * package.json pins the contract as a bare version, that version is PINNED,
 	 * and node_modules holds it.
 	 *
@@ -491,5 +809,226 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			preg_match_all( '/^\s*--color-neutral-\d+\s*:/m', $css ) > 0 ? 1 : 0,
 			'the contract requires a neutral ramp to exist'
 		);
+	}
+
+	/**
+	 * One row per combination of MODES, named for what a visitor sees.
+	 *
+	 * @return array<string, array{list<string>}>
+	 */
+	public static function displayModeProvider(): array {
+		$names = array_keys( self::MODES );
+		$rows  = array();
+		$every = 1 << count( $names );
+
+		for ( $mask = 0; $mask < $every; $mask++ ) {
+			$combo = array();
+			foreach ( $names as $bit => $name ) {
+				if ( $mask & ( 1 << $bit ) ) {
+					$combo[] = $name;
+				}
+			}
+
+			$label                            = in_array( 'dark', $combo, true ) ? $combo : array_merge( array( 'light' ), $combo );
+			$rows[ implode( ' + ', $label ) ] = array( $combo );
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * The contract's contrast rules hold in one combination of display modes,
+	 * for every frozen seed and for the compiled defaults, at rest and on
+	 * hover. Every failure in the combination is reported together, one line
+	 * per rule, with its worst palette and the colours that produced it.
+	 *
+	 * @param list<string> $combo Mode names in force.
+	 */
+	#[DataProvider( 'displayModeProvider' )]
+	public function test_the_contract_contrast_rules_hold_in_every_display_mode( array $combo ): void {
+		$vocab = self::contract( './vocabulary' );
+		$rules = self::colour_rules();
+
+		$declared = array();
+		foreach ( $rules as $rule ) {
+			$declared += $rule['set'];
+		}
+
+		// A conditional rule binds salt once app.css declares every role in its
+		// `when`. Undeclared roles skip it, as the contract's own evaluator does.
+		$checks  = array();
+		$skipped = 0;
+		foreach ( array( 'contrast.requirements', 'contrast.conditionalRequirements.rules' ) as $path ) {
+			foreach ( self::required( $vocab, $path ) as $rule ) {
+				$pair = $rule['pair'] ?? null;
+				$when = $rule['when'] ?? array();
+				if ( ! is_array( $pair ) || ! array_is_list( $pair ) || 2 !== count( $pair ) || ! is_numeric( $rule['minRatio'] ?? null ) || ! is_array( $when ) ) {
+					self::fail( "vocabulary.json '{$path}' has a rule this suite cannot read: " . wp_json_encode( $rule ) );
+				}
+
+				foreach ( $when as $role ) {
+					if ( ! array_key_exists( '--color-' . str_replace( '.', '-', (string) $role ), $declared ) ) {
+						++$skipped;
+						continue 2;
+					}
+				}
+
+				list( $fg, $bg ) = $pair;
+				$min             = (float) $rule['minRatio'];
+				$checks[]        = array( "{$fg} on {$bg}, at rest", $fg, $bg, $min );
+				if ( isset( self::HOVER[ $bg ] ) ) {
+					$checks[] = array( "{$fg} on {$bg}, on hover (" . self::HOVER[ $bg ] . ')', $fg, self::HOVER[ $bg ], $min );
+				}
+			}
+		}
+
+		$palettes = array( 'compiled defaults' => array() );
+		foreach ( self::contract( './vectors' )['vectors'] as $vector ) {
+			$palettes[ strtolower( (string) $vector['seed'] ) ] = self::runtime( (string) $vector['seed'] );
+		}
+		$palettes['#4b5563'] ??= self::runtime( '#4b5563' );
+
+		$ties     = array();
+		$failures = array();
+		foreach ( $palettes as $palette => $runtime ) {
+			$tokens = self::tokens( $rules, $combo, $runtime, $ties );
+
+			foreach ( $checks as list( $label, $fg_role, $bg_role, $min ) ) {
+				list( $fg, $fg_why ) = self::measure( $tokens, $fg_role );
+				list( $bg, $bg_why ) = self::measure( $tokens, $bg_role );
+
+				if ( null === $fg || null === $bg ) {
+					$failures[ $label ]['unverified'][ trim( "{$fg_why}; {$bg_why}", '; ' ) ][] = $palette;
+					continue;
+				}
+
+				$ratio = salt_contrast_ratio( $fg, $bg );
+				if ( $ratio < $min ) {
+					$failures[ $label ]['below'][] = array( $ratio, $palette, $fg, $bg, $min );
+				}
+			}
+		}
+
+		$report = array();
+		foreach ( $ties as $tie ) {
+			$report[] = "  UNRANKABLE {$tie}";
+		}
+		foreach ( $failures as $label => $failure ) {
+			if ( isset( $failure['below'] ) ) {
+				usort( $failure['below'], static fn( array $a, array $b ): int => $a[0] <=> $b[0] );
+				$worst    = $failure['below'][0];
+				$best     = $failure['below'][ count( $failure['below'] ) - 1 ];
+				$report[] = sprintf(
+					'  FAIL %s: below %s:1 for %d of %d palettes, from %.2f:1 (%s: %s on %s) to %.2f:1 (%s)',
+					$label,
+					$worst[4],
+					count( $failure['below'] ),
+					count( $palettes ),
+					$worst[0],
+					$worst[1],
+					$worst[2],
+					$worst[3],
+					$best[0],
+					$best[1]
+				);
+			}
+			foreach ( $failure['unverified'] ?? array() as $why => $which ) {
+				$report[] = sprintf( '  UNVERIFIED %s for %d of %d palettes: %s', $label, count( $which ), count( $palettes ), $why );
+			}
+		}
+
+		$this->assertNotEmpty( $checks, 'No contrast rule applies, so a green run would verify nothing.' );
+		if ( array() !== $report ) {
+			$this->fail(
+				sprintf(
+					"%s: the contract's contrast rules do not hold (%d checks per palette; %d conditional rules skipped because app.css does not declare their roles).\n%s\n"
+					. '  A palette is a frozen seed as salt_brand_css() emits it, or the compiled defaults of a site with no brand set.',
+					$this->dataName(),
+					count( $checks ),
+					$skipped,
+					implode( "\n", $report )
+				)
+			);
+		}
+	}
+
+	/**
+	 * app.css declares colour tokens only in shapes the contrast checks can
+	 * rank (colour_rules() fails on any other), and no mode rule sets a token
+	 * salt_brand_css() prints in its `:root` block. `:root` and a one-mode rule
+	 * have the same specificity, so which wins would come down to where the
+	 * block prints in <head>.
+	 */
+	public function test_colour_tokens_are_declared_only_where_they_can_be_ranked(): void {
+		$runtime = self::runtime( '#4b5563' );
+
+		foreach ( self::colour_rules() as $rule ) {
+			if ( 0 === $rule['rank'] ) {
+				continue;
+			}
+
+			$shared = array_keys( array_intersect_key( $rule['set'], $runtime ) );
+			$this->assertSame(
+				array(),
+				$shared,
+				"{$rule['selector']} sets " . implode( ', ', $shared ) . ', which salt_brand_css() also prints in <head>. They tie on specificity, so print order would decide. Point the mode at a token the runtime block does not set.'
+			);
+		}
+	}
+
+	/**
+	 * Every per-site token app.css reads is one salt_brand_css() derives from
+	 * the site's own brand. One it does not derive keeps whatever app.css
+	 * compiles in on every configured site, and the contrast checks cannot see
+	 * that when the compiled value happens to pass for every frozen seed, as
+	 * --color-on-primary-400's #0f172a does.
+	 */
+	public function test_every_per_site_token_app_css_reads_is_derived_per_site(): void {
+		$runtime = self::runtime( '#4b5563' );
+		$read    = 0;
+
+		foreach ( self::colour_rules() as $rule ) {
+			foreach ( $rule['set'] as $prop => $value ) {
+				preg_match_all( '/var\(\s*(--color-(?:(?:primary|secondary|accent)-\d+|on-(?:primary|secondary|accent)(?:-\d+)?))\s*\)/', $value, $references );
+				foreach ( $references[1] as $reference ) {
+					++$read;
+					$this->assertArrayHasKey(
+						$reference,
+						$runtime,
+						"{$rule['selector']} sets {$prop} from {$reference}, which salt_brand_css() does not derive per site. Every configured site would keep the compiled value there, or none, whatever its brand. Emit it from salt_brand_css() in inc/colors.php."
+					);
+				}
+			}
+		}
+
+		$this->assertGreaterThan( 0, $read, 'app.css reads no per-site token, so this check verified nothing.' );
+	}
+
+	/**
+	 * The mode table is what the page actually sets: each MODES selector is an
+	 * attribute salt_theme_init_js() writes on <html> before paint. A mode the
+	 * script spells differently would never match its CSS, and every result
+	 * above would describe a page nobody sees.
+	 */
+	public function test_the_mode_table_is_what_the_page_sets(): void {
+		$script = salt_theme_init_js(
+			array(
+				'dark'                  => true,
+				'prefs'                 => true,
+				'motion_default_reduce' => false,
+			)
+		);
+
+		foreach ( self::MODES as $mode => $selector ) {
+			if ( 1 !== preg_match( '/^\[([\w-]+)(?:="([^"]*)")?\]$/', $selector, $attribute ) ) {
+				self::fail( "MODES spells {$mode} as {$selector}; this check reads [name] or [name=\"value\"] only." );
+			}
+
+			$this->assertStringContainsString(
+				sprintf( 'd.setAttribute("%s","%s")', $attribute[1], $attribute[2] ?? '' ),
+				$script,
+				"salt_theme_init_js() never sets {$selector}, so the {$mode} rules in app.css apply to no page."
+			);
+		}
 	}
 }

@@ -38,7 +38,65 @@ markup granularity (cross-reference your site's override manifest).
   raises those. Where it does not: dark mode with grayscale on, because `[data-grayscale]` re-points
   `brand.tint` to neutral-100, which is the dark theme's `ink`. That renders
   at 1.00:1, and at 1.20:1 with high contrast on as well. The CSS predates
-  this change and nothing here alters it; otigs/salt#4 tracks the fix.
+  this change; the fix is under Fixed below (otigs/salt#4).
+
+### Fixed
+- **Dark-mode primary buttons meet AA** (otigs/salt#3). `--color-on-brand`
+  was #f8fafc in every mode, and dark mode fills `brand` with primary-400
+  (primary-300 on hover, primary-200 and primary-100 with high contrast). Over
+  the contract's 15 seeds that measured 2.35–2.80:1 at rest and 1.68–1.89:1
+  on hover, and 1.31–1.41:1 and 1.10–1.15:1 with high contrast. On-brand now
+  follows the mode: `salt_brand_css()` also prints
+  `--color-on-primary-{200,400,600,700}`, `salt_text_on()` of each step a mode
+  fills `brand` with, app.css defaults them for the neutral ramp, and each
+  mode points `--color-on-brand` at its own step. Dark now measures
+  6.09–7.26:1 at rest and 9.05–10.17:1 on hover; with high contrast,
+  12.07–13.02:1 and 14.81–15.46:1. **Visual change:** in dark mode, text on
+  `bg-brand` (primary buttons, the pricing badge, process step numbers,
+  pressed display-preference toggles) turns from near-white #f8fafc to
+  near-black #0f172a. Light mode, with or without high contrast, renders
+  unchanged for every frozen seed. A brand whose 600 step is too light for
+  #f8fafc now gets `salt_text_on()`'s choice instead.
+- **Dark mode with grayscale renders the brand tint dark** (otigs/salt#4). A
+  new `[data-theme="dark"][data-grayscale]` rule puts the dark theme's steps
+  on the neutral ramp: brand neutral-400 (was neutral-600), brand-strong
+  neutral-300 (was neutral-700), brand-tint neutral-900 #26292e (was
+  neutral-100 #e7ebf1), focus neutral-400 (was neutral-700), on-brand
+  #0f172a. `ink` on `brand.tint` goes from 1.00:1 to 12.20:1, and from 1.20:1
+  to 14.59:1 with high contrast as well. Outside the contract's rules, the
+  same change takes `text-brand` on the page surface from 3.45:1 to 6.78:1,
+  and the focus ring from 2.44:1 to 6.78:1.
+- **The other two grayscale combinations get their own rules**, so no two
+  equally specific rules disagree about a token and leave it to source order,
+  the shape behind #4. Light with high contrast and grayscale had lost high
+  contrast's steps to grayscale that way. It now uses them on the neutral
+  ramp: brand neutral-700 (was neutral-600), brand-strong neutral-800 (was
+  neutral-700), focus #000 (was neutral-700); on-brand is 7.10:1 at rest (was
+  5.03:1). Dark with high contrast and grayscale kept the brand in colour
+  (primary-200 and primary-100), because the dark + high-contrast rule
+  outranked grayscale. It is now neutral-200 and neutral-100, with #0f172a
+  on-brand at 12.44:1 (was 1.31–1.41:1).
+
+### Added
+- **The conformance suite evaluates the contract's contrast rules.** The
+  five unconditional rules, plus each conditional rule whose roles app.css
+  declares (in 2.1.0 only `ink` on `brand.tint`), are checked in all eight
+  combinations of dark, high contrast and grayscale. Each check runs at rest
+  and on hover (`brand.strong`), for the contract's 15 frozen seeds and for
+  the compiled defaults, using salt's own `salt_derive_ramp()` and
+  `salt_contrast_ratio()`. app.css is read as a table of rules: `@theme`,
+  plus one rule per mode combination. The suite fails by name on any colour
+  token it cannot rank: one declared under another selector, nested,
+  `!important`, set by two equally specific rules that disagree (the
+  source-order tie behind #4), or printed by `salt_brand_css()` as well as
+  by a mode rule. It also fails when app.css reads a per-site token that
+  `salt_brand_css()` does not derive. Before this, the suite read the
+  contrast rules and evaluated none of them. The contract pin (2.1.0) and
+  its vocabulary hash are unchanged. Chrome for Testing 148.0.7778.96
+  (headless) confirmed the gate's resolved values against the built
+  `app.59614ed624.css` for every seed and combination. The only mismatches
+  were `accent` and `on-accent`, which Tailwind leaves out of the build
+  because nothing reads them.
 
 ## [4.1.0] — 2026-07-03
 

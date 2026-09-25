@@ -25,7 +25,12 @@ script.
 **Contrast guarantees:** text-tier steps are clamped via `salt_text_on()`
 (AA ≥ 4.5:1 mathematically guaranteed); the CI property test sweeps hues
 0–360 asserting derived text passes AA on light AND dark surfaces
-(tests/unit/ColorsTest.php). Section backgrounds are a fixed set of role
+(tests/unit/ColorsTest.php). `on-brand` follows the display mode: each
+mode points it at `--color-on-primary-{step}` for the step it fills `brand`
+with, which `salt_brand_css()` derives per site. The conformance suite
+evaluates the contract's contrast rules in every combination of dark, high
+contrast and grayscale (tests/conformance/FoundationsConformanceTest.php),
+and refuses a colour rule it cannot rank. Section backgrounds are a fixed set of role
 tokens (§11) — arbitrary colour is not an editor capability in v1.
 
 **Wrapper class maps** (spacing/background/container) are frozen in
