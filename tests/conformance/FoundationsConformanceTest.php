@@ -211,7 +211,11 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
-	 * package.json pins the contract exactly, and node_modules holds that pin.
+	 * package.json pins the contract as a bare version, and node_modules holds it.
+	 *
+	 * Only the bare spelling (2.1.0) is accepted. npm treats '=2.1.0' and
+	 * 'v2.1.0' as exact too, but one spelling keeps the lockfile and this check
+	 * simple, so those fail here with a message saying what to write instead.
 	 *
 	 * The second half catches a stale install: bump the pin without running
 	 * npm ci and every other test here would quietly read the old contract.
@@ -224,7 +228,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		$this->assertMatchesRegularExpression(
 			'/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/',
 			$pin,
-			self::PACKAGE . " is required as '{$pin}', which is a range. Pin an exact version."
+			self::PACKAGE . " is required as '{$pin}'. Write the bare version, e.g. '2.1.0': this check accepts no other spelling, and a range would float."
 		);
 		$this->assertSame(
 			$pin,
