@@ -72,6 +72,32 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	private const EXPORTS = array( './vocabulary', './vectors', './derivation', './schema/token-file' );
 
 	/**
+	 * The vocabulary's shape as this test ranks it: for each object (a dotted
+	 * path from the top of vocabulary.json, '' being the top), every key it may
+	 * hold.
+	 *
+	 * Read here: colorRoles.required, colorRoles.status.required and
+	 * typographyRoles.required (each role must be declared in app.css), and
+	 * neutralRamp (a ramp must exist). Known and deliberately not read: the `$`
+	 * prose keys and `version`; `tiers` and `darkMode`, which describe
+	 * architecture rather than list names to find; `adapters`, which salt does
+	 * not use; the opt-in `colorRoles.extended` and `typographyRoles.optional`,
+	 * none of which salt declares; and `contrast`, which this suite does not
+	 * check (see the class docblock).
+	 *
+	 * Any other key, or any of these gone, fails by name. A contract that grows
+	 * a family this test cannot rank has to be read by a person at the bump,
+	 * not passed green by a test that never looked at it, and 3.0.0 (the
+	 * typography and scale contract) is expected to grow exactly that.
+	 */
+	private const VOCABULARY_SHAPE = array(
+		''                  => array( '$comment', 'version', '$v2', '$noValues', 'tiers', 'colorRoles', 'adapters', 'typographyRoles', 'neutralRamp', 'darkMode', 'contrast' ),
+		'colorRoles'        => array( '$rule', 'required', 'status', 'extended' ),
+		'colorRoles.status' => array( '$rule', 'required' ),
+		'typographyRoles'   => array( '$rule', 'required', 'optional', '$whyOptional' ),
+	);
+
+	/**
 	 * Decode a JSON file, failing by name if it is absent or not an object.
 	 *
 	 * @param string $path File path.
@@ -148,6 +174,40 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 */
 	private static function contract( string $export ): array {
 		return self::decode( self::resolve( $export ) );
+	}
+
+	/**
+	 * The value at a dotted path, or null if any step of it is absent.
+	 *
+	 * @param array<string, mixed> $data Decoded document.
+	 * @param string               $path Dotted path; '' is the document itself.
+	 * @return mixed
+	 */
+	private static function dig( array $data, string $path ) {
+		$node = $data;
+		foreach ( '' === $path ? array() : explode( '.', $path ) as $key ) {
+			$node = is_array( $node ) ? ( $node[ $key ] ?? null ) : null;
+		}
+		return $node;
+	}
+
+	/**
+	 * A required-role list from the vocabulary, failing by name if it is
+	 * absent, not a list, or empty. An empty list would make the role check
+	 * vacuous: nothing to look for, so nothing missing, so green.
+	 *
+	 * @param array<string, mixed> $vocab Decoded vocabulary.
+	 * @param string               $path  Dotted path of the list.
+	 * @return list<mixed>
+	 */
+	private static function required( array $vocab, string $path ): array {
+		$list = self::dig( $vocab, $path );
+
+		if ( ! is_array( $list ) || array() === $list || ! array_is_list( $list ) ) {
+			self::fail( "vocabulary.json '{$path}' is missing, empty or not a list, so there is nothing for salt to be checked against. Read the release before trusting a green run." );
+		}
+
+		return $list;
 	}
 
 	/**
@@ -242,6 +302,33 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
+	 * The vocabulary holds every key this test ranks, and nothing else.
+	 */
+	public function test_the_vocabulary_has_the_shape_this_test_ranks(): void {
+		$vocab    = self::contract( './vocabulary' );
+		$problems = array();
+
+		foreach ( self::VOCABULARY_SHAPE as $path => $known ) {
+			$node  = self::dig( $vocab, $path );
+			$where = '' === $path ? 'the top level' : "'{$path}'";
+
+			if ( ! is_array( $node ) || ( array() !== $node && array_is_list( $node ) ) ) {
+				$problems[] = "vocabulary.json has no object at {$where}.";
+				continue;
+			}
+
+			foreach ( array_diff( array_keys( $node ), $known ) as $key ) {
+				$problems[] = "vocabulary.json has a key this test does not rank at {$where}: '{$key}'. Read what it asks of salt, then check it here or list it in VOCABULARY_SHAPE as deliberately unread.";
+			}
+			foreach ( array_diff( $known, array_keys( $node ) ) as $key ) {
+				$problems[] = "vocabulary.json no longer has '{$key}' at {$where}. Find where it went before trusting a green run.";
+			}
+		}
+
+		$this->assertSame( array(), $problems );
+	}
+
+	/**
 	 * Every colour role the contract requires exists in the theme's @theme block.
 	 *
 	 * Reads app.css rather than the computed stylesheet on purpose: @theme is
@@ -255,10 +342,10 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		$css   = (string) file_get_contents( __DIR__ . '/../../assets/src/css/app.css' );
 
 		$roles = array();
-		foreach ( $vocab['colorRoles']['required'] as $role ) {
+		foreach ( self::required( $vocab, 'colorRoles.required' ) as $role ) {
 			$roles[] = $role['id'];
 		}
-		$roles = array_merge( $roles, $vocab['colorRoles']['status']['required'] );
+		$roles = array_merge( $roles, self::required( $vocab, 'colorRoles.status.required' ) );
 
 		foreach ( $roles as $role ) {
 			$prop = '--color-' . str_replace( '.', '-', $role );
@@ -269,7 +356,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			);
 		}
 
-		foreach ( $vocab['typographyRoles']['required'] as $role ) {
+		foreach ( self::required( $vocab, 'typographyRoles.required' ) as $role ) {
 			$this->assertMatchesRegularExpression(
 				'/^\s*' . preg_quote( $role['css'], '/' ) . '\s*:/m',
 				$css,
