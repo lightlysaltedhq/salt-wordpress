@@ -54,8 +54,9 @@
  * 2.1.0 that is one: `ink` on `brand.tint`), is evaluated in every display
  * mode a visitor can combine (MODES: light or dark, with or without high
  * contrast, with or without grayscale), at rest and on hover (HOVER), for
- * each of the contract's frozen seeds as salt_brand_css() emits it and for
- * the compiled defaults a site with no brand set renders. Ratios come from
+ * each of the contract's frozen seeds and each seed on the sRGB grid at a
+ * step of 15 (5,832) as salt_brand_css() emits it, and for the compiled
+ * defaults a site with no brand set renders. Ratios come from
  * salt_derive_ramp(), salt_text_on() and salt_contrast_ratio(), salt's own
  * maths. Contrast failures turned up three times before this existed
  * (otigs/salt#3, otigs/salt#4, and a photo hero on a client site).
@@ -71,9 +72,9 @@
  * - Pairs the contract has no rule for. salt also paints `text-brand` on
  *   `surface` (links, eyebrows) and a `focus` ring that needs 3:1; neither
  *   is measured.
- * - Brands outside the frozen seeds. On-brand at rest holds for any seed by
+ * - Brands between the grid points. On-brand at rest holds for any seed by
  *   construction (salt_text_on()); hover and every other pair are measured
- *   for these seeds only.
+ *   for the frozen seeds and the grid only.
  * - Hover anywhere HOVER does not name. It is declared from the templates,
  *   not read from them.
  * - The built stylesheet. Tailwind drops theme variables that nothing
@@ -91,8 +92,8 @@
  * A green run here says the vocabulary's rules are the ones last read, the
  * derivation reproduces the frozen vectors, every required role is declared
  * and the contract's contrast rules hold in every display mode for the
- * frozen seeds. It says nothing about other pairs, other brands or component
- * discipline.
+ * frozen seeds and the grid. It says nothing about other pairs, brands off
+ * the grid or component discipline.
  *
  * FAILS CLOSED. If the package or any file it exports is absent, this test
  * FAILS rather than skips — salt cannot claim to conform to something it cannot
@@ -894,7 +895,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 
 	/**
 	 * The contract's contrast rules hold in one combination of display modes,
-	 * for every frozen seed and for the compiled defaults, at rest and on
+	 * for every frozen and grid seed and the compiled defaults, at rest and on
 	 * hover. Every failure in the combination is reported together, one line
 	 * per rule, with its worst palette and the colours that produced it.
 	 *
@@ -943,6 +944,20 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			$palettes[ strtolower( (string) $vector['seed'] ) ] = self::runtime( (string) $vector['seed'] );
 		}
 		$palettes['#4b5563'] ??= self::runtime( '#4b5563' );
+		$frozen                = array_fill_keys( array_keys( $palettes ), true );
+
+		// Beyond the frozen seeds, the sRGB cube at a step of 15 (0, 15, … 255
+		// per channel, 5,832 seeds, five of them frozen too). A failure still
+		// names the frozen seeds on its own line, since those are the ones the
+		// contract defines.
+		for ( $red = 0; $red <= 255; $red += 15 ) {
+			for ( $green = 0; $green <= 255; $green += 15 ) {
+				for ( $blue = 0; $blue <= 255; $blue += 15 ) {
+					$seed               = sprintf( '#%02x%02x%02x', $red, $green, $blue );
+					$palettes[ $seed ] ??= self::runtime( $seed );
+				}
+			}
+		}
 
 		$ties     = array();
 		$failures = array();
@@ -987,9 +1002,23 @@ final class FoundationsConformanceTest extends SaltTestCase {
 					$best[0],
 					$best[1]
 				);
+
+				$named    = array_values( array_filter( $failure['below'], static fn( array $below ): bool => isset( $frozen[ $below[1] ] ) ) );
+				$report[] = array() === $named
+					? sprintf( '       frozen: none of the %d', count( $frozen ) )
+					: sprintf(
+						'       frozen: %d of %d, from %.2f:1 (%s: %s on %s); %s',
+						count( $named ),
+						count( $frozen ),
+						$named[0][0],
+						$named[0][1],
+						$named[0][2],
+						$named[0][3],
+						implode( ', ', array_map( static fn( array $below ): string => $below[1], $named ) )
+					);
 			}
 			foreach ( $failure['unverified'] ?? array() as $why => $which ) {
-				$report[] = sprintf( '  UNVERIFIED %s for %d of %d palettes: %s', $label, count( $which ), count( $palettes ), $why );
+				$report[] = sprintf( '  UNVERIFIED %s for %d of %d palettes (%d of %d frozen): %s', $label, count( $which ), count( $palettes ), count( array_intersect_key( array_flip( $which ), $frozen ) ), count( $frozen ), $why );
 			}
 		}
 
@@ -998,7 +1027,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			$this->fail(
 				sprintf(
 					"%s: the contract's contrast rules do not hold (%d checks per palette; %d conditional rules skipped because app.css does not declare their roles).\n%s\n"
-					. '  A palette is a frozen seed as salt_brand_css() emits it, or the compiled defaults of a site with no brand set.',
+					. '  A palette is a seed as salt_brand_css() emits it (the contract\'s frozen seeds plus the sRGB grid at a step of 15), or the compiled defaults of a site with no brand set.',
 					$this->dataName(),
 					count( $checks ),
 					$skipped,

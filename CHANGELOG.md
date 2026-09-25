@@ -81,8 +81,9 @@ markup granularity (cross-reference your site's override manifest).
   five unconditional rules, plus each conditional rule whose roles app.css
   declares (in 2.1.0 only `ink` on `brand.tint`), are checked in all eight
   combinations of dark, high contrast and grayscale. Each check runs at rest
-  and on hover (`brand.strong`), for the contract's 15 frozen seeds and for
-  the compiled defaults, using salt's own `salt_derive_ramp()` and
+  and on hover (`brand.strong`), for the contract's 15 frozen seeds, the
+  sRGB grid at a step of 15 (5,832 seeds; failures still name the frozen
+  ones) and the compiled defaults, using salt's own `salt_derive_ramp()` and
   `salt_contrast_ratio()`. app.css is read as a table of rules: `@theme`,
   plus one rule per mode combination. The suite fails by name on any colour
   token it cannot rank: one declared under another selector, nested,
