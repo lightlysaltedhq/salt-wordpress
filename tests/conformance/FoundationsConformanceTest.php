@@ -379,7 +379,13 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * outcome depend on something rank cannot see, so the suite refuses it
 	 * rather than guess.
 	 *
-	 * @return list<array{selector: string, modes: list<string>, rank: int, set: array<string, string>}>
+	 * Patching the reader shape by shape kept leaving the next shape open (an
+	 * escaped property, a `;` inside a string, a declaration after a nested
+	 * block), so it ends with a census instead: every `--color-…:` anywhere in
+	 * the file, whatever precedes it, must be a declaration this table read.
+	 * Anything else fails as unrankable, by name.
+	 *
+	 * @return list<array{selector: string, modes: list<string>, rank: int, set: array<string, string>, read: list<int>}>
 	 */
 	private static function colour_rules(): array {
 		// Comments go first, but not the `/*` in `@source "../../../*.php"`: a
@@ -390,25 +396,30 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			(string) file_get_contents( self::APP_CSS )
 		);
 
-		$length = strlen( $css );
+		// The same text with every string's contents blanked, byte for byte the
+		// same length, so offsets in one are offsets in the other. Everything
+		// below reads this copy: a `;`, `{` or `--color-x:` inside a string is not
+		// CSS structure.
+		$blank = self::blank_strings( $css );
+
+		// A browser decodes escapes: Chromium reads `--color-on\-brand` as
+		// --color-on-brand. app.css has no backslash outside strings and
+		// comments, so rather than decode escapes the suite refuses any.
+		$slash = strpos( $blank, '\\' );
+		if ( false !== $slash ) {
+			self::fail( 'app.css has a backslash escape outside a string, in `' . self::excerpt( $css, $slash ) . '`. A browser decodes it, so it can spell a colour token this suite does not recognise (Chromium reads --color-on\\-brand as --color-on-brand). Write it without escapes.' );
+		}
+
+		$length = strlen( $blank );
 		$rules  = array();
 		$depth  = 0;
 		$start  = 0;
 		$open   = 0;
 
 		for ( $i = 0; $i < $length; $i++ ) {
-			$char = $css[ $i ];
+			$char = $blank[ $i ];
 
-			if ( '"' === $char || "'" === $char ) {
-				$close = $i + 1;
-				while ( $close < $length && $css[ $close ] !== $char ) {
-					$close += '\\' === $css[ $close ] ? 2 : 1;
-				}
-				if ( $close >= $length ) {
-					self::fail( 'app.css has an unterminated string at byte ' . $i . '.' );
-				}
-				$i = $close;
-			} elseif ( '{' === $char ) {
+			if ( '{' === $char ) {
 				if ( 0 === $depth ) {
 					$open = $i + 1;
 				}
@@ -416,7 +427,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			} elseif ( '}' === $char ) {
 				--$depth;
 				if ( 0 === $depth ) {
-					$rule = self::colour_rule( trim( substr( $css, $start, $open - 1 - $start ) ), substr( $css, $open, $i - $open ) );
+					$rule = self::colour_rule( trim( substr( $css, $start, $open - 1 - $start ) ), substr( $blank, $open, $i - $open ), $open );
 					if ( null !== $rule ) {
 						if ( array_key_exists( $rule['selector'], $rules ) ) {
 							self::fail( "app.css declares colour tokens in two `{$rule['selector']}` rules. Which one wins would come down to source order; merge them." );
@@ -428,10 +439,9 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			} elseif ( ';' === $char && 0 === $depth ) {
 				// Everything this suite reads must be in this file. An imported
 				// stylesheet could declare colour tokens it never sees, so the only
-				// @import allowed is Tailwind's own (at-keywords are case-insensitive,
-				// and an escaped one is refused rather than decoded).
+				// @import allowed is Tailwind's own (at-keywords are case-insensitive).
 				$statement = trim( substr( $css, $start, $i - $start ) );
-				if ( 1 === preg_match( '/^@(?:import\b|[^\s;]*\\\\)/i', $statement ) && 1 !== preg_match( '/^@import\s+(["\'])tailwindcss\1(?:\s|$)/', $statement ) ) {
+				if ( 1 === preg_match( '/^@import\b/i', $statement ) && 1 !== preg_match( '/^@import\s+(["\'])tailwindcss\1(?:\s|$)/', $statement ) ) {
 					self::fail( "app.css has `{$statement}`. This suite reads colour tokens from app.css alone, and an imported stylesheet could declare ones it never sees; the only import it accepts is \"tailwindcss\". Move the rules into app.css." );
 				}
 				$start = $i + 1;
@@ -447,39 +457,84 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			self::fail( 'app.css has no @theme block declaring colour tokens, so there is no base palette to evaluate.' );
 		}
 
+		// The census. Whatever precedes it (a nested block's `}`, a bare
+		// statement, anything), each `--color-…:` must be one the table read.
+		$read = array_fill_keys( array_merge( array(), ...array_column( $rules, 'read' ) ), true );
+		preg_match_all( '/--color-[\w-]*\s*:/', $blank, $census, PREG_OFFSET_CAPTURE );
+		foreach ( $census[0] as $found ) {
+			if ( ! isset( $read[ $found[1] ] ) ) {
+				self::fail( 'app.css declares ' . rtrim( $found[0], " \t\n\r:" ) . ' in `' . self::excerpt( $css, $found[1] ) . '`, which this suite did not read as part of @theme or a display-mode rule. It cannot rank a colour token it did not read, so it refuses it. Move the declaration into the rule for the combination it belongs to.' );
+			}
+		}
+
 		return $rules;
 	}
 
 	/**
-	 * One top-level app.css rule read as a row of the mode table, or null
-	 * when it declares no colour token.
+	 * $css with each string's contents replaced by spaces, quotes kept, so the
+	 * length and every offset are unchanged. A string left open, or broken by
+	 * a raw newline (a bad string to a browser), fails: its extent is a guess.
 	 *
-	 * @param string $prelude Selector or at-rule before the brace.
-	 * @param string $body    Everything between the braces.
-	 * @return array{selector: string, modes: list<string>, rank: int, set: array<string, string>}|null
+	 * @param string $css app.css with comments removed.
+	 * @return string
 	 */
-	private static function colour_rule( string $prelude, string $body ): ?array {
-		$prelude = (string) preg_replace( '/\s+/', ' ', $prelude );
+	private static function blank_strings( string $css ): string {
+		$length = strlen( $css );
 
-		// A `;` or `:` inside a string is not a declaration boundary. Blank each
-		// string's contents (either quote, escapes respected) before anything
-		// splits the body, or `--x-note: "x;--color-on-brand:#0f172a;"` would
-		// read as an on-brand declaration no browser applies.
-		$body = (string) preg_replace_callback(
-			'/"(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\'/s',
-			static fn( array $found ): string => $found[0][0] . str_repeat( ' ', strlen( $found[0] ) - 2 ) . $found[0][0],
-			$body
-		);
+		for ( $i = 0; $i < $length; $i++ ) {
+			$quote = $css[ $i ];
+			if ( '"' !== $quote && "'" !== $quote ) {
+				continue;
+			}
 
-		// Chromium reads `--color-on\-brand` as --color-on-brand, so an escape
-		// can set a colour token the pattern below never sees. Any property
-		// spelled with a backslash is refused, nested blocks included, rather
-		// than decoding CSS escapes here.
-		if ( 1 === preg_match( '/(?:^|[;{])\s*((?=[-\\\\])[^\s;{}:]*\\\\[^\s;{}:]*)\s*:/', $body, $escaped ) ) {
-			self::fail( "app.css declares `{$escaped[1]}` under `{$prelude}`, a property spelled with a backslash escape. A browser decodes the escape, so it can set a colour token this suite does not recognise (Chromium reads --color-on\\-brand as --color-on-brand). Spell the property without escapes." );
+			for ( $j = $i + 1; $j < $length && $css[ $j ] !== $quote; $j++ ) {
+				if ( "\n" === $css[ $j ] || "\r" === $css[ $j ] || "\f" === $css[ $j ] ) {
+					self::fail( 'app.css has a string broken by a newline, in `' . self::excerpt( $css, $i ) . '`. A browser ends it there as a bad string, and this suite will not guess what follows.' );
+				}
+				if ( '\\' === $css[ $j ] ) {
+					$css[ $j ] = ' ';
+					++$j;
+				}
+				if ( $j < $length ) {
+					$css[ $j ] = ' ';
+				}
+			}
+			if ( $j >= $length ) {
+				self::fail( 'app.css has an unterminated string, in `' . self::excerpt( $css, $i ) . '`.' );
+			}
+			$i = $j;
 		}
 
-		if ( 0 === preg_match( '/(?:^|[;{\s])(--color-[\w-]+)\s*:/', $body, $first ) ) {
+		return $css;
+	}
+
+	/**
+	 * A short, single-line piece of app.css around an offset, for messages.
+	 *
+	 * @param string $css    app.css with comments removed.
+	 * @param int    $offset Byte offset.
+	 * @return string
+	 */
+	private static function excerpt( string $css, int $offset ): string {
+		$from = max( 0, $offset - 40 );
+
+		return trim( (string) preg_replace( '/\s+/', ' ', substr( $css, $from, $offset - $from + 60 ) ) );
+	}
+
+	/**
+	 * One top-level app.css rule read as a row of the mode table, or null
+	 * when it declares no colour token. `read` holds the offset in app.css of
+	 * each colour declaration taken, for the census in colour_rules().
+	 *
+	 * @param string $prelude Selector or at-rule before the brace.
+	 * @param string $body    Everything between the braces, strings blanked.
+	 * @param int    $offset  Offset of $body in app.css.
+	 * @return array{selector: string, modes: list<string>, rank: int, set: array<string, string>, read: list<int>}|null
+	 */
+	private static function colour_rule( string $prelude, string $body, int $offset ): ?array {
+		$prelude = (string) preg_replace( '/\s+/', ' ', $prelude );
+
+		if ( 0 === preg_match( '/(--color-[\w-]*)\s*:/', $body, $first ) ) {
 			return null;
 		}
 
@@ -509,8 +564,12 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			$modes = array_values( array_intersect( array_keys( self::MODES ), $modes ) );
 		}
 
-		$set = array();
+		$set  = array();
+		$read = array();
+		$at   = $offset;
 		foreach ( explode( ';', $body ) as $declaration ) {
+			$here = $at + strlen( $declaration ) - strlen( ltrim( $declaration ) );
+			$at  += strlen( $declaration ) + 1;
 			if ( '' === trim( $declaration ) ) {
 				continue;
 			}
@@ -520,6 +579,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			if ( ! str_starts_with( $prop, '--color-' ) ) {
 				continue;
 			}
+			$read[] = $here;
 
 			$value = trim( $parts[1] ?? '' );
 			if ( 1 === preg_match( '/!\s*important/i', $value ) ) {
@@ -536,6 +596,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			'modes'    => $modes,
 			'rank'     => count( $modes ),
 			'set'      => $set,
+			'read'     => $read,
 		);
 	}
 
@@ -953,7 +1014,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		for ( $red = 0; $red <= 255; $red += 15 ) {
 			for ( $green = 0; $green <= 255; $green += 15 ) {
 				for ( $blue = 0; $blue <= 255; $blue += 15 ) {
-					$seed               = sprintf( '#%02x%02x%02x', $red, $green, $blue );
+					$seed                = sprintf( '#%02x%02x%02x', $red, $green, $blue );
 					$palettes[ $seed ] ??= self::runtime( $seed );
 				}
 			}
