@@ -62,6 +62,14 @@
 	--color-primary-900: #26292e;
 	--color-primary-950: #141619;
 
+	/* salt_text_on() of each step a display mode fills `brand` with, so
+	   --color-on-brand can follow the mode. salt_brand_css() re-derives
+	   them per site from the site's own ramp. */
+	--color-on-primary-200: #0f172a;
+	--color-on-primary-400: #0f172a;
+	--color-on-primary-600: #f8fafc;
+	--color-on-primary-700: #f8fafc;
+
 	/* Secondary/Accent default to the Primary ramp (fallback chain, §13). */
 	--color-secondary-500: var(--color-primary-500);
 	--color-secondary-600: var(--color-primary-600);
@@ -85,7 +93,7 @@
 	--color-brand: var(--color-primary-600);
 	--color-brand-strong: var(--color-primary-700);
 	--color-brand-tint: var(--color-primary-50);
-	--color-on-brand: #f8fafc;
+	--color-on-brand: var(--color-on-primary-600);
 	--color-accent: var(--color-accent-600);
 	--color-on-accent: #f8fafc;
 	--color-border: var(--color-neutral-200);
@@ -122,6 +130,7 @@
 	--color-brand: var(--color-primary-400);
 	--color-brand-strong: var(--color-primary-300);
 	--color-brand-tint: var(--color-primary-950);
+	--color-on-brand: var(--color-on-primary-400);
 	--color-border: var(--color-neutral-800);
 	--color-focus: var(--color-primary-400);
 }
@@ -259,6 +268,7 @@
 	--color-border: var(--color-neutral-700);
 	--color-brand: var(--color-primary-700);
 	--color-brand-strong: var(--color-primary-800);
+	--color-on-brand: var(--color-on-primary-700);
 	--color-focus: #000;
 }
 
@@ -270,6 +280,7 @@
 	--color-border: var(--color-neutral-300);
 	--color-brand: var(--color-primary-200);
 	--color-brand-strong: var(--color-primary-100);
+	--color-on-brand: var(--color-on-primary-200);
 	--color-focus: #fff;
 }
 
@@ -280,12 +291,40 @@
 	--color-brand: var(--color-neutral-600);
 	--color-brand-strong: var(--color-neutral-700);
 	--color-brand-tint: var(--color-neutral-100);
+	--color-on-brand: #f8fafc;
 	--color-accent: var(--color-neutral-600);
 	--color-focus: var(--color-neutral-700);
 	--color-success: oklch(45% 0 0deg);
 	--color-warning: oklch(50% 0 0deg);
 	--color-error: oklch(45% 0 0deg);
 	--color-info: oklch(45% 0 0deg);
+}
+
+/* Grayscale combined with dark and high contrast: the step the other modes
+   would use, on the neutral ramp. Each rule settles a token two
+   equally-specific rules above both set. Without one, the later rule wins
+   by source order: grayscale's light tint under dark ink measured 1.00:1
+   (otigs/salt#4). The conformance suite fails on any such tie. */
+[data-theme="dark"][data-grayscale] {
+	--color-brand: var(--color-neutral-400);
+	--color-brand-strong: var(--color-neutral-300);
+	--color-brand-tint: var(--color-neutral-900);
+	--color-on-brand: #0f172a;
+	--color-focus: var(--color-neutral-400);
+}
+
+[data-contrast="high"][data-grayscale] {
+	--color-brand: var(--color-neutral-700);
+	--color-brand-strong: var(--color-neutral-800);
+	--color-on-brand: #f8fafc;
+	--color-focus: #000;
+}
+
+[data-theme="dark"][data-contrast="high"][data-grayscale] {
+	--color-brand: var(--color-neutral-200);
+	--color-brand-strong: var(--color-neutral-100);
+	--color-on-brand: #0f172a;
+	--color-focus: #fff;
 }
 
 /* ---------------------------------------------------------------------- */

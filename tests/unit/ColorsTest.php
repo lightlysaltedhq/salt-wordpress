@@ -211,4 +211,23 @@ final class ColorsTest extends SaltTestCase {
 			$this->assertStringContainsString( "--color-on-{$role}:", $css );
 		}
 	}
+
+	/**
+	 * on-brand follows the display mode (otigs/salt#3), so primary gets an AA
+	 * text colour for each step a mode fills brand with, derived from the
+	 * site's own ramp.
+	 */
+	public function test_brand_css_derives_an_on_colour_per_brand_fill_step(): void {
+		$css  = salt_brand_css( array( 'primary' => '#00ff00' ) );
+		$ramp = salt_derive_ramp( '#00ff00' );
+
+		foreach ( array( 200, 400, 600, 700 ) as $step ) {
+			$this->assertStringContainsString( sprintf( '--color-on-primary-%d:%s;', $step, salt_text_on( $ramp[ $step ] ) ), $css );
+		}
+
+		// Dark mode's fill (400) takes the dark candidate: #f8fafc measured 2.35:1 there.
+		$this->assertStringContainsString( '--color-on-primary-400:#0f172a;', $css );
+		$this->assertSame( 4, preg_match_all( '/--color-on-primary-\d+:/', $css ) );
+		$this->assertSame( 0, preg_match_all( '/--color-on-(?:secondary|accent)-\d+:/', $css ) );
+	}
 }

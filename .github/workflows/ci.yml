@@ -75,7 +75,7 @@ jobs:
       # Fails closed and never skips: salt cannot claim to conform to a contract it cannot
       # read. Both of this fleet's gates once returned 0 on skip, so CI passed green while
       # verifying nothing (fixed in ls-design-system@eb3011b). Do not reintroduce it.
-      - name: Contract pin + derivation vs frozen vectors + required role vocabulary
+      - name: Contract pin + derivation vs frozen vectors + required roles + contrast in every display mode
         run: vendor/bin/phpunit --testsuite conformance
 
   js:
