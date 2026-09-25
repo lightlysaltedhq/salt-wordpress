@@ -8,14 +8,14 @@ none are optional.
 
 ```sh
 composer install    # PHP dev tools (PHPUnit, PHPCS) — never shipped
-npm install         # asset toolchain (Tailwind v4, esbuild) — never shipped
+npm install         # asset toolchain (Tailwind v4, esbuild) + the design contract — never shipped
 ```
 
 ## The local loop
 
 ```sh
 composer lint                 # PHPCS: WordPress-Extra + security sniffs as ERRORS
-composer test                 # PHPUnit (unit + snapshot suites)
+composer test                 # PHPUnit (unit, snapshot + conformance suites)
 npm run lint:js && npm run lint:css
 npm run build                 # rebuild assets/dist — COMMIT the output
 php bin/extract-slugs.php --write   # after any field/layout change — COMMIT the registry
@@ -29,6 +29,23 @@ docs/RELEASE-POLICY.md), regenerate deliberately, and commit the diff:
 SALT_UPDATE_SNAPSHOTS=1 vendor/bin/phpunit --testsuite snapshot
 ```
 
+## The design contract
+
+salt conforms to `@lightlysaltedhq/design-foundations`, the Lightly Salted
+design-system contract (tier model, role vocabulary, OKLCH derivation, frozen
+vectors; no colour values). It replaced the archived base-design-system
+checkout. `tests/conformance/` reads it from `node_modules`, so run
+`npm install` before `composer test`; the suite fails, never skips, when the
+package is absent.
+
+The version is pinned **exactly** in `package.json` (a bare version, no range),
+and the conformance suite also records the version salt was last checked
+against (`PINNED`) and a hash of that version's rules (`VOCABULARY_SHA256`).
+Move it by a deliberate bump in its own PR: change the pin, `npm install`, and
+run `vendor/bin/phpunit --testsuite conformance`. It fails with the `npm diff`
+command to read. Read it, bring salt into line, set both constants (the
+failure prints the new hash), and record the bump in CHANGELOG.md.
+
 ## Adding a section
 
 Follow the recipe in [SECTIONS.md](SECTIONS.md) — the Rich Text section is
@@ -37,7 +54,7 @@ partial, its tests, and the SECTIONS.md registry row.
 
 ## Branching & releases
 
-- Work on branches; PR into `main`. CI must be green (all four jobs).
+- Work on branches; PR into `main`. CI must be green (all five jobs).
 - Releases: bump `style.css` + `SALT_VERSION`, update CHANGELOG.md
   (BREAKING section when applicable), tag `vX.Y.Z`, promote per
   docs/RELEASE-POLICY.md (canary first — never straight to the fleet).

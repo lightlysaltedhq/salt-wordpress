@@ -16,10 +16,11 @@
 			<directory>tests/snapshot</directory>
 		</testsuite>
 		<!--
-			Separate from `unit` because it is the only suite needing a sibling
-			checkout of ../base-design-system. Keeping it out of `unit` means the
-			unit suite still runs anywhere, while this one fails loudly (never
-			skips) when the contract is missing.
+			Separate from `unit` because it is the only suite that reads
+			node_modules: the contract is @lightlysaltedhq/design-foundations,
+			exact-pinned in package.json. Keeping it out of `unit` means the unit
+			suite still runs without npm, while this one fails loudly (never
+			skips) when the contract is not installed.
 		-->
 		<testsuite name="conformance">
 			<directory>tests/conformance</directory>

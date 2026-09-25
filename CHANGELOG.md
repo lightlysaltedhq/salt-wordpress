@@ -6,6 +6,40 @@ docs/RELEASE-POLICY.md. Releases with breaking changes carry a **BREAKING**
 section enumerating changed components/sections at args-signature and
 markup granularity (cross-reference your site's override manifest).
 
+## [Unreleased]
+
+### Changed
+- **The design contract is now `@lightlysaltedhq/design-foundations` 2.1.0**,
+  an exact-pinned devDependency, replacing the sibling checkout of the
+  archived base-design-system (which CI cloned with a deploy key and no ref,
+  so it floated on that repository's HEAD). The conformance suite
+  (`tests/conformance/FoundationsConformanceTest.php`) resolves each file
+  through the package's `exports`, accepts only a bare version, and fails by
+  name if the package, an export or a file is missing. It also pins the
+  contract's rules whole: a SHA-256 of vocabulary.json in canonical form (keys
+  sorted, `$` prose keys and `version` removed) is recorded next to the
+  version salt was checked against, so any normative change fails with the
+  `npm diff` command to read until salt is updated and the hash re-pinned.
+  Dev and CI only: no theme code, token or rendered output changes.
+- Contract differences from base-design-system v1.0.0 (bc82e01), the only
+  copy salt's CI ever read (both conformance runs, 16/07/2026): vectors and
+  derivation are byte-identical, and the required colour, status and
+  typography roles, the unconditional contrast rules, the tiers, the neutral
+  ramp and the dark-mode rule are unchanged. The vocabulary adds the whole
+  `extended` colour section (48 roles plus three status-companion suffixes),
+  the shadcn `adapters` mapping, optional `display` and `lead` typography
+  roles, and all 16 conditional contrast rules. All of that is opt-in except
+  one rule: `ink` on `brand.tint` at 4.5:1 names two required roles, so it
+  binds salt.
+- Where that rule holds, measured over 815 distinct brand seeds: light mode
+  at 13.23:1 or better with grayscale off, and 12.20:1 with grayscale on
+  (neutral-900 #26292e on neutral-100 #e7ebf1, the same for every seed);
+  dark mode with grayscale off at 14.91:1 or better. High contrast only
+  raises those. Where it does not: dark mode with grayscale on, because `[data-grayscale]` re-points
+  `brand.tint` to neutral-100, which is the dark theme's `ink`. That renders
+  at 1.00:1, and at 1.20:1 with high contrast on as well. The CSS predates
+  this change and nothing here alters it; otigs/salt#4 tracks the fix.
+
 ## [4.1.0] — 2026-07-03
 
 Spacing-rhythm pass from a rendered-page UI audit of every nav destination.
