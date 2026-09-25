@@ -6,6 +6,26 @@ docs/RELEASE-POLICY.md. Releases with breaking changes carry a **BREAKING**
 section enumerating changed components/sections at args-signature and
 markup granularity (cross-reference your site's override manifest).
 
+## [Unreleased]
+
+### Changed
+- **The design contract is now `@lightlysaltedhq/design-foundations` 2.1.0**,
+  an exact-pinned devDependency, replacing the sibling checkout of the
+  archived base-design-system (which CI cloned with a deploy key and no ref,
+  so it floated on that repository's HEAD). The conformance suite
+  (`tests/conformance/FoundationsConformanceTest.php`) resolves each file
+  through the package's `exports`, rejects a range pin, and fails by name if
+  the package, an export or a file is missing. Dev and CI only: no theme
+  code, token or rendered output changes.
+- Contract differences from the base-design-system copy salt read: vectors
+  and derivation are byte-identical; the vocabulary changes only opt-in
+  material (it adds seven extended colour roles, an optional `lead` typography
+  role and eight conditional contrast rules, and re-points the shadcn
+  adapter's `--badge-outline`). Required roles are unchanged. One new rule,
+  `ink` on `brand.tint` at 4.5:1, names two required roles and so binds salt;
+  measured at 13.23:1 or better in light mode and 14.91:1 or better in dark
+  across 1,456 brand seeds, so it holds with no change.
+
 ## [4.1.0] — 2026-07-03
 
 Spacing-rhythm pass from a rendered-page UI audit of every nav destination.

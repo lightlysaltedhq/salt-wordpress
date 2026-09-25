@@ -28,6 +28,7 @@ disabled, PHP 8.2+. Customised per site via child themes; the parent is
 - ESLint + Stylelint
 - PHPUnit unit suite (shared fleet logic)
 - Rendered-markup snapshot gate (FLEET01)
+- Design-contract conformance: `salt_derive_ramp()` reproduces the frozen vectors and `app.css` declares every required role, read from [`@lightlysaltedhq/design-foundations`](https://www.npmjs.com/package/@lightlysaltedhq/design-foundations) at the exact version pinned in `package.json`
 - Artifact integrity: byte-identical rebuild of `assets/dist/` + re-vendor (FLEET08)
 - Slug stability: no ACF layout/field slug removed in a non-major release without a migration entry (FLEET07)
 
@@ -35,7 +36,7 @@ disabled, PHP 8.2+. Customised per site via child themes; the parent is
 
 ```sh
 composer install   # PHP dev tools (PHPUnit, PHPCS) — never shipped
-npm install        # asset toolchain — never shipped
+npm install        # asset toolchain + the design contract — never shipped
 npm run build      # rebuild assets/dist (commit the output)
 composer lint && composer test
 ```

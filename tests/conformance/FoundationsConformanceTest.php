@@ -1,0 +1,299 @@
+<?php
+/**
+ * Conformance gate: salt conforms to @lightlysaltedhq/design-foundations.
+ *
+ * design-foundations is the Lightly Salted design-system contract: the tier
+ * model, the role vocabulary, the OKLCH derivation spec and the frozen reference
+ * vectors. It holds RULES and deliberately no colour values, so every product
+ * that conforms supplies its own palette. It was otigs/base-design-system until
+ * 18/08/2026, when that repository was folded into lightlysaltedhq/design-system
+ * as foundations/ and archived; the published package is its public contract.
+ *
+ * WHERE THE CONTRACT COMES FROM
+ * -----------------------------
+ * node_modules, installed by npm from the EXACT pin in package.json (and the
+ * integrity hash in package-lock.json). Every file is found through the
+ * package's own `exports` map rather than a hard-coded path inside it, so a
+ * release that moves a file is read correctly and one that drops an export
+ * fails here, naming the export. The pin is exact on purpose: the contract
+ * moves by a deliberate bump in a reviewed PR, never by a range floating to
+ * whatever was published last.
+ *
+ * HOW THIS DIFFERS FROM ColorVectorsTest
+ * --------------------------------------
+ * ColorVectorsTest holds PHP to tests/fixtures/color-vectors.json — salt's OWN
+ * fixture, which also pins oklch/luminance/textOn/contrastWhite and keeps the JS
+ * port (assets/src/js/admin/contrast-checker.js) in step. That is salt-internal
+ * parity and stays exactly as it is.
+ *
+ * This test holds PHP to the contract's vectors — the CROSS-REPO truth, frozen
+ * from the agreement of two independent implementations. The two fixtures
+ * overlap only on ramps, and that overlap is the point: if salt's colour maths
+ * ever drifts, both trip.
+ *
+ * WHAT THIS DOES NOT CHECK
+ * ------------------------
+ * The contract's contrast section (`contrast.requirements` and
+ * `contrast.conditionalRequirements`). Those are properties of the rendered
+ * palette, per theme mode and per brand seed, and this suite measures none of
+ * them. A green run here says the derivation and the role vocabulary conform;
+ * it says nothing about contrast.
+ *
+ * FAILS CLOSED. If the package or any file it exports is absent, this test
+ * FAILS rather than skips — salt cannot claim to conform to something it cannot
+ * read. Both of this fleet's gates once returned 0 on skip, so CI without their
+ * dependencies passed green while verifying nothing (fixed in
+ * ls-design-system@eb3011b). A gate that passes when it did not run is worse
+ * than no gate.
+ *
+ * @package Salt\Tests
+ */
+
+declare(strict_types=1);
+
+use PHPUnit\Framework\Attributes\DataProvider;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+final class FoundationsConformanceTest extends SaltTestCase {
+
+	private const PACKAGE = '@lightlysaltedhq/design-foundations';
+
+	private const PACKAGE_DIR = __DIR__ . '/../../node_modules/@lightlysaltedhq/design-foundations';
+
+	/**
+	 * Every export salt resolves. vocabulary and vectors are read below;
+	 * derivation and the token-file schema are resolved only, so a release that
+	 * drops or renames one fails at the bump, by name, rather than on the day
+	 * something here starts to need it.
+	 */
+	private const EXPORTS = array( './vocabulary', './vectors', './derivation', './schema/token-file' );
+
+	/**
+	 * Decode a JSON file, failing by name if it is absent or not an object.
+	 *
+	 * @param string $path File path.
+	 * @return array<string, mixed>
+	 */
+	private static function decode( string $path ): array {
+		if ( ! is_file( $path ) ) {
+			self::fail( "{$path} not found." );
+		}
+
+		$decoded = json_decode( (string) file_get_contents( $path ), true );
+		if ( ! is_array( $decoded ) ) {
+			self::fail( "{$path} is not valid JSON." );
+		}
+
+		return $decoded;
+	}
+
+	/**
+	 * The installed package's own package.json.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function manifest(): array {
+		$path = self::PACKAGE_DIR . '/package.json';
+
+		if ( ! is_file( $path ) ) {
+			self::fail(
+				'The contract is not installed — ' . self::PACKAGE . " not found at {$path}.\n"
+				. "  salt CONFORMS to it; it cannot claim that with the contract absent.\n"
+				. "  This gate does not skip, by design.\n"
+				. '  Fix: npm ci'
+			);
+		}
+
+		return self::decode( $path );
+	}
+
+	/**
+	 * Resolve one export to its file in node_modules, the way Node would.
+	 *
+	 * Reads only the plain-string form of an export target. A conditions object
+	 * ({"import": ..., "require": ...}) or a pattern would need a resolver this
+	 * test does not have, so it fails by name rather than guessing a branch.
+	 *
+	 * @param string $export Export subpath, e.g. './vectors'.
+	 * @return string Path of the file the export maps to.
+	 */
+	private static function resolve( string $export ): string {
+		$exports = self::manifest()['exports'] ?? null;
+
+		if ( ! is_array( $exports ) || ! array_key_exists( $export, $exports ) ) {
+			self::fail( self::PACKAGE . " does not export '{$export}', which salt reads. Check the release notes of the version pinned in package.json." );
+		}
+
+		$target = $exports[ $export ];
+		if ( ! is_string( $target ) || ! str_starts_with( $target, './' ) || in_array( '..', explode( '/', $target ), true ) ) {
+			self::fail( self::PACKAGE . " exports '{$export}' in a shape this test does not read: " . wp_json_encode( $target ) );
+		}
+
+		$path = self::PACKAGE_DIR . '/' . substr( $target, 2 );
+		if ( ! is_file( $path ) ) {
+			self::fail( self::PACKAGE . " exports '{$export}' as {$target}, and that file is not in the installed package ({$path})." );
+		}
+
+		return $path;
+	}
+
+	/**
+	 * Decode the contract file behind one export.
+	 *
+	 * @param string $export Export subpath, e.g. './vocabulary'.
+	 * @return array<string, mixed>
+	 */
+	private static function contract( string $export ): array {
+		return self::decode( self::resolve( $export ) );
+	}
+
+	/**
+	 * package.json pins the contract exactly, and node_modules holds that pin.
+	 *
+	 * The second half catches a stale install: bump the pin without running
+	 * npm ci and every other test here would quietly read the old contract.
+	 */
+	public function test_the_contract_is_pinned_exactly_and_installed_at_the_pin(): void {
+		$salt = self::decode( __DIR__ . '/../../package.json' );
+		$pin  = $salt['devDependencies'][ self::PACKAGE ] ?? null;
+
+		$this->assertIsString( $pin, self::PACKAGE . ' is not a devDependency in package.json.' );
+		$this->assertMatchesRegularExpression(
+			'/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/',
+			$pin,
+			self::PACKAGE . " is required as '{$pin}', which is a range. Pin an exact version."
+		);
+		$this->assertSame(
+			$pin,
+			self::manifest()['version'] ?? null,
+			"package.json pins {$pin} but node_modules holds a different version. Fix: npm ci"
+		);
+	}
+
+	/**
+	 * Every export salt relies on resolves to a JSON document in the installed package.
+	 */
+	public function test_every_export_resolves(): void {
+		foreach ( self::EXPORTS as $export ) {
+			$this->assertNotEmpty( self::contract( $export ), "'{$export}' resolved to an empty document" );
+		}
+	}
+
+	/**
+	 * One data-provider row per frozen vector.
+	 *
+	 * @return array<string, array{string, array<string, string>}>
+	 */
+	public static function vectorProvider(): array {
+		$rows = array();
+		foreach ( self::contract( './vectors' )['vectors'] as $vector ) {
+			$rows[ (string) $vector['seed'] ] = array( $vector['seed'], $vector['ramp'] );
+		}
+		return $rows;
+	}
+
+	/**
+	 * salt_derive_ramp() reproduces a frozen vector byte-for-byte.
+	 *
+	 * If this fails, salt has drifted from the contract. Do NOT re-freeze the
+	 * vectors to make it pass — the implementation is wrong by definition.
+	 *
+	 * @param string                $seed Seed hex.
+	 * @param array<string, string> $want Expected 11-step ramp.
+	 */
+	#[DataProvider( 'vectorProvider' )]
+	public function test_derivation_matches_the_contract( string $seed, array $want ): void {
+		$got = salt_derive_ramp( $seed );
+
+		// json_decode() int-casts the numeric step keys; normalise both sides to
+		// string keys so this compares values, not PHP's array-key coercion.
+		$normalise = static function ( array $ramp ): array {
+			$out = array();
+			foreach ( $ramp as $step => $hex ) {
+				$out[ (string) $step ] = strtolower( (string) $hex );
+			}
+			ksort( $out, SORT_NUMERIC );
+			return $out;
+		};
+
+		$this->assertSame( $normalise( $want ), $normalise( $got ), "ramp drift for seed {$seed}" );
+
+		// No vector may rely on the invalid-hex fallback path.
+		$this->assertSame( array(), $this->logs() );
+	}
+
+	/**
+	 * The contract still covers what it claims to — a fixture set that quietly
+	 * shrank would let drift through while still reporting green.
+	 */
+	public function test_the_contract_is_a_meaningful_vector_set(): void {
+		$vectors = self::contract( './vectors' );
+
+		$this->assertGreaterThanOrEqual( 15, count( $vectors['vectors'] ) );
+		$this->assertSame( 165, $vectors['counts']['assertions'] );
+
+		foreach ( $vectors['vectors'] as $vector ) {
+			$this->assertCount( 11, $vector['ramp'], "{$vector['seed']} is not an 11-step ladder" );
+			$this->assertNotEmpty( $vector['exercises'], "{$vector['seed']} does not say what it exercises" );
+		}
+	}
+
+	/**
+	 * Every colour role the contract requires exists in the theme's @theme block.
+	 *
+	 * Reads app.css rather than the computed stylesheet on purpose: @theme is
+	 * where salt DECLARES its roles, and a role missing there is missing full stop.
+	 * Values are not asserted — the contract has no opinion on them, and that is
+	 * the entire design. salt's dark surface is neutral-950 where
+	 * ls-design-system's is neutral-800, and both conform.
+	 */
+	public function test_every_required_role_exists(): void {
+		$vocab = self::contract( './vocabulary' );
+		$css   = (string) file_get_contents( __DIR__ . '/../../assets/src/css/app.css' );
+
+		$roles = array();
+		foreach ( $vocab['colorRoles']['required'] as $role ) {
+			$roles[] = $role['id'];
+		}
+		$roles = array_merge( $roles, $vocab['colorRoles']['status']['required'] );
+
+		foreach ( $roles as $role ) {
+			$prop = '--color-' . str_replace( '.', '-', $role );
+			$this->assertMatchesRegularExpression(
+				'/^\s*' . preg_quote( $prop, '/' ) . '\s*:/m',
+				$css,
+				"required role '{$role}' ({$prop}) is not declared in app.css"
+			);
+		}
+
+		foreach ( $vocab['typographyRoles']['required'] as $role ) {
+			$this->assertMatchesRegularExpression(
+				'/^\s*' . preg_quote( $role['css'], '/' ) . '\s*:/m',
+				$css,
+				"required typography role '{$role['id']}' ({$role['css']}) is not declared in app.css"
+			);
+		}
+	}
+
+	/**
+	 * A neutral ramp exists. Its LENGTH is deliberately not asserted.
+	 *
+	 * The contract mandates that a neutral ramp exists and nothing more. salt's is
+	 * 11 steps and its dark surface is neutral-950 (app.css:116, pinned verbatim by
+	 * ContrastCheckerTest); ls-design-system's is 10 and stops at 900. A contract
+	 * that standardised either would break the other — see the vocabulary's
+	 * `neutralRamp`.
+	 */
+	public function test_a_neutral_ramp_exists(): void {
+		$css = (string) file_get_contents( __DIR__ . '/../../assets/src/css/app.css' );
+
+		$this->assertSame(
+			1,
+			preg_match_all( '/^\s*--color-neutral-\d+\s*:/m', $css ) > 0 ? 1 : 0,
+			'the contract requires a neutral ramp to exist'
+		);
+	}
+}
