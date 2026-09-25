@@ -33,11 +33,20 @@
  *
  * WHAT THIS DOES NOT CHECK
  * ------------------------
- * The contract's contrast section (`contrast.requirements` and
- * `contrast.conditionalRequirements`). Those are properties of the rendered
- * palette, per theme mode and per brand seed, and this suite measures none of
- * them. A green run here says the derivation and the role vocabulary conform;
- * it says nothing about contrast.
+ * - The contract's contrast section (`contrast.requirements` and
+ *   `contrast.conditionalRequirements`). Those are properties of the rendered
+ *   palette, per theme mode and per brand seed, and this suite measures none
+ *   of them.
+ * - That a required role RESOLVES. The role check finds a declaration such as
+ *   `--color-brand-tint:` in app.css and reads nothing after the colon, so a
+ *   role pointing at a ramp step that does not exist, or at nothing, passes.
+ * - That components consume roles rather than raw ramps. The contract's tier
+ *   model says components MUST NOT consume Tier 1 directly (a ramp step such
+ *   as `bg-primary-600`); nothing here looks at a template.
+ *
+ * A green run here says the derivation reproduces the frozen vectors and every
+ * required role is declared. It says nothing about contrast, resolution or
+ * component discipline.
  *
  * FAILS CLOSED. If the package or any file it exports is absent, this test
  * FAILS rather than skips — salt cannot claim to conform to something it cannot
