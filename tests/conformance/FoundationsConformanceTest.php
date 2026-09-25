@@ -425,6 +425,14 @@ final class FoundationsConformanceTest extends SaltTestCase {
 					$start = $i + 1;
 				}
 			} elseif ( ';' === $char && 0 === $depth ) {
+				// Everything this suite reads must be in this file. An imported
+				// stylesheet could declare colour tokens it never sees, so the only
+				// @import allowed is Tailwind's own (at-keywords are case-insensitive,
+				// and an escaped one is refused rather than decoded).
+				$statement = trim( substr( $css, $start, $i - $start ) );
+				if ( 1 === preg_match( '/^@(?:import\b|[^\s;]*\\\\)/i', $statement ) && 1 !== preg_match( '/^@import\s+(["\'])tailwindcss\1(?:\s|$)/', $statement ) ) {
+					self::fail( "app.css has `{$statement}`. This suite reads colour tokens from app.css alone, and an imported stylesheet could declare ones it never sees; the only import it accepts is \"tailwindcss\". Move the rules into app.css." );
+				}
 				$start = $i + 1;
 			}
 		}
