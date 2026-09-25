@@ -17,12 +17,16 @@ markup granularity (cross-reference your site's override manifest).
   through the package's `exports`, rejects a range pin, and fails by name if
   the package, an export or a file is missing. Dev and CI only: no theme
   code, token or rendered output changes.
-- Contract differences from the base-design-system copy salt read: vectors
-  and derivation are byte-identical, and required roles are unchanged. The
-  vocabulary adds seven extended colour roles, an optional `lead` typography
-  role and eight conditional contrast rules, and re-points the shadcn
-  adapter's `--badge-outline`. All of that is opt-in except one rule:
-  `ink` on `brand.tint` at 4.5:1 names two required roles, so it binds salt.
+- Contract differences from base-design-system v1.0.0 (bc82e01), the only
+  copy salt's CI ever read (both conformance runs, 16/07/2026): vectors and
+  derivation are byte-identical, and the required colour, status and
+  typography roles, the unconditional contrast rules, the tiers, the neutral
+  ramp and the dark-mode rule are unchanged. The vocabulary adds the whole
+  `extended` colour section (48 roles plus three status-companion suffixes),
+  the shadcn `adapters` mapping, optional `display` and `lead` typography
+  roles, and all 16 conditional contrast rules. All of that is opt-in except
+  one rule: `ink` on `brand.tint` at 4.5:1 names two required roles, so it
+  binds salt.
 - Where that rule holds: the light and dark themes, measured at 13.23:1 or
   better and 14.91:1 or better over 815 distinct brand seeds. Where it does
   not: dark mode with grayscale on, because `[data-grayscale]` re-points
