@@ -55,8 +55,7 @@ markup granularity (cross-reference your site's override manifest).
   `bg-brand` (primary buttons, the pricing badge, process step numbers,
   pressed display-preference toggles) turns from near-white #f8fafc to
   near-black #0f172a. Light mode, with or without high contrast, renders
-  unchanged for every frozen seed. A brand whose 600 step is too light for
-  #f8fafc now gets `salt_text_on()`'s choice instead.
+  unchanged for every frozen seed.
 - **Dark mode with grayscale renders the brand tint dark** (otigs/salt#4). A
   new `[data-theme="dark"][data-grayscale]` rule puts the dark theme's steps
   on the neutral ramp: brand neutral-400 (was neutral-600), brand-strong
