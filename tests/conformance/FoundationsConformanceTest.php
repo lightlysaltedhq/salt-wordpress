@@ -137,11 +137,15 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
-	 * Resolve one export to its file in node_modules, the way Node would.
+	 * Resolve one export to its file in node_modules, the way Node would for
+	 * the one shape this test reads: an `exports` map with an explicit subpath
+	 * key such as './vectors', whose target is a plain relative string.
 	 *
-	 * Reads only the plain-string form of an export target. A conditions object
-	 * ({"import": ..., "require": ...}) or a pattern would need a resolver this
-	 * test does not have, so it fails by name rather than guessing a branch.
+	 * Anything else would need a resolver this test does not have: `exports`
+	 * given as a string or a conditions object, a subpath reached only through
+	 * a pattern key such as './*', or a target that is itself a conditions
+	 * object ({"import": ..., "require": ...}). Each fails naming the shape it
+	 * met rather than guessing a branch, and never reports the export missing.
 	 *
 	 * @param string $export Export subpath, e.g. './vectors'.
 	 * @return string Path of the file the export maps to.
@@ -149,13 +153,32 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	private static function resolve( string $export ): string {
 		$exports = self::manifest()['exports'] ?? null;
 
-		if ( ! is_array( $exports ) || ! array_key_exists( $export, $exports ) ) {
+		if ( null === $exports ) {
+			self::fail( self::PACKAGE . " has no exports map, so it does not export '{$export}', which salt reads." );
+		}
+
+		if ( ! is_array( $exports ) || array() === $exports || array_is_list( $exports ) || ! str_starts_with( (string) array_key_first( $exports ), '.' ) ) {
+			$shape = match ( true ) {
+				is_string( $exports )     => 'a string',
+				! is_array( $exports )    => 'a ' . gettype( $exports ),
+				array() === $exports      => 'an empty map',
+				array_is_list( $exports ) => 'an array of fallbacks',
+				default                   => 'a conditions object',
+			};
+			self::fail( self::PACKAGE . " declares `exports` as {$shape} (" . wp_json_encode( $exports ) . "). This test reads explicit subpaths only, such as '{$export}'." );
+		}
+
+		if ( ! array_key_exists( $export, $exports ) ) {
+			$patterns = array_values( array_filter( array_map( 'strval', array_keys( $exports ) ), static fn( string $key ): bool => str_contains( $key, '*' ) ) );
+			if ( array() !== $patterns ) {
+				self::fail( self::PACKAGE . " does not list '{$export}' explicitly; its `exports` has the pattern " . implode( ', ', $patterns ) . ', which this test does not expand. It reads explicit subpaths only.' );
+			}
 			self::fail( self::PACKAGE . " does not export '{$export}', which salt reads. Check the release notes of the version pinned in package.json." );
 		}
 
 		$target = $exports[ $export ];
 		if ( ! is_string( $target ) || ! str_starts_with( $target, './' ) || in_array( '..', explode( '/', $target ), true ) ) {
-			self::fail( self::PACKAGE . " exports '{$export}' in a shape this test does not read: " . wp_json_encode( $target ) );
+			self::fail( self::PACKAGE . " maps '{$export}' to a target this test does not read (" . wp_json_encode( $target ) . '). It reads a plain relative string only, such as "./contract/vectors.json".' );
 		}
 
 		$path = self::PACKAGE_DIR . '/' . substr( $target, 2 );
