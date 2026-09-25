@@ -18,13 +18,17 @@ markup granularity (cross-reference your site's override manifest).
   the package, an export or a file is missing. Dev and CI only: no theme
   code, token or rendered output changes.
 - Contract differences from the base-design-system copy salt read: vectors
-  and derivation are byte-identical; the vocabulary changes only opt-in
-  material (it adds seven extended colour roles, an optional `lead` typography
+  and derivation are byte-identical, and required roles are unchanged. The
+  vocabulary adds seven extended colour roles, an optional `lead` typography
   role and eight conditional contrast rules, and re-points the shadcn
-  adapter's `--badge-outline`). Required roles are unchanged. One new rule,
-  `ink` on `brand.tint` at 4.5:1, names two required roles and so binds salt;
-  measured at 13.23:1 or better in light mode and 14.91:1 or better in dark
-  across 1,456 brand seeds, so it holds with no change.
+  adapter's `--badge-outline`. All of that is opt-in except one rule:
+  `ink` on `brand.tint` at 4.5:1 names two required roles, so it binds salt.
+- Where that rule holds: the light and dark themes, measured at 13.23:1 or
+  better and 14.91:1 or better over 815 distinct brand seeds. Where it does
+  not: dark mode with grayscale on, because `[data-grayscale]` re-points
+  `brand.tint` to neutral-100, which is the dark theme's `ink`. That renders
+  at 1.00:1, and at 1.20:1 with high contrast on as well. The CSS predates
+  this change and nothing here alters it; otigs/salt#4 tracks the fix.
 
 ## [4.1.0] — 2026-07-03
 
