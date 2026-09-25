@@ -180,9 +180,19 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		}
 
 		if ( ! array_key_exists( $export, $exports ) ) {
-			$patterns = array_values( array_filter( array_map( 'strval', array_keys( $exports ) ), static fn( string $key ): bool => str_contains( $key, '*' ) ) );
+			// Only a pattern that could match this subpath is named: its text before
+			// the `*` a prefix, its text after a suffix, and the subpath at least as
+			// long as the key (Node's own matching rule). An unrelated pattern such
+			// as './schema/*' must not hide a dropped './vocabulary'.
+			$patterns = array();
+			foreach ( array_map( 'strval', array_keys( $exports ) ) as $key ) {
+				$star = strpos( $key, '*' );
+				if ( false !== $star && strlen( $export ) >= strlen( $key ) && str_starts_with( $export, substr( $key, 0, $star ) ) && str_ends_with( $export, substr( $key, $star + 1 ) ) ) {
+					$patterns[] = $key;
+				}
+			}
 			if ( array() !== $patterns ) {
-				self::fail( self::PACKAGE . " does not list '{$export}' explicitly; its `exports` has the pattern " . implode( ', ', $patterns ) . ', which this test does not expand. It reads explicit subpaths only.' );
+				self::fail( self::PACKAGE . " does not list '{$export}' explicitly; it is reachable only through the pattern " . implode( ', ', $patterns ) . ', which this test does not expand. It reads explicit subpaths only.' );
 			}
 			self::fail( self::PACKAGE . " does not export '{$export}', which salt reads. Check the release notes of the version pinned in package.json." );
 		}
