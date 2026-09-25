@@ -141,6 +141,13 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	private const APP_CSS = __DIR__ . '/../../assets/src/css/app.css';
 
 	/**
+	 * The at-rules app.css uses today, besides Tailwind's own @import. Any
+	 * other, at any depth, fails colour_rules() until someone has decided how
+	 * this suite should read it.
+	 */
+	private const AT_RULES = array( 'source', 'theme', 'layer', 'media', 'utility' );
+
+	/**
 	 * The mode table: each display mode <html> can carry, as the attribute
 	 * selector app.css writes it with. salt_theme_init_js() sets these before
 	 * paint and assets/src/js/display-prefs.js toggles them, so a visitor can
@@ -410,9 +417,10 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			self::fail( 'app.css has a backslash escape outside a string, in `' . self::excerpt( $css, $slash ) . '`. A browser decodes it, so it can spell a colour token this suite does not recognise (Chromium reads --color-on\\-brand as --color-on-brand). Write it without escapes.' );
 		}
 
-		$length = strlen( $blank );
-		$rules  = array();
-		$depth  = 0;
+		$length  = strlen( $blank );
+		$rules   = array();
+		$imports = array();
+		$depth   = 0;
 		$start  = 0;
 		$open   = 0;
 
@@ -437,12 +445,9 @@ final class FoundationsConformanceTest extends SaltTestCase {
 					$start = $i + 1;
 				}
 			} elseif ( ';' === $char && 0 === $depth ) {
-				// Everything this suite reads must be in this file. An imported
-				// stylesheet could declare colour tokens it never sees, so the only
-				// @import allowed is Tailwind's own (at-keywords are case-insensitive).
-				$statement = trim( substr( $css, $start, $i - $start ) );
-				if ( 1 === preg_match( '/^@import\b/i', $statement ) && 1 !== preg_match( '/^@import\s+(["\'])tailwindcss\1(?:\s|$)/', $statement ) ) {
-					self::fail( "app.css has `{$statement}`. This suite reads colour tokens from app.css alone, and an imported stylesheet could declare ones it never sees; the only import it accepts is \"tailwindcss\". Move the rules into app.css." );
+				$statement = substr( $css, $start, $i - $start );
+				if ( 1 === preg_match( '/^@import\s+(["\'])tailwindcss\1(?:\s|$)/', ltrim( $statement ) ) ) {
+					$imports[ $start + strlen( $statement ) - strlen( ltrim( $statement ) ) ] = true;
 				}
 				$start = $i + 1;
 			}
@@ -455,6 +460,21 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		$rules = array_values( $rules );
 		if ( 1 !== count( array_filter( $rules, static fn( array $rule ): bool => 0 === $rule['rank'] ) ) ) {
 			self::fail( 'app.css has no @theme block declaring colour tokens, so there is no base palette to evaluate.' );
+		}
+
+		// Every at-rule, at any depth, must be one app.css uses today. Anything
+		// else can put colour where this suite does not look: @plugin's addBase
+		// lands in the base layer and beats @theme, and an imported stylesheet
+		// declares tokens this suite never reads. The only @import accepted is
+		// Tailwind's, as a top-level statement ended by `;`: nested, or left
+		// unterminated as the file's last statement, it is refused too.
+		preg_match_all( '/@([\w-]*)/', $blank, $at_rules, PREG_OFFSET_CAPTURE );
+		foreach ( $at_rules[1] as $index => $name ) {
+			$at      = $at_rules[0][ $index ][1];
+			$keyword = strtolower( $name[0] );
+			if ( 'import' === $keyword ? ! isset( $imports[ $at ] ) : ! in_array( $keyword, self::AT_RULES, true ) ) {
+				self::fail( 'app.css has `' . self::excerpt( $css, $at ) . '`, and @' . $name[0] . ' there is not one this suite reads. It accepts ' . implode( ', ', array_map( static fn( string $rule ): string => '@' . $rule, self::AT_RULES ) ) . ', and @import only as a top-level `@import "tailwindcss" …;`, because anything else can declare colour it never sees. Move the rules into app.css, or teach this suite the new at-rule first.' );
+			}
 		}
 
 		// The census. Whatever precedes it (a nested block's `}`, a bare
