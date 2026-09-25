@@ -31,9 +31,11 @@ markup granularity (cross-reference your site's override manifest).
   roles, and all 16 conditional contrast rules. All of that is opt-in except
   one rule: `ink` on `brand.tint` at 4.5:1 names two required roles, so it
   binds salt.
-- Where that rule holds: the light and dark themes, measured at 13.23:1 or
-  better and 14.91:1 or better over 815 distinct brand seeds. Where it does
-  not: dark mode with grayscale on, because `[data-grayscale]` re-points
+- Where that rule holds, measured over 815 distinct brand seeds: light mode
+  at 13.23:1 or better with grayscale off, and 12.20:1 with grayscale on
+  (neutral-900 #26292e on neutral-100 #e7ebf1, the same for every seed);
+  dark mode with grayscale off at 14.91:1 or better. High contrast only
+  raises those. Where it does not: dark mode with grayscale on, because `[data-grayscale]` re-points
   `brand.tint` to neutral-100, which is the dark theme's `ink`. That renders
   at 1.00:1, and at 1.20:1 with high contrast on as well. The CSS predates
   this change and nothing here alters it; otigs/salt#4 tracks the fix.
