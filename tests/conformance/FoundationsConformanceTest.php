@@ -609,7 +609,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		}
 
 		foreach ( $best as $prop => $winner ) {
-			if ( 1 === count( array_unique( $winner['by'] ) ) ) {
+			if ( 1 === count( array_unique( array_map( array( self::class, 'normalise' ), $winner['by'] ) ) ) ) {
 				$tokens[ $prop ] = reset( $winner['by'] );
 				continue;
 			}
@@ -623,6 +623,33 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		}
 
 		return $tokens;
+	}
+
+	/**
+	 * A declared value in the one spelling two rules must share to agree:
+	 * whitespace collapsed (and dropped beside brackets and commas), hex
+	 * literals lowercased, 3- and 4-digit hex expanded. `#000` and `#000000`
+	 * are one colour, so they are not a tie. Only hex is lowercased: custom
+	 * property names are case-sensitive, and `var(--COLOR-BRAND)` is a
+	 * different, undeclared token.
+	 *
+	 * @param string $value Declared value.
+	 * @return string
+	 */
+	private static function normalise( string $value ): string {
+		$value = (string) preg_replace( '/\s*([(),])\s*/', '$1', (string) preg_replace( '/\s+/', ' ', trim( $value ) ) );
+
+		return (string) preg_replace_callback(
+			'/#([0-9a-f]{3,8})\b/i',
+			static function ( array $hex ): string {
+				$digits = strtolower( $hex[1] );
+				if ( 3 === strlen( $digits ) || 4 === strlen( $digits ) ) {
+					$digits = implode( '', array_map( static fn( string $digit ): string => $digit . $digit, str_split( $digits ) ) );
+				}
+				return '#' . $digits;
+			},
+			$value
+		);
 	}
 
 	/**
