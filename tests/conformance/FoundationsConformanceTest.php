@@ -399,8 +399,11 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			$char = $css[ $i ];
 
 			if ( '"' === $char || "'" === $char ) {
-				$close = strpos( $css, $char, $i + 1 );
-				if ( false === $close ) {
+				$close = $i + 1;
+				while ( $close < $length && $css[ $close ] !== $char ) {
+					$close += '\\' === $css[ $close ] ? 2 : 1;
+				}
+				if ( $close >= $length ) {
 					self::fail( 'app.css has an unterminated string at byte ' . $i . '.' );
 				}
 				$i = $close;
@@ -448,6 +451,16 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 */
 	private static function colour_rule( string $prelude, string $body ): ?array {
 		$prelude = (string) preg_replace( '/\s+/', ' ', $prelude );
+
+		// A `;` or `:` inside a string is not a declaration boundary. Blank each
+		// string's contents (either quote, escapes respected) before anything
+		// splits the body, or `--x-note: "x;--color-on-brand:#0f172a;"` would
+		// read as an on-brand declaration no browser applies.
+		$body = (string) preg_replace_callback(
+			'/"(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\'/s',
+			static fn( array $found ): string => $found[0][0] . str_repeat( ' ', strlen( $found[0] ) - 2 ) . $found[0][0],
+			$body
+		);
 
 		if ( 0 === preg_match( '/(?:^|[;{\s])(--color-[\w-]+)\s*:/', $body, $first ) ) {
 			return null;
