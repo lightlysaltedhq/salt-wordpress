@@ -14,9 +14,13 @@ markup granularity (cross-reference your site's override manifest).
   archived base-design-system (which CI cloned with a deploy key and no ref,
   so it floated on that repository's HEAD). The conformance suite
   (`tests/conformance/FoundationsConformanceTest.php`) resolves each file
-  through the package's `exports`, rejects a range pin, and fails by name if
-  the package, an export or a file is missing. Dev and CI only: no theme
-  code, token or rendered output changes.
+  through the package's `exports`, accepts only a bare version, and fails by
+  name if the package, an export or a file is missing. It also pins the
+  contract's rules whole: a SHA-256 of vocabulary.json in canonical form (keys
+  sorted, `$` prose keys and `version` removed) is recorded next to the
+  version salt was checked against, so any normative change fails with the
+  `npm diff` command to read until salt is updated and the hash re-pinned.
+  Dev and CI only: no theme code, token or rendered output changes.
 - Contract differences from base-design-system v1.0.0 (bc82e01), the only
   copy salt's CI ever read (both conformance runs, 16/07/2026): vectors and
   derivation are byte-identical, and the required colour, status and

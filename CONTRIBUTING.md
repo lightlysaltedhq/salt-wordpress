@@ -38,10 +38,13 @@ checkout. `tests/conformance/` reads it from `node_modules`, so run
 `npm install` before `composer test`; the suite fails, never skips, when the
 package is absent.
 
-The version is pinned **exactly** in `package.json`, and the conformance suite
-rejects a range. Move it by a deliberate bump in its own PR: change the pin,
-`npm install`, run `vendor/bin/phpunit --testsuite conformance`, read what the
-new release changed, and record the bump in CHANGELOG.md.
+The version is pinned **exactly** in `package.json` (a bare version, no range),
+and the conformance suite also records the version salt was last checked
+against (`PINNED`) and a hash of that version's rules (`VOCABULARY_SHA256`).
+Move it by a deliberate bump in its own PR: change the pin, `npm install`, and
+run `vendor/bin/phpunit --testsuite conformance`. It fails with the `npm diff`
+command to read. Read it, bring salt into line, set both constants (the
+failure prints the new hash), and record the bump in CHANGELOG.md.
 
 ## Adding a section
 

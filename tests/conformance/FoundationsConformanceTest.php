@@ -19,6 +19,22 @@
  * moves by a deliberate bump in a reviewed PR, never by a range floating to
  * whatever was published last.
  *
+ * HOW A BUMP IS HELD UNTIL SOMEONE HAS READ IT
+ * --------------------------------------------
+ * PINNED records the version salt was last checked against, and
+ * VOCABULARY_SHA256 the SHA-256 of that version's vocabulary.json in
+ * canonical form: keys sorted at every depth, `$`-prefixed prose keys and the
+ * top-level `version` removed. Any other change to the vocabulary, at any
+ * depth, fails with the npm diff command to read; the fix is to bring salt
+ * into line and then re-pin both constants.
+ *
+ * The contract is pinned whole rather than checked key by key on purpose.
+ * Key-by-key checks were tried on this suite first, and two review rounds
+ * each found a shape they missed one level below the last fix. A hash has no
+ * level to miss. The role checks below still run on top of it, because a
+ * re-pinned contract must still be one whose every required role salt
+ * declares.
+ *
  * HOW THIS DIFFERS FROM ColorVectorsTest
  * --------------------------------------
  * ColorVectorsTest holds PHP to tests/fixtures/color-vectors.json — salt's OWN
@@ -44,9 +60,10 @@
  *   model says components MUST NOT consume Tier 1 directly (a ramp step such
  *   as `bg-primary-600`); nothing here looks at a template.
  *
- * A green run here says the derivation reproduces the frozen vectors and every
- * required role is declared. It says nothing about contrast, resolution or
- * component discipline.
+ * A green run here says the vocabulary's rules are the ones last read, the
+ * derivation reproduces the frozen vectors and every required role is
+ * declared. It says nothing about contrast, resolution or component
+ * discipline.
  *
  * FAILS CLOSED. If the package or any file it exports is absent, this test
  * FAILS rather than skips — salt cannot claim to conform to something it cannot
@@ -81,30 +98,15 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	private const EXPORTS = array( './vocabulary', './vectors', './derivation', './schema/token-file' );
 
 	/**
-	 * The vocabulary's shape as this test ranks it: for each object (a dotted
-	 * path from the top of vocabulary.json, '' being the top), every key it may
-	 * hold.
-	 *
-	 * Read here: colorRoles.required, colorRoles.status.required and
-	 * typographyRoles.required (each role must be declared in app.css), and
-	 * neutralRamp (a ramp must exist). Known and deliberately not read: the `$`
-	 * prose keys and `version`; `tiers` and `darkMode`, which describe
-	 * architecture rather than list names to find; `adapters`, which salt does
-	 * not use; the opt-in `colorRoles.extended` and `typographyRoles.optional`,
-	 * none of which salt declares; and `contrast`, which this suite does not
-	 * check (see the class docblock).
-	 *
-	 * Any other key, or any of these gone, fails by name. A contract that grows
-	 * a family this test cannot rank has to be read by a person at the bump,
-	 * not passed green by a test that never looked at it, and 3.0.0 (the
-	 * typography and scale contract) is expected to grow exactly that.
+	 * The contract version salt was last checked against, and the SHA-256 of that
+	 * version's vocabulary.json in canonical form (see vocabulary_hash()). They
+	 * move together, and only after someone has read what changed: package.json
+	 * pinning anything else fails, and so does an installed vocabulary whose rules
+	 * hash differently, each with the npm diff command to read.
 	 */
-	private const VOCABULARY_SHAPE = array(
-		''                  => array( '$comment', 'version', '$v2', '$noValues', 'tiers', 'colorRoles', 'adapters', 'typographyRoles', 'neutralRamp', 'darkMode', 'contrast' ),
-		'colorRoles'        => array( '$rule', 'required', 'status', 'extended' ),
-		'colorRoles.status' => array( '$rule', 'required' ),
-		'typographyRoles'   => array( '$rule', 'required', 'optional', '$whyOptional' ),
-	);
+	private const PINNED = '2.1.0';
+
+	private const VOCABULARY_SHA256 = '845fa7153858d66cd544b9e9911a1ff800567e6a6c7af5b18b53cd0ea38d155c';
 
 	/**
 	 * Decode a JSON file, failing by name if it is absent or not an object.
@@ -243,14 +245,73 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
-	 * package.json pins the contract as a bare version, and node_modules holds it.
+	 * A decoded JSON value in canonical form: object keys sorted at every depth
+	 * and every `$`-prefixed key dropped, list order kept.
+	 *
+	 * Objects are decoded as stdClass, not arrays, so an empty object and an
+	 * empty list, or an object keyed "0", "1", stay distinct from a list.
+	 *
+	 * @param mixed $node Value from json_decode() without the associative flag.
+	 * @return mixed
+	 */
+	private static function canonical( $node ) {
+		if ( is_array( $node ) ) {
+			return array_map( static fn( $item ) => self::canonical( $item ), $node );
+		}
+		if ( ! $node instanceof stdClass ) {
+			return $node;
+		}
+
+		$props = array();
+		foreach ( get_object_vars( $node ) as $key => $value ) {
+			if ( ! str_starts_with( (string) $key, '$' ) ) {
+				$props[ (string) $key ] = self::canonical( $value );
+			}
+		}
+		ksort( $props, SORT_STRING );
+
+		return (object) $props;
+	}
+
+	/**
+	 * SHA-256 of the installed vocabulary.json's normative content: canonical
+	 * form (above) with the top-level `version` removed, encoded as compact JSON
+	 * with slashes and Unicode unescaped and zero fractions kept (3.0 stays 3.0).
+	 * That is byte-for-byte what Python's json.dumps(..., separators=(',', ':'),
+	 * ensure_ascii=False) writes for the same sorted, filtered tree, so the hash
+	 * can be checked without PHP.
+	 *
+	 * `$` keys are the contract's own prose convention ($rule, $why, $note), and
+	 * `version` is bookkeeping, so rewording either never trips this. Everything
+	 * else counts, including each role's `what` text: deciding which unprefixed
+	 * strings are normative would be modelling the contract, and a re-pin after
+	 * reading a wording change costs one line.
+	 *
+	 * @return string
+	 */
+	private static function vocabulary_hash(): string {
+		$vocab = json_decode( (string) file_get_contents( self::resolve( './vocabulary' ) ) );
+		if ( ! $vocab instanceof stdClass ) {
+			self::fail( 'vocabulary.json is not a JSON object.' );
+		}
+
+		unset( $vocab->version );
+
+		return hash( 'sha256', (string) json_encode( self::canonical( $vocab ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION ) );
+	}
+
+	/**
+	 * package.json pins the contract as a bare version, that version is PINNED,
+	 * and node_modules holds it.
 	 *
 	 * Only the bare spelling (2.1.0) is accepted. npm treats '=2.1.0' and
 	 * 'v2.1.0' as exact too, but one spelling keeps the lockfile and this check
 	 * simple, so those fail here with a message saying what to write instead.
 	 *
-	 * The second half catches a stale install: bump the pin without running
-	 * npm ci and every other test here would quietly read the old contract.
+	 * Matching PINNED makes a bump fail until the diff has been read, even when
+	 * the vocabulary hash happens not to change. The last check catches a stale
+	 * install: bump the pin without running npm ci and every other test here
+	 * would quietly read the old contract.
 	 */
 	public function test_the_contract_is_pinned_exactly_and_installed_at_the_pin(): void {
 		$salt = self::decode( __DIR__ . '/../../package.json' );
@@ -261,6 +322,14 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			'/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/',
 			$pin,
 			self::PACKAGE . " is required as '{$pin}'. Write the bare version, e.g. '2.1.0': this check accepts no other spelling, and a range would float."
+		);
+		$this->assertSame(
+			self::PINNED,
+			$pin,
+			"package.json pins {$pin}, but salt was last checked against " . self::PINNED . ".\n"
+			. "  Read what changed:\n"
+			. '    npm diff --diff=' . self::PACKAGE . '@' . self::PINNED . ' --diff=' . self::PACKAGE . "@{$pin}\n"
+			. "  Update salt to conform, then re-pin PINNED and VOCABULARY_SHA256 in this file.\n"
 		);
 		$this->assertSame(
 			$pin,
@@ -338,30 +407,24 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
-	 * The vocabulary holds every key this test ranks, and nothing else.
+	 * The contract's rules are the ones salt was last checked against.
+	 *
+	 * Any normative change at any depth, a new family, a new key on a role, a
+	 * moved or emptied list, a changed selector, fails here until someone has
+	 * read the diff, brought salt into line and re-pinned the hash.
 	 */
-	public function test_the_vocabulary_has_the_shape_this_test_ranks(): void {
-		$vocab    = self::contract( './vocabulary' );
-		$problems = array();
+	public function test_the_contract_rules_are_the_ones_salt_was_checked_against(): void {
+		$installed = (string) ( self::manifest()['version'] ?? '' );
+		$hash      = self::vocabulary_hash();
 
-		foreach ( self::VOCABULARY_SHAPE as $path => $known ) {
-			$node  = self::dig( $vocab, $path );
-			$where = '' === $path ? 'the top level' : "'{$path}'";
-
-			if ( ! is_array( $node ) || ( array() !== $node && array_is_list( $node ) ) ) {
-				$problems[] = "vocabulary.json has no object at {$where}.";
-				continue;
-			}
-
-			foreach ( array_diff( array_keys( $node ), $known ) as $key ) {
-				$problems[] = "vocabulary.json has a key this test does not rank at {$where}: '{$key}'. Read what it asks of salt, then check it here or list it in VOCABULARY_SHAPE as deliberately unread.";
-			}
-			foreach ( array_diff( $known, array_keys( $node ) ) as $key ) {
-				$problems[] = "vocabulary.json no longer has '{$key}' at {$where}. Find where it went before trusting a green run.";
-			}
-		}
-
-		$this->assertSame( array(), $problems );
+		$this->assertSame(
+			self::VOCABULARY_SHA256,
+			$hash,
+			"The contract's rules changed. The installed " . self::PACKAGE . " {$installed} vocabulary hashes to {$hash}, not the hash recorded for " . self::PINNED . ".\n"
+			. "  Read what changed:\n"
+			. '    npm diff --diff=' . self::PACKAGE . '@' . self::PINNED . ' --diff=' . self::PACKAGE . "@{$installed}\n"
+			. "  Update salt to conform, then re-pin PINNED and VOCABULARY_SHA256 in this file.\n"
+		);
 	}
 
 	/**
