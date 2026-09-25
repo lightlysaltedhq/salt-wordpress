@@ -462,6 +462,14 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			$body
 		);
 
+		// Chromium reads `--color-on\-brand` as --color-on-brand, so an escape
+		// can set a colour token the pattern below never sees. Any property
+		// spelled with a backslash is refused, nested blocks included, rather
+		// than decoding CSS escapes here.
+		if ( 1 === preg_match( '/(?:^|[;{])\s*((?=[-\\\\])[^\s;{}:]*\\\\[^\s;{}:]*)\s*:/', $body, $escaped ) ) {
+			self::fail( "app.css declares `{$escaped[1]}` under `{$prelude}`, a property spelled with a backslash escape. A browser decodes the escape, so it can set a colour token this suite does not recognise (Chromium reads --color-on\\-brand as --color-on-brand). Spell the property without escapes." );
+		}
+
 		if ( 0 === preg_match( '/(?:^|[;{\s])(--color-[\w-]+)\s*:/', $body, $first ) ) {
 			return null;
 		}
