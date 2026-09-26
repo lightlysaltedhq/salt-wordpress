@@ -56,7 +56,7 @@ $salt_classes = salt_classnames(
 	array(
 		'x-booking',
 		'x-button x-button-primary',
-		'inline-flex items-center justify-center gap-2 rounded-md font-medium focus-visible:outline-2 focus-visible:outline-offset-2',
+		'inline-flex items-center justify-center gap-2 rounded-md font-medium',
 		'bg-brand text-on-brand hover:bg-brand-strong',
 		'px-5 py-2.5',
 		$salt_args['classes'],

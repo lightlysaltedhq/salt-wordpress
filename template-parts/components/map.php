@@ -101,7 +101,7 @@ $salt_aria_label = '' === $salt_label
 	<?php endif; ?>
 	<button
 		type="button"
-		class="x-map-load x-button inline-flex items-center justify-center gap-2 rounded-md bg-brand px-5 py-2.5 font-medium text-on-brand hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2"
+		class="x-map-load x-button inline-flex items-center justify-center gap-2 rounded-md bg-brand px-5 py-2.5 font-medium text-on-brand hover:bg-brand-strong"
 		aria-label="<?php echo esc_attr( $salt_aria_label ); ?>"
 	><?php esc_html_e( 'Load map', 'salt' ); ?></button>
 </div>

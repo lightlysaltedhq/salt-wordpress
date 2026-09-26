@@ -1309,9 +1309,8 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * name, because each can draw a thinner or closer ring than the token says
 	 * (review of otigs/salt#8).
 	 *
-	 * What this does not see: the outline-2 and outline-offset-2 utilities that
-	 * button.php and four other templates add on focus-visible. Those set the
-	 * same 2px as literals, after the base rule, so they win over the tokens.
+	 * Templates cannot add their own outline utilities either:
+	 * test_no_template_draws_its_own_outline() refuses them.
 	 */
 	public function test_the_focus_ring_geometry_meets_the_contract(): void {
 		$geometry = self::dig( self::contract( './vocabulary' ), 'contrast.focusIndicator.geometry' );
@@ -1363,6 +1362,47 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		}
 
 		$this->assertSame( array(), $failures, "The focus ring's geometry does not meet the contract:\n  " . implode( "\n  ", $failures ) );
+	}
+
+	/**
+	 * No file Tailwind scans for classes carries an outline utility, so every
+	 * focus ring on the page is the global rule's, drawn from the tokens. A
+	 * `focus-visible:outline-2` on a template is a literal length that wins
+	 * over the base layer; five templates carried one until the review of
+	 * otigs/salt#8.
+	 *
+	 * The files are the ones app.css's @source lines name, so a new source is
+	 * read without a change here. Any outline utility is refused, with or
+	 * without a variant prefix: `outline-*`, and a bare `outline` or
+	 * `outline-hidden` behind a variant such as `focus:`.
+	 */
+	public function test_no_template_draws_its_own_outline(): void {
+		preg_match_all( '/@source\s+"([^"]+)"/', self::app_css(), $sources );
+		$this->assertNotEmpty( $sources[1], 'app.css names no @source, so there is nothing to scan.' );
+
+		$base  = dirname( self::APP_CSS );
+		$files = array();
+		foreach ( $sources[1] as $source ) {
+			$path = $base . '/' . $source;
+			if ( str_contains( $source, '*' ) ) {
+				$files = array_merge( $files, (array) glob( $path ) );
+				continue;
+			}
+			$this->assertDirectoryExists( $path, "app.css's @source \"{$source}\" is neither a glob nor a directory." );
+			foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $file ) {
+				$files[] = $file->getPathname();
+			}
+		}
+
+		$found = array();
+		foreach ( array_unique( $files ) as $file ) {
+			$text = (string) file_get_contents( $file );
+			if ( preg_match_all( '/(?<![\w$-])(?:[\w-]+:)*outline-[\w\[\]().%\/-]+|(?<![\w$-])(?:[\w-]+:)+outline(?![\w-])/', $text, $hits ) > 0 ) {
+				$found[] = str_replace( dirname( __DIR__, 2 ) . '/', '', realpath( $file ) ) . ': ' . implode( ', ', array_unique( $hits[0] ) );
+			}
+		}
+
+		$this->assertSame( array(), $found, "These files carry outline utilities, which draw a ring the focus-ring tokens do not govern. Remove them; the global :focus-visible rule draws every ring:\n  " . implode( "\n  ", $found ) );
 	}
 
 	/**

@@ -49,6 +49,19 @@ markup granularity (cross-reference your site's override manifest).
     the rest by name), meets its floor compared as decimal digits, and is
     what the ring draws. The rendered ring is unchanged; the built
     stylesheet carries the two properties and reads them.
+  - **Every focus ring now comes from those tokens.** x-button (`button.php`),
+    `booking.php`, `map.php`, the contact form's submit (`contact.php`) and
+    the display-preference toggles (`display-preferences.php`) no longer
+    carry `focus-visible:outline-2 focus-visible:outline-offset-2`, whose
+    literal 2px beat the base rule. Markup: those two classes leave each
+    element's `class` attribute and nothing else changes (17 snapshots,
+    32 lines). A child theme that copied one of those class strings keeps
+    the old literal ring. Chrome for Testing 148.0.7778.96 measured each of
+    the five on `surface` and on the inverse band, light and dark, at 320
+    and 1280 CSS px, for three frozen seeds, before and after: computed
+    outline, offset, box-shadow and the pixels leaving the element were
+    identical in all 120 cases. The suite now refuses any outline utility
+    in a file Tailwind scans.
   - **Text roles bind a product that declares one.** salt declares no
     `--text-*` property at all, so none binds. The suite now fails if a
     text-role property appears without the full required set.

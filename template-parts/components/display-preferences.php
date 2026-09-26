@@ -89,7 +89,7 @@ $salt_toggles = array(
 );
 
 // >=24x24 hit target (A11Y05): p-2 padding + min-w-6/min-h-6 floor.
-$salt_button = 'inline-flex min-h-6 min-w-6 items-center justify-center gap-2 rounded-md border border-border bg-surface p-2 text-sm text-ink aria-pressed:bg-brand aria-pressed:border-brand aria-pressed:text-on-brand focus-visible:outline-2 focus-visible:outline-offset-2';
+$salt_button = 'inline-flex min-h-6 min-w-6 items-center justify-center gap-2 rounded-md border border-border bg-surface p-2 text-sm text-ink aria-pressed:bg-brand aria-pressed:border-brand aria-pressed:text-on-brand';
 ?>
 <div
 	class="x-display-preferences"
