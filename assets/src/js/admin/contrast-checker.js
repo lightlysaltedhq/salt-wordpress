@@ -77,6 +77,7 @@
 	 * @return {number} Integer.
 	 */
 	const roundHalfEven = (x) => {
+		// V8's Math.pow can differ from PHP's libm pow by an ulp near a tie; no hex seed comes within 3.55e-10 of one (derivation.json step 5).
 		const whole = Math.floor(x);
 		const frac = x - whole;
 		return frac > 0.5 || (frac === 0.5 && whole % 2 === 1) ? whole + 1 : whole;
