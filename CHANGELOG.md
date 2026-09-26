@@ -75,7 +75,9 @@ markup granularity (cross-reference your site's override manifest).
     tokenizer. The nav submenu's `shadow-lg`, on a `<ul>` in the header that
     takes no focus, is the one allowed use, counted exactly. In app.css only
     the keyline rule and its nested-ground reset (`none`) may set a
-    `box-shadow`.
+    `box-shadow`. A bare `outline` class, which Tailwind 4.3.2 builds as
+    `outline-width: 1px` and which beats the ring, is refused too, in a
+    class attribute or a class-string literal; the word in prose is not.
   - **Text roles bind a product that declares one.** salt declares no
     `--text-*` property at all, so none binds. The suite now fails if a
     text-role property appears without the full required set.

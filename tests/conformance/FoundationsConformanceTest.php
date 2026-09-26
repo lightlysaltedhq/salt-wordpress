@@ -1398,10 +1398,12 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * written: `class="…"` and `class='…'` attributes in a template's HTML or
 	 * inside a string, and PHP and JS string literals. A token is refused
 	 * behind any variant (`focus-visible:`, `md:hover:`) and in either
-	 * important spelling (`!ring-2`, `ring-2!`). A bare family name (`shadow`,
-	 * `ring`) counts only in a class attribute or a literal that is nothing
-	 * but class-like tokens; a token with a suffix, a variant or an important
-	 * mark counts anywhere. A bare `outline` with no variant is not yet read.
+	 * important spelling (`!ring-2`, `ring-2!`). A bare family name
+	 * (`outline`, `shadow`, `ring`) counts only in a class attribute or a
+	 * literal that is nothing but class-like tokens, since "outline" is also
+	 * a word; a token with a suffix, a variant or an important mark counts
+	 * anywhere. Tailwind builds a bare `outline` as `outline-width: 1px`,
+	 * which beats the ring.
 	 */
 	public function test_no_template_draws_over_the_focus_indicator(): void {
 		$found = array();
@@ -1416,7 +1418,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 						continue;
 					}
 					$bare = $token === $utility && 1 === preg_match( '/^(?:outline|shadow|inset-shadow|ring|inset-ring)$/', $utility );
-					if ( 'outline' === $token || ( $bare && ! $class_context ) ) {
+					if ( $bare && ! $class_context ) {
 						continue;
 					}
 					$counts[ $token ] = ( $counts[ $token ] ?? 0 ) + 1;
