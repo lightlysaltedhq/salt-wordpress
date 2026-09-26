@@ -9,6 +9,54 @@ markup granularity (cross-reference your site's override manifest).
 ## [Unreleased]
 
 ### Changed
+- **The design contract is now `@lightlysaltedhq/design-foundations` 3.0.0**
+  (was 2.1.0), exact-pinned and locked by integrity hash as before. `PINNED`
+  and `VOCABULARY_SHA256` are re-pinned; the new hash was recomputed
+  independently in Python from the canonical form and agrees. 3.0.0 is a
+  major, and each of its breaking changes was checked against salt:
+  - **The derivation's quantise step rounds half to even** (derivation.json
+    step 5, the owner's ruling of 25/09/2026). `salt_oklch_to_hex()` ends in
+    a new `salt_color_quantise()`, which clamps, applies the transfer,
+    clamps, multiplies by 255 and rounds that binary64 product half to even
+    as an exact comparison (`salt_color_round_half_even()`), where it used
+    `round()`, which rounds half away from zero. The JS port in
+    `contrast-checker.js` does the same in place of `Math.round()`. No
+    ramp changes: the old and new rules agree on every channel of every
+    ramp step for all 16,777,216 hex seeds, as the contract says, and salt's
+    colour fixture, the contract's ramp vectors and PHP↔JS parity all pass
+    unchanged. The conformance suite now also runs the contract's two
+    `quantise` vectors. The old `round()` fails `exact-ties` (#030409 for
+    #020408), and multiplying by 255 before 12.92 fails `operation-order`
+    (#020000 for #030000).
+  - **Each vector's `exercises` is a map of claims, with the prose in
+    `$what`.** The suite used to check only that `exercises` was non-empty,
+    which the new shape also passes; it now requires a non-empty `$what`
+    string and a non-empty map, and that `counts.quantise` matches the
+    quantise vectors. The five replaced seeds reproduce byte for byte.
+  - **The focus ring is held to 3:1 on `surface`, `surface.alt` and
+    `brand.tint`.** The existing contrast gate picked these three pairs up
+    unchanged, and salt passes them in all eight display-mode combinations
+    for the frozen seeds, the sRGB grid at a step of 15 and the compiled
+    defaults. Worst case, light mode with no preferences: 4.88:1 on
+    `surface` and 4.08:1 on `surface.alt` (seed #0ff00f, focus #008401 on
+    #ffffff and #e7ebf1), and 4.54:1 on `brand.tint` (seed #009600, #008400
+    on #e3fee0). No colour changed to meet them.
+  - **The ring is at least 2px thick and 1px clear of the control, in px
+    only.** salt drew 2px and 2px as literals. `@theme` now declares
+    `--focus-ring-width: 2px` and `--focus-ring-offset: 2px`, the global
+    `:focus-visible` rule reads them, and the suite checks each is declared
+    once, as a px length or 0 (refusing `!important`, `rem`, `calc()` and
+    the rest by name), meets its floor compared as decimal digits, and is
+    what the ring draws. The rendered ring is unchanged; the built
+    stylesheet carries the two properties and reads them.
+  - **Text roles bind a product that declares one.** salt declares no
+    `--text-*` property at all, so none binds. The suite now fails if a
+    text-role property appears without the full required set.
+  - **The token-file schema's `$id` moved to jsDelivr.** salt resolves the
+    `./schema/token-file` export by path and never refers to the URI, so
+    nothing changed.
+  - **The package declares `"engines": { "node": ">=22" }`.** `.nvmrc`
+    already names 22.
 - **The design contract is now `@lightlysaltedhq/design-foundations` 2.1.0**,
   an exact-pinned devDependency, replacing the sibling checkout of the
   archived base-design-system (which CI cloned with a deploy key and no ref,

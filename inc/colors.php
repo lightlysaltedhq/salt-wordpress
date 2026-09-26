@@ -176,14 +176,52 @@ function salt_oklch_to_hex( float $l, float $c, float $h ): string {
 		$rgb = salt_color_oklch_to_linear_rgb( $l, $lo, $h );
 	}
 
+	return salt_color_quantise( $rgb );
+}
+
+/**
+ * Quantise linear sRGB channels to '#rrggbb' (the contract's derivation.json
+ * step 5).
+ *
+ * In the contract's order: clamp, transfer, clamp, multiply by 255, then round
+ * that binary64 product half to even. Reordering the multiplications moves a
+ * value across a tie, and vectors.json#quantise has a case for each order.
+ *
+ * @param array{float, float, float} $linear Linear r, g, b (unclamped).
+ * @return string '#rrggbb' hex colour.
+ */
+function salt_color_quantise( array $linear ): string {
 	$out = '';
-	foreach ( $rgb as $channel ) {
+	foreach ( $linear as $channel ) {
 		$srgb = salt_color_linear_to_srgb( max( 0.0, min( 1.0, $channel ) ) );
-		$byte = (int) round( max( 0.0, min( 1.0, $srgb ) ) * 255.0 );
-		$out .= sprintf( '%02x', $byte );
+		$out .= sprintf( '%02x', salt_color_round_half_even( max( 0.0, min( 1.0, $srgb ) ) * 255.0 ) );
 	}
 
 	return '#' . $out;
+}
+
+/**
+ * Round a non-negative float half to even, written as the comparison the rule
+ * is.
+ *
+ * Not round(), whose default mode is half away from zero, and not
+ * floor( $x + 0.5 ), whose addition rounds 0.49999999999999994 up to 1.
+ * $x - floor( $x ) is exact for every value below 2^52, so the comparison sees
+ * the exact binary64 value the contract rounds, and nothing depends on how a
+ * PHP version's round() treats a value one ulp from a tie.
+ *
+ * @param float $x Value in 0..255.
+ * @return int
+ */
+function salt_color_round_half_even( float $x ): int {
+	$whole = floor( $x );
+	$frac  = $x - $whole;
+
+	if ( $frac > 0.5 || ( 0.5 === $frac && 1.0 === fmod( $whole, 2.0 ) ) ) {
+		++$whole;
+	}
+
+	return (int) $whole;
 }
 
 /**

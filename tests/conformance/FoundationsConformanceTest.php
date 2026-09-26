@@ -51,7 +51,7 @@
  * --------
  * Every rule in `contrast.requirements`, and every rule in
  * `contrast.conditionalRequirements` whose `when` roles app.css declares (in
- * 2.1.0 that is one: `ink` on `brand.tint`), is evaluated in every display
+ * 3.0.0 that is still one: `ink` on `brand.tint`), is evaluated in every display
  * mode a visitor can combine (MODES: light or dark, with or without high
  * contrast, with or without grayscale), at rest and on hover (HOVER), for
  * each of the contract's frozen seeds and each seed on the sRGB grid at a
@@ -70,8 +70,13 @@
  * WHAT THIS DOES NOT CHECK
  * ------------------------
  * - Pairs the contract has no rule for. salt also paints `text-brand` on
- *   `surface` (links, eyebrows) and a `focus` ring that needs 3:1; neither
- *   is measured.
+ *   `surface` (links, eyebrows), which is not measured. The `focus` ring is,
+ *   against the three grounds 3.0.0 requires (`surface`, `surface.alt`,
+ *   `brand.tint`), but not on `surface.inverse`, where the contract relies on
+ *   an `ink.inverse` keyline that only a rendered page shows.
+ * - What only a rendered page shows: that keyline, the 24 x 24 target size,
+ *   and whether a component's own outline utilities draw the ring at the
+ *   lengths the focus-ring tokens declare.
  * - Brands between the grid points. On-brand at rest holds for any seed by
  *   construction (salt_text_on()); hover and every other pair are measured
  *   for the frozen seeds and the grid only.
@@ -134,9 +139,9 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * pinning anything else fails, and so does an installed vocabulary whose rules
 	 * hash differently, each with the npm diff command to read.
 	 */
-	private const PINNED = '2.1.0';
+	private const PINNED = '3.0.0';
 
-	private const VOCABULARY_SHA256 = '845fa7153858d66cd544b9e9911a1ff800567e6a6c7af5b18b53cd0ea38d155c';
+	private const VOCABULARY_SHA256 = '49ce787204195ce208234b64eb1e0ee93e7bd9919efe92befc8c403839b9960e';
 
 	private const APP_CSS = __DIR__ . '/../../assets/src/css/app.css';
 
@@ -373,6 +378,21 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
+	 * app.css with its comments removed, strings kept.
+	 *
+	 * @return string
+	 */
+	private static function app_css(): string {
+		// Comments go first, but not the `/*` in `@source "../../../*.php"`: a
+		// match that ignored strings would eat everything up to the next `*/`.
+		return (string) preg_replace_callback(
+			'#("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\')|/\*.*?\*/#s',
+			static fn( array $found ): string => $found[1] ?? '',
+			(string) file_get_contents( self::APP_CSS )
+		);
+	}
+
+	/**
 	 * Every rule in app.css that declares a colour token: the @theme block at
 	 * rank 0, and one rule per combination of MODES at a rank equal to the
 	 * number of modes it names. Every attribute selector weighs the same, so
@@ -395,13 +415,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * @return list<array{selector: string, modes: list<string>, rank: int, set: array<string, string>, read: list<int>}>
 	 */
 	private static function colour_rules(): array {
-		// Comments go first, but not the `/*` in `@source "../../../*.php"`: a
-		// match that ignored strings would eat everything up to the next `*/`.
-		$css = (string) preg_replace_callback(
-			'#("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\')|/\*.*?\*/#s',
-			static fn( array $found ): string => $found[1] ?? '',
-			(string) file_get_contents( self::APP_CSS )
-		);
+		$css = self::app_css();
 
 		// The same text with every string's contents blanked, byte for byte the
 		// same length, so offsets in one are offsets in the other. Everything
@@ -866,10 +880,69 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		$this->assertGreaterThanOrEqual( 15, count( $vectors['vectors'] ) );
 		$this->assertSame( 165, $vectors['counts']['assertions'] );
 
+		// Since 3.0.0 `exercises` is a map of structured claims and the prose is
+		// `$what`. A list or a string there is the old shape, or a new one.
 		foreach ( $vectors['vectors'] as $vector ) {
 			$this->assertCount( 11, $vector['ramp'], "{$vector['seed']} is not an 11-step ladder" );
-			$this->assertNotEmpty( $vector['exercises'], "{$vector['seed']} does not say what it exercises" );
+			$this->assertIsString( $vector['$what'] ?? null, "{$vector['seed']} has no \$what saying what it exercises" );
+			$this->assertNotSame( '', trim( $vector['$what'] ), "{$vector['seed']} has an empty \$what" );
+			$this->assertIsArray( $vector['exercises'] ?? null, "{$vector['seed']}'s exercises is not a map of claims" );
+			$this->assertNotEmpty( $vector['exercises'], "{$vector['seed']} makes no claim about what it exercises" );
+			$this->assertFalse( array_is_list( $vector['exercises'] ), "{$vector['seed']}'s exercises is a list, not a map of claims" );
 		}
+
+		$this->assertGreaterThanOrEqual( 2, count( self::quantise_vectors() ) );
+		$this->assertSame( count( self::quantise_vectors() ), $vectors['counts']['quantise'] ?? null, 'counts.quantise does not match the quantise vectors' );
+	}
+
+	/**
+	 * vectors.json#quantise: derivation.json step 5 on its own.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private static function quantise_vectors(): array {
+		$quantise = self::contract( './vectors' )['quantise'] ?? null;
+
+		if ( ! is_array( $quantise ) || array() === $quantise || ! array_is_list( $quantise ) ) {
+			self::fail( "vectors.json 'quantise' is missing, empty or not a list, so nothing holds salt's rounding to the contract's." );
+		}
+
+		return $quantise;
+	}
+
+	/**
+	 * One data-provider row per quantise vector.
+	 *
+	 * @return array<string, array{list<float>, string}>
+	 */
+	public static function quantiseProvider(): array {
+		$rows = array();
+		foreach ( self::quantise_vectors() as $vector ) {
+			$rows[ (string) $vector['id'] ] = array( $vector['linear'], $vector['hex'] );
+		}
+		return $rows;
+	}
+
+	/**
+	 * salt_color_quantise() takes the contract's linear channels to its hex.
+	 *
+	 * No hex seed puts a scaled channel on a tie, so the ramp vectors cannot
+	 * tell half to even from half away from zero, or step 5's order of
+	 * operations from another. These can: `exact-ties` fails round(), and
+	 * `operation-order` fails any reordering of the multiplications.
+	 *
+	 * json_decode() reads each channel as the binary64 its JSON number
+	 * denotes, which is what the vector asks for. A channel written `0.0`
+	 * decodes as a float; one written `0` would decode as an int, hence
+	 * floatval().
+	 *
+	 * @param list<float|int> $linear Linear r, g, b.
+	 * @param string          $hex    Expected '#rrggbb'.
+	 */
+	#[DataProvider( 'quantiseProvider' )]
+	public function test_quantise_matches_the_contract( array $linear, string $hex ): void {
+		$this->assertCount( 3, $linear );
+		$this->assertSame( strtolower( $hex ), salt_color_quantise( array_map( 'floatval', $linear ) ) );
 	}
 
 	/**
@@ -1196,5 +1269,170 @@ final class FoundationsConformanceTest extends SaltTestCase {
 				"salt_theme_init_js() never sets {$selector}, so the {$mode} rules in app.css apply to no page."
 			);
 		}
+	}
+
+	/**
+	 * The focus ring's geometry meets the contract's floors
+	 * (contrast.focusIndicator.geometry, from 3.0.0): each property is declared
+	 * once in app.css, as a length the contract can rank, at or above its
+	 * floor, and the global :focus-visible rule draws the ring from it.
+	 *
+	 * A value is read the way focusIndicator.$lengths says: CSS whitespace
+	 * stripped, then unsigned ASCII digits and `px` in any case, or a bare 0.
+	 * !important is refused before anything is compared, and every other
+	 * spelling (rem, em, %, calc(), var(), a keyword, a sign, a non-ASCII digit
+	 * or space) is refused as unrankable rather than passed. The floor is
+	 * compared as decimal digits, not floats, so 1.99999999999999999px does not
+	 * pass as 2px.
+	 *
+	 * What this does not see: the outline-2 and outline-offset-2 utilities that
+	 * button.php and four other templates add on focus-visible. Those set the
+	 * same 2px as literals, after the base rule, so they win over the tokens.
+	 */
+	public function test_the_focus_ring_geometry_meets_the_contract(): void {
+		$geometry = self::dig( self::contract( './vocabulary' ), 'contrast.focusIndicator.geometry' );
+		if ( ! is_array( $geometry ) || array() === $geometry || ! array_is_list( $geometry ) ) {
+			self::fail( "vocabulary.json 'contrast.focusIndicator.geometry' is missing, empty or not a list, so there is no floor to check the ring against." );
+		}
+
+		// Which part of the global ring each geometry rule is. A rule this does
+		// not know is refused: nothing here could say the ring honours it.
+		$draws = array(
+			'width'  => 'outline',
+			'offset' => 'outline-offset',
+		);
+
+		$css = self::app_css();
+		if ( 1 !== preg_match_all( '/(?:^|[{};])\s*:focus-visible\s*\{([^{}]*)\}/', $css, $ring ) ) {
+			self::fail( 'app.css has no single top-level-shaped `:focus-visible { … }` rule drawing the global focus ring, so this suite cannot say what the ring reads.' );
+		}
+
+		$failures = array();
+		foreach ( $geometry as $rule ) {
+			$prop   = $rule['css'] ?? null;
+			$bounds = array_values( array_intersect( array( 'atLeastCssPx', 'greaterThanCssPx' ), array_keys( is_array( $rule ) ? $rule : array() ) ) );
+			if ( ! is_string( $prop ) || 1 !== count( $bounds ) || ! is_int( $rule[ $bounds[0] ] ) || ! isset( $draws[ $rule['id'] ?? '' ] ) ) {
+				self::fail( 'vocabulary.json has a focus geometry rule this suite cannot read: ' . wp_json_encode( $rule ) . '. It reads `width` and `offset`, each with a `css` property and exactly one whole-number bound.' );
+			}
+
+			preg_match_all( '/(?<![\w-])' . preg_quote( $prop, '/' ) . '\s*:([^;{}]*)/', $css, $found );
+			if ( 1 !== count( $found[1] ) ) {
+				$failures[] = sprintf( '%s is declared %d times in app.css; the contract needs it once, so there is one length to rank.', $prop, count( $found[1] ) );
+				continue;
+			}
+
+			$value = $found[1][0];
+			$text  = strtolower( trim( $value, " \t\n\r\f" ) );
+			if ( 1 === preg_match( '/!\s*important/i', $value ) ) {
+				$failures[] = "{$prop} is marked !important, which this suite does not rank.";
+				continue;
+			}
+			if ( 1 === preg_match( '/[^\x00-\x7F]/', $value ) ) {
+				$failures[] = "{$prop}: `{$value}` has a non-ASCII character, which CSS does not read in a length, so a browser drops it. Retype it in ASCII.";
+				continue;
+			}
+			if ( '0' === $text ) {
+				$digits = '0';
+			} elseif ( 1 === preg_match( '/^([0-9]+(?:\.[0-9]+)?)px$/', $text, $px ) ) {
+				$digits = $px[1];
+			} else {
+				$failures[] = "{$prop}: `" . trim( $value ) . '` is not a length the contract can rank against a CSS px floor at every root size. Write a number and px, or 0 (focusIndicator.$lengths).';
+				continue;
+			}
+
+			$floor = (string) $rule[ $bounds[0] ];
+			$order = self::compare_decimal( $digits, $floor );
+			if ( 'atLeastCssPx' === $bounds[0] ? $order < 0 : $order <= 0 ) {
+				$failures[] = sprintf( '%s is %spx; the contract needs %s %spx.', $prop, $digits, 'atLeastCssPx' === $bounds[0] ? 'at least' : 'more than', $floor );
+			}
+
+			$reads = '/(?:^|;)\s*' . preg_quote( $draws[ $rule['id'] ], '/' ) . '\s*:[^;]*var\(\s*' . preg_quote( $prop, '/' ) . '\s*\)/';
+			if ( 1 !== preg_match( $reads, $ring[1][0] ) ) {
+				$failures[] = "The global :focus-visible rule does not draw `{$draws[ $rule['id'] ]}` from var({$prop}), so the ring on the page need not be the length measured here.";
+			}
+		}
+
+		$this->assertSame( array(), $failures, "The focus ring's geometry does not meet the contract:\n  " . implode( "\n  ", $failures ) );
+	}
+
+	/**
+	 * Two non-negative decimals written as digits, compared exactly.
+	 *
+	 * @param string $a Digits, optionally with a fraction.
+	 * @param string $b Digits, optionally with a fraction.
+	 * @return int -1, 0 or 1.
+	 */
+	private static function compare_decimal( string $a, string $b ): int {
+		list( $a_whole, $a_frac ) = array_pad( explode( '.', $a, 2 ), 2, '' );
+		list( $b_whole, $b_frac ) = array_pad( explode( '.', $b, 2 ), 2, '' );
+
+		$a_whole = '' === ltrim( $a_whole, '0' ) ? '0' : ltrim( $a_whole, '0' );
+		$b_whole = '' === ltrim( $b_whole, '0' ) ? '0' : ltrim( $b_whole, '0' );
+		if ( strlen( $a_whole ) !== strlen( $b_whole ) ) {
+			return strlen( $a_whole ) <=> strlen( $b_whole );
+		}
+
+		$width = max( strlen( $a_frac ), strlen( $b_frac ) );
+
+		return strcmp( $a_whole . str_pad( $a_frac, $width, '0' ), $b_whole . str_pad( $b_frac, $width, '0' ) ) <=> 0;
+	}
+
+	/**
+	 * Text roles are opt-in, then complete (textRoles, from 3.0.0): a product
+	 * that declares any text-role property owes every required role with all
+	 * of its properties, and each optional role it touches in full. salt
+	 * declares none, so today this holds by declaring nothing, and it fails the
+	 * day one appears on its own. Tailwind's own sizes such as --text-sm are
+	 * not text roles and are not looked for. Only app.css is read: nothing in
+	 * inc/ prints a --text-* property.
+	 */
+	public function test_text_roles_are_declared_whole_or_not_at_all(): void {
+		$vocab      = self::contract( './vocabulary' );
+		$properties = array();
+		foreach ( (array) self::dig( $vocab, 'textRoles.properties' ) as $key => $property ) {
+			if ( str_starts_with( (string) $key, '$' ) ) {
+				continue;
+			}
+			if ( ! is_array( $property ) || ! is_string( $property['css'] ?? null ) || ! str_contains( $property['css'], '{role}' ) ) {
+				self::fail( "vocabulary.json textRoles.properties.{$key} has no `css` template with {role} in it, so this suite cannot name its property." );
+			}
+			$properties[] = $property['css'];
+		}
+		if ( array() === $properties ) {
+			self::fail( 'vocabulary.json textRoles.properties names no property, so there is nothing to look for.' );
+		}
+
+		$roles = array();
+		foreach ( self::required( $vocab, 'textRoles.required' ) as $role ) {
+			$roles[ $role['id'] ] = true;
+		}
+		foreach ( (array) self::dig( $vocab, 'textRoles.optional' ) as $role ) {
+			$roles[ $role['id'] ] = false;
+		}
+
+		$css      = self::app_css();
+		$declared = array();
+		$missing  = array();
+		foreach ( $roles as $id => $is_required ) {
+			$have = array();
+			$lack = array();
+			foreach ( $properties as $template ) {
+				$prop = str_replace( '{role}', (string) $id, $template );
+				if ( 1 === preg_match( '/(?<![\w-])' . preg_quote( $prop, '/' ) . '\s*:/', $css ) ) {
+					$have[] = $prop;
+				} else {
+					$lack[] = $prop;
+				}
+			}
+			$declared = array_merge( $declared, $have );
+			if ( $is_required || array() !== $have ) {
+				$missing = array_merge( $missing, $lack );
+			}
+		}
+
+		$this->assertTrue(
+			array() === $declared || array() === $missing,
+			'app.css declares the text-role properties ' . implode( ', ', $declared ) . ', so it owes every required role in full, and these are missing: ' . implode( ', ', $missing )
+		);
 	}
 }
