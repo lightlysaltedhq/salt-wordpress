@@ -27,7 +27,10 @@ markup granularity (cross-reference your site's override manifest).
     unchanged. The conformance suite now also runs the contract's two
     `quantise` vectors. The old `round()` fails `exact-ties` (#030409 for
     #020408), and multiplying by 255 before 12.92 fails `operation-order`
-    (#020000 for #030000).
+    (#020000 for #030000). `bin/check-color-parity.mjs` runs the same two
+    vectors against the JS port's exported `quantise()`, where
+    `Math.round()` put back fails `exact-ties` the same way; it moved from
+    CI's PHP job to the ESLint + Stylelint job, which installs the contract.
   - **Each vector's `exercises` is a map of claims, with the prose in
     `$what`.** The suite used to check only that `exercises` was non-empty,
     which the new shape also passes; it now requires a non-empty `$what`

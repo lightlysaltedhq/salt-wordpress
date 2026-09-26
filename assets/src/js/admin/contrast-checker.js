@@ -83,6 +83,25 @@
 	};
 
 	/**
+	 * Linear sRGB channels → '#rrggbb' (port of salt_color_quantise(), the
+	 * contract's derivation.json step 5): clamp, transfer, clamp, × 255, then
+	 * round that product half to even.
+	 *
+	 * @param {number[]} linear Linear [r, g, b] (unclamped).
+	 * @return {string} '#rrggbb'.
+	 */
+	const quantise = (linear) =>
+		'#' +
+		linear
+			.map((channel) => {
+				const srgb = linearToSrgb(Math.max(0.0, Math.min(1.0, channel)));
+				return roundHalfEven(Math.max(0.0, Math.min(1.0, srgb)) * 255.0)
+					.toString(16)
+					.padStart(2, '0');
+			})
+			.join('');
+
+	/**
 	 * OKLCH → linear sRGB (unclamped; may fall outside 0..1).
 	 *
 	 * @param {number} l Lightness 0..1.
@@ -175,16 +194,7 @@
 			rgb = oklchToLinearRgb(l, lo, h);
 		}
 
-		return (
-			'#' +
-			rgb
-				.map((channel) => {
-					const srgb = linearToSrgb(Math.max(0.0, Math.min(1.0, channel)));
-					const byte = roundHalfEven(Math.max(0.0, Math.min(1.0, srgb)) * 255.0);
-					return byte.toString(16).padStart(2, '0');
-				})
-				.join('')
-		);
+		return quantise(rgb);
 	};
 
 	/**
@@ -281,6 +291,8 @@
 	if (typeof module !== 'undefined' && module.exports) {
 		module.exports = {
 			parseHex,
+			roundHalfEven,
+			quantise,
 			hexToOklch,
 			oklchToHex,
 			deriveRamp,

@@ -37,13 +37,6 @@ jobs:
       - name: DEP01 — theme survives with ACF absent (no fatal)
         run: php bin/check-acf-absent.php
 
-      # This gate existed and worked, but nothing ran it: it was absent from CI and from
-      # package.json, and only comments referenced it. tests/unit/ColorVectorsTest.php's
-      # docstring describes it as the JS half of a PHP<->JS parity pair, so half the pair
-      # was unenforced. Wiring it in costs one line.
-      - name: PHP↔JS colour-math parity (§13) — the JS port matches the fixture
-        run: node bin/check-color-parity.mjs
-
   conformance:
     name: Conformance vs design-foundations
     runs-on: ubuntu-latest
@@ -96,6 +89,14 @@ jobs:
 
       - name: Stylelint
         run: npm run lint:css
+
+      # This gate existed and worked, but nothing ran it: it was absent from CI and from
+      # package.json, and only comments referenced it. tests/unit/ColorVectorsTest.php's
+      # docstring describes it as the JS half of a PHP<->JS parity pair, so half the pair
+      # was unenforced. It runs here, after npm ci, because it also reads the contract's
+      # quantise vectors from node_modules and fails closed without them.
+      - name: PHP↔JS colour-math parity (§13) — the JS port matches the fixture and the contract's quantise vectors
+        run: node bin/check-color-parity.mjs
 
   integrity:
     name: Artifact integrity (FLEET08)
