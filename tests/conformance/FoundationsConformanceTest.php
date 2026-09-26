@@ -1310,7 +1310,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * (review of otigs/salt#8).
 	 *
 	 * Templates cannot add their own outline utilities either:
-	 * test_no_template_draws_its_own_outline() refuses them.
+	 * test_no_template_draws_over_the_focus_indicator() refuses them.
 	 */
 	public function test_the_focus_ring_geometry_meets_the_contract(): void {
 		$geometry = self::dig( self::contract( './vocabulary' ), 'contrast.focusIndicator.geometry' );
@@ -1365,20 +1365,89 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
-	 * No file Tailwind scans for classes carries an outline utility, so every
-	 * focus ring on the page is the global rule's, drawn from the tokens. A
-	 * `focus-visible:outline-2` on a template is a literal length that wins
-	 * over the base layer; five templates carried one until the review of
-	 * otigs/salt#8.
+	 * Utility families that draw over, or take away, the focus indicator:
+	 * `outline` sets the ring's own lengths, and `shadow`, `inset-shadow`,
+	 * `ring` and `inset-ring` all write box-shadow, which replaces the keyline
+	 * on the inverse band. Tailwind builds each from a class it finds in an
+	 * @source file, and a utility beats the base layer.
+	 */
+	private const INDICATOR_UTILITIES = '/^(?:outline|shadow|inset-shadow|ring|inset-ring)(?:-|$)/';
+
+	/**
+	 * Utilities from those families that are allowed, by file, with the exact
+	 * number of times each appears. The nav submenu's shadow-lg is on a <ul>
+	 * that takes no focus, in the header, which is never inside a section, so
+	 * it can replace no keyline. A new use needs a line here and a reason.
+	 */
+	private const INDICATOR_UTILITIES_ALLOWED = array(
+		'inc/class-salt-nav-walker.php' => array( 'shadow-lg' => 1 ),
+	);
+
+	/**
+	 * No file Tailwind scans for classes carries a utility that draws over the
+	 * focus indicator (INDICATOR_UTILITIES), so every ring on the page is the
+	 * global rule's, drawn from the tokens, and every keyline on the inverse
+	 * band is the keyline rule's. Five templates carried
+	 * `focus-visible:outline-2` until the review of otigs/salt#8, whose
+	 * re-review showed a `shadow-sm` or `ring-2` on a control in an inverse
+	 * section takes the keyline away (the ring then measured 2.77:1 on the
+	 * band in light mode, 2.24:1 in dark) with the suite green.
 	 *
 	 * The files are the ones app.css's @source lines name, so a new source is
-	 * read without a change here. Any outline utility is refused, with or
-	 * without a variant prefix: `outline-*`, and a bare `outline` or
-	 * `outline-hidden` behind a variant such as `focus:`.
+	 * read without a change here. Classes are read from where they can be
+	 * written: `class="…"` and `class='…'` attributes in a template's HTML or
+	 * inside a string, and PHP and JS string literals. A token is refused
+	 * behind any variant (`focus-visible:`, `md:hover:`) and in either
+	 * important spelling (`!ring-2`, `ring-2!`). A bare family name (`shadow`,
+	 * `ring`) counts only in a class attribute or a literal that is nothing
+	 * but class-like tokens; a token with a suffix, a variant or an important
+	 * mark counts anywhere. A bare `outline` with no variant is not yet read.
 	 */
-	public function test_no_template_draws_its_own_outline(): void {
+	public function test_no_template_draws_over_the_focus_indicator(): void {
+		$found = array();
+		$root  = dirname( __DIR__, 2 ) . '/';
+		foreach ( self::source_files() as $file ) {
+			$relative = str_replace( $root, '', (string) realpath( $file ) );
+			$counts   = array();
+			foreach ( self::class_strings( $file ) as list( $text, $class_context ) ) {
+				foreach ( preg_split( '/\s+/', trim( $text ) ) as $token ) {
+					$utility = self::utility_of( $token );
+					if ( '' === $utility || 1 !== preg_match( self::INDICATOR_UTILITIES, $utility ) ) {
+						continue;
+					}
+					$bare = $token === $utility && 1 === preg_match( '/^(?:outline|shadow|inset-shadow|ring|inset-ring)$/', $utility );
+					if ( 'outline' === $token || ( $bare && ! $class_context ) ) {
+						continue;
+					}
+					$counts[ $token ] = ( $counts[ $token ] ?? 0 ) + 1;
+				}
+			}
+			$allowed = self::INDICATOR_UTILITIES_ALLOWED[ $relative ] ?? array();
+			foreach ( $counts as $token => $count ) {
+				if ( ( $allowed[ $token ] ?? 0 ) !== $count ) {
+					$found[] = "{$relative}: {$token}" . ( $count > 1 ? " ({$count} times)" : '' ) . ( isset( $allowed[ $token ] ) ? ", allowed {$allowed[ $token ]} times" : '' );
+				}
+			}
+			foreach ( $allowed as $token => $count ) {
+				if ( ! isset( $counts[ $token ] ) ) {
+					$found[] = "{$relative}: {$token} is allowed {$count} times but no longer appears; remove its line from INDICATOR_UTILITIES_ALLOWED.";
+				}
+			}
+		}
+
+		$this->assertSame( array(), $found, "These files carry utilities that draw over the focus indicator (an outline beats the ring's tokens; a shadow or ring replaces the keyline on the inverse band). Remove them; the global :focus-visible rule and the keyline rule draw every indicator:\n  " . implode( "\n  ", $found ) );
+	}
+
+	/**
+	 * Every file app.css's @source lines name.
+	 *
+	 * @return list<string>
+	 */
+	private static function source_files(): array {
 		preg_match_all( '/@source\s+"([^"]+)"/', self::app_css(), $sources );
-		$this->assertNotEmpty( $sources[1], 'app.css names no @source, so there is nothing to scan.' );
+		if ( array() === $sources[1] ) {
+			self::fail( 'app.css names no @source, so there is nothing to scan.' );
+		}
 
 		$base  = dirname( self::APP_CSS );
 		$files = array();
@@ -1388,21 +1457,81 @@ final class FoundationsConformanceTest extends SaltTestCase {
 				$files = array_merge( $files, (array) glob( $path ) );
 				continue;
 			}
-			$this->assertDirectoryExists( $path, "app.css's @source \"{$source}\" is neither a glob nor a directory." );
+			if ( ! is_dir( $path ) ) {
+				self::fail( "app.css's @source \"{$source}\" is neither a glob nor a directory." );
+			}
 			foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $file ) {
 				$files[] = $file->getPathname();
 			}
 		}
 
-		$found = array();
-		foreach ( array_unique( $files ) as $file ) {
-			$text = (string) file_get_contents( $file );
-			if ( preg_match_all( '/(?<![\w$-])(?:[\w-]+:)*outline-[\w\[\]().%\/-]+|(?<![\w$-])(?:[\w-]+:)+outline(?![\w-])/', $text, $hits ) > 0 ) {
-				$found[] = str_replace( dirname( __DIR__, 2 ) . '/', '', realpath( $file ) ) . ': ' . implode( ', ', array_unique( $hits[0] ) );
+		return array_values( array_unique( $files ) );
+	}
+
+	/**
+	 * Every place a class can be written in one source file, each with
+	 * whether it is certainly a class list: class attributes (true), and
+	 * string literals, which are a class list when every token in them looks
+	 * like a class. PHP is read with its own tokenizer, so HTML outside PHP
+	 * tags and strings inside it are told apart exactly; JS by its three
+	 * quote forms.
+	 *
+	 * @param string $file Path.
+	 * @return list<array{0: string, 1: bool}>
+	 */
+	private static function class_strings( string $file ): array {
+		$code    = (string) file_get_contents( $file );
+		$html    = array();
+		$strings = array();
+
+		if ( str_ends_with( $file, '.php' ) ) {
+			foreach ( token_get_all( $code ) as $token ) {
+				if ( ! is_array( $token ) ) {
+					continue;
+				}
+				if ( T_INLINE_HTML === $token[0] ) {
+					$html[] = $token[1];
+				} elseif ( T_CONSTANT_ENCAPSED_STRING === $token[0] ) {
+					$strings[] = stripcslashes( substr( $token[1], 1, -1 ) );
+				} elseif ( T_ENCAPSED_AND_WHITESPACE === $token[0] ) {
+					$strings[] = $token[1];
+				}
 			}
+		} else {
+			preg_match_all( '/(["\'`])((?:\\\\.|(?!\1).)*)\1/s', $code, $literals );
+			$strings = $literals[2];
 		}
 
-		$this->assertSame( array(), $found, "These files carry outline utilities, which draw a ring the focus-ring tokens do not govern. Remove them; the global :focus-visible rule draws every ring:\n  " . implode( "\n  ", $found ) );
+		$out = array();
+		foreach ( array_merge( $html, $strings ) as $text ) {
+			preg_match_all( '/\bclass\s*=\s*(["\'])(.*?)\1/s', $text, $attributes );
+			foreach ( $attributes[2] as $attribute ) {
+				$out[] = array( $attribute, true );
+			}
+		}
+		foreach ( $strings as $text ) {
+			$class_like = '' !== trim( $text ) && 1 === preg_match( '/^[\s!a-z0-9:\[\]().%\/_#-]+$/', $text );
+			$out[]      = array( $text, $class_like );
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The utility a class token names, with its variants (`focus-visible:`,
+	 * `md:hover:`) and either important mark (`!ring-2`, `ring-2!`) removed,
+	 * or '' for a token that is not class-shaped.
+	 *
+	 * @param string $token Whitespace-free token.
+	 * @return string
+	 */
+	private static function utility_of( string $token ): string {
+		if ( 1 !== preg_match( '/^[!a-z0-9:\[\]().%\/_#-]+$/', $token ) ) {
+			return '';
+		}
+		$parts = preg_split( '/:(?![^\[]*\])/', $token );
+
+		return trim( (string) end( $parts ), '!' );
 	}
 
 	/**
@@ -1560,7 +1689,10 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * first layer repaints the offset gap in the ground and whose second
 	 * reaches past the ring by --focus-keyline-width in the keyline's role.
 	 * The ground's class is the one x-section prints for its inverse
-	 * background, checked by rendering one.
+	 * background, checked by rendering one. Nothing else in app.css may set a
+	 * box-shadow, and the nested-ground reset may only set `none`: any other
+	 * box-shadow on a focused control replaces the keyline. Utilities that do
+	 * the same from a template are test_no_template_draws_over_the_focus_indicator()'s.
 	 *
 	 * What this does not see: whether the browser paints it. Chrome for
 	 * Testing 148.0.7778.96 (headless) did, for a button and a link, light and
@@ -1579,6 +1711,8 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		);
 		$section = (string) ob_get_clean();
 
+		$blank    = self::blank_strings( $css );
+		$shadows  = array();
 		$failures = array();
 		foreach ( self::keylines() as $keyline ) {
 			$ground = 'bg-' . str_replace( '.', '-', $keyline['ground'] );
@@ -1594,15 +1728,43 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			}
 
 			$selector = '(?:^|[{};])\s*\.' . preg_quote( $ground, '/' ) . '\s+:focus-visible\s*\{([^{}]*)\}';
-			if ( 1 !== preg_match_all( '/' . $selector . '/', $css, $rule ) ) {
+			if ( 1 !== preg_match_all( '/' . $selector . '/', $blank, $rule, PREG_OFFSET_CAPTURE ) ) {
 				$failures[] = "app.css has no single `.{$ground} :focus-visible` rule, so nothing draws the {$keyline['role']} keyline on {$keyline['ground']}.";
 				continue;
+			}
+			$shadows[]  = array( $rule[1][0][1], $rule[1][0][1] + strlen( $rule[1][0][0] ) );
+			$rule[1][0] = $rule[1][0][0];
+
+			// The nested-ground reset: a card or panel inside the band is its own
+			// ground. Its body may only take the keyline away.
+			$reset = '(?:^|[{};])\s*\.' . preg_quote( $ground, '/' ) . '\s+:is\([^(){}]*\)\s+:focus-visible\s*\{([^{}]*)\}';
+			preg_match_all( '/' . $reset . '/', $blank, $resets, PREG_OFFSET_CAPTURE );
+			foreach ( $resets[1] as $body ) {
+				if ( 'box-shadow:none' !== trim( (string) preg_replace( '/\s+/', '', $body[0] ), ';' ) ) {
+					$failures[] = "The nested-ground reset under `.{$ground}` is `" . trim( $body[0] ) . '`; it may only be `box-shadow: none`.';
+					continue;
+				}
+				$shadows[] = array( $body[1], $body[1] + strlen( $body[0] ) );
 			}
 
 			$want = 'box-shadow:0 0 0 var(--focus-ring-offset) var(--color-' . str_replace( '.', '-', $keyline['ground'] ) . '),0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width) + var(--focus-keyline-width)) var(' . $role . ')';
 			$got  = trim( (string) preg_replace( '/\s*,\s*/', ',', (string) preg_replace( '/\s*:\s*/', ':', (string) preg_replace( '/\s+/', ' ', $rule[1][0] ) ) ), ' ;' );
 			if ( $want !== $got ) {
 				$failures[] = "`.{$ground} :focus-visible` is `{$got}`. This suite reads one shape only, `{$want}`: the ground repainted across the offset gap, then the keyline in {$keyline['role']} reaching --focus-keyline-width past the ring.";
+			}
+		}
+
+		// Any other box-shadow in app.css, at any depth, in any case or with a
+		// vendor prefix, can replace the keyline on a focused control, as a
+		// later `.x-button:focus-visible { box-shadow: none }` would, leaving the
+		// ring alone on the band at 2.77:1 light and 2.24:1 dark. So only the
+		// keyline rule and its nested-ground reset may declare one.
+		preg_match_all( '/(?<=[{;])\s*((?i:-webkit-)?(?i:box-shadow))\s*:([^;{}]*)/', $blank, $declared, PREG_OFFSET_CAPTURE | PREG_SET_ORDER );
+		foreach ( $declared as $declaration ) {
+			$at      = $declaration[1][1];
+			$covered = array_filter( $shadows, static fn( array $range ): bool => $at >= $range[0] && $at < $range[1] );
+			if ( array() === $covered ) {
+				$failures[] = "app.css declares `{$declaration[1][0]}:" . substr( $css, $declaration[2][1], strlen( $declaration[2][0] ) ) . '` in `' . self::excerpt( $css, $at ) . '`. Only the keyline rule and its nested-ground reset may set a box-shadow: any other can take the keyline off a focused control on the inverse band.';
 			}
 		}
 

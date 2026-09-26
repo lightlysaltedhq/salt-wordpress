@@ -65,6 +65,17 @@ markup granularity (cross-reference your site's override manifest).
     outline, offset, box-shadow and the pixels leaving the element were
     identical in all 120 cases. The suite now refuses any outline utility
     in a file Tailwind scans.
+  - **Nothing may draw over the keyline either.** A `shadow-*`, `ring-*` or
+    `inset-shadow-*` utility on a control in an inverse section, or a later
+    `box-shadow` on it in app.css, replaces the keyline and leaves the ring
+    alone on the band (2.77:1 light, 2.24:1 dark) with every gate green
+    (re-review of otigs/salt#8). The suite now refuses those utilities in
+    any file Tailwind scans, behind any variant and in either important
+    spelling, read from class attributes and string literals with PHP's own
+    tokenizer. The nav submenu's `shadow-lg`, on a `<ul>` in the header that
+    takes no focus, is the one allowed use, counted exactly. In app.css only
+    the keyline rule and its nested-ground reset (`none`) may set a
+    `box-shadow`.
   - **Text roles bind a product that declares one.** salt declares no
     `--text-*` property at all, so none binds. The suite now fails if a
     text-role property appears without the full required set.
