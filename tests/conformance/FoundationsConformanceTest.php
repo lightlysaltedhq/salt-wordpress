@@ -1302,6 +1302,13 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * compared as decimal digits, not floats, so 1.99999999999999999px does not
 	 * pass as 2px.
 	 *
+	 * The ring rule must carry each length once, as a bare var() of its
+	 * token: `outline` (or `outline-width`) and `outline-offset`, each
+	 * declared exactly once. A second declaration, a calc() or max() around
+	 * the var(), or an outline property anywhere else in app.css is refused by
+	 * name, because each can draw a thinner or closer ring than the token says
+	 * (review of otigs/salt#8).
+	 *
 	 * What this does not see: the outline-2 and outline-offset-2 utilities that
 	 * button.php and four other templates add on focus-visible. Those set the
 	 * same 2px as literals, after the base rule, so they win over the tokens.
@@ -1312,19 +1319,18 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			self::fail( "vocabulary.json 'contrast.focusIndicator.geometry' is missing, empty or not a list, so there is no floor to check the ring against." );
 		}
 
-		// Which part of the global ring each geometry rule is. A rule this does
-		// not know is refused: nothing here could say the ring honours it.
+		// Which declarations of the global ring each geometry rule may be read
+		// from. A rule this does not know is refused: nothing here could say the
+		// ring honours it.
 		$draws = array(
-			'width'  => 'outline',
-			'offset' => 'outline-offset',
+			'width'  => array( 'outline', 'outline-width' ),
+			'offset' => array( 'outline-offset' ),
 		);
 
-		$css = self::app_css();
-		if ( 1 !== preg_match_all( '/(?:^|[{};])\s*:focus-visible\s*\{([^{}]*)\}/', $css, $ring ) ) {
-			self::fail( 'app.css has no single top-level-shaped `:focus-visible { … }` rule drawing the global focus ring, so this suite cannot say what the ring reads.' );
-		}
+		$css  = self::app_css();
+		$ring = self::focus_ring_outlines( $css );
 
-		$failures = array();
+		$failures = $ring['refused'];
 		foreach ( $geometry as $rule ) {
 			$prop   = $rule['css'] ?? null;
 			$bounds = array_values( array_intersect( array( 'atLeastCssPx', 'greaterThanCssPx' ), array_keys( is_array( $rule ) ? $rule : array() ) ) );
@@ -1337,13 +1343,101 @@ final class FoundationsConformanceTest extends SaltTestCase {
 				$failures[] = $failure;
 			}
 
-			$reads = '/(?:^|;)\s*' . preg_quote( $draws[ $rule['id'] ], '/' ) . '\s*:[^;]*var\(\s*' . preg_quote( $prop, '/' ) . '\s*\)/';
-			if ( 1 !== preg_match( $reads, $ring[1][0] ) ) {
-				$failures[] = "The global :focus-visible rule does not draw `{$draws[ $rule['id'] ]}` from var({$prop}), so the ring on the page need not be the length measured here.";
+			// Exactly one declaration in the ring rule carries this length, and it
+			// carries it as a bare var(): a calc(), max() or anything else around
+			// it is a length this suite would have to model, so it is refused.
+			$carriers = array_values( array_filter( $ring['declared'], static fn( array $declaration ): bool => in_array( $declaration['prop'], $draws[ $rule['id'] ], true ) ) );
+			if ( 1 !== count( $carriers ) ) {
+				$failures[] = sprintf( 'The global :focus-visible rule declares %s %d times; it must declare one of them once, from var(%s).', implode( ' or ', $draws[ $rule['id'] ] ), count( $carriers ), $prop );
+				continue;
+			}
+
+			$bare   = '(?i:var)\(\s*' . preg_quote( $prop, '/' ) . '\s*\)';
+			$tokens = self::css_tokens( $carriers[0]['value'] );
+			$ok     = 'outline' === $carriers[0]['prop']
+				? 1 === count( preg_grep( '/^' . $bare . '$/', $tokens ) ) && array() === array_filter( $tokens, static fn( string $token ): bool => 1 !== preg_match( '/^' . $bare . '$|^(?i:var)\(\s*--color-[\w-]+\s*\)$|^(?i:none|hidden|dotted|dashed|solid|double|groove|ridge|inset|outset|auto)$/', $token ) )
+				: array( $tokens[0] ?? '' ) === $tokens && 1 === preg_match( '/^' . $bare . '$/', $tokens[0] ?? '' );
+			if ( ! $ok ) {
+				$failures[] = "The global :focus-visible rule has `{$carriers[0]['prop']}: {$carriers[0]['value']}`. It must draw the {$rule['id']} from a bare var({$prop}), with nothing wrapped around it and no other length beside it.";
 			}
 		}
 
 		$this->assertSame( array(), $failures, "The focus ring's geometry does not meet the contract:\n  " . implode( "\n  ", $failures ) );
+	}
+
+	/**
+	 * The global focus ring's outline declarations, and every outline
+	 * declaration in app.css this suite refuses.
+	 *
+	 * The ring is the one rule whose selector is `:focus-visible` alone. Every
+	 * `outline…:` property anywhere else in app.css, at any depth and in any
+	 * case, is refused by name, because a later or more specific rule can
+	 * thin or move the ring without touching the tokens; so is !important in
+	 * the ring itself.
+	 *
+	 * @param string $css app.css without comments.
+	 * @return array{declared: list<array{prop: string, value: string}>, refused: list<string>}
+	 */
+	private static function focus_ring_outlines( string $css ): array {
+		$blank = self::blank_strings( $css );
+		if ( 1 !== preg_match_all( '/(?:^|[{};])\s*:focus-visible\s*\{([^{}]*)\}/', $blank, $ring, PREG_OFFSET_CAPTURE ) ) {
+			self::fail( 'app.css has no single `:focus-visible { … }` rule drawing the global focus ring, so this suite cannot say what the ring reads.' );
+		}
+		$from = $ring[1][0][1];
+		$to   = $from + strlen( $ring[1][0][0] );
+
+		$declared = array();
+		$refused  = array();
+		preg_match_all( '/(?<=[{;])\s*((?i:outline)[\w-]*)\s*:([^;{}]*)/', $blank, $found, PREG_OFFSET_CAPTURE | PREG_SET_ORDER );
+		foreach ( $found as $declaration ) {
+			$prop  = strtolower( $declaration[1][0] );
+			$value = trim( substr( $css, $declaration[2][1], strlen( $declaration[2][0] ) ) );
+			$at    = $declaration[1][1];
+			if ( $at < $from || $at >= $to ) {
+				$refused[] = "app.css declares `{$declaration[1][0]}: {$value}` in `" . self::excerpt( $css, $at ) . '`, outside the global :focus-visible rule. Only that rule may set an outline, and only from the focus-ring tokens.';
+				continue;
+			}
+			if ( 1 === preg_match( '/!\s*important/i', $value ) ) {
+				$refused[] = "The global :focus-visible rule marks `{$declaration[1][0]}` !important, which this suite does not rank.";
+				continue;
+			}
+			if ( ! in_array( $prop, array( 'outline', 'outline-width', 'outline-offset' ), true ) ) {
+				$refused[] = "The global :focus-visible rule declares `{$declaration[1][0]}: {$value}`. It reads `outline` (or `outline-width`) and `outline-offset` only.";
+				continue;
+			}
+			$declared[] = array(
+				'prop'  => $prop,
+				'value' => $value,
+			);
+		}
+
+		return array(
+			'declared' => $declared,
+			'refused'  => $refused,
+		);
+	}
+
+	/**
+	 * A declaration value split on CSS whitespace outside brackets.
+	 *
+	 * @param string $value Declaration value.
+	 * @return list<string>
+	 */
+	private static function css_tokens( string $value ): array {
+		$tokens = array( '' );
+		$depth  = 0;
+		foreach ( str_split( trim( $value, " \t\n\r\f" ) ) as $char ) {
+			$depth += '(' === $char ? 1 : ( ')' === $char ? -1 : 0 );
+			if ( 0 === $depth && false !== strpos( " \t\n\r\f", $char ) ) {
+				if ( '' !== end( $tokens ) ) {
+					$tokens[] = '';
+				}
+				continue;
+			}
+			$tokens[ count( $tokens ) - 1 ] .= $char;
+		}
+
+		return array_values( array_filter( $tokens, static fn( string $token ): bool => '' !== $token ) );
 	}
 
 	/**
