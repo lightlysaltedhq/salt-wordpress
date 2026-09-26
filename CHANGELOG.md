@@ -89,6 +89,28 @@ markup granularity (cross-reference your site's override manifest).
   this change; the fix is under Fixed below (otigs/salt#4).
 
 ### Fixed
+- **The focus ring on an "Inverse (dark)" section is visible** (review of
+  otigs/salt#8). `focus` is a brand step and `surface-inverse` the far end
+  of the neutral ramp, so on that band the ring measured 2.34–2.99:1 in
+  light mode and 2.05–2.56:1 in dark over the 5,832 grid seeds, under the
+  3:1 a focus indicator needs. design-foundations 3.0.0's
+  `focusIndicator.keyline` does not rely on the ring there and asks for an
+  `ink.inverse` keyline, at least 2px, as the indicator's outermost part.
+  A focused element in a `bg-surface-inverse` section now carries one: a
+  box-shadow keeps the 2px offset gap in the band's colour and draws a 2px
+  keyline (`--focus-keyline-width`) outside the ring. A card or panel
+  painted inside the band is its own ground and gets none. **Visual
+  change:** in light mode a near-white #f2f5fa line now surrounds the ring
+  on the dark band; in dark mode a dark #26292e line surrounds it on the
+  light band. Measured in Chrome for Testing 148.0.7778.96 (headless, DPR
+  1), for a primary x-button and a text link, in light and dark, at 320 and
+  1280 CSS px wide, over the contract's 15 frozen seeds: the keyline meets
+  the band at 13.35:1 light and 12.20:1 dark, the ring meets the keyline at
+  4.47–5.53:1 light and 4.85–5.93:1 dark, and the ring's own ratio to the
+  band, still what shows in the gap, is 2.41–2.99:1 light and 2.06–2.51:1
+  dark. The keyline measured at least 2 device pixels in every case, with
+  the gap and ring in place inside it. The conformance suite checks the
+  keyline's rule, width and colour.
 - **Dark-mode primary buttons meet AA** (otigs/salt#3). `--color-on-brand`
   was #f8fafc in every mode, and dark mode fills `brand` with primary-400
   (primary-300 on hover, primary-200 and primary-100 with high contrast). Over

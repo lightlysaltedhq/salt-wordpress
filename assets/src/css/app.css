@@ -105,6 +105,10 @@
 	--focus-ring-width: 2px;
 	--focus-ring-offset: 2px;
 
+	/* The ink.inverse keyline drawn outside the ring on the inverse band
+	   (focusIndicator.keyline): at least the ring's own 2px. */
+	--focus-keyline-width: 2px;
+
 	/* Status roles (fixed defaults, AA-safe on light surface). */
 	--color-success: oklch(45% 0.12 150deg);
 	--color-warning: oklch(50% 0.12 80deg);
@@ -175,6 +179,26 @@
 	:focus-visible {
 		outline: var(--focus-ring-width) solid var(--color-focus);
 		outline-offset: var(--focus-ring-offset);
+	}
+
+	/* On the inverse band the ring is not relied on: `focus` is a brand step
+	   and surface-inverse sits at the far end of the neutral ramp, so the
+	   ring measured 2.05-2.99:1 against it. design-foundations 3.0.0 asks
+	   for an ink.inverse keyline as the indicator's outermost part, so the
+	   keyline, not the ring, meets the ground. The first shadow repaints the
+	   offset gap in the ground's colour (the second would otherwise fill
+	   it); the second reaches past the ring by the keyline's width. Outlines
+	   paint above box-shadows, so the ring sits between the two. */
+	.bg-surface-inverse :focus-visible {
+		box-shadow:
+			0 0 0 var(--focus-ring-offset) var(--color-surface-inverse),
+			0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width) + var(--focus-keyline-width)) var(--color-ink-inverse);
+	}
+
+	/* A card or panel painted inside the band is its own ground, where the
+	   ring meets the contract on its own. */
+	.bg-surface-inverse :is(.bg-surface, .bg-surface-alt, .bg-brand-tint) :focus-visible {
+		box-shadow: none;
 	}
 
 	/* Single reduced-motion switch gating both the media query and the

@@ -72,11 +72,10 @@
  * - Pairs the contract has no rule for. salt also paints `text-brand` on
  *   `surface` (links, eyebrows), which is not measured. The `focus` ring is,
  *   against the three grounds 3.0.0 requires (`surface`, `surface.alt`,
- *   `brand.tint`), but not on `surface.inverse`, where the contract relies on
- *   an `ink.inverse` keyline that only a rendered page shows.
- * - What only a rendered page shows: that keyline, the 24 x 24 target size,
- *   and whether a component's own outline utilities draw the ring at the
- *   lengths the focus-ring tokens declare.
+ *   `brand.tint`). On `surface.inverse` the contract does not rely on the
+ *   ring; the `ink.inverse` keyline salt draws there is measured instead.
+ * - What only a rendered page shows: that the keyline is painted where
+ *   app.css says, and the 24 x 24 target size.
  * - Brands between the grid points. On-brand at rest holds for any seed by
  *   construction (salt_text_on()); hover and every other pair are measured
  *   for the frozen seeds and the grid only.
@@ -1093,6 +1092,24 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			}
 		}
 
+		// The keyline salt draws outside the ring where the ring is not relied
+		// on (focusIndicator.keyline) is the part of the indicator that meets
+		// that ground, so it is held to the ring's own ratio there. The contract
+		// counts it covered by [ink.inverse, surface.inverse] at 4.5:1; this
+		// names it, so a keyline re-pointed at another role is measured too.
+		$ring_min = 0.0;
+		foreach ( self::required( $vocab, 'contrast.requirements' ) as $rule ) {
+			if ( 'focus' === ( $rule['pair'][0] ?? null ) ) {
+				$ring_min = max( $ring_min, (float) $rule['minRatio'] );
+			}
+		}
+		foreach ( self::keylines() as $keyline ) {
+			if ( 0.0 === $ring_min ) {
+				self::fail( "vocabulary.json's contrast.requirements has no `focus` pair, so there is no ring ratio to hold the keyline to." );
+			}
+			$checks[] = array( "focus keyline {$keyline['role']} on {$keyline['ground']}", $keyline['role'], $keyline['ground'], $ring_min );
+		}
+
 		$palettes = array( 'compiled defaults' => array() );
 		foreach ( self::contract( './vectors' )['vectors'] as $vector ) {
 			$palettes[ strtolower( (string) $vector['seed'] ) ] = self::runtime( (string) $vector['seed'] );
@@ -1315,35 +1332,9 @@ final class FoundationsConformanceTest extends SaltTestCase {
 				self::fail( 'vocabulary.json has a focus geometry rule this suite cannot read: ' . wp_json_encode( $rule ) . '. It reads `width` and `offset`, each with a `css` property and exactly one whole-number bound.' );
 			}
 
-			preg_match_all( '/(?<![\w-])' . preg_quote( $prop, '/' ) . '\s*:([^;{}]*)/', $css, $found );
-			if ( 1 !== count( $found[1] ) ) {
-				$failures[] = sprintf( '%s is declared %d times in app.css; the contract needs it once, so there is one length to rank.', $prop, count( $found[1] ) );
-				continue;
-			}
-
-			$value = $found[1][0];
-			$text  = strtolower( trim( $value, " \t\n\r\f" ) );
-			if ( 1 === preg_match( '/!\s*important/i', $value ) ) {
-				$failures[] = "{$prop} is marked !important, which this suite does not rank.";
-				continue;
-			}
-			if ( 1 === preg_match( '/[^\x00-\x7F]/', $value ) ) {
-				$failures[] = "{$prop}: `{$value}` has a non-ASCII character, which CSS does not read in a length, so a browser drops it. Retype it in ASCII.";
-				continue;
-			}
-			if ( '0' === $text ) {
-				$digits = '0';
-			} elseif ( 1 === preg_match( '/^([0-9]+(?:\.[0-9]+)?)px$/', $text, $px ) ) {
-				$digits = $px[1];
-			} else {
-				$failures[] = "{$prop}: `" . trim( $value ) . '` is not a length the contract can rank against a CSS px floor at every root size. Write a number and px, or 0 (focusIndicator.$lengths).';
-				continue;
-			}
-
-			$floor = (string) $rule[ $bounds[0] ];
-			$order = self::compare_decimal( $digits, $floor );
-			if ( 'atLeastCssPx' === $bounds[0] ? $order < 0 : $order <= 0 ) {
-				$failures[] = sprintf( '%s is %spx; the contract needs %s %spx.', $prop, $digits, 'atLeastCssPx' === $bounds[0] ? 'at least' : 'more than', $floor );
+			$failure = self::px_floor_failure( $css, $prop, $bounds[0], (string) $rule[ $bounds[0] ] );
+			if ( null !== $failure ) {
+				$failures[] = $failure;
 			}
 
 			$reads = '/(?:^|;)\s*' . preg_quote( $draws[ $rule['id'] ], '/' ) . '\s*:[^;]*var\(\s*' . preg_quote( $prop, '/' ) . '\s*\)/';
@@ -1353,6 +1344,135 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		}
 
 		$this->assertSame( array(), $failures, "The focus ring's geometry does not meet the contract:\n  " . implode( "\n  ", $failures ) );
+	}
+
+	/**
+	 * Why a length property in app.css fails a CSS px floor, or null when it
+	 * meets it: declared once, not !important, ASCII, a number and px or a bare
+	 * 0 (focusIndicator.$lengths), then compared to the floor as decimal
+	 * digits, so 1.99999999999999999px does not pass as 2px.
+	 *
+	 * @param string $css   app.css without comments.
+	 * @param string $prop  Custom property, e.g. '--focus-ring-width'.
+	 * @param string $bound 'atLeastCssPx' or 'greaterThanCssPx'.
+	 * @param string $floor The bound's value, as digits.
+	 * @return string|null
+	 */
+	private static function px_floor_failure( string $css, string $prop, string $bound, string $floor ): ?string {
+		preg_match_all( '/(?<![\w-])' . preg_quote( $prop, '/' ) . '\s*:([^;{}]*)/', $css, $found );
+		if ( 1 !== count( $found[1] ) ) {
+			return sprintf( '%s is declared %d times in app.css; the contract needs it once, so there is one length to rank.', $prop, count( $found[1] ) );
+		}
+
+		$value = $found[1][0];
+		$text  = strtolower( trim( $value, " \t\n\r\f" ) );
+		if ( 1 === preg_match( '/!\s*important/i', $value ) ) {
+			return "{$prop} is marked !important, which this suite does not rank.";
+		}
+		if ( 1 === preg_match( '/[^\x00-\x7F]/', $value ) ) {
+			return "{$prop}: `{$value}` has a non-ASCII character, which CSS does not read in a length, so a browser drops it. Retype it in ASCII.";
+		}
+		if ( '0' === $text ) {
+			$digits = '0';
+		} elseif ( 1 === preg_match( '/^([0-9]+(?:\.[0-9]+)?)px$/', $text, $px ) ) {
+			$digits = $px[1];
+		} else {
+			return "{$prop}: `" . trim( $value ) . '` is not a length the contract can rank against a CSS px floor at every root size. Write a number and px, or 0 (focusIndicator.$lengths).';
+		}
+
+		$order = self::compare_decimal( $digits, $floor );
+		if ( 'atLeastCssPx' === $bound ? $order < 0 : $order <= 0 ) {
+			return sprintf( '%s is %spx; the contract needs %s %spx.', $prop, $digits, 'atLeastCssPx' === $bound ? 'at least' : 'more than', $floor );
+		}
+
+		return null;
+	}
+
+	/**
+	 * The contract's focus keylines (contrast.focusIndicator.keyline): each a
+	 * ground where the ring is not relied on, the role the keyline is drawn in
+	 * and its width floor. Failing by name on any shape this suite does not read.
+	 *
+	 * @return list<array{ground: string, role: string, floor: string}>
+	 */
+	private static function keylines(): array {
+		$keylines = self::dig( self::contract( './vocabulary' ), 'contrast.focusIndicator.keyline' );
+		if ( ! is_array( $keylines ) || array() === $keylines || ! array_is_list( $keylines ) ) {
+			self::fail( "vocabulary.json 'contrast.focusIndicator.keyline' is missing, empty or not a list, so nothing says where the ring needs a keyline." );
+		}
+
+		$out = array();
+		foreach ( $keylines as $keyline ) {
+			if ( ! is_string( $keyline['ground'] ?? null ) || ! is_string( $keyline['role'] ?? null ) || ! is_int( $keyline['widthAtLeastCssPx'] ?? null ) || 1 !== count( array_intersect( array( 'widthAtLeastCssPx', 'widthGreaterThanCssPx' ), array_keys( $keyline ) ) ) ) {
+				self::fail( 'vocabulary.json has a focus keyline this suite cannot read: ' . wp_json_encode( $keyline ) . '. It reads a `ground`, a `role` and a whole-number `widthAtLeastCssPx`.' );
+			}
+			$out[] = array(
+				'ground' => $keyline['ground'],
+				'role'   => $keyline['role'],
+				'floor'  => (string) $keyline['widthAtLeastCssPx'],
+			);
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Where the contract does not rely on the ring (focusIndicator.keyline,
+	 * `surface.inverse` in 3.0.0), salt draws a keyline in the named role as
+	 * the indicator's outermost part, at least as thick as the contract asks.
+	 *
+	 * The keyline rule is read as one exact shape and anything else is
+	 * refused: `.bg-{ground} :focus-visible` with a single box-shadow whose
+	 * first layer repaints the offset gap in the ground and whose second
+	 * reaches past the ring by --focus-keyline-width in the keyline's role.
+	 * The ground's class is the one x-section prints for its inverse
+	 * background, checked by rendering one.
+	 *
+	 * What this does not see: whether the browser paints it. Chrome for
+	 * Testing 148.0.7778.96 (headless) did, for a button and a link, light and
+	 * dark, at 320 and 1280 CSS px wide (CHANGELOG, Unreleased).
+	 */
+	public function test_the_focus_keyline_is_drawn_where_the_ring_is_not_relied_on(): void {
+		$css = self::app_css();
+
+		ob_start();
+		salt_section(
+			array(
+				'name'       => 'rich-text',
+				'background' => 'inverse',
+			),
+			static function (): void {}
+		);
+		$section = (string) ob_get_clean();
+
+		$failures = array();
+		foreach ( self::keylines() as $keyline ) {
+			$ground = 'bg-' . str_replace( '.', '-', $keyline['ground'] );
+			$role   = '--color-' . str_replace( '.', '-', $keyline['role'] );
+
+			$failure = self::px_floor_failure( $css, '--focus-keyline-width', 'atLeastCssPx', $keyline['floor'] );
+			if ( null !== $failure ) {
+				$failures[] = $failure;
+			}
+
+			if ( 1 !== preg_match( '/\bclass="[^"]*(?<![\w-])' . preg_quote( $ground, '/' ) . '(?![\w-])/', $section ) ) {
+				$failures[] = "x-section's inverse background does not print `{$ground}`, so a keyline keyed to that class draws on no section.";
+			}
+
+			$selector = '(?:^|[{};])\s*\.' . preg_quote( $ground, '/' ) . '\s+:focus-visible\s*\{([^{}]*)\}';
+			if ( 1 !== preg_match_all( '/' . $selector . '/', $css, $rule ) ) {
+				$failures[] = "app.css has no single `.{$ground} :focus-visible` rule, so nothing draws the {$keyline['role']} keyline on {$keyline['ground']}.";
+				continue;
+			}
+
+			$want = 'box-shadow:0 0 0 var(--focus-ring-offset) var(--color-' . str_replace( '.', '-', $keyline['ground'] ) . '),0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width) + var(--focus-keyline-width)) var(' . $role . ')';
+			$got  = trim( (string) preg_replace( '/\s*,\s*/', ',', (string) preg_replace( '/\s*:\s*/', ':', (string) preg_replace( '/\s+/', ' ', $rule[1][0] ) ) ), ' ;' );
+			if ( $want !== $got ) {
+				$failures[] = "`.{$ground} :focus-visible` is `{$got}`. This suite reads one shape only, `{$want}`: the ground repainted across the offset gap, then the keyline in {$keyline['role']} reaching --focus-keyline-width past the ring.";
+			}
+		}
+
+		$this->assertSame( array(), $failures, "The focus keyline does not meet the contract:\n  " . implode( "\n  ", $failures ) );
 	}
 
 	/**
