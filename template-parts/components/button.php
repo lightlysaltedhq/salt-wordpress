@@ -91,7 +91,7 @@ $salt_classes = salt_classnames(
 	array(
 		'x-button',
 		'x-button-' . $salt_args['style'],
-		'inline-flex items-center justify-center gap-2 rounded-md font-medium focus-visible:outline-2 focus-visible:outline-offset-2',
+		'inline-flex items-center justify-center gap-2 rounded-md font-medium',
 		$salt_style_classes[ $salt_args['style'] ],
 		$salt_size_classes[ $salt_args['size'] ],
 		$salt_args['classes'],

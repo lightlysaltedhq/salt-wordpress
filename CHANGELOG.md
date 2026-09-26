@@ -9,6 +9,83 @@ markup granularity (cross-reference your site's override manifest).
 ## [Unreleased]
 
 ### Changed
+- **The design contract is now `@lightlysaltedhq/design-foundations` 3.0.0**
+  (was 2.1.0), exact-pinned and locked by integrity hash as before. `PINNED`
+  and `VOCABULARY_SHA256` are re-pinned; the new hash was recomputed
+  independently in Python from the canonical form and agrees. 3.0.0 is a
+  major, and each of its breaking changes was checked against salt:
+  - **The derivation's quantise step rounds half to even** (derivation.json
+    step 5, the owner's ruling of 25/09/2026). `salt_oklch_to_hex()` ends in
+    a new `salt_color_quantise()`, which clamps, applies the transfer,
+    clamps, multiplies by 255 and rounds that binary64 product half to even
+    as an exact comparison (`salt_color_round_half_even()`), where it used
+    `round()`, which rounds half away from zero. The JS port in
+    `contrast-checker.js` does the same in place of `Math.round()`. No
+    ramp changes: the old and new rules agree on every channel of every
+    ramp step for all 16,777,216 hex seeds, as the contract says, and salt's
+    colour fixture, the contract's ramp vectors and PHP↔JS parity all pass
+    unchanged. The conformance suite now also runs the contract's two
+    `quantise` vectors. The old `round()` fails `exact-ties` (#030409 for
+    #020408), and multiplying by 255 before 12.92 fails `operation-order`
+    (#020000 for #030000). `bin/check-color-parity.mjs` runs the same two
+    vectors against the JS port's exported `quantise()`, where
+    `Math.round()` put back fails `exact-ties` the same way; it moved from
+    CI's PHP job to the ESLint + Stylelint job, which installs the contract.
+  - **Each vector's `exercises` is a map of claims, with the prose in
+    `$what`.** The suite used to check only that `exercises` was non-empty,
+    which the new shape also passes; it now requires a non-empty `$what`
+    string and a non-empty map, and that `counts.quantise` matches the
+    quantise vectors. The five replaced seeds reproduce byte for byte.
+  - **The focus ring is held to 3:1 on `surface`, `surface.alt` and
+    `brand.tint`.** The existing contrast gate picked these three pairs up
+    unchanged, and salt passes them in all eight display-mode combinations
+    for the frozen seeds, the sRGB grid at a step of 15 and the compiled
+    defaults. Worst case, light mode with no preferences: 4.88:1 on
+    `surface` and 4.08:1 on `surface.alt` (seed #0ff00f, focus #008401 on
+    #ffffff and #e7ebf1), and 4.54:1 on `brand.tint` (seed #009600, #008400
+    on #e3fee0). No colour changed to meet them.
+  - **The ring is at least 2px thick and 1px clear of the control, in px
+    only.** salt drew 2px and 2px as literals. `@theme` now declares
+    `--focus-ring-width: 2px` and `--focus-ring-offset: 2px`, the global
+    `:focus-visible` rule reads them, and the suite checks each is declared
+    once, as a px length or 0 (refusing `!important`, `rem`, `calc()` and
+    the rest by name), meets its floor compared as decimal digits, and is
+    what the ring draws. The rendered ring is unchanged; the built
+    stylesheet carries the two properties and reads them.
+  - **Every focus ring now comes from those tokens.** x-button (`button.php`),
+    `booking.php`, `map.php`, the contact form's submit (`contact.php`) and
+    the display-preference toggles (`display-preferences.php`) no longer
+    carry `focus-visible:outline-2 focus-visible:outline-offset-2`, whose
+    literal 2px beat the base rule. Markup: those two classes leave each
+    element's `class` attribute and nothing else changes (17 snapshots,
+    32 lines). A child theme that copied one of those class strings keeps
+    the old literal ring. Chrome for Testing 148.0.7778.96 measured each of
+    the five on `surface` and on the inverse band, light and dark, at 320
+    and 1280 CSS px, for three frozen seeds, before and after: computed
+    outline, offset, box-shadow and the pixels leaving the element were
+    identical in all 120 cases. The suite now refuses any outline utility
+    in a file Tailwind scans.
+  - **Nothing may draw over the keyline either.** A `shadow-*`, `ring-*` or
+    `inset-shadow-*` utility on a control in an inverse section, or a later
+    `box-shadow` on it in app.css, replaces the keyline and leaves the ring
+    alone on the band (2.77:1 light, 2.24:1 dark) with every gate green
+    (re-review of otigs/salt#8). The suite now refuses those utilities in
+    any file Tailwind scans, behind any variant and in either important
+    spelling, read from class attributes and string literals with PHP's own
+    tokenizer. The nav submenu's `shadow-lg`, on a `<ul>` in the header that
+    takes no focus, is the one allowed use, counted exactly. In app.css only
+    the keyline rule and its nested-ground reset (`none`) may set a
+    `box-shadow`. A bare `outline` class, which Tailwind 4.3.2 builds as
+    `outline-width: 1px` and which beats the ring, is refused too, in a
+    class attribute or a class-string literal; the word in prose is not.
+  - **Text roles bind a product that declares one.** salt declares no
+    `--text-*` property at all, so none binds. The suite now fails if a
+    text-role property appears without the full required set.
+  - **The token-file schema's `$id` moved to jsDelivr.** salt resolves the
+    `./schema/token-file` export by path and never refers to the URI, so
+    nothing changed.
+  - **The package declares `"engines": { "node": ">=22" }`.** `.nvmrc`
+    already names 22.
 - **The design contract is now `@lightlysaltedhq/design-foundations` 2.1.0**,
   an exact-pinned devDependency, replacing the sibling checkout of the
   archived base-design-system (which CI cloned with a deploy key and no ref,
@@ -41,6 +118,28 @@ markup granularity (cross-reference your site's override manifest).
   this change; the fix is under Fixed below (otigs/salt#4).
 
 ### Fixed
+- **The focus ring on an "Inverse (dark)" section is visible** (review of
+  otigs/salt#8). `focus` is a brand step and `surface-inverse` the far end
+  of the neutral ramp, so on that band the ring measured 2.34–2.99:1 in
+  light mode and 2.05–2.56:1 in dark over the 5,832 grid seeds, under the
+  3:1 a focus indicator needs. design-foundations 3.0.0's
+  `focusIndicator.keyline` does not rely on the ring there and asks for an
+  `ink.inverse` keyline, at least 2px, as the indicator's outermost part.
+  A focused element in a `bg-surface-inverse` section now carries one: a
+  box-shadow keeps the 2px offset gap in the band's colour and draws a 2px
+  keyline (`--focus-keyline-width`) outside the ring. A card or panel
+  painted inside the band is its own ground and gets none. **Visual
+  change:** in light mode a near-white #f2f5fa line now surrounds the ring
+  on the dark band; in dark mode a dark #26292e line surrounds it on the
+  light band. Measured in Chrome for Testing 148.0.7778.96 (headless, DPR
+  1), for a primary x-button and a text link, in light and dark, at 320 and
+  1280 CSS px wide, over the contract's 15 frozen seeds: the keyline meets
+  the band at 13.35:1 light and 12.20:1 dark, the ring meets the keyline at
+  4.47–5.53:1 light and 4.85–5.93:1 dark, and the ring's own ratio to the
+  band, still what shows in the gap, is 2.41–2.99:1 light and 2.06–2.51:1
+  dark. The keyline measured at least 2 device pixels in every case, with
+  the gap and ring in place inside it. The conformance suite checks the
+  keyline's rule, width and colour.
 - **Dark-mode primary buttons meet AA** (otigs/salt#3). `--color-on-brand`
   was #f8fafc in every mode, and dark mode fills `brand` with primary-400
   (primary-300 on hover, primary-200 and primary-100 with high contrast). Over

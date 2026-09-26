@@ -68,6 +68,41 @@
 		channel <= 0.0031308 ? 12.92 * channel : 1.055 * Math.pow(channel, 1.0 / 2.4) - 0.055;
 
 	/**
+	 * Round a non-negative number half to even (port of
+	 * salt_color_round_half_even()). Not Math.round(), which rounds ties up,
+	 * and not Math.floor(x + 0.5), whose addition rounds 0.49999999999999994
+	 * up to 1.
+	 *
+	 * @param {number} x Value in 0..255.
+	 * @return {number} Integer.
+	 */
+	const roundHalfEven = (x) => {
+		// V8's Math.pow can differ from PHP's libm pow by an ulp near a tie; no hex seed comes within 3.55e-10 of one (derivation.json step 5).
+		const whole = Math.floor(x);
+		const frac = x - whole;
+		return frac > 0.5 || (frac === 0.5 && whole % 2 === 1) ? whole + 1 : whole;
+	};
+
+	/**
+	 * Linear sRGB channels → '#rrggbb' (port of salt_color_quantise(), the
+	 * contract's derivation.json step 5): clamp, transfer, clamp, × 255, then
+	 * round that product half to even.
+	 *
+	 * @param {number[]} linear Linear [r, g, b] (unclamped).
+	 * @return {string} '#rrggbb'.
+	 */
+	const quantise = (linear) =>
+		'#' +
+		linear
+			.map((channel) => {
+				const srgb = linearToSrgb(Math.max(0.0, Math.min(1.0, channel)));
+				return roundHalfEven(Math.max(0.0, Math.min(1.0, srgb)) * 255.0)
+					.toString(16)
+					.padStart(2, '0');
+			})
+			.join('');
+
+	/**
 	 * OKLCH → linear sRGB (unclamped; may fall outside 0..1).
 	 *
 	 * @param {number} l Lightness 0..1.
@@ -160,16 +195,7 @@
 			rgb = oklchToLinearRgb(l, lo, h);
 		}
 
-		return (
-			'#' +
-			rgb
-				.map((channel) => {
-					const srgb = linearToSrgb(Math.max(0.0, Math.min(1.0, channel)));
-					const byte = Math.round(Math.max(0.0, Math.min(1.0, srgb)) * 255.0);
-					return byte.toString(16).padStart(2, '0');
-				})
-				.join('')
-		);
+		return quantise(rgb);
 	};
 
 	/**
@@ -266,6 +292,8 @@
 	if (typeof module !== 'undefined' && module.exports) {
 		module.exports = {
 			parseHex,
+			roundHalfEven,
+			quantise,
 			hexToOklch,
 			oklchToHex,
 			deriveRamp,

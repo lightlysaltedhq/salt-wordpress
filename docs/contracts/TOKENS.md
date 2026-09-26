@@ -13,7 +13,12 @@ Three tiers, authored in `assets/src/css/app.css` (`@theme`, Tailwind v4):
    may reference): `surface`, `surface-alt`, `surface-inverse`, `ink`,
    `ink-muted`, `ink-inverse`, `brand`, `brand-strong`, `brand-tint`,
    `on-brand`, `accent`, `on-accent`, `border`, `focus`,
-   `success|warning|error|info`.
+   `success|warning|error|info`. The focus ring's geometry is
+   `--focus-ring-width` and `--focus-ring-offset`, in px, at least 2px and
+   1px (design-foundations 3.0.0's `focusIndicator`). Inside a
+   `bg-surface-inverse` section the ring gets an `ink.inverse` keyline
+   `--focus-keyline-width` thick outside it, because the ring alone does
+   not reach 3:1 on that ground.
 3. **Components** — utility classes over role tokens (`bg-surface`,
    `text-ink-muted`, `border-border`, `bg-brand text-on-brand`…).
 

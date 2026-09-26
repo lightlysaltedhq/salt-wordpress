@@ -4,8 +4,10 @@
  * tests/fixtures/color-vectors.json is generated ONCE from inc/colors.php
  * (the source of truth) and committed. tests/unit/ColorVectorsTest.php holds
  * the PHP side to the fixture; this script holds the JS port
- * (assets/src/js/admin/contrast-checker.js) to the same fixture. Exit 0 on
- * full parity, 1 with a per-vector report otherwise.
+ * (assets/src/js/admin/contrast-checker.js) to the same fixture, and to the
+ * contract's quantise vectors (design-foundations vectors.json#quantise),
+ * which it reads from node_modules. Exit 0 on full parity, 1 with a
+ * per-vector report otherwise.
  *
  * The checker is a classic browser script with a CommonJS-style export seam
  * (`module.exports` guarded by typeof), so it is evaluated in a vm sandbox
@@ -29,7 +31,7 @@ vm.createContext(sandbox);
 vm.runInContext(source, sandbox, { filename: 'contrast-checker.js' });
 const math = sandbox.module.exports;
 
-for (const fn of [ 'hexToOklch', 'oklchToHex', 'deriveRamp', 'relativeLuminance', 'contrastRatio', 'textOn' ]) {
+for (const fn of [ 'hexToOklch', 'oklchToHex', 'deriveRamp', 'relativeLuminance', 'contrastRatio', 'textOn', 'roundHalfEven', 'quantise' ]) {
 	if (typeof math[fn] !== 'function') {
 		console.error(`check-color-parity: contrast-checker.js did not export ${fn}().`);
 		process.exit(1);
@@ -84,9 +86,40 @@ for (const vector of vectors) {
 	}
 }
 
-if (failures > 0) {
-	console.error(`check-color-parity: ${failures} mismatch(es) across ${vectors.length} vectors.`);
+// The contract's quantise vectors (design-foundations vectors.json#quantise):
+// linear channels whose scaled value is exactly a tie, or one ulp off it. No
+// hex seed reaches one, so the fixture above cannot tell half to even from
+// Math.round(); these can. Read through the package's exports map, as the PHP
+// conformance suite does, and fail closed when the package is absent: this
+// gate cannot claim the JS rounds as the contract does without reading it.
+const contractDir = path.join(root, 'node_modules/@lightlysaltedhq/design-foundations');
+let quantiseVectors;
+try {
+	const manifest = JSON.parse(fs.readFileSync(path.join(contractDir, 'package.json'), 'utf8'));
+	const target = manifest.exports?.['./vectors'];
+	if (typeof target !== 'string') {
+		throw new Error(`its exports map has no plain './vectors' entry (${JSON.stringify(target)})`);
+	}
+	quantiseVectors = JSON.parse(fs.readFileSync(path.join(contractDir, target), 'utf8')).quantise;
+} catch (error) {
+	console.error(`check-color-parity: cannot read the contract's vectors from ${contractDir}: ${error.message}. Fix: npm ci`);
+	process.exit(1);
+}
+if (!Array.isArray(quantiseVectors) || quantiseVectors.length === 0) {
+	console.error('check-color-parity: vectors.json has no quantise vectors, so nothing holds the JS rounding to the contract.');
 	process.exit(1);
 }
 
-console.log(`check-color-parity: ${vectors.length} vectors, full PHP↔JS parity.`);
+for (const { id, linear, hex } of quantiseVectors) {
+	const got = math.quantise(linear);
+	if (got !== hex.toLowerCase()) {
+		fail(`quantise ${id}`, 'hex', hex.toLowerCase(), got);
+	}
+}
+
+if (failures > 0) {
+	console.error(`check-color-parity: ${failures} mismatch(es) across ${vectors.length} vectors and ${quantiseVectors.length} quantise vectors.`);
+	process.exit(1);
+}
+
+console.log(`check-color-parity: ${vectors.length} vectors, full PHP↔JS parity; ${quantiseVectors.length} contract quantise vectors pass.`);

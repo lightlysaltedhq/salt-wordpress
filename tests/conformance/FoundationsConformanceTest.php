@@ -51,7 +51,7 @@
  * --------
  * Every rule in `contrast.requirements`, and every rule in
  * `contrast.conditionalRequirements` whose `when` roles app.css declares (in
- * 2.1.0 that is one: `ink` on `brand.tint`), is evaluated in every display
+ * 3.0.0 that is still one: `ink` on `brand.tint`), is evaluated in every display
  * mode a visitor can combine (MODES: light or dark, with or without high
  * contrast, with or without grayscale), at rest and on hover (HOVER), for
  * each of the contract's frozen seeds and each seed on the sRGB grid at a
@@ -70,8 +70,12 @@
  * WHAT THIS DOES NOT CHECK
  * ------------------------
  * - Pairs the contract has no rule for. salt also paints `text-brand` on
- *   `surface` (links, eyebrows) and a `focus` ring that needs 3:1; neither
- *   is measured.
+ *   `surface` (links, eyebrows), which is not measured. The `focus` ring is,
+ *   against the three grounds 3.0.0 requires (`surface`, `surface.alt`,
+ *   `brand.tint`). On `surface.inverse` the contract does not rely on the
+ *   ring; the `ink.inverse` keyline salt draws there is measured instead.
+ * - What only a rendered page shows: that the keyline is painted where
+ *   app.css says, and the 24 x 24 target size.
  * - Brands between the grid points. On-brand at rest holds for any seed by
  *   construction (salt_text_on()); hover and every other pair are measured
  *   for the frozen seeds and the grid only.
@@ -134,9 +138,9 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * pinning anything else fails, and so does an installed vocabulary whose rules
 	 * hash differently, each with the npm diff command to read.
 	 */
-	private const PINNED = '2.1.0';
+	private const PINNED = '3.0.0';
 
-	private const VOCABULARY_SHA256 = '845fa7153858d66cd544b9e9911a1ff800567e6a6c7af5b18b53cd0ea38d155c';
+	private const VOCABULARY_SHA256 = '49ce787204195ce208234b64eb1e0ee93e7bd9919efe92befc8c403839b9960e';
 
 	private const APP_CSS = __DIR__ . '/../../assets/src/css/app.css';
 
@@ -373,6 +377,21 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
+	 * app.css with its comments removed, strings kept.
+	 *
+	 * @return string
+	 */
+	private static function app_css(): string {
+		// Comments go first, but not the `/*` in `@source "../../../*.php"`: a
+		// match that ignored strings would eat everything up to the next `*/`.
+		return (string) preg_replace_callback(
+			'#("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\')|/\*.*?\*/#s',
+			static fn( array $found ): string => $found[1] ?? '',
+			(string) file_get_contents( self::APP_CSS )
+		);
+	}
+
+	/**
 	 * Every rule in app.css that declares a colour token: the @theme block at
 	 * rank 0, and one rule per combination of MODES at a rank equal to the
 	 * number of modes it names. Every attribute selector weighs the same, so
@@ -395,13 +414,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * @return list<array{selector: string, modes: list<string>, rank: int, set: array<string, string>, read: list<int>}>
 	 */
 	private static function colour_rules(): array {
-		// Comments go first, but not the `/*` in `@source "../../../*.php"`: a
-		// match that ignored strings would eat everything up to the next `*/`.
-		$css = (string) preg_replace_callback(
-			'#("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\')|/\*.*?\*/#s',
-			static fn( array $found ): string => $found[1] ?? '',
-			(string) file_get_contents( self::APP_CSS )
-		);
+		$css = self::app_css();
 
 		// The same text with every string's contents blanked, byte for byte the
 		// same length, so offsets in one are offsets in the other. Everything
@@ -866,10 +879,69 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		$this->assertGreaterThanOrEqual( 15, count( $vectors['vectors'] ) );
 		$this->assertSame( 165, $vectors['counts']['assertions'] );
 
+		// Since 3.0.0 `exercises` is a map of structured claims and the prose is
+		// `$what`. A list or a string there is the old shape, or a new one.
 		foreach ( $vectors['vectors'] as $vector ) {
 			$this->assertCount( 11, $vector['ramp'], "{$vector['seed']} is not an 11-step ladder" );
-			$this->assertNotEmpty( $vector['exercises'], "{$vector['seed']} does not say what it exercises" );
+			$this->assertIsString( $vector['$what'] ?? null, "{$vector['seed']} has no \$what saying what it exercises" );
+			$this->assertNotSame( '', trim( $vector['$what'] ), "{$vector['seed']} has an empty \$what" );
+			$this->assertIsArray( $vector['exercises'] ?? null, "{$vector['seed']}'s exercises is not a map of claims" );
+			$this->assertNotEmpty( $vector['exercises'], "{$vector['seed']} makes no claim about what it exercises" );
+			$this->assertFalse( array_is_list( $vector['exercises'] ), "{$vector['seed']}'s exercises is a list, not a map of claims" );
 		}
+
+		$this->assertGreaterThanOrEqual( 2, count( self::quantise_vectors() ) );
+		$this->assertSame( count( self::quantise_vectors() ), $vectors['counts']['quantise'] ?? null, 'counts.quantise does not match the quantise vectors' );
+	}
+
+	/**
+	 * vectors.json#quantise: derivation.json step 5 on its own.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private static function quantise_vectors(): array {
+		$quantise = self::contract( './vectors' )['quantise'] ?? null;
+
+		if ( ! is_array( $quantise ) || array() === $quantise || ! array_is_list( $quantise ) ) {
+			self::fail( "vectors.json 'quantise' is missing, empty or not a list, so nothing holds salt's rounding to the contract's." );
+		}
+
+		return $quantise;
+	}
+
+	/**
+	 * One data-provider row per quantise vector.
+	 *
+	 * @return array<string, array{list<float>, string}>
+	 */
+	public static function quantiseProvider(): array {
+		$rows = array();
+		foreach ( self::quantise_vectors() as $vector ) {
+			$rows[ (string) $vector['id'] ] = array( $vector['linear'], $vector['hex'] );
+		}
+		return $rows;
+	}
+
+	/**
+	 * salt_color_quantise() takes the contract's linear channels to its hex.
+	 *
+	 * No hex seed puts a scaled channel on a tie, so the ramp vectors cannot
+	 * tell half to even from half away from zero, or step 5's order of
+	 * operations from another. These can: `exact-ties` fails round(), and
+	 * `operation-order` fails any reordering of the multiplications.
+	 *
+	 * json_decode() reads each channel as the binary64 its JSON number
+	 * denotes, which is what the vector asks for. A channel written `0.0`
+	 * decodes as a float; one written `0` would decode as an int, hence
+	 * floatval().
+	 *
+	 * @param list<float|int> $linear Linear r, g, b.
+	 * @param string          $hex    Expected '#rrggbb'.
+	 */
+	#[DataProvider( 'quantiseProvider' )]
+	public function test_quantise_matches_the_contract( array $linear, string $hex ): void {
+		$this->assertCount( 3, $linear );
+		$this->assertSame( strtolower( $hex ), salt_color_quantise( array_map( 'floatval', $linear ) ) );
 	}
 
 	/**
@@ -1018,6 +1090,24 @@ final class FoundationsConformanceTest extends SaltTestCase {
 					$checks[] = array( "{$fg} on {$bg}, on hover (" . self::HOVER[ $bg ] . ')', $fg, self::HOVER[ $bg ], $min );
 				}
 			}
+		}
+
+		// The keyline salt draws outside the ring where the ring is not relied
+		// on (focusIndicator.keyline) is the part of the indicator that meets
+		// that ground, so it is held to the ring's own ratio there. The contract
+		// counts it covered by [ink.inverse, surface.inverse] at 4.5:1; this
+		// names it, so a keyline re-pointed at another role is measured too.
+		$ring_min = 0.0;
+		foreach ( self::required( $vocab, 'contrast.requirements' ) as $rule ) {
+			if ( 'focus' === ( $rule['pair'][0] ?? null ) ) {
+				$ring_min = max( $ring_min, (float) $rule['minRatio'] );
+			}
+		}
+		foreach ( self::keylines() as $keyline ) {
+			if ( 0.0 === $ring_min ) {
+				self::fail( "vocabulary.json's contrast.requirements has no `focus` pair, so there is no ring ratio to hold the keyline to." );
+			}
+			$checks[] = array( "focus keyline {$keyline['role']} on {$keyline['ground']}", $keyline['role'], $keyline['ground'], $ring_min );
 		}
 
 		$palettes = array( 'compiled defaults' => array() );
@@ -1196,5 +1286,571 @@ final class FoundationsConformanceTest extends SaltTestCase {
 				"salt_theme_init_js() never sets {$selector}, so the {$mode} rules in app.css apply to no page."
 			);
 		}
+	}
+
+	/**
+	 * The focus ring's geometry meets the contract's floors
+	 * (contrast.focusIndicator.geometry, from 3.0.0): each property is declared
+	 * once in app.css, as a length the contract can rank, at or above its
+	 * floor, and the global :focus-visible rule draws the ring from it.
+	 *
+	 * A value is read the way focusIndicator.$lengths says: CSS whitespace
+	 * stripped, then unsigned ASCII digits and `px` in any case, or a bare 0.
+	 * !important is refused before anything is compared, and every other
+	 * spelling (rem, em, %, calc(), var(), a keyword, a sign, a non-ASCII digit
+	 * or space) is refused as unrankable rather than passed. The floor is
+	 * compared as decimal digits, not floats, so 1.99999999999999999px does not
+	 * pass as 2px.
+	 *
+	 * The ring rule must carry each length once, as a bare var() of its
+	 * token: `outline` (or `outline-width`) and `outline-offset`, each
+	 * declared exactly once. A second declaration, a calc() or max() around
+	 * the var(), or an outline property anywhere else in app.css is refused by
+	 * name, because each can draw a thinner or closer ring than the token says
+	 * (review of otigs/salt#8).
+	 *
+	 * Templates cannot add their own outline utilities either:
+	 * test_no_template_draws_over_the_focus_indicator() refuses them.
+	 */
+	public function test_the_focus_ring_geometry_meets_the_contract(): void {
+		$geometry = self::dig( self::contract( './vocabulary' ), 'contrast.focusIndicator.geometry' );
+		if ( ! is_array( $geometry ) || array() === $geometry || ! array_is_list( $geometry ) ) {
+			self::fail( "vocabulary.json 'contrast.focusIndicator.geometry' is missing, empty or not a list, so there is no floor to check the ring against." );
+		}
+
+		// Which declarations of the global ring each geometry rule may be read
+		// from. A rule this does not know is refused: nothing here could say the
+		// ring honours it.
+		$draws = array(
+			'width'  => array( 'outline', 'outline-width' ),
+			'offset' => array( 'outline-offset' ),
+		);
+
+		$css  = self::app_css();
+		$ring = self::focus_ring_outlines( $css );
+
+		$failures = $ring['refused'];
+		foreach ( $geometry as $rule ) {
+			$prop   = $rule['css'] ?? null;
+			$bounds = array_values( array_intersect( array( 'atLeastCssPx', 'greaterThanCssPx' ), array_keys( is_array( $rule ) ? $rule : array() ) ) );
+			if ( ! is_string( $prop ) || 1 !== count( $bounds ) || ! is_int( $rule[ $bounds[0] ] ) || ! isset( $draws[ $rule['id'] ?? '' ] ) ) {
+				self::fail( 'vocabulary.json has a focus geometry rule this suite cannot read: ' . wp_json_encode( $rule ) . '. It reads `width` and `offset`, each with a `css` property and exactly one whole-number bound.' );
+			}
+
+			$failure = self::px_floor_failure( $css, $prop, $bounds[0], (string) $rule[ $bounds[0] ] );
+			if ( null !== $failure ) {
+				$failures[] = $failure;
+			}
+
+			// Exactly one declaration in the ring rule carries this length, and it
+			// carries it as a bare var(): a calc(), max() or anything else around
+			// it is a length this suite would have to model, so it is refused.
+			$carriers = array_values( array_filter( $ring['declared'], static fn( array $declaration ): bool => in_array( $declaration['prop'], $draws[ $rule['id'] ], true ) ) );
+			if ( 1 !== count( $carriers ) ) {
+				$failures[] = sprintf( 'The global :focus-visible rule declares %s %d times; it must declare one of them once, from var(%s).', implode( ' or ', $draws[ $rule['id'] ] ), count( $carriers ), $prop );
+				continue;
+			}
+
+			$bare   = '(?i:var)\(\s*' . preg_quote( $prop, '/' ) . '\s*\)';
+			$tokens = self::css_tokens( $carriers[0]['value'] );
+			$ok     = 'outline' === $carriers[0]['prop']
+				? 1 === count( preg_grep( '/^' . $bare . '$/', $tokens ) ) && array() === array_filter( $tokens, static fn( string $token ): bool => 1 !== preg_match( '/^' . $bare . '$|^(?i:var)\(\s*--color-[\w-]+\s*\)$|^(?i:none|hidden|dotted|dashed|solid|double|groove|ridge|inset|outset|auto)$/', $token ) )
+				: array( $tokens[0] ?? '' ) === $tokens && 1 === preg_match( '/^' . $bare . '$/', $tokens[0] ?? '' );
+			if ( ! $ok ) {
+				$failures[] = "The global :focus-visible rule has `{$carriers[0]['prop']}: {$carriers[0]['value']}`. It must draw the {$rule['id']} from a bare var({$prop}), with nothing wrapped around it and no other length beside it.";
+			}
+		}
+
+		$this->assertSame( array(), $failures, "The focus ring's geometry does not meet the contract:\n  " . implode( "\n  ", $failures ) );
+	}
+
+	/**
+	 * Utility families that draw over, or take away, the focus indicator:
+	 * `outline` sets the ring's own lengths, and `shadow`, `inset-shadow`,
+	 * `ring` and `inset-ring` all write box-shadow, which replaces the keyline
+	 * on the inverse band. Tailwind builds each from a class it finds in an
+	 * @source file, and a utility beats the base layer.
+	 */
+	private const INDICATOR_UTILITIES = '/^(?:outline|shadow|inset-shadow|ring|inset-ring)(?:-|$)/';
+
+	/**
+	 * Utilities from those families that are allowed, by file, with the exact
+	 * number of times each appears. The nav submenu's shadow-lg is on a <ul>
+	 * that takes no focus, in the header, which is never inside a section, so
+	 * it can replace no keyline. A new use needs a line here and a reason.
+	 */
+	private const INDICATOR_UTILITIES_ALLOWED = array(
+		'inc/class-salt-nav-walker.php' => array( 'shadow-lg' => 1 ),
+	);
+
+	/**
+	 * No file Tailwind scans for classes carries a utility that draws over the
+	 * focus indicator (INDICATOR_UTILITIES), so every ring on the page is the
+	 * global rule's, drawn from the tokens, and every keyline on the inverse
+	 * band is the keyline rule's. Five templates carried
+	 * `focus-visible:outline-2` until the review of otigs/salt#8, whose
+	 * re-review showed a `shadow-sm` or `ring-2` on a control in an inverse
+	 * section takes the keyline away (the ring then measured 2.77:1 on the
+	 * band in light mode, 2.24:1 in dark) with the suite green.
+	 *
+	 * The files are the ones app.css's @source lines name, so a new source is
+	 * read without a change here. Classes are read from where they can be
+	 * written: `class="…"` and `class='…'` attributes in a template's HTML or
+	 * inside a string, and PHP and JS string literals. A token is refused
+	 * behind any variant (`focus-visible:`, `md:hover:`) and in either
+	 * important spelling (`!ring-2`, `ring-2!`). A bare family name
+	 * (`outline`, `shadow`, `ring`) counts only in a class attribute or a
+	 * literal that is nothing but class-like tokens, since "outline" is also
+	 * a word; a token with a suffix, a variant or an important mark counts
+	 * anywhere. Tailwind builds a bare `outline` as `outline-width: 1px`,
+	 * which beats the ring.
+	 */
+	public function test_no_template_draws_over_the_focus_indicator(): void {
+		$found = array();
+		$root  = dirname( __DIR__, 2 ) . '/';
+		foreach ( self::source_files() as $file ) {
+			$relative = str_replace( $root, '', (string) realpath( $file ) );
+			$counts   = array();
+			foreach ( self::class_strings( $file ) as list( $text, $class_context ) ) {
+				foreach ( preg_split( '/\s+/', trim( $text ) ) as $token ) {
+					$utility = self::utility_of( $token );
+					if ( '' === $utility || 1 !== preg_match( self::INDICATOR_UTILITIES, $utility ) ) {
+						continue;
+					}
+					$bare = $token === $utility && 1 === preg_match( '/^(?:outline|shadow|inset-shadow|ring|inset-ring)$/', $utility );
+					if ( $bare && ! $class_context ) {
+						continue;
+					}
+					$counts[ $token ] = ( $counts[ $token ] ?? 0 ) + 1;
+				}
+			}
+			$allowed = self::INDICATOR_UTILITIES_ALLOWED[ $relative ] ?? array();
+			foreach ( $counts as $token => $count ) {
+				if ( ( $allowed[ $token ] ?? 0 ) !== $count ) {
+					$found[] = "{$relative}: {$token}" . ( $count > 1 ? " ({$count} times)" : '' ) . ( isset( $allowed[ $token ] ) ? ", allowed {$allowed[ $token ]} times" : '' );
+				}
+			}
+			foreach ( $allowed as $token => $count ) {
+				if ( ! isset( $counts[ $token ] ) ) {
+					$found[] = "{$relative}: {$token} is allowed {$count} times but no longer appears; remove its line from INDICATOR_UTILITIES_ALLOWED.";
+				}
+			}
+		}
+
+		$this->assertSame( array(), $found, "These files carry utilities that draw over the focus indicator (an outline beats the ring's tokens; a shadow or ring replaces the keyline on the inverse band). Remove them; the global :focus-visible rule and the keyline rule draw every indicator:\n  " . implode( "\n  ", $found ) );
+	}
+
+	/**
+	 * Every file app.css's @source lines name.
+	 *
+	 * @return list<string>
+	 */
+	private static function source_files(): array {
+		preg_match_all( '/@source\s+"([^"]+)"/', self::app_css(), $sources );
+		if ( array() === $sources[1] ) {
+			self::fail( 'app.css names no @source, so there is nothing to scan.' );
+		}
+
+		$base  = dirname( self::APP_CSS );
+		$files = array();
+		foreach ( $sources[1] as $source ) {
+			$path = $base . '/' . $source;
+			if ( str_contains( $source, '*' ) ) {
+				$files = array_merge( $files, (array) glob( $path ) );
+				continue;
+			}
+			if ( ! is_dir( $path ) ) {
+				self::fail( "app.css's @source \"{$source}\" is neither a glob nor a directory." );
+			}
+			foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $file ) {
+				$files[] = $file->getPathname();
+			}
+		}
+
+		return array_values( array_unique( $files ) );
+	}
+
+	/**
+	 * Every place a class can be written in one source file, each with
+	 * whether it is certainly a class list: class attributes (true), and
+	 * string literals, which are a class list when every token in them looks
+	 * like a class. PHP is read with its own tokenizer, so HTML outside PHP
+	 * tags and strings inside it are told apart exactly; JS by its three
+	 * quote forms.
+	 *
+	 * @param string $file Path.
+	 * @return list<array{0: string, 1: bool}>
+	 */
+	private static function class_strings( string $file ): array {
+		$code    = (string) file_get_contents( $file );
+		$html    = array();
+		$strings = array();
+
+		if ( str_ends_with( $file, '.php' ) ) {
+			foreach ( token_get_all( $code ) as $token ) {
+				if ( ! is_array( $token ) ) {
+					continue;
+				}
+				if ( T_INLINE_HTML === $token[0] ) {
+					$html[] = $token[1];
+				} elseif ( T_CONSTANT_ENCAPSED_STRING === $token[0] ) {
+					$strings[] = stripcslashes( substr( $token[1], 1, -1 ) );
+				} elseif ( T_ENCAPSED_AND_WHITESPACE === $token[0] ) {
+					$strings[] = $token[1];
+				}
+			}
+		} else {
+			preg_match_all( '/(["\'`])((?:\\\\.|(?!\1).)*)\1/s', $code, $literals );
+			$strings = $literals[2];
+		}
+
+		$out = array();
+		foreach ( array_merge( $html, $strings ) as $text ) {
+			preg_match_all( '/\bclass\s*=\s*(["\'])(.*?)\1/s', $text, $attributes );
+			foreach ( $attributes[2] as $attribute ) {
+				$out[] = array( $attribute, true );
+			}
+		}
+		foreach ( $strings as $text ) {
+			$class_like = '' !== trim( $text ) && 1 === preg_match( '/^[\s!a-z0-9:\[\]().%\/_#-]+$/', $text );
+			$out[]      = array( $text, $class_like );
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The utility a class token names, with its variants (`focus-visible:`,
+	 * `md:hover:`) and either important mark (`!ring-2`, `ring-2!`) removed,
+	 * or '' for a token that is not class-shaped.
+	 *
+	 * @param string $token Whitespace-free token.
+	 * @return string
+	 */
+	private static function utility_of( string $token ): string {
+		if ( 1 !== preg_match( '/^[!a-z0-9:\[\]().%\/_#-]+$/', $token ) ) {
+			return '';
+		}
+		$parts = preg_split( '/:(?![^\[]*\])/', $token );
+
+		return trim( (string) end( $parts ), '!' );
+	}
+
+	/**
+	 * The global focus ring's outline declarations, and every outline
+	 * declaration in app.css this suite refuses.
+	 *
+	 * The ring is the one rule whose selector is `:focus-visible` alone. Every
+	 * `outline…:` property anywhere else in app.css, at any depth and in any
+	 * case, is refused by name, because a later or more specific rule can
+	 * thin or move the ring without touching the tokens; so is !important in
+	 * the ring itself.
+	 *
+	 * @param string $css app.css without comments.
+	 * @return array{declared: list<array{prop: string, value: string}>, refused: list<string>}
+	 */
+	private static function focus_ring_outlines( string $css ): array {
+		$blank = self::blank_strings( $css );
+		if ( 1 !== preg_match_all( '/(?:^|[{};])\s*:focus-visible\s*\{([^{}]*)\}/', $blank, $ring, PREG_OFFSET_CAPTURE ) ) {
+			self::fail( 'app.css has no single `:focus-visible { … }` rule drawing the global focus ring, so this suite cannot say what the ring reads.' );
+		}
+		$from = $ring[1][0][1];
+		$to   = $from + strlen( $ring[1][0][0] );
+
+		$declared = array();
+		$refused  = array();
+		preg_match_all( '/(?<=[{;])\s*((?i:outline)[\w-]*)\s*:([^;{}]*)/', $blank, $found, PREG_OFFSET_CAPTURE | PREG_SET_ORDER );
+		foreach ( $found as $declaration ) {
+			$prop  = strtolower( $declaration[1][0] );
+			$value = trim( substr( $css, $declaration[2][1], strlen( $declaration[2][0] ) ) );
+			$at    = $declaration[1][1];
+			if ( $at < $from || $at >= $to ) {
+				$refused[] = "app.css declares `{$declaration[1][0]}: {$value}` in `" . self::excerpt( $css, $at ) . '`, outside the global :focus-visible rule. Only that rule may set an outline, and only from the focus-ring tokens.';
+				continue;
+			}
+			if ( 1 === preg_match( '/!\s*important/i', $value ) ) {
+				$refused[] = "The global :focus-visible rule marks `{$declaration[1][0]}` !important, which this suite does not rank.";
+				continue;
+			}
+			if ( ! in_array( $prop, array( 'outline', 'outline-width', 'outline-offset' ), true ) ) {
+				$refused[] = "The global :focus-visible rule declares `{$declaration[1][0]}: {$value}`. It reads `outline` (or `outline-width`) and `outline-offset` only.";
+				continue;
+			}
+			$declared[] = array(
+				'prop'  => $prop,
+				'value' => $value,
+			);
+		}
+
+		return array(
+			'declared' => $declared,
+			'refused'  => $refused,
+		);
+	}
+
+	/**
+	 * A declaration value split on CSS whitespace outside brackets.
+	 *
+	 * @param string $value Declaration value.
+	 * @return list<string>
+	 */
+	private static function css_tokens( string $value ): array {
+		$tokens = array( '' );
+		$depth  = 0;
+		foreach ( str_split( trim( $value, " \t\n\r\f" ) ) as $char ) {
+			$depth += '(' === $char ? 1 : ( ')' === $char ? -1 : 0 );
+			if ( 0 === $depth && false !== strpos( " \t\n\r\f", $char ) ) {
+				if ( '' !== end( $tokens ) ) {
+					$tokens[] = '';
+				}
+				continue;
+			}
+			$tokens[ count( $tokens ) - 1 ] .= $char;
+		}
+
+		return array_values( array_filter( $tokens, static fn( string $token ): bool => '' !== $token ) );
+	}
+
+	/**
+	 * Why a length property in app.css fails a CSS px floor, or null when it
+	 * meets it: declared once, not !important, ASCII, a number and px or a bare
+	 * 0 (focusIndicator.$lengths), then compared to the floor as decimal
+	 * digits, so 1.99999999999999999px does not pass as 2px.
+	 *
+	 * @param string $css   app.css without comments.
+	 * @param string $prop  Custom property, e.g. '--focus-ring-width'.
+	 * @param string $bound 'atLeastCssPx' or 'greaterThanCssPx'.
+	 * @param string $floor The bound's value, as digits.
+	 * @return string|null
+	 */
+	private static function px_floor_failure( string $css, string $prop, string $bound, string $floor ): ?string {
+		preg_match_all( '/(?<![\w-])' . preg_quote( $prop, '/' ) . '\s*:([^;{}]*)/', $css, $found );
+		if ( 1 !== count( $found[1] ) ) {
+			return sprintf( '%s is declared %d times in app.css; the contract needs it once, so there is one length to rank.', $prop, count( $found[1] ) );
+		}
+
+		$value = $found[1][0];
+		$text  = strtolower( trim( $value, " \t\n\r\f" ) );
+		if ( 1 === preg_match( '/!\s*important/i', $value ) ) {
+			return "{$prop} is marked !important, which this suite does not rank.";
+		}
+		if ( 1 === preg_match( '/[^\x00-\x7F]/', $value ) ) {
+			return "{$prop}: `{$value}` has a non-ASCII character, which CSS does not read in a length, so a browser drops it. Retype it in ASCII.";
+		}
+		if ( '0' === $text ) {
+			$digits = '0';
+		} elseif ( 1 === preg_match( '/^([0-9]+(?:\.[0-9]+)?)px$/', $text, $px ) ) {
+			$digits = $px[1];
+		} else {
+			return "{$prop}: `" . trim( $value ) . '` is not a length the contract can rank against a CSS px floor at every root size. Write a number and px, or 0 (focusIndicator.$lengths).';
+		}
+
+		$order = self::compare_decimal( $digits, $floor );
+		if ( 'atLeastCssPx' === $bound ? $order < 0 : $order <= 0 ) {
+			return sprintf( '%s is %spx; the contract needs %s %spx.', $prop, $digits, 'atLeastCssPx' === $bound ? 'at least' : 'more than', $floor );
+		}
+
+		return null;
+	}
+
+	/**
+	 * The contract's focus keylines (contrast.focusIndicator.keyline): each a
+	 * ground where the ring is not relied on, the role the keyline is drawn in
+	 * and its width floor. Failing by name on any shape this suite does not read.
+	 *
+	 * @return list<array{ground: string, role: string, floor: string}>
+	 */
+	private static function keylines(): array {
+		$keylines = self::dig( self::contract( './vocabulary' ), 'contrast.focusIndicator.keyline' );
+		if ( ! is_array( $keylines ) || array() === $keylines || ! array_is_list( $keylines ) ) {
+			self::fail( "vocabulary.json 'contrast.focusIndicator.keyline' is missing, empty or not a list, so nothing says where the ring needs a keyline." );
+		}
+
+		$out = array();
+		foreach ( $keylines as $keyline ) {
+			if ( ! is_string( $keyline['ground'] ?? null ) || ! is_string( $keyline['role'] ?? null ) || ! is_int( $keyline['widthAtLeastCssPx'] ?? null ) || 1 !== count( array_intersect( array( 'widthAtLeastCssPx', 'widthGreaterThanCssPx' ), array_keys( $keyline ) ) ) ) {
+				self::fail( 'vocabulary.json has a focus keyline this suite cannot read: ' . wp_json_encode( $keyline ) . '. It reads a `ground`, a `role` and a whole-number `widthAtLeastCssPx`.' );
+			}
+			$out[] = array(
+				'ground' => $keyline['ground'],
+				'role'   => $keyline['role'],
+				'floor'  => (string) $keyline['widthAtLeastCssPx'],
+			);
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Where the contract does not rely on the ring (focusIndicator.keyline,
+	 * `surface.inverse` in 3.0.0), salt draws a keyline in the named role as
+	 * the indicator's outermost part, at least as thick as the contract asks.
+	 *
+	 * The keyline rule is read as one exact shape and anything else is
+	 * refused: `.bg-{ground} :focus-visible` with a single box-shadow whose
+	 * first layer repaints the offset gap in the ground and whose second
+	 * reaches past the ring by --focus-keyline-width in the keyline's role.
+	 * The ground's class is the one x-section prints for its inverse
+	 * background, checked by rendering one. Nothing else in app.css may set a
+	 * box-shadow, and the nested-ground reset may only set `none`: any other
+	 * box-shadow on a focused control replaces the keyline. Utilities that do
+	 * the same from a template are test_no_template_draws_over_the_focus_indicator()'s.
+	 *
+	 * What this does not see: whether the browser paints it. Chrome for
+	 * Testing 148.0.7778.96 (headless) did, for a button and a link, light and
+	 * dark, at 320 and 1280 CSS px wide (CHANGELOG, Unreleased).
+	 */
+	public function test_the_focus_keyline_is_drawn_where_the_ring_is_not_relied_on(): void {
+		$css = self::app_css();
+
+		ob_start();
+		salt_section(
+			array(
+				'name'       => 'rich-text',
+				'background' => 'inverse',
+			),
+			static function (): void {}
+		);
+		$section = (string) ob_get_clean();
+
+		$blank    = self::blank_strings( $css );
+		$shadows  = array();
+		$failures = array();
+		foreach ( self::keylines() as $keyline ) {
+			$ground = 'bg-' . str_replace( '.', '-', $keyline['ground'] );
+			$role   = '--color-' . str_replace( '.', '-', $keyline['role'] );
+
+			$failure = self::px_floor_failure( $css, '--focus-keyline-width', 'atLeastCssPx', $keyline['floor'] );
+			if ( null !== $failure ) {
+				$failures[] = $failure;
+			}
+
+			if ( 1 !== preg_match( '/\bclass="[^"]*(?<![\w-])' . preg_quote( $ground, '/' ) . '(?![\w-])/', $section ) ) {
+				$failures[] = "x-section's inverse background does not print `{$ground}`, so a keyline keyed to that class draws on no section.";
+			}
+
+			$selector = '(?:^|[{};])\s*\.' . preg_quote( $ground, '/' ) . '\s+:focus-visible\s*\{([^{}]*)\}';
+			if ( 1 !== preg_match_all( '/' . $selector . '/', $blank, $rule, PREG_OFFSET_CAPTURE ) ) {
+				$failures[] = "app.css has no single `.{$ground} :focus-visible` rule, so nothing draws the {$keyline['role']} keyline on {$keyline['ground']}.";
+				continue;
+			}
+			$shadows[]  = array( $rule[1][0][1], $rule[1][0][1] + strlen( $rule[1][0][0] ) );
+			$rule[1][0] = $rule[1][0][0];
+
+			// The nested-ground reset: a card or panel inside the band is its own
+			// ground. Its body may only take the keyline away.
+			$reset = '(?:^|[{};])\s*\.' . preg_quote( $ground, '/' ) . '\s+:is\([^(){}]*\)\s+:focus-visible\s*\{([^{}]*)\}';
+			preg_match_all( '/' . $reset . '/', $blank, $resets, PREG_OFFSET_CAPTURE );
+			foreach ( $resets[1] as $body ) {
+				if ( 'box-shadow:none' !== trim( (string) preg_replace( '/\s+/', '', $body[0] ), ';' ) ) {
+					$failures[] = "The nested-ground reset under `.{$ground}` is `" . trim( $body[0] ) . '`; it may only be `box-shadow: none`.';
+					continue;
+				}
+				$shadows[] = array( $body[1], $body[1] + strlen( $body[0] ) );
+			}
+
+			$want = 'box-shadow:0 0 0 var(--focus-ring-offset) var(--color-' . str_replace( '.', '-', $keyline['ground'] ) . '),0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width) + var(--focus-keyline-width)) var(' . $role . ')';
+			$got  = trim( (string) preg_replace( '/\s*,\s*/', ',', (string) preg_replace( '/\s*:\s*/', ':', (string) preg_replace( '/\s+/', ' ', $rule[1][0] ) ) ), ' ;' );
+			if ( $want !== $got ) {
+				$failures[] = "`.{$ground} :focus-visible` is `{$got}`. This suite reads one shape only, `{$want}`: the ground repainted across the offset gap, then the keyline in {$keyline['role']} reaching --focus-keyline-width past the ring.";
+			}
+		}
+
+		// Any other box-shadow in app.css, at any depth, in any case or with a
+		// vendor prefix, can replace the keyline on a focused control, as a
+		// later `.x-button:focus-visible { box-shadow: none }` would, leaving the
+		// ring alone on the band at 2.77:1 light and 2.24:1 dark. So only the
+		// keyline rule and its nested-ground reset may declare one.
+		preg_match_all( '/(?<=[{;])\s*((?i:-webkit-)?(?i:box-shadow))\s*:([^;{}]*)/', $blank, $declared, PREG_OFFSET_CAPTURE | PREG_SET_ORDER );
+		foreach ( $declared as $declaration ) {
+			$at      = $declaration[1][1];
+			$covered = array_filter( $shadows, static fn( array $range ): bool => $at >= $range[0] && $at < $range[1] );
+			if ( array() === $covered ) {
+				$failures[] = "app.css declares `{$declaration[1][0]}:" . substr( $css, $declaration[2][1], strlen( $declaration[2][0] ) ) . '` in `' . self::excerpt( $css, $at ) . '`. Only the keyline rule and its nested-ground reset may set a box-shadow: any other can take the keyline off a focused control on the inverse band.';
+			}
+		}
+
+		$this->assertSame( array(), $failures, "The focus keyline does not meet the contract:\n  " . implode( "\n  ", $failures ) );
+	}
+
+	/**
+	 * Two non-negative decimals written as digits, compared exactly.
+	 *
+	 * @param string $a Digits, optionally with a fraction.
+	 * @param string $b Digits, optionally with a fraction.
+	 * @return int -1, 0 or 1.
+	 */
+	private static function compare_decimal( string $a, string $b ): int {
+		list( $a_whole, $a_frac ) = array_pad( explode( '.', $a, 2 ), 2, '' );
+		list( $b_whole, $b_frac ) = array_pad( explode( '.', $b, 2 ), 2, '' );
+
+		$a_whole = '' === ltrim( $a_whole, '0' ) ? '0' : ltrim( $a_whole, '0' );
+		$b_whole = '' === ltrim( $b_whole, '0' ) ? '0' : ltrim( $b_whole, '0' );
+		if ( strlen( $a_whole ) !== strlen( $b_whole ) ) {
+			return strlen( $a_whole ) <=> strlen( $b_whole );
+		}
+
+		$width = max( strlen( $a_frac ), strlen( $b_frac ) );
+
+		return strcmp( $a_whole . str_pad( $a_frac, $width, '0' ), $b_whole . str_pad( $b_frac, $width, '0' ) ) <=> 0;
+	}
+
+	/**
+	 * Text roles are opt-in, then complete (textRoles, from 3.0.0): a product
+	 * that declares any text-role property owes every required role with all
+	 * of its properties, and each optional role it touches in full. salt
+	 * declares none, so today this holds by declaring nothing, and it fails the
+	 * day one appears on its own. Tailwind's own sizes such as --text-sm are
+	 * not text roles and are not looked for. Only app.css is read: nothing in
+	 * inc/ prints a --text-* property.
+	 */
+	public function test_text_roles_are_declared_whole_or_not_at_all(): void {
+		$vocab      = self::contract( './vocabulary' );
+		$properties = array();
+		foreach ( (array) self::dig( $vocab, 'textRoles.properties' ) as $key => $property ) {
+			if ( str_starts_with( (string) $key, '$' ) ) {
+				continue;
+			}
+			if ( ! is_array( $property ) || ! is_string( $property['css'] ?? null ) || ! str_contains( $property['css'], '{role}' ) ) {
+				self::fail( "vocabulary.json textRoles.properties.{$key} has no `css` template with {role} in it, so this suite cannot name its property." );
+			}
+			$properties[] = $property['css'];
+		}
+		if ( array() === $properties ) {
+			self::fail( 'vocabulary.json textRoles.properties names no property, so there is nothing to look for.' );
+		}
+
+		$roles = array();
+		foreach ( self::required( $vocab, 'textRoles.required' ) as $role ) {
+			$roles[ $role['id'] ] = true;
+		}
+		foreach ( (array) self::dig( $vocab, 'textRoles.optional' ) as $role ) {
+			$roles[ $role['id'] ] = false;
+		}
+
+		$css      = self::app_css();
+		$declared = array();
+		$missing  = array();
+		foreach ( $roles as $id => $is_required ) {
+			$have = array();
+			$lack = array();
+			foreach ( $properties as $template ) {
+				$prop = str_replace( '{role}', (string) $id, $template );
+				if ( 1 === preg_match( '/(?<![\w-])' . preg_quote( $prop, '/' ) . '\s*:/', $css ) ) {
+					$have[] = $prop;
+				} else {
+					$lack[] = $prop;
+				}
+			}
+			$declared = array_merge( $declared, $have );
+			if ( $is_required || array() !== $have ) {
+				$missing = array_merge( $missing, $lack );
+			}
+		}
+
+		$this->assertTrue(
+			array() === $declared || array() === $missing,
+			'app.css declares the text-role properties ' . implode( ', ', $declared ) . ', so it owes every required role in full, and these are missing: ' . implode( ', ', $missing )
+		);
 	}
 }
