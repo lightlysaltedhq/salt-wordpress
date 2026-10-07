@@ -118,7 +118,7 @@ final class MapsBookingTest extends SaltTestCase {
 		$this->assertStringContainsString( 'aria-label=', $html );
 		$this->assertStringContainsString( '<p class="x-map-label font-medium">Salt HQ</p>', $html );
 		// The MapLibre loader reference is SAME-origin (hashed dist asset).
-		$this->assertStringContainsString( 'data-maplibre="https://example.test/wp-content/themes/salt/assets/dist/maps/maplibre.', $html );
+		$this->assertStringContainsString( 'data-maplibre="https://example.test/wp-content/themes/salt-wordpress/assets/dist/maps/maplibre.', $html );
 	}
 
 	public function test_map_facade_loads_nothing_third_party_at_render(): void {

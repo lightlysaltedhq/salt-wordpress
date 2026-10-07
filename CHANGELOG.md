@@ -8,7 +8,37 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
+## [5.0.0] — 2026-10-07
+
+The repo rename to `lightlysaltedhq/salt-wordpress` and design-foundations
+3.0.0. MAJOR per RELEASE-POLICY: child themes must change their `Template`
+header, and `.snap.html` files changed (see BREAKING).
+
 ### Changed
+- **The repo is now `lightlysaltedhq/salt-wordpress`** (transferred from
+  `otigs/salt` on 07/10/2026; GitHub redirects the old URL). Git Updater
+  requires a theme's folder to match its repo name, so a site must install
+  the parent at `wp-content/themes/salt-wordpress`, and every child theme's
+  `style.css` must say `Template: salt-wordpress`. `GitHub Theme URI`,
+  `Theme URI` and `Update URI` point at the new repo, and the updater now
+  sends the `SALT_UPDATER_TOKEN` deploy token only to requests for
+  `lightlysaltedhq/salt-wordpress`, so a site's token must be scoped to the
+  new repo. The child-theme starter is now `lightlysaltedhq/grain-wordpress`.
+  Internal names are unchanged: the `salt_` prefix, the `salt` text domain,
+  option keys and the `salt/v1` REST namespace. The rename changes no
+  front-end markup. Existing installs: docs/RUNBOOK-ROLLBACK.md §D.
+- **The deploy token goes to the exact repo only.** The updater matched any
+  GitHub URL whose path contained `owner/repo`, so a sibling such as
+  `salt-wordpress-legacy`, or another repo's path that embedded the pair,
+  also received `SALT_UPDATER_TOKEN`. `salt_updater_is_repo_url()` now
+  requires HTTPS and the pair as whole segments where each GitHub host puts
+  them (`/repos/{owner}/{repo}` on the API, `/{owner}/{repo}` on github.com,
+  codeload and raw), followed by `/` or the end, and refuses dot segments.
+- **Admin notice when the theme sits in the wrong folder.** If the parent's
+  folder is not `salt-wordpress`, users who can switch themes see a warning
+  that Git Updater will not offer updates until it is renamed. A unit test
+  now also holds `SALT_UPDATE_REPO` to the `GitHub Theme URI` and
+  `Update URI` headers, and `SALT_VERSION` to `Version`.
 - **The design contract is now `@lightlysaltedhq/design-foundations` 3.0.0**
   (was 2.1.0), exact-pinned and locked by integrity hash as before. `PINNED`
   and `VOCABULARY_SHA256` are re-pinned; the new hash was recomputed
@@ -69,7 +99,7 @@ markup granularity (cross-reference your site's override manifest).
     `inset-shadow-*` utility on a control in an inverse section, or a later
     `box-shadow` on it in app.css, replaces the keyline and leaves the ring
     alone on the band (2.77:1 light, 2.24:1 dark) with every gate green
-    (re-review of otigs/salt#8). The suite now refuses those utilities in
+    (re-review of lightlysaltedhq/salt-wordpress#8). The suite now refuses those utilities in
     any file Tailwind scans, behind any variant and in either important
     spelling, read from class attributes and string literals with PHP's own
     tokenizer. The nav submenu's `shadow-lg`, on a `<ul>` in the header that
@@ -115,11 +145,11 @@ markup granularity (cross-reference your site's override manifest).
   raises those. Where it does not: dark mode with grayscale on, because `[data-grayscale]` re-points
   `brand.tint` to neutral-100, which is the dark theme's `ink`. That renders
   at 1.00:1, and at 1.20:1 with high contrast on as well. The CSS predates
-  this change; the fix is under Fixed below (otigs/salt#4).
+  this change; the fix is under Fixed below (lightlysaltedhq/salt-wordpress#4).
 
 ### Fixed
 - **The focus ring on an "Inverse (dark)" section is visible** (review of
-  otigs/salt#8). `focus` is a brand step and `surface-inverse` the far end
+  lightlysaltedhq/salt-wordpress#8). `focus` is a brand step and `surface-inverse` the far end
   of the neutral ramp, so on that band the ring measured 2.34–2.99:1 in
   light mode and 2.05–2.56:1 in dark over the 5,832 grid seeds, under the
   3:1 a focus indicator needs. design-foundations 3.0.0's
@@ -140,7 +170,7 @@ markup granularity (cross-reference your site's override manifest).
   dark. The keyline measured at least 2 device pixels in every case, with
   the gap and ring in place inside it. The conformance suite checks the
   keyline's rule, width and colour.
-- **Dark-mode primary buttons meet AA** (otigs/salt#3). `--color-on-brand`
+- **Dark-mode primary buttons meet AA** (lightlysaltedhq/salt-wordpress#3). `--color-on-brand`
   was #f8fafc in every mode, and dark mode fills `brand` with primary-400
   (primary-300 on hover, primary-200 and primary-100 with high contrast). Over
   the contract's 15 seeds that measured 2.35–2.80:1 at rest and 1.68–1.89:1
@@ -155,7 +185,7 @@ markup granularity (cross-reference your site's override manifest).
   pressed display-preference toggles) turns from near-white #f8fafc to
   near-black #0f172a. Light mode, with or without high contrast, renders
   unchanged for every frozen seed.
-- **Dark mode with grayscale renders the brand tint dark** (otigs/salt#4). A
+- **Dark mode with grayscale renders the brand tint dark** (lightlysaltedhq/salt-wordpress#4). A
   new `[data-theme="dark"][data-grayscale]` rule puts the dark theme's steps
   on the neutral ramp: brand neutral-400 (was neutral-600), brand-strong
   neutral-300 (was neutral-700), brand-tint neutral-900 #26292e (was
@@ -196,6 +226,19 @@ markup granularity (cross-reference your site's override manifest).
   `app.59614ed624.css` for every seed and combination. The only mismatches
   were `accent` and `on-accent`, which Tailwind leaves out of the build
   because nothing reads them.
+
+### BREAKING
+- **Theme folder and child `Template` header.** Install the parent at
+  `wp-content/themes/salt-wordpress` and set `Template: salt-wordpress` in
+  every child theme's `style.css`; a child still declaring `Template: salt`
+  will not find its parent. Scope each site's `SALT_UPDATER_TOKEN` to
+  `lightlysaltedhq/salt-wordpress`. Move an existing install in the order
+  in docs/RUNBOOK-ROLLBACK.md §D (back up, rename the folder and the child's
+  `Template` together, carry `theme_mods_salt`, update, confirm Git Updater).
+- Markup structure changed (snapshot evidence, diff your override manifest):
+  **x-button**, **booking**, **map**, the **contact** form's submit and the
+  **display-preference** toggles drop `focus-visible:outline-2
+  focus-visible:outline-offset-2` from their `class` attribute (17 snapshots).
 
 ## [4.1.0] — 2026-07-03
 

@@ -9,8 +9,8 @@ backups and disaster recovery accordingly.
 
 | Lives in | Contents |
 |---|---|
-| **Parent repo** (`salt`) | Section library, components, templates, design-token schema + compiled CSS/JS (`assets/dist/`), ACF field/layout **definitions** (`inc/fields/`), query resolver, schema graph builder, services, vendored SVG sanitiser, this documentation |
-| **Child repo** (`salt-{client}`) | `style.css` (`Template: salt` + pin note), `functions.php` (site hooks, filter overrides at priority 20+), overridden `template-parts/**` files, `assets/child.css`, the **override manifest** |
+| **Parent repo** (`salt-wordpress`) | Section library, components, templates, design-token schema + compiled CSS/JS (`assets/dist/`), ACF field/layout **definitions** (`inc/fields/`), query resolver, schema graph builder, services, vendored SVG sanitiser, this documentation |
+| **Child repo** (`salt-{client}`) | `style.css` (`Template: salt-wordpress` + pin note), `functions.php` (site hooks, filter overrides at priority 20+), overridden `template-parts/**` files, `assets/child.css`, the **override manifest** |
 | **Database** (per site, backed up per site) | Uploaded fonts + logos (media library — the @font-face CSS is derived at render), brand config VALUES (colours, fonts, logo — ACF options in `wp_options`), company/schema info, module toggles, form recipients + routing, page composition (the Flexible Content `sections` rows in `wp_postmeta`), all CPT content, menus, media |
 
 ## Consequences

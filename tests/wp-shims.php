@@ -654,7 +654,7 @@ if ( ! function_exists( 'get_template_directory_uri' ) ) {
 	 * @return string
 	 */
 	function get_template_directory_uri(): string {
-		return 'https://example.test/wp-content/themes/salt';
+		return 'https://example.test/wp-content/themes/salt-wordpress';
 	}
 }
 

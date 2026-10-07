@@ -1,9 +1,18 @@
-# salt
+# salt-wordpress
 
-Private, opinionated WordPress **parent theme** for the Lightly Salted fleet.
-Composable ACF section library, three-tier OKLCH design tokens, Gutenberg
-disabled, PHP 8.2+. Customised per site via child themes; the parent is
-**read-only on every site** and updated in place via Git Updater.
+Salt for WordPress: a private, opinionated WordPress **parent theme** for the
+Lightly Salted fleet. Composable ACF section library, three-tier OKLCH design
+tokens, Gutenberg disabled, PHP 8.2+. Customised per site via child themes;
+the parent is **read-only on every site** and updated in place via Git Updater.
+
+## Installing on a site
+
+Git Updater requires the theme folder to match the repo name, so install the
+parent at `wp-content/themes/salt-wordpress` (not `salt`). Child themes
+declare `Template: salt-wordpress`; start one from
+[`lightlysaltedhq/grain-wordpress`](https://github.com/lightlysaltedhq/grain-wordpress).
+The Next.js counterpart is
+[`lightlysaltedhq/salt-nextjs`](https://github.com/lightlysaltedhq/salt-nextjs).
 
 ## Governing documents
 

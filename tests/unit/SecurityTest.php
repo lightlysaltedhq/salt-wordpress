@@ -52,7 +52,7 @@ final class SecurityTest extends SaltTestCase {
 	// -----------------------------------------------------------------------
 
 	public function test_updater_ignores_requests_when_token_undefined(): void {
-		$args = salt_updater_authorize_request( array(), 'https://api.github.com/repos/otigs/salt/releases' );
+		$args = salt_updater_authorize_request( array(), 'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/releases' );
 		$this->assertArrayNotHasKey( 'headers', $args );
 	}
 
@@ -61,20 +61,79 @@ final class SecurityTest extends SaltTestCase {
 			define( 'SALT_UPDATER_TOKEN', 'test-token-value' );
 		}
 
-		$ours = salt_updater_authorize_request( array(), 'https://api.github.com/repos/otigs/salt/releases' );
+		$ours = salt_updater_authorize_request( array(), 'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/releases' );
 		$this->assertSame( 'token test-token-value', $ours['headers']['Authorization'] );
 
 		$other_repo = salt_updater_authorize_request( array(), 'https://api.github.com/repos/someone/else' );
 		$this->assertArrayNotHasKey( 'headers', $other_repo, 'Token must never leak to other repos.' );
 
-		$other_host = salt_updater_authorize_request( array(), 'https://evil.example/repos/otigs/salt' );
+		$other_host = salt_updater_authorize_request( array(), 'https://evil.example/repos/lightlysaltedhq/salt-wordpress' );
 		$this->assertArrayNotHasKey( 'headers', $other_host, 'Token must never leak to non-GitHub hosts.' );
 
 		$existing = salt_updater_authorize_request(
 			array( 'headers' => array( 'Authorization' => 'Bearer keep-me' ) ),
-			'https://api.github.com/repos/otigs/salt/releases'
+			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/releases'
 		);
 		$this->assertSame( 'Bearer keep-me', $existing['headers']['Authorization'], 'Existing auth is never overwritten.' );
+	}
+
+	public function test_updater_matches_only_the_exact_repo(): void {
+		$ours = array(
+			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress',
+			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/zipball/v5.0.0',
+			'https://api.github.com/repos/LightlySaltedHQ/Salt-WordPress/releases/latest',
+			'https://github.com/lightlysaltedhq/salt-wordpress/archive/refs/tags/v5.0.0.zip',
+			'https://codeload.github.com/lightlysaltedhq/salt-wordpress/zip/refs/heads/main',
+			'https://raw.githubusercontent.com/lightlysaltedhq/salt-wordpress/main/style.css',
+		);
+		foreach ( $ours as $url ) {
+			$this->assertTrue( salt_updater_is_repo_url( $url ), $url );
+		}
+
+		$not_ours = array(
+			// A sibling repo whose name starts with ours.
+			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress-legacy/releases',
+			'https://github.com/lightlysaltedhq/salt-wordpress-legacy',
+			// The pair embedded further down someone else's path.
+			'https://api.github.com/repos/evil/x/contents/lightlysaltedhq/salt-wordpress',
+			'https://github.com/evil/lightlysaltedhq/salt-wordpress/archive/main.zip',
+			// The API form needs /repos/, the others must not have it.
+			'https://api.github.com/lightlysaltedhq/salt-wordpress',
+			'https://github.com/repos/lightlysaltedhq/salt-wordpress',
+			// Dot segments the HTTP client could resolve to another repo.
+			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/../../evil/x',
+			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/%2e%2e/%2e%2e/evil/x',
+			// Plain HTTP would send the token in the clear.
+			'http://api.github.com/repos/lightlysaltedhq/salt-wordpress/releases',
+		);
+		foreach ( $not_ours as $url ) {
+			$this->assertFalse( salt_updater_is_repo_url( $url ), $url );
+		}
+	}
+
+	public function test_updater_header_constants_match_the_theme_header(): void {
+		$root  = dirname( __DIR__, 2 );
+		$style = (string) file_get_contents( $root . '/style.css' );
+		$boot  = (string) file_get_contents( $root . '/functions.php' );
+
+		$this->assertMatchesRegularExpression( '/^GitHub Theme URI:\s*' . preg_quote( SALT_UPDATE_REPO, '/' ) . '\s*$/m', $style );
+		$this->assertMatchesRegularExpression( '#^Update URI:\s*https://github\.com/' . preg_quote( SALT_UPDATE_REPO, '#' ) . '\s*$#m', $style );
+
+		$this->assertSame( 1, preg_match( '/^Version:\s*(\S+)\s*$/m', $style, $header ) );
+		$this->assertSame( 1, preg_match( "/define\(\s*'SALT_VERSION',\s*'([^']+)'\s*\)/", $boot, $constant ) );
+		$this->assertSame( $header[1], $constant[1], 'SALT_VERSION must equal the style.css Version header.' );
+	}
+
+	public function test_folder_notice_shows_only_for_a_wrong_folder_and_a_capable_user(): void {
+		$this->assertSame( '', salt_updater_folder_notice( 'salt-wordpress', true ), 'Right folder: no notice.' );
+		$this->assertSame( '', salt_updater_folder_notice( 'salt', false ), 'No switch_themes: no notice.' );
+
+		$html = salt_updater_folder_notice( 'salt', true );
+		$this->assertStringContainsString( 'notice-warning', $html );
+		$this->assertStringContainsString( 'from &quot;salt&quot; to &quot;salt-wordpress&quot;', $html );
+
+		$hostile = salt_updater_folder_notice( '<script>x</script>', true );
+		$this->assertStringNotContainsString( '<script>', $hostile, 'The folder name is escaped.' );
 	}
 
 	// -----------------------------------------------------------------------

@@ -334,7 +334,7 @@
    would use, on the neutral ramp. Each rule settles a token two
    equally-specific rules above both set. Without one, the later rule wins
    by source order: grayscale's light tint under dark ink measured 1.00:1
-   (otigs/salt#4). The conformance suite fails on any such tie. */
+   (lightlysaltedhq/salt-wordpress#4). The conformance suite fails on any such tie. */
 [data-theme="dark"][data-grayscale] {
 	--color-brand: var(--color-neutral-400);
 	--color-brand-strong: var(--color-neutral-300);
