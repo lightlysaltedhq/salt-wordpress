@@ -346,7 +346,7 @@ function salt_text_on( string $background_hex ): string {
  * --color-on-primary-{step} for each step a display mode fills `brand` with,
  * because --color-on-brand follows the mode (assets/src/css/app.css): a
  * single light-mode on-colour measured 2.35:1 on the dark theme's
- * primary-400 (otigs/salt#3). Output order is fixed (primary, secondary,
+ * primary-400 (lightlysaltedhq/salt-wordpress#3). Output order is fixed (primary, secondary,
  * accent; steps ascending) regardless of input order.
  *
  * @param array<string, mixed> $brand Brand colours keyed by role.

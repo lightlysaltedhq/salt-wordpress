@@ -52,7 +52,7 @@ final class SecurityTest extends SaltTestCase {
 	// -----------------------------------------------------------------------
 
 	public function test_updater_ignores_requests_when_token_undefined(): void {
-		$args = salt_updater_authorize_request( array(), 'https://api.github.com/repos/otigs/salt/releases' );
+		$args = salt_updater_authorize_request( array(), 'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/releases' );
 		$this->assertArrayNotHasKey( 'headers', $args );
 	}
 
@@ -61,18 +61,18 @@ final class SecurityTest extends SaltTestCase {
 			define( 'SALT_UPDATER_TOKEN', 'test-token-value' );
 		}
 
-		$ours = salt_updater_authorize_request( array(), 'https://api.github.com/repos/otigs/salt/releases' );
+		$ours = salt_updater_authorize_request( array(), 'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/releases' );
 		$this->assertSame( 'token test-token-value', $ours['headers']['Authorization'] );
 
 		$other_repo = salt_updater_authorize_request( array(), 'https://api.github.com/repos/someone/else' );
 		$this->assertArrayNotHasKey( 'headers', $other_repo, 'Token must never leak to other repos.' );
 
-		$other_host = salt_updater_authorize_request( array(), 'https://evil.example/repos/otigs/salt' );
+		$other_host = salt_updater_authorize_request( array(), 'https://evil.example/repos/lightlysaltedhq/salt-wordpress' );
 		$this->assertArrayNotHasKey( 'headers', $other_host, 'Token must never leak to non-GitHub hosts.' );
 
 		$existing = salt_updater_authorize_request(
 			array( 'headers' => array( 'Authorization' => 'Bearer keep-me' ) ),
-			'https://api.github.com/repos/otigs/salt/releases'
+			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/releases'
 		);
 		$this->assertSame( 'Bearer keep-me', $existing['headers']['Authorization'], 'Existing auth is never overwritten.' );
 	}

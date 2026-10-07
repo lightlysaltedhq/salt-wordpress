@@ -12,7 +12,7 @@ tag serving traffic. Rollback is verified on the canary at every release
 
 1. Record the site's current known-good tag in the site log (e.g. `v1.3.2`).
 2. Snapshot the parent theme directory:
-   `cp -r wp-content/themes/salt wp-content/themes/.salt-backup-v1.3.2`
+   `cp -r wp-content/themes/salt-wordpress wp-content/themes/.salt-backup-v1.3.2`
    (or rely on the host's file snapshot if it restores in < 5 min).
 3. Confirm a filesystem access path (SFTP/SSH) INDEPENDENT of wp-admin.
 
@@ -24,19 +24,19 @@ tag serving traffic. Rollback is verified on the canary at every release
 2. Spot-check the pages that were broken + one composed page + one archive.
 
 **git-deploy transport:**
-1. `cd wp-content/themes/salt && git fetch --tags && git checkout <prior-tag>`
+1. `cd wp-content/themes/salt-wordpress && git fetch --tags && git checkout <prior-tag>`
 2. Same spot-checks.
 
 ## B. wp-admin is NOT reachable (fatal — the child can't even load)
 
-A fatal in the parent takes wp-admin down with it (`Template: salt` means the
+A fatal in the parent takes wp-admin down with it (`Template: salt-wordpress` means the
 child cannot boot without the parent). Do NOT try to fix forward on
 production.
 
 1. Over SFTP/SSH, move the broken parent aside:
-   `mv wp-content/themes/salt wp-content/themes/.salt-broken`
-2. Restore the snapshot: `mv wp-content/themes/.salt-backup-<tag> wp-content/themes/salt`
-   — or `git clone --branch <prior-tag> --depth 1 <repo> salt` if no snapshot
+   `mv wp-content/themes/salt-wordpress wp-content/themes/.salt-broken`
+2. Restore the snapshot: `mv wp-content/themes/.salt-backup-<tag> wp-content/themes/salt-wordpress`
+   — or `git clone --branch <prior-tag> --depth 1 <repo> salt-wordpress` if no snapshot
    exists (the deploy token is in wp-config as `SALT_UPDATER_TOKEN`, SEC03).
 3. Confirm the site renders and wp-admin loads.
 4. Keep `.salt-broken` for diagnosis; delete after the post-mortem.

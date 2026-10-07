@@ -59,7 +59,7 @@
  * defaults a site with no brand set renders. Ratios come from
  * salt_derive_ramp(), salt_text_on() and salt_contrast_ratio(), salt's own
  * maths. Contrast failures turned up three times before this existed
- * (otigs/salt#3, otigs/salt#4, and a photo hero on a client site).
+ * (lightlysaltedhq/salt-wordpress#3, lightlysaltedhq/salt-wordpress#4, and a photo hero on a client site).
  *
  * The values come from app.css read as a table of rules, not from a model
  * of the browser. colour_rules() says what it accepts and refuses the rest,
@@ -1307,7 +1307,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * declared exactly once. A second declaration, a calc() or max() around
 	 * the var(), or an outline property anywhere else in app.css is refused by
 	 * name, because each can draw a thinner or closer ring than the token says
-	 * (review of otigs/salt#8).
+	 * (review of lightlysaltedhq/salt-wordpress#8).
 	 *
 	 * Templates cannot add their own outline utilities either:
 	 * test_no_template_draws_over_the_focus_indicator() refuses them.
@@ -1388,7 +1388,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * focus indicator (INDICATOR_UTILITIES), so every ring on the page is the
 	 * global rule's, drawn from the tokens, and every keyline on the inverse
 	 * band is the keyline rule's. Five templates carried
-	 * `focus-visible:outline-2` until the review of otigs/salt#8, whose
+	 * `focus-visible:outline-2` until the review of lightlysaltedhq/salt-wordpress#8, whose
 	 * re-review showed a `shadow-sm` or `ring-2` on a control in an inverse
 	 * section takes the keyline away (the ring then measured 2.77:1 on the
 	 * band in light mode, 2.24:1 in dark) with the suite green.

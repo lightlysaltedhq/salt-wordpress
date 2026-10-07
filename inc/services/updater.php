@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Derived from the style.css Update URI header at release time.
  */
-define( 'SALT_UPDATE_REPO', 'otigs/salt' );
+define( 'SALT_UPDATE_REPO', 'lightlysaltedhq/salt-wordpress' );
 
 /**
  * Inject the deploy token into HTTP requests for the parent-theme repo.

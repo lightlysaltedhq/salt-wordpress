@@ -213,7 +213,7 @@ final class ColorsTest extends SaltTestCase {
 	}
 
 	/**
-	 * on-brand follows the display mode (otigs/salt#3), so primary gets an AA
+	 * on-brand follows the display mode (lightlysaltedhq/salt-wordpress#3), so primary gets an AA
 	 * text colour for each step a mode fills brand with, derived from the
 	 * site's own ramp.
 	 */

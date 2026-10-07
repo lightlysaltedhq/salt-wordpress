@@ -166,7 +166,7 @@ final class ContrastCheckerTest extends SaltTestCase {
 	// -----------------------------------------------------------------
 
 	public function test_register_enqueues_and_localizes_on_the_brand_screen(): void {
-		$src = 'https://example.test/wp-content/themes/salt/assets/dist/admin/contrast-checker.abc123.js';
+		$src = 'https://example.test/wp-content/themes/salt-wordpress/assets/dist/admin/contrast-checker.abc123.js';
 
 		$this->assertTrue( salt_contrast_checker_register( 'salt-settings-brand', $src ) );
 
