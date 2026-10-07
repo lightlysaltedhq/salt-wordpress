@@ -21,8 +21,10 @@ in Notion; records live in the private docs repository.
    new.
 3. Choose from Backlog. Skip Blocked items: each one waits on an owner decision, so raise it rather
    than building round it. Skip any item whose Depends on items are not all Done.
-4. Prefer items in the Epics the owner is focusing on, then by Priority (Urgent, High, Medium,
-   Low). For a batch of work or a plan, run the `next-work-units` skill.
+4. Work through this Product's open Epics in Rank order: Rank 1 is next. Take the lowest-ranked
+   Epic that has an item you can start, and within it go by Depends on, then the item's Priority
+   (Urgent, High, Medium, Low). An Epic's P1–P4 is a coarse band; Rank is the order. For a batch
+   of work or a plan, run the `next-work-units` skill.
 5. Work you find along the way becomes a new Work Item (this Product, the right Epic, Status
    Backlog), not a TODO comment or a note in a file.
 
