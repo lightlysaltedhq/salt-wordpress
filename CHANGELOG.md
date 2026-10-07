@@ -8,6 +8,12 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
+## [5.0.0] — 2026-10-07
+
+The repo rename to `lightlysaltedhq/salt-wordpress` and design-foundations
+3.0.0. MAJOR per RELEASE-POLICY: child themes must change their `Template`
+header, and `.snap.html` files changed (see BREAKING).
+
 ### Changed
 - **The repo is now `lightlysaltedhq/salt-wordpress`** (transferred from
   `otigs/salt` on 07/10/2026; GitHub redirects the old URL). Git Updater
@@ -207,6 +213,17 @@ markup granularity (cross-reference your site's override manifest).
   `app.59614ed624.css` for every seed and combination. The only mismatches
   were `accent` and `on-accent`, which Tailwind leaves out of the build
   because nothing reads them.
+
+### BREAKING
+- **Theme folder and child `Template` header.** Install the parent at
+  `wp-content/themes/salt-wordpress` and set `Template: salt-wordpress` in
+  every child theme's `style.css`; a child still declaring `Template: salt`
+  will not find its parent. Scope each site's `SALT_UPDATER_TOKEN` to
+  `lightlysaltedhq/salt-wordpress`.
+- Markup structure changed (snapshot evidence, diff your override manifest):
+  **x-button**, **booking**, **map**, the **contact** form's submit and the
+  **display-preference** toggles drop `focus-visible:outline-2
+  focus-visible:outline-offset-2` from their `class` attribute (17 snapshots).
 
 ## [4.1.0] — 2026-07-03
 
