@@ -50,6 +50,51 @@ production.
 4. Re-run the site's override re-verify if the rollback crossed a major
    version (child overrides may target the newer markup).
 
+## D. Moving an existing install to salt-wordpress (5.0.0)
+
+From 5.0.0 the repo is `lightlysaltedhq/salt-wordpress`, and Git Updater
+only matches a theme whose folder is the repo name. A site installed before
+5.0.0 has the parent at `wp-content/themes/salt` and a child saying
+`Template: salt`. Move it in this order, over SFTP/SSH with WP-CLI, outside
+busy hours. Do not use Git Updater for any of it: until step 4 is done it
+cannot see the theme.
+
+1. **Back up.** Snapshot the parent and child folders and the theme options:
+   `cp -r wp-content/themes/salt wp-content/themes/.salt-backup-pre-5.0.0`,
+   the same for the child, and
+   `wp option get template`, `wp option get stylesheet` and
+   `wp option list --search='theme_mods_*' --format=json` saved to a file
+   (or take a full DB backup).
+2. **Rename the parent and repoint the child in one step**, with no page
+   load in between. WordPress falls back to a default theme if it finds the
+   active parent missing, so do all three together:
+   `mv wp-content/themes/salt wp-content/themes/salt-wordpress`, change the
+   child's `style.css` to `Template: salt-wordpress`, and
+   `wp option update template salt-wordpress`. If the parent itself is the
+   active theme (no child), also `wp option update stylesheet salt-wordpress`.
+3. **Carry the theme mods if the parent was ever the active theme.**
+   WordPress keys Customizer settings and menu locations by folder, so
+   `theme_mods_salt` does not follow the rename. If it exists, copy it:
+   `wp option get theme_mods_salt --format=json > /tmp/mods.json` then
+   `wp option update theme_mods_salt-wordpress --format=json < /tmp/mods.json`.
+   A site that only ever ran the child keeps its mods under the child's own
+   folder and needs nothing here.
+4. **Update the parent to 5.0.0** in place: in the parent folder,
+   `git fetch --tags && git checkout v5.0.0` (git-deploy), or replace its
+   contents with the v5.0.0 release, renaming the extracted
+   `salt-wordpress-5.0.0/` folder to `salt-wordpress`. Then replace the
+   site's `SALT_UPDATER_TOKEN` with a fine-grained read-only token scoped to
+   `lightlysaltedhq/salt-wordpress` (a token issued for `otigs/salt` does
+   not cover the transferred repo).
+5. **Confirm Git Updater sees the repo.** Themes shows Salt 5.0.0 as the
+   parent, the "Git Updater will not offer updates" notice is absent, and
+   Git Updater's Remote Management/theme list shows
+   `lightlysaltedhq/salt-wordpress` on branch `main` with no update error.
+   Spot-check a composed page, an archive and menu locations.
+
+To undo, restore the step 1 snapshots and the saved `template`/`stylesheet`
+values.
+
 ## Data-safety notes
 
 - Parent releases in this line NEVER run destructive DB migrations; ACF

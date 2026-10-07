@@ -25,7 +25,20 @@ header, and `.snap.html` files changed (see BREAKING).
   `lightlysaltedhq/salt-wordpress`, so a site's token must be scoped to the
   new repo. The child-theme starter is now `lightlysaltedhq/grain-wordpress`.
   Internal names are unchanged: the `salt_` prefix, the `salt` text domain,
-  option keys and the `salt/v1` REST namespace. No markup changed.
+  option keys and the `salt/v1` REST namespace. The rename changes no
+  front-end markup. Existing installs: docs/RUNBOOK-ROLLBACK.md §D.
+- **The deploy token goes to the exact repo only.** The updater matched any
+  GitHub URL whose path contained `owner/repo`, so a sibling such as
+  `salt-wordpress-legacy`, or another repo's path that embedded the pair,
+  also received `SALT_UPDATER_TOKEN`. `salt_updater_is_repo_url()` now
+  requires HTTPS and the pair as whole segments where each GitHub host puts
+  them (`/repos/{owner}/{repo}` on the API, `/{owner}/{repo}` on github.com,
+  codeload and raw), followed by `/` or the end, and refuses dot segments.
+- **Admin notice when the theme sits in the wrong folder.** If the parent's
+  folder is not `salt-wordpress`, users who can switch themes see a warning
+  that Git Updater will not offer updates until it is renamed. A unit test
+  now also holds `SALT_UPDATE_REPO` to the `GitHub Theme URI` and
+  `Update URI` headers, and `SALT_VERSION` to `Version`.
 - **The design contract is now `@lightlysaltedhq/design-foundations` 3.0.0**
   (was 2.1.0), exact-pinned and locked by integrity hash as before. `PINNED`
   and `VOCABULARY_SHA256` are re-pinned; the new hash was recomputed
@@ -219,7 +232,9 @@ header, and `.snap.html` files changed (see BREAKING).
   `wp-content/themes/salt-wordpress` and set `Template: salt-wordpress` in
   every child theme's `style.css`; a child still declaring `Template: salt`
   will not find its parent. Scope each site's `SALT_UPDATER_TOKEN` to
-  `lightlysaltedhq/salt-wordpress`.
+  `lightlysaltedhq/salt-wordpress`. Move an existing install in the order
+  in docs/RUNBOOK-ROLLBACK.md §D (back up, rename the folder and the child's
+  `Template` together, carry `theme_mods_salt`, update, confirm Git Updater).
 - Markup structure changed (snapshot evidence, diff your override manifest):
   **x-button**, **booking**, **map**, the **contact** form's submit and the
   **display-preference** toggles drop `focus-visible:outline-2
