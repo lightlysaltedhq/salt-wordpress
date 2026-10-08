@@ -8,6 +8,13 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
+### Changed
+
+- The design contract pin moves to `@lightlysaltedhq/design-foundations` 3.0.1, the
+  first release from the public `lightlysaltedhq/contracts` repository, with an npm
+  provenance attestation. The contract itself is unchanged from 3.0.0, and the
+  conformance suite passes against it with only `PINNED` updated.
+
 ## [5.0.0] — 2026-10-07
 
 The repo rename to `lightlysaltedhq/salt-wordpress` and design-foundations
