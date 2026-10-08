@@ -138,7 +138,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * pinning anything else fails, and so does an installed vocabulary whose rules
 	 * hash differently, each with the npm diff command to read.
 	 */
-	private const PINNED = '3.0.0';
+	private const PINNED = '3.0.1';
 
 	private const VOCABULARY_SHA256 = '49ce787204195ce208234b64eb1e0ee93e7bd9919efe92befc8c403839b9960e';
 
