@@ -377,4 +377,151 @@ final class ProcessSectionTest extends SaltTestCase {
 		$this->assertCount( 1, $howto['step'], 'Skipped rows never reach the schema node.' );
 		$this->assertSame( 'Only title', $howto['step'][0]['text'], 'Empty text falls back to the step title.' );
 	}
+
+	// -----------------------------------------------------------------
+	// Logic/view split (ID-3587): resolver and view.
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one process FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields Row sub-field fixtures.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_process( array $fields ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'process',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'process' );
+		$this->assertSame( 'salt_resolve_section_process', $resolver );
+
+		return $resolver(
+			array(
+				'index'      => 1,
+				'is_primary' => true,
+			)
+		);
+	}
+
+	public function test_resolver_returns_null_and_queues_nothing_without_valid_steps(): void {
+		$this->assertNull(
+			$this->resolve_process(
+				array(
+					'heading'       => 'How it works',
+					'steps'         => array( 'not a row', array( 'title' => '  ' ) ),
+					'schema_toggle' => true,
+				)
+			)
+		);
+		$this->assertSame( array(), salt_schema_queue(), 'Schema is queued only on a path that returns props.' );
+	}
+
+	public function test_resolver_props_use_the_contract_names(): void {
+		$resolved = $this->resolve_process(
+			array(
+				'eyebrow'       => 'Steps',
+				'heading'       => ' How it works ',
+				'layout'        => 'cards',
+				'steps'         => array(
+					array(
+						'title' => ' Plan ',
+						'text'  => ' We talk. ',
+						'icon'  => ' check ',
+					),
+					array( 'title' => 'Build' ),
+				),
+				'schema_toggle' => true,
+			)
+		);
+
+		$this->assertSame( array( 'eyebrow', 'heading', 'layout', 'steps', 'structuredData' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( 'Steps', $resolved['props']['eyebrow'] );
+		$this->assertSame( ' How it works ', $resolved['props']['heading'], 'Optional text is never trimmed.' );
+		$this->assertSame( 'cards', $resolved['props']['layout'] );
+		$this->assertSame(
+			array(
+				array(
+					'title' => 'Plan',
+					'text'  => 'We talk.',
+					'icon'  => 'check',
+				),
+				array(
+					'title' => 'Build',
+					'text'  => '',
+					'icon'  => '',
+				),
+			),
+			$resolved['props']['steps']
+		);
+		$this->assertTrue( $resolved['props']['structuredData'] );
+		$this->assertCount( 1, salt_schema_queue(), 'The HowTo node is queued by the resolver.' );
+
+		$this->assertSame( 'process', $resolved['section']['name'] );
+		$this->assertTrue( $resolved['section']['is_primary'] );
+		$this->assertTrue( $resolved['section']['has_heading'] );
+	}
+
+	public function test_resolver_defaults_layout_and_schema_off(): void {
+		$resolved = $this->resolve_process(
+			array(
+				'layout' => 'zigzag',
+				'steps'  => array( array( 'title' => 'Only' ) ),
+			)
+		);
+
+		$this->assertNull( $resolved['props']['eyebrow'] );
+		$this->assertNull( $resolved['props']['heading'] );
+		$this->assertSame( 'timeline', $resolved['props']['layout'] );
+		$this->assertFalse( $resolved['props']['structuredData'] );
+		$this->assertFalse( $resolved['section']['has_heading'] );
+		$this->assertSame( array(), salt_schema_queue() );
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/process.php',
+			false,
+			array(
+				'props' => array(
+					'eyebrow'        => null,
+					'heading'        => 'From props',
+					'layout'         => 'cards',
+					'steps'          => array(
+						array(
+							'title' => 'First',
+							'text'  => 'One',
+							'icon'  => '',
+						),
+						array(
+							'title' => 'Second',
+							'text'  => '',
+							'icon'  => '',
+						),
+					),
+					'structuredData' => true,
+				),
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 1,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match_all( '/<h1[\s>]/', $html ) );
+		$this->assertSame( 2, preg_match_all( '/<h2[\s>]/', $html ), 'Step titles one level below the heading.' );
+		$this->assertStringContainsString( 'x-process-cards', $html );
+		$this->assertSame( 2, substr_count( $html, '<li class="x-process-item h-full' ) );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+		$this->assertSame( array(), salt_schema_queue(), 'The view never queues schema.' );
+	}
 }

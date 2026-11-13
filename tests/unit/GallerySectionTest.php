@@ -375,4 +375,172 @@ final class GallerySectionTest extends SaltTestCase {
 
 		$this->assertSame( array(), salt_schema_queue() );
 	}
+
+	// -----------------------------------------------------------------
+	// Logic/view split (ID-3587): resolver and view.
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one gallery FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields Row sub-field fixtures.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_gallery( array $fields ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'gallery',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'gallery' );
+		$this->assertSame( 'salt_resolve_section_gallery', $resolver );
+
+		return $resolver(
+			array(
+				'index'      => 0,
+				'is_primary' => true,
+			)
+		);
+	}
+
+	public function test_resolver_returns_null_when_no_image_resolves(): void {
+		$this->assertNull( $this->resolve_gallery( array( 'images' => array( 0, 999 ) ) ) );
+		$this->assertNull( $this->resolve_gallery( array() ) );
+	}
+
+	public function test_resolver_props_and_wrapper_inputs(): void {
+		$ids = $this->seed_attachments( 2, array( 41 => '  First caption ' ) );
+
+		$resolved = $this->resolve_gallery(
+			array(
+				'layout'          => 'masonry',
+				'columns'         => 4,
+				'captions'        => true,
+				'images'          => array( $ids[0], 0, array( 'ID' => $ids[1] ) ),
+				'section_spacing' => 'lg',
+			)
+		);
+
+		$this->assertSame( array( 'layout', 'columns', 'captions', 'items' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( 'masonry', $resolved['props']['layout'] );
+		$this->assertSame( 4, $resolved['props']['columns'] );
+		$this->assertTrue( $resolved['props']['captions'] );
+		$this->assertSame(
+			array(
+				array(
+					'image_id' => 41,
+					'caption'  => 'First caption',
+				),
+				array(
+					'image_id' => 42,
+					'caption'  => '',
+				),
+			),
+			$resolved['props']['items'],
+			'Malformed entry skipped; captions trimmed; IDs in field order.'
+		);
+		$this->assertContains( 'section gallery: malformed image entry — skipped.', $this->logs() );
+
+		$this->assertSame( 'gallery', $resolved['section']['name'] );
+		$this->assertSame( 'lg', $resolved['section']['spacing'] );
+		$this->assertTrue( $resolved['section']['is_primary'] );
+		$this->assertFalse( $resolved['section']['has_heading'], 'No heading field: never claims the H1 (A11Y01).' );
+		$this->assertArrayNotHasKey( 'plan', $resolved );
+	}
+
+	public function test_resolver_falls_back_on_invalid_layout_and_columns(): void {
+		$ids = $this->seed_attachments( 2 );
+
+		$resolved = $this->resolve_gallery(
+			array(
+				'layout'  => 'mosaic',
+				'columns' => 7,
+				'images'  => $ids,
+			)
+		);
+
+		$this->assertSame( 'grid', $resolved['props']['layout'] );
+		$this->assertSame( 3, $resolved['props']['columns'] );
+		$this->assertFalse( $resolved['props']['captions'] );
+		$this->assertSame( '', $resolved['props']['items'][0]['caption'], 'Captions off: no caption read.' );
+	}
+
+	/**
+	 * Draw the gallery view from props alone.
+	 *
+	 * @param array<string,mixed> $props View props.
+	 * @return string
+	 */
+	private function draw_gallery_view( array $props ): string {
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/gallery.php',
+			false,
+			array(
+				'props' => $props,
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		return (string) ob_get_clean();
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		$this->seed_attachments( 3 );
+
+		$html = $this->draw_gallery_view(
+			array(
+				'layout'   => 'carousel',
+				'columns'  => 3,
+				'captions' => true,
+				'items'    => array(
+					array(
+						'image_id' => 41,
+						'caption'  => 'From <props>',
+					),
+					array(
+						'image_id' => 42,
+						'caption'  => '',
+					),
+				),
+			)
+		);
+
+		$this->assertStringContainsString( 'data-salt-carousel="gallery"', $html );
+		$this->assertSame( 2, substr_count( $html, 'class="x-gallery-slide' ) );
+		$this->assertSame( 1, substr_count( $html, '<figcaption' ), 'Empty caption draws no figcaption.' );
+		$this->assertStringContainsString( 'From &lt;props&gt;', $html );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+	}
+
+	public function test_view_draws_one_item_as_a_single_figure_in_any_layout(): void {
+		$this->seed_attachments( 1 );
+
+		foreach ( array( 'grid', 'masonry', 'carousel' ) as $layout ) {
+			$html = $this->draw_gallery_view(
+				array(
+					'layout'   => $layout,
+					'columns'  => 2,
+					'captions' => false,
+					'items'    => array(
+						array(
+							'image_id' => 41,
+							'caption'  => '',
+						),
+					),
+				)
+			);
+
+			$this->assertStringStartsWith( '<div class="x-gallery-single">', $html, $layout );
+			$this->assertStringNotContainsString( 'data-salt-carousel', $html, $layout );
+		}
+	}
 }
