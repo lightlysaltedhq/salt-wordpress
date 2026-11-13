@@ -50,7 +50,8 @@ failure prints the new hash), and record the bump in CHANGELOG.md.
 
 Follow the recipe in [SECTIONS.md](SECTIONS.md) — the Rich Text section is
 the copyable exemplar. A new section touches ONLY its layout file, its
-partial, its tests, and the SECTIONS.md registry row.
+resolver (`inc/sections/`), its view (`template-parts/sections/`), its
+tests, and the SECTIONS.md registry row.
 
 ## Branching & releases
 
