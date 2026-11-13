@@ -363,7 +363,7 @@ final class HeroSectionTest extends SaltTestCase {
 		);
 
 		$this->assertSame(
-			array( 'variant', 'eyebrow', 'heading', 'subheading', 'image_id', 'priorityMedia', 'ctas' ),
+			array( 'variant', 'eyebrow', 'heading', 'subheading', 'image_id', 'ctas' ),
 			array_keys( $resolved['props'] )
 		);
 		$this->assertSame( 'minimal', $resolved['props']['variant'] );
@@ -371,7 +371,7 @@ final class HeroSectionTest extends SaltTestCase {
 		$this->assertSame( 'Welcome', $resolved['props']['heading'] );
 		$this->assertNull( $resolved['props']['subheading'] );
 		$this->assertSame( 0, $resolved['props']['image_id'] );
-		$this->assertTrue( $resolved['props']['priorityMedia'], 'The hero image is THE LCP image (§8).' );
+		$this->assertSame( array( 'priorityMedia' => true ), $resolved['plan'], 'The hero image is THE LCP image (§8), a contract plan key.' );
 		$this->assertSame( array(), $resolved['props']['ctas'] );
 	}
 
@@ -436,17 +436,17 @@ final class HeroSectionTest extends SaltTestCase {
 			false,
 			array(
 				'props' => array(
-					'variant'       => 'minimal',
-					'eyebrow'       => null,
-					'heading'       => 'From props',
-					'subheading'    => 'Drawn, not read.',
-					'image_id'      => 0,
-					'priorityMedia' => true,
-					'ctas'          => array(),
+					'variant'    => 'minimal',
+					'eyebrow'    => null,
+					'heading'    => 'From props',
+					'subheading' => 'Drawn, not read.',
+					'image_id'   => 0,
+					'ctas'       => array(),
 				),
 				'plan'  => array(
-					'index'        => 0,
-					'headingLevel' => 2,
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => true,
 				),
 			)
 		);

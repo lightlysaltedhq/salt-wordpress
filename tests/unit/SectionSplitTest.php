@@ -27,18 +27,27 @@ final class SectionSplitTest extends SaltTestCase {
 	 */
 	private array $temp_views = array();
 
+	/**
+	 * Temporary resolver files under the parent's inc/sections/ to delete
+	 * after each test (named zz-test-*; never committed).
+	 *
+	 * @var string[]
+	 */
+	private array $temp_resolvers = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		salt_test_seed_fc( array() );
 	}
 
 	protected function tearDown(): void {
-		foreach ( $this->temp_views as $file ) {
+		foreach ( array_merge( $this->temp_views, $this->temp_resolvers ) as $file ) {
 			if ( is_file( $file ) ) {
 				unlink( $file );
 			}
 		}
-		$this->temp_views = array();
+		$this->temp_views     = array();
+		$this->temp_resolvers = array();
 		parent::tearDown();
 	}
 
@@ -53,6 +62,19 @@ final class SectionSplitTest extends SaltTestCase {
 		file_put_contents( $file, $php );
 		$this->temp_views[] = $file;
 		return $file;
+	}
+
+	/**
+	 * Write a temporary resolver file into the parent's inc/sections/.
+	 *
+	 * @param string $layout Layout slug (zz-test-…).
+	 * @param string $php    File source.
+	 * @return void
+	 */
+	private function temp_resolver( string $layout, string $php ): void {
+		$file = dirname( __DIR__, 2 ) . '/inc/sections/' . $layout . '.php';
+		file_put_contents( $file, $php );
+		$this->temp_resolvers[] = $file;
 	}
 
 	/**
@@ -179,6 +201,86 @@ final class SectionSplitTest extends SaltTestCase {
 		$this->assertSame( '', $html );
 		$this->assertSame( 0, salt_render_state()['section_index'], 'No band was opened.' );
 		$this->assertFalse( salt_h1_claimed() );
+	}
+
+	public function test_view_plan_carries_priority_media_only_when_the_resolver_sets_it(): void {
+		$view = $this->temp_view( '<?php echo "<p>" . var_export( $args[\'plan\'][\'priorityMedia\'], true ) . "</p>";' );
+
+		$this->seed_row( 'rich_text', array( 'heading' => 'Text' ) );
+		ob_start();
+		salt_render_resolved_section( 'rich-text', $view, array( 'index' => 0 ) );
+		$this->assertStringContainsString( '<p>false</p>', (string) ob_get_clean(), 'Default: no priority image.' );
+
+		$this->seed_row( 'hero', array( 'heading' => 'Hero' ) );
+		ob_start();
+		salt_render_resolved_section( 'hero', $view, array( 'index' => 1 ) );
+		$this->assertStringContainsString( '<p>true</p>', (string) ob_get_clean(), 'Hero claims the priority image.' );
+	}
+
+	// -----------------------------------------------------------------
+	// Fail loudly (resolver naming, conflicts, return shape).
+	// -----------------------------------------------------------------
+
+	public function test_misnamed_resolver_throws_in_debug_and_never_loads_the_view(): void {
+		$this->temp_resolver( 'zz-test-misnamed', "<?php\nfunction salt_resolve_section_zz_test_wrong_name( array \$context ): ?array {\n\treturn null;\n}\n" );
+		$view = $this->temp_view( '<?php echo "VIEW RAN";' );
+
+		$this->expectException( LogicException::class );
+		try {
+			salt_render_resolved_section( 'zz-test-misnamed', $view, array( 'index' => 0 ) );
+		} finally {
+			$this->assertStringContainsString( 'does not define salt_resolve_section_zz_test_misnamed()', implode( ' ', $this->logs() ) );
+		}
+	}
+
+	public function test_misnamed_resolver_renders_nothing_in_production(): void {
+		add_filter( 'salt_is_debug', static fn(): bool => false, 20 );
+		$this->temp_resolver( 'zz-test-misnamed-prod', "<?php\nfunction salt_resolve_section_zz_test_misnamed_prod_typo( array \$context ): ?array {\n\treturn null;\n}\n" );
+		$view = $this->temp_view( '<?php echo "VIEW RAN";' );
+
+		ob_start();
+		salt_render_resolved_section( 'zz-test-misnamed-prod', $view, array( 'index' => 0 ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( '', $html, 'Never the unsplit path: the view is not loaded with the loop context.' );
+		$this->assertStringContainsString( 'does not define', implode( ' ', $this->logs() ) );
+	}
+
+	public function test_resolver_already_defined_elsewhere_is_logged_not_a_fatal(): void {
+		add_filter( 'salt_is_debug', static fn(): bool => false, 20 );
+		// A "child theme" defines the resolver first …
+		$child = $this->temp_view( "<?php\nfunction salt_resolve_section_zz_test_conflict( array \$context ): ?array {\n\treturn array( 'section' => array( 'name' => 'child' ), 'props' => array() );\n}\n" );
+		require $child;
+		// … then the parent's file for the same section exists.
+		$this->temp_resolver( 'zz-test-conflict', "<?php\nfunction salt_resolve_section_zz_test_conflict( array \$context ): ?array {\n\treturn null;\n}\n" );
+		$view = $this->temp_view( '<?php echo "VIEW RAN";' );
+
+		$this->assertNull( salt_section_resolver( 'zz-test-conflict' ) );
+
+		ob_start();
+		salt_render_resolved_section( 'zz-test-conflict', $view, array( 'index' => 0 ) );
+		$this->assertSame( '', (string) ob_get_clean(), 'The other definition is never used.' );
+
+		$logs = implode( ' ', $this->logs() );
+		$this->assertStringContainsString( 'salt_resolve_section_zz_test_conflict() is already defined in', $logs );
+		$this->assertStringContainsString( 'cannot be replaced', $logs );
+	}
+
+	public function test_resolver_already_defined_elsewhere_throws_in_debug(): void {
+		$child = $this->temp_view( "<?php\nfunction salt_resolve_section_zz_test_conflict_debug( array \$context ): ?array {\n\treturn null;\n}\n" );
+		require $child;
+		$this->temp_resolver( 'zz-test-conflict-debug', "<?php\nfunction salt_resolve_section_zz_test_conflict_debug( array \$context ): ?array {\n\treturn null;\n}\n" );
+
+		$this->expectException( LogicException::class );
+		salt_section_resolver( 'zz-test-conflict-debug' );
+	}
+
+	public function test_unknown_plan_keys_are_a_malformed_return(): void {
+		$this->temp_resolver( 'zz-test-bad-plan', "<?php\nfunction salt_resolve_section_zz_test_bad_plan( array \$context ): ?array {\n\treturn array( 'section' => array( 'name' => 'zz-test-bad-plan' ), 'props' => array(), 'plan' => array( 'anchor' => 'x' ) );\n}\n" );
+		$view = $this->temp_view( '<?php echo "VIEW RAN";' );
+
+		$this->expectException( UnexpectedValueException::class );
+		salt_render_resolved_section( 'zz-test-bad-plan', $view, array( 'index' => 0 ) );
 	}
 
 	public function test_logic_runs_even_when_a_child_view_draws_nothing_of_it(): void {

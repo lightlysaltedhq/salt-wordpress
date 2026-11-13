@@ -194,8 +194,9 @@ final class RichTextSectionTest extends SaltTestCase {
 					'body'    => '<p>Already sanitised.</p>',
 				),
 				'plan'  => array(
-					'index'        => 0,
-					'headingLevel' => 2,
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
 				),
 			)
 		);

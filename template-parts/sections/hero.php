@@ -9,13 +9,14 @@
  *
  * $args:
  *   props  array{ variant: string, eyebrow: string|null, heading: string|null,
- *                 subheading: string|null, image_id: int, priorityMedia: bool,
+ *                 subheading: string|null, image_id: int,
  *                 ctas: array<int, array{label: string, url: string, style: string, target: string}> }
  *          image_id is 0 or a resolvable attachment (always 0 for minimal).
- *   plan   array{ index: int, headingLevel: int }
+ *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
  *
  * IMAGE (§8): rendered ONLY via x-image with sizes_context 'hero'; the
- * priorityMedia prop makes it THE LCP image (eager + fetchpriority=high).
+ * plan's priorityMedia (always true for hero) makes it THE LCP image
+ * (eager + fetchpriority=high).
  *
  * VARIANTS (v1, honest — layout classes only):
  * - full-bleed: edge-to-edge image above the text (the wrapper container
@@ -73,13 +74,13 @@ $salt_text = static function () use ( $salt_props, $salt_plan ): void {
 	}
 };
 
-$salt_image = static function ( string $classes ) use ( $salt_props ): void {
+$salt_image = static function ( string $classes ) use ( $salt_props, $salt_plan ): void {
 	salt_component(
 		'image',
 		array(
 			'image_id'      => $salt_props['image_id'],
 			'alt'           => '', // Stored attachment alt wins (x-image precedence).
-			'priority'      => $salt_props['priorityMedia'], // THE LCP image: eager + fetchpriority=high (§8).
+			'priority'      => $salt_plan['priorityMedia'], // THE LCP image: eager + fetchpriority=high (§8).
 			'sizes_context' => 'hero',
 			'classes'       => $classes,
 		)

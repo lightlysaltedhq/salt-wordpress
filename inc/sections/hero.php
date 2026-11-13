@@ -40,15 +40,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   image_id       int          WordPress-local (contract `image` is a resolved
  *                               image object): a RESOLVABLE attachment ID, or
  *                               0 for none. Always 0 for the minimal variant.
- *   priorityMedia  bool         Contract `priorityMedia` (on the contract's
- *                               plan): the hero image is THE LCP image —
- *                               eager + fetchpriority=high (§8). Always true.
  *   ctas           array<int, array{label: string, url: string, style: string, target: string}>
  *                               WordPress-local (contract `buttons`): valid
  *                               links only, x-button args, primary first.
  *
+ * Plan (returned under `plan`, merged into the view's $args['plan']):
+ *   priorityMedia  true         Contract plan `priorityMedia`: the hero image
+ *                               is THE LCP image — eager + fetchpriority=high
+ *                               (§8). Always true for hero today.
+ *
  * @param array<string,mixed> $context Loop context: index, is_primary.
- * @return array{section: array<string,mixed>, props: array<string,mixed>}|null Null = 0-state.
+ * @return array{section: array<string,mixed>, props: array<string,mixed>, plan: array{priorityMedia: bool}}|null Null = 0-state.
  */
 function salt_resolve_section_hero( array $context ): ?array {
 	$variant    = (string) get_sub_field( 'variant' );
@@ -124,13 +126,13 @@ function salt_resolve_section_hero( array $context ): ?array {
 			array( 'has_heading' => '' !== trim( $heading ) )
 		),
 		'props'   => array(
-			'variant'       => $variant,
-			'eyebrow'       => salt_nullable_text( $eyebrow ),
-			'heading'       => salt_nullable_text( $heading ),
-			'subheading'    => salt_nullable_text( $subheading ),
-			'image_id'      => $image_id,
-			'priorityMedia' => true,
-			'ctas'          => $ctas,
+			'variant'    => $variant,
+			'eyebrow'    => salt_nullable_text( $eyebrow ),
+			'heading'    => salt_nullable_text( $heading ),
+			'subheading' => salt_nullable_text( $subheading ),
+			'image_id'   => $image_id,
+			'ctas'       => $ctas,
 		),
+		'plan'    => array( 'priorityMedia' => true ),
 	);
 }

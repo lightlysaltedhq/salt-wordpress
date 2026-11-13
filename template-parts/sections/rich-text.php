@@ -10,7 +10,7 @@
  * $args:
  *   props  array{ heading: string|null, body: string|null }
  *          body is HTML already sanitised by salt_sanitize_html().
- *   plan   array{ index: int, headingLevel: int }
+ *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
  *
  * @package Salt
  */

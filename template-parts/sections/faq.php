@@ -13,7 +13,7 @@
  *                 items: array<int, array{id: string, question: string, answer: string}>,
  *                 structuredData: bool }
  *          items is never empty; answer is HTML already sanitised.
- *   plan   array{ index: int, headingLevel: int }
+ *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
  *
  * @package Salt
  */
