@@ -288,4 +288,170 @@ final class CtaSectionTest extends SaltTestCase {
 
 		$this->assertCount( $baseline, salt_schema_graph( $graph_args )['@graph'], 'CTA section queues no schema nodes.' );
 	}
+
+	// -----------------------------------------------------------------
+	// Resolver and view (logic/view split, ID-3587).
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one cta FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields  Row fields.
+	 * @param array<string,mixed> $context Loop context.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_cta( array $fields, array $context = array(
+		'index'      => 0,
+		'is_primary' => false,
+	) ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'cta',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'cta' );
+		$this->assertSame( 'salt_resolve_section_cta', $resolver );
+
+		return $resolver( $context );
+	}
+
+	public function test_resolver_returns_null_for_the_zero_state(): void {
+		$this->assertNull(
+			$this->resolve_cta(
+				array(
+					'heading' => '  ',
+					'text'    => "\n",
+					'buttons' => array(
+						array(
+							'label' => 'No url',
+							'url'   => '',
+						),
+					),
+				)
+			)
+		);
+	}
+
+	public function test_resolver_props_use_the_contract_names(): void {
+		$resolved = $this->resolve_cta(
+			array(
+				'heading' => ' Ready? ',
+				'text'    => 'Talk to us.',
+				'buttons' => array(
+					array(
+						'label' => 'Go',
+						'url'   => '/go',
+						'style' => 'secondary',
+					),
+					array(
+						'label' => 'Odd',
+						'url'   => '/odd',
+						'style' => 'bogus',
+					),
+				),
+			)
+		);
+
+		$this->assertSame( array( 'heading', 'body_text', 'buttons' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( 'Ready?', $resolved['props']['heading'] );
+		$this->assertSame( 'Talk to us.', $resolved['props']['body_text'] );
+		$this->assertSame(
+			array(
+				array(
+					'label' => 'Go',
+					'href'  => '/go',
+					'style' => 'secondary',
+				),
+				array(
+					'label' => 'Odd',
+					'href'  => '/odd',
+					'style' => 'primary',
+				),
+			),
+			$resolved['props']['buttons']
+		);
+	}
+
+	public function test_resolver_nulls_blank_text_and_keeps_buttons_only_sections(): void {
+		$resolved = $this->resolve_cta(
+			array(
+				'buttons' => array(
+					array(
+						'label' => 'Go',
+						'url'   => '/go',
+					),
+				),
+			)
+		);
+
+		$this->assertNull( $resolved['props']['heading'] );
+		$this->assertNull( $resolved['props']['body_text'] );
+		$this->assertFalse( $resolved['section']['has_heading'] );
+	}
+
+	public function test_resolver_owns_the_wrapper_inputs_and_the_brand_tint_default(): void {
+		$resolved = $this->resolve_cta( array( 'heading' => 'Hi' ) );
+		$this->assertSame( 'cta', $resolved['section']['name'] );
+		$this->assertSame( 'brand-tint', $resolved['section']['background'] );
+		$this->assertTrue( $resolved['section']['has_heading'] );
+
+		$resolved = $this->resolve_cta(
+			array(
+				'heading'            => 'Hi',
+				'section_background' => 'surface-alt',
+			)
+		);
+		$this->assertSame( 'surface-alt', $resolved['section']['background'] );
+	}
+
+	public function test_resolver_drops_buttons_beyond_two(): void {
+		$buttons = array();
+		foreach ( array( 'a', 'b', 'c' ) as $key ) {
+			$buttons[] = array(
+				'label' => $key,
+				'url'   => '/' . $key,
+			);
+		}
+		$resolved = $this->resolve_cta( array( 'buttons' => $buttons ) );
+
+		$this->assertCount( 2, $resolved['props']['buttons'] );
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/cta.php',
+			false,
+			array(
+				'props' => array(
+					'heading'   => 'From props',
+					'body_text' => 'Copy <b>x</b>',
+					'buttons'   => array(
+						array(
+							'label' => 'Press',
+							'href'  => '/pressed',
+							'style' => 'ghost',
+						),
+					),
+				),
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
+		$this->assertStringContainsString( 'From props', $html );
+		$this->assertStringContainsString( 'Copy &lt;b&gt;x&lt;/b&gt;', $html );
+		$this->assertStringContainsString( 'href="/pressed"', $html );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+	}
 }
