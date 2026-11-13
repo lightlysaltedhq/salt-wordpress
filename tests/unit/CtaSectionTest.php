@@ -357,9 +357,9 @@ final class CtaSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( array( 'heading', 'text', 'buttons' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( array( 'heading', 'body_text', 'buttons' ), array_keys( $resolved['props'] ) );
 		$this->assertSame( 'Ready?', $resolved['props']['heading'] );
-		$this->assertSame( 'Talk to us.', $resolved['props']['text'] );
+		$this->assertSame( 'Talk to us.', $resolved['props']['body_text'] );
 		$this->assertSame(
 			array(
 				array(
@@ -390,7 +390,7 @@ final class CtaSectionTest extends SaltTestCase {
 		);
 
 		$this->assertNull( $resolved['props']['heading'] );
-		$this->assertNull( $resolved['props']['text'] );
+		$this->assertNull( $resolved['props']['body_text'] );
 		$this->assertFalse( $resolved['section']['has_heading'] );
 	}
 
@@ -429,9 +429,9 @@ final class CtaSectionTest extends SaltTestCase {
 			false,
 			array(
 				'props' => array(
-					'heading' => 'From props',
-					'text'    => 'Copy <b>x</b>',
-					'buttons' => array(
+					'heading'   => 'From props',
+					'body_text' => 'Copy <b>x</b>',
+					'buttons'   => array(
 						array(
 							'label' => 'Press',
 							'href'  => '/pressed',

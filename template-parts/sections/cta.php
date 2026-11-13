@@ -8,7 +8,7 @@
  * overrides the markup only.
  *
  * $args:
- *   props  array{ heading: string|null, text: string|null,
+ *   props  array{ heading: string|null, body_text: string|null,
  *                 buttons: array<int, array{label: string, href: string, style: string}> }
  *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
  *
@@ -26,7 +26,7 @@ salt_component(
 	'cta',
 	array(
 		'heading' => $salt_props['heading'] ?? '',
-		'text'    => $salt_props['text'] ?? '',
+		'text'    => $salt_props['body_text'] ?? '',
 		'buttons' => array_map(
 			static fn( array $button ): array => array(
 				'label' => $button['label'],

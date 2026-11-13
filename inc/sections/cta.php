@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Props (contract view-props/call-to-action.json):
  *   heading  string|null  Contract `heading`. Null when blank; trimmed.
- *   text     string|null  WordPress-local. The contract's `body` is rich
+ *   body_text string|null WordPress-local. The contract's `body` is rich
  *                         text; this field is a plain textarea that x-cta
  *                         escapes, so the name is not shared. Null when
  *                         blank; trimmed.
@@ -110,9 +110,9 @@ function salt_resolve_section_cta( array $context ): ?array {
 			array( 'has_heading' => '' !== $heading )
 		),
 		'props'   => array(
-			'heading' => salt_nullable_text( $heading ),
-			'text'    => salt_nullable_text( $text ),
-			'buttons' => $buttons,
+			'heading'   => salt_nullable_text( $heading ),
+			'body_text' => salt_nullable_text( $text ),
+			'buttons'   => $buttons,
 		),
 	);
 }

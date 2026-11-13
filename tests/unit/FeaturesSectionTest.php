@@ -322,16 +322,16 @@ final class FeaturesSectionTest extends SaltTestCase {
 		$this->assertSame(
 			array(
 				array(
-					'icon'  => 'star',
-					'title' => 'Fast',
-					'text'  => 'Really fast.',
-					'href'  => '/fast',
+					'icon'      => 'star',
+					'title'     => 'Fast',
+					'body_text' => 'Really fast.',
+					'href'      => '/fast',
 				),
 				array(
-					'icon'  => null,
-					'title' => 'Bare',
-					'text'  => null,
-					'href'  => null,
+					'icon'      => null,
+					'title'     => 'Bare',
+					'body_text' => null,
+					'href'      => null,
 				),
 			),
 			$resolved['props']['items']
@@ -368,10 +368,10 @@ final class FeaturesSectionTest extends SaltTestCase {
 					'columns' => '2',
 					'items'   => array(
 						array(
-							'icon'  => null,
-							'title' => 'Card title',
-							'text'  => 'Card copy',
-							'href'  => '/card',
+							'icon'      => null,
+							'title'     => 'Card title',
+							'body_text' => 'Card copy',
+							'href'      => '/card',
 						),
 					),
 				),

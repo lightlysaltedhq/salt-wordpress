@@ -22,12 +22,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   eyebrow  string|null  Contract `eyebrow`. Null when blank.
  *   heading  string|null  Contract `heading`. Null when blank.
  *   columns  string       Contract `columns`: '2'|'3'|'4' (default '3').
- *   items    array<int, array{icon: string|null, title: string, text: string|null, href: string|null}>
+ *   items    array<int, array{icon: string|null, title: string, body_text: string|null, href: string|null}>
  *                         Contract `items` (feature), never empty: `icon`
- *                         (an icon name), `title`, `text`, `href` (the
- *                         link's url, null when none). `text` keeps the
- *                         contract's name but is plain text here (the
- *                         contract types it as rich text); x-card escapes it.
+ *                         (an icon name), `title`, `href` (the link's url,
+ *                         null when none), and `body_text`, which is
+ *                         WordPress-local: the contract's `text` is rich
+ *                         text, while this field is plain text that x-card
+ *                         escapes, so the name is not shared.
  *   The contract's `intro` is not supplied (the layout has no such field).
  *
  * @param array<string,mixed> $context Loop context: index, is_primary.
@@ -73,11 +74,11 @@ function salt_resolve_section_features( array $context ): ?array {
 		$href = is_string( $link['url'] ?? null ) ? $link['url'] : '';
 
 		$items[] = array(
-			'icon'  => salt_nullable_text( is_string( $row['icon'] ?? null ) ? trim( $row['icon'] ) : '' ),
-			'title' => $title,
-			'text'  => salt_nullable_text( is_string( $row['text'] ?? null ) ? trim( $row['text'] ) : '' ),
+			'icon'      => salt_nullable_text( is_string( $row['icon'] ?? null ) ? trim( $row['icon'] ) : '' ),
+			'title'     => $title,
+			'body_text' => salt_nullable_text( is_string( $row['text'] ?? null ) ? trim( $row['text'] ) : '' ),
 			// Only an empty url is "none": a blank-but-not-empty url was passed on as it was.
-			'href'  => '' !== $href ? $href : null,
+			'href'      => '' !== $href ? $href : null,
 		);
 	}
 
