@@ -496,4 +496,177 @@ final class BlogTeaserSectionTest extends SaltTestCase {
 			'Query controls precede the shared wrapper fields.'
 		);
 	}
+
+	// -----------------------------------------------------------------
+	// Resolver and view (logic/view split, ID-3587).
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one blog_teaser FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields Row fields.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_blog_teaser( array $fields = array() ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'blog_teaser',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'blog-teaser' );
+		$this->assertSame( 'salt_resolve_section_blog_teaser', $resolver );
+
+		return $resolver(
+			array(
+				'index'      => 0,
+				'is_primary' => true,
+			)
+		);
+	}
+
+	public function test_resolver_returns_null_for_zero_and_malformed_items(): void {
+		$this->assertNull( $this->resolve_blog_teaser( array( 'heading' => 'From the blog' ) ) );
+
+		$this->seed_blog_posts(
+			array(
+				array(
+					'ID'         => 1,
+					'post_title' => '  ',
+				),
+			)
+		);
+		$this->assertNull( $this->resolve_blog_teaser( array( 'heading' => 'From the blog' ) ) );
+		$this->assertStringContainsString( 'post 1 has no title', implode( ' ', $this->logs() ) );
+	}
+
+	public function test_resolver_props_items_and_fallbacks(): void {
+		$this->seed_blog_posts(
+			array(
+				array(
+					'ID'           => 1,
+					'post_title'   => 'Alpha',
+					'post_date'    => '2026-03-05 09:30:00',
+					'post_excerpt' => 'First post.',
+				),
+				array(
+					'ID'         => 2,
+					'post_title' => 'Undated',
+					'post_date'  => '',
+				),
+			)
+		);
+
+		$resolved = $this->resolve_blog_teaser(
+			array(
+				'eyebrow' => 'News',
+				'columns' => 5,
+			)
+		);
+
+		$this->assertSame( array( 'eyebrow', 'heading', 'columns', 'items', 'view_all_url' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( 'News', $resolved['props']['eyebrow'] );
+		$this->assertNull( $resolved['props']['heading'] );
+		$this->assertSame( 3, $resolved['props']['columns'] );
+		$this->assertNull( $resolved['props']['view_all_url'] );
+		$this->assertStringContainsString( 'invalid columns "5"', implode( ' ', $this->logs() ) );
+		$this->assertFalse( $resolved['section']['has_heading'] );
+		$this->assertSame( 'blog-teaser', $resolved['section']['name'] );
+
+		$by_title = array_column( $resolved['props']['items'], null, 'title' );
+		$this->assertSame( array( 'title', 'url', 'date', 'datetime', 'excerpt', 'image_id' ), array_keys( $by_title['Alpha'] ) );
+		$this->assertSame( '2026-03-05T09:30:00+00:00', $by_title['Alpha']['datetime'] );
+		$this->assertSame( 'First post.', $by_title['Alpha']['excerpt'] );
+		$this->assertSame( 0, $by_title['Alpha']['image_id'] );
+		$this->assertSame( '', $by_title['Undated']['date'], 'An unresolvable date is an empty string.' );
+		$this->assertSame( '', $by_title['Undated']['datetime'] );
+	}
+
+	public function test_resolver_view_all_url_is_the_posts_page_else_home_and_null_when_off(): void {
+		$this->seed_blog_posts(
+			array(
+				array(
+					'ID'         => 1,
+					'post_title' => 'Alpha',
+				),
+			)
+		);
+
+		$home = $this->resolve_blog_teaser( array( 'view_all' => 1 ) );
+		$this->assertSame( 'https://example.test/', $home['props']['view_all_url'] );
+
+		$GLOBALS['salt_test_options']['page_for_posts'] = 12;
+		$GLOBALS['salt_test_permalinks'][12]            = 'https://example.test/blog/';
+		$page = $this->resolve_blog_teaser( array( 'view_all' => 1 ) );
+		$this->assertSame( 'https://example.test/blog/', $page['props']['view_all_url'] );
+
+		$this->assertNull( $this->resolve_blog_teaser( array( 'view_all' => 0 ) )['props']['view_all_url'] );
+		$this->assertSame( array(), salt_schema_queue(), 'Blog teaser queues no schema.' );
+	}
+
+	/**
+	 * Draw the view from props.
+	 *
+	 * @param array<string,mixed> $props Props.
+	 * @return string
+	 */
+	private function draw_blog_teaser_view( array $props ): string {
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/blog-teaser.php',
+			false,
+			array(
+				'props' => $props,
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		return (string) ob_get_clean();
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		$item  = array(
+			'title'    => 'Prop Post',
+			'url'      => 'https://example.test/prop-post/',
+			'date'     => '5 March 2026',
+			'datetime' => '2026-03-05T09:30:00+00:00',
+			'excerpt'  => 'Drawn from props.',
+			'image_id' => 0,
+		);
+		$props = array(
+			'eyebrow'      => 'News',
+			'heading'      => 'From props',
+			'columns'      => 2,
+			'items'        => array( $item, array_merge( $item, array( 'title' => 'Second' ) ) ),
+			'view_all_url' => 'https://example.test/blog/',
+		);
+
+		$html = $this->draw_blog_teaser_view( $props );
+
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ), 'Section heading at the plan level.' );
+		$this->assertSame( 2, preg_match_all( '/<h3[\s>]/', $html ), 'Card titles one level below.' );
+		$this->assertStringContainsString( 'x-blog-teaser-header', $html );
+		$this->assertStringContainsString( 'grid list-none gap-8 p-0 sm:grid-cols-2"', $html );
+		$this->assertStringContainsString( 'datetime="2026-03-05T09:30:00+00:00"', $html );
+		$this->assertStringContainsString( 'Drawn from props.', $html );
+		$this->assertStringContainsString( 'https://example.test/blog/', $html );
+		$this->assertStringContainsString( 'View all posts', $html );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+
+		$props['items']        = array( $item );
+		$props['eyebrow']      = null;
+		$props['heading']      = null;
+		$props['view_all_url'] = null;
+		$bare                  = $this->draw_blog_teaser_view( $props );
+		$this->assertStringNotContainsString( 'x-blog-teaser-header', $bare );
+		$this->assertStringNotContainsString( 'sm:grid-cols-2', $bare, 'One item draws a single column.' );
+		$this->assertStringNotContainsString( 'View all posts', $bare );
+	}
 }

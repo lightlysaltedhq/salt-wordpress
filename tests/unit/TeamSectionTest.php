@@ -404,6 +404,155 @@ final class TeamSectionTest extends SaltTestCase {
 	// Fixture builder.
 	// -----------------------------------------------------------------------
 
+	// -----------------------------------------------------------------------
+	// Resolver and view (logic/view split, ID-3587).
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Seed one team FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $row_fields Sub-field fixture values.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_team( array $row_fields = array() ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'team',
+					'fields' => $row_fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'team' );
+		$this->assertSame( 'salt_resolve_section_team', $resolver );
+
+		return $resolver(
+			array(
+				'index'      => 0,
+				'is_primary' => true,
+			)
+		);
+	}
+
+	public function test_resolver_returns_null_for_zero_members_malformed_members_and_a_disabled_module(): void {
+		$this->assertNull( $this->resolve_team( array( 'heading' => 'Meet the team' ) ) );
+
+		$this->seed_members( array( $this->member( 1, '' ) ) );
+		$this->assertNull( $this->resolve_team( array( 'heading' => 'Meet the team' ) ) );
+		$this->assertSame( array(), salt_schema_queue(), 'A skipped section queues no Person node.' );
+
+		$this->seed_members( array( $this->member( 1, 'Jane Doe' ) ) );
+		$GLOBALS['salt_test_fields']['option']['module_team_member'] = false;
+		$this->assertNull( $this->resolve_team( array( 'heading' => 'Meet the team' ) ) );
+	}
+
+	public function test_resolver_props_members_and_fallbacks(): void {
+		$GLOBALS['salt_test_attachments'][40] = array(
+			'src'    => 'https://example.test/uploads/jane.jpg',
+			'width'  => 600,
+			'height' => 600,
+			'srcset' => '',
+		);
+		$jane                                 = $this->member(
+			1,
+			'  Jane Doe ',
+			array(
+				'role'      => 'Founder',
+				'short_bio' => 'Builds things.',
+				'email'     => 'jane@example.test',
+				'phone'     => '+44 1234',
+				'socials'   => 'not-an-array',
+			)
+		);
+		$jane['salt_thumbnail_id']            = 40;
+		$this->seed_members( array( $jane, $this->member( 2, 'John Smith' ) ) );
+
+		$resolved = $this->resolve_team(
+			array(
+				'eyebrow' => 'People',
+				'columns' => '7',
+			)
+		);
+
+		$this->assertSame( array( 'eyebrow', 'heading', 'columns', 'members' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( 'People', $resolved['props']['eyebrow'] );
+		$this->assertNull( $resolved['props']['heading'] );
+		$this->assertSame( '3', $resolved['props']['columns'] );
+		$this->assertStringContainsString( 'invalid columns value "7"', implode( ' ', $this->logs() ) );
+
+		$this->assertCount( 2, $resolved['props']['members'] );
+		$member = $resolved['props']['members'][0];
+		$this->assertSame( array( 'name', 'role', 'bio', 'email', 'phone', 'image_id', 'socials' ), array_keys( $member ) );
+		$this->assertSame( 'Jane Doe', $member['name'], 'The name is trimmed, as before.' );
+		$this->assertSame( 'Founder', $member['role'] );
+		$this->assertSame( 40, $member['image_id'] );
+		$this->assertSame( array(), $member['socials'], 'A non-array socials field is an empty list.' );
+		$this->assertSame( 0, $resolved['props']['members'][1]['image_id'] );
+		$this->assertFalse( $resolved['section']['has_heading'] );
+		$this->assertSame( 'team', $resolved['section']['name'] );
+	}
+
+	public function test_resolver_queues_the_person_nodes_itself(): void {
+		$this->seed_members( array( $this->member( 1, 'Jane Doe', array( 'role' => 'Founder' ) ) ) );
+
+		$this->resolve_team();
+
+		$queue = salt_schema_queue();
+		$this->assertCount( 1, $queue, 'Schema is logic: queued without the view ever running.' );
+		$this->assertSame( 'Person', $queue[0]['@type'] );
+		$this->assertSame( 'Founder', $queue[0]['jobTitle'] );
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		$GLOBALS['salt_test_attachments'][40] = array(
+			'src'    => 'https://example.test/uploads/prop.jpg',
+			'width'  => 600,
+			'height' => 600,
+			'srcset' => '',
+		);
+		$props                                = array(
+			'eyebrow' => 'People',
+			'heading' => 'From props',
+			'columns' => '2',
+			'members' => array(
+				array(
+					'name'     => 'Prop Person',
+					'role'     => 'Designer',
+					'bio'      => 'Drawn from props.',
+					'email'    => '',
+					'phone'    => '',
+					'image_id' => 40,
+					'socials'  => array(),
+				),
+			),
+		);
+
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/team.php',
+			false,
+			array(
+				'props' => $props,
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ), 'Section heading at the plan level.' );
+		$this->assertSame( 1, preg_match_all( '/<h3[\s>]/', $html ), 'Card title one level below.' );
+		$this->assertStringContainsString( 'Prop Person', $html );
+		$this->assertStringContainsString( 'prop.jpg', $html, 'The view draws the photo from image_id.' );
+		$this->assertStringContainsString( 'grid gap-8 sm:grid-cols-2"', $html );
+		$this->assertStringNotContainsString( 'lg:grid-cols-3', $html );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+	}
+
 	/**
 	 * Build a team_member post fixture.
 	 *

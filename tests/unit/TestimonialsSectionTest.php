@@ -488,4 +488,169 @@ final class TestimonialsSectionTest extends SaltTestCase {
 
 		$this->assertSame( array(), $this->schema_reviews() );
 	}
+
+	// -----------------------------------------------------------------
+	// Resolver and view (logic/view split, ID-3587).
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one testimonials FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields Row sub-field fixtures.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_testimonials( array $fields = array() ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'testimonials',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'testimonials' );
+		$this->assertSame( 'salt_resolve_section_testimonials', $resolver );
+
+		return $resolver(
+			array(
+				'index'      => 0,
+				'is_primary' => true,
+			)
+		);
+	}
+
+	public function test_resolver_returns_null_for_zero_items_broken_rows_and_a_disabled_module(): void {
+		$this->assertNull( $this->resolve_testimonials( array( 'heading' => 'Kind words' ) ) );
+
+		$this->seed_posts(
+			array(
+				array(
+					'ID'         => 101,
+					'post_type'  => 'testimonial',
+					'post_title' => 'No Quote',
+				),
+			)
+		);
+		$this->assertNull( $this->resolve_testimonials( array( 'heading' => 'Kind words' ) ) );
+		$this->assertStringContainsString( 'testimonial 101', implode( ' ', $this->logs() ) );
+
+		$this->seed_standard_set();
+		$GLOBALS['salt_test_fields']['option']['module_testimonial'] = false;
+		$this->assertNull( $this->resolve_testimonials( array( 'heading' => 'Kind words' ) ) );
+	}
+
+	public function test_resolver_returns_data_for_the_cards_not_rendered_components(): void {
+		$this->seed_standard_set();
+		$GLOBALS['salt_test_fields']['101']['logo']   = 55;
+		$GLOBALS['salt_test_fields']['103']['rating'] = 9;
+
+		$resolved = $this->resolve_testimonials(
+			array(
+				'eyebrow' => 'Praise',
+				'layout'  => 'carousel',
+			)
+		);
+
+		$this->assertSame( array( 'eyebrow', 'heading', 'layout', 'items' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( 'Praise', $resolved['props']['eyebrow'] );
+		$this->assertNull( $resolved['props']['heading'] );
+		$this->assertSame( 'grid', $resolved['props']['layout'], 'Unknown layout falls back to grid.' );
+		$this->assertFalse( $resolved['section']['has_heading'] );
+
+		$items = $resolved['props']['items'];
+		$this->assertCount( 3, $items );
+		$this->assertSame( array( 'author', 'quote', 'role', 'company', 'rating', 'logo_id' ), array_keys( $items[0] ) );
+		$this->assertSame( 'Alice Example', $items[0]['author'] );
+		$this->assertSame( 'Salt transformed our site.', $items[0]['quote'] );
+		$this->assertSame( 'Acme Ltd', $items[0]['company'] );
+		$this->assertSame( 55, $items[0]['logo_id'] );
+		$this->assertSame( 5, $items[2]['rating'], 'The resolver clamps ratings.' );
+		$this->assertStringContainsString( 'rating 9 on testimonial 103', implode( ' ', $this->logs() ) );
+
+		$this->assertStringNotContainsString( '<', (string) wp_json_encode( $items ), 'No pre-rendered component HTML in props (rule 3).' );
+	}
+
+	public function test_resolver_queues_the_review_nodes_itself(): void {
+		$this->seed_standard_set();
+
+		$this->resolve_testimonials();
+
+		$this->assertCount( 1, $this->schema_reviews(), 'Schema is logic: queued without the view ever running.' );
+	}
+
+	/**
+	 * Draw the view from props.
+	 *
+	 * @param array<string,mixed> $props Props.
+	 * @return string
+	 */
+	private function draw_testimonials_view( array $props ): string {
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/testimonials.php',
+			false,
+			array(
+				'props' => $props,
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		return (string) ob_get_clean();
+	}
+
+	public function test_view_draws_the_cards_from_props_alone(): void {
+		$GLOBALS['salt_test_attachments'][55] = array(
+			'src'    => 'https://example.test/uploads/prop-logo.png',
+			'width'  => 200,
+			'height' => 80,
+			'srcset' => '',
+		);
+		$item                                 = array(
+			'author'  => 'Prop Author',
+			'quote'   => 'Drawn from props.',
+			'role'    => 'CEO',
+			'company' => 'Prop Co',
+			'rating'  => 4,
+			'logo_id' => 55,
+		);
+		$props                                = array(
+			'eyebrow' => 'Praise',
+			'heading' => 'From props',
+			'layout'  => 'slider',
+			'items'   => array(
+				$item,
+				array_merge(
+					$item,
+					array(
+						'author'  => 'Second',
+						'logo_id' => 0,
+					)
+				),
+			),
+		);
+
+		$html = $this->draw_testimonials_view( $props );
+
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ), 'Heading at the plan level.' );
+		$this->assertStringContainsString( 'data-salt-testimonials', $html );
+		$this->assertSame( 2, substr_count( $html, 'x-testimonials-item' ) );
+		$this->assertStringContainsString( 'prop-logo.png', $html, 'The view renders the logo component from logo_id.' );
+		$this->assertStringContainsString( 'Drawn from props.', $html );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+
+		$props['layout'] = 'grid';
+		$grid            = $this->draw_testimonials_view( $props );
+		$this->assertStringContainsString( 'x-testimonials-grid', $grid );
+		$this->assertStringNotContainsString( 'data-salt-testimonials', $grid );
+
+		$props['items'] = array( $item );
+		$single         = $this->draw_testimonials_view( $props );
+		$this->assertStringContainsString( 'x-testimonials-single', $single );
+		$this->assertStringNotContainsString( 'x-testimonials-track', $single );
+	}
 }

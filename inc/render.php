@@ -408,12 +408,193 @@ function salt_section_wrapper_args( string $name, array $context = array() ): ar
 	);
 }
 
+// ---------------------------------------------------------------------------
+// Section logic/view split (ID-3587 — docs/contracts/CONVENTIONS.md).
+// ---------------------------------------------------------------------------
+
+/**
+ * A text field as a nullable view prop: null when blank, else the value
+ * UNCHANGED (never trimmed — the view prints exactly what was stored).
+ *
+ * Resolvers use this for every optional text prop, so a view tests
+ * `null !== $props['x']` instead of re-deciding emptiness.
+ *
+ * @param string $value Raw field value.
+ * @return string|null
+ */
+function salt_nullable_text( string $value ): ?string {
+	return '' === trim( $value ) ? null : $value;
+}
+
+/**
+ * The resolver file of a split section, or null when the section has not
+ * been split (its template is still the whole section).
+ *
+ * Resolvers live in the PARENT theme only — inc/sections/{layout}.php,
+ * under get_template_directory(), never found through locate_template() —
+ * so a child theme cannot replace a section's logic by dropping in a file.
+ * The file's existence is what makes a section split.
+ *
+ * @param string $layout Layout slug (hyphenated, as the loop passes it).
+ * @return string|null Absolute path.
+ */
+function salt_section_resolver_file( string $layout ): ?string {
+	if ( 1 !== preg_match( '/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $layout ) ) {
+		return null;
+	}
+
+	$file = get_template_directory() . '/inc/sections/' . $layout . '.php';
+	return is_readable( $file ) ? $file : null;
+}
+
+/**
+ * Load a split section's resolver and return its function name.
+ *
+ * The file defines salt_resolve_section_{layout, "-" as "_"}( array
+ * $context ): ?array. Resolvers are final (not pluggable). Fails loudly —
+ * salt_log(), and a throw under salt_is_debug() — and returns null when:
+ *  - the section is split but the file does not define that function
+ *    (a mis-named resolver must never fall back to the unsplit path);
+ *  - the function already exists from another file (a child or plugin
+ *    defined it): the parent file is NOT loaded, so PHP never fatals on
+ *    the redeclaration, and the other definition is never used.
+ * Returns null without logging when the section is not split.
+ *
+ * @param string $layout Layout slug (hyphenated).
+ * @return string|null Resolver function name.
+ * @throws LogicException On a mis-named or conflicting resolver when debug is active.
+ */
+function salt_section_resolver( string $layout ): ?string {
+	$file = salt_section_resolver_file( $layout );
+	if ( null === $file ) {
+		return null;
+	}
+
+	$function = 'salt_resolve_section_' . str_replace( '-', '_', $layout );
+	$message  = '';
+
+	if ( function_exists( $function ) && realpath( (string) ( new ReflectionFunction( $function ) )->getFileName() ) !== realpath( $file ) ) {
+		$message = sprintf( 'section "%1$s": %2$s() is already defined in %3$s — a resolver cannot be replaced (only the parent\'s inc/sections/%1$s.php may define it); section skipped.', $layout, $function, (string) ( new ReflectionFunction( $function ) )->getFileName() );
+	} else {
+		require_once $file;
+		if ( ! function_exists( $function ) ) {
+			$message = sprintf( 'section "%1$s": inc/sections/%1$s.php does not define %2$s() — section skipped.', $layout, $function );
+		}
+	}
+
+	if ( '' !== $message ) {
+		salt_log( $message );
+		if ( salt_is_debug() ) {
+			throw new LogicException( esc_html( $message ) );
+		}
+		return null;
+	}
+
+	return $function;
+}
+
+/**
+ * Render one section from its located template: resolver → 0-state →
+ * wrapper → view (the shared entry every split section goes through).
+ *
+ * The resolver does ALL the logic (field reads, queries, sanitising,
+ * schema, row skipping + logging, wrapper inputs) and returns either
+ * null — the 0-state: render nothing, no wrapper band (COMPL02) — or
+ * array{ section: array, props: array, plan?: array{ priorityMedia?: bool } }:
+ *  - section: the salt_section() wrapper args, has_heading included;
+ *  - props:   the view props;
+ *  - plan:    optional — the contract plan keys only the section can know
+ *             (today: priorityMedia).
+ * The view is then loaded INSIDE the wrapper with
+ * $args = array{ props: array, plan: array{ index: int, headingLevel: int, priorityMedia: bool } }
+ * and only draws markup.
+ *
+ * A section that is not split (no inc/sections/{layout}.php — not yet
+ * converted, or a child-only layout) loads its template exactly as before,
+ * with the loop context as $args. A split section whose resolver cannot be
+ * loaded renders nothing (salt_section_resolver() has logged / thrown).
+ *
+ * @param string              $layout  Layout slug (hyphenated).
+ * @param string              $view    Located template path.
+ * @param array<string,mixed> $context Loop context: index, is_primary.
+ * @return void
+ * @throws UnexpectedValueException When a resolver returns a malformed value and debug is active.
+ */
+function salt_render_resolved_section( string $layout, string $view, array $context = array() ): void {
+	if ( null === salt_section_resolver_file( $layout ) ) {
+		load_template( $view, false, $context );
+		return;
+	}
+
+	$resolver = salt_section_resolver( $layout );
+	if ( null === $resolver ) {
+		return; // Split, but the resolver is unusable: already logged (fail loud, never the unsplit path).
+	}
+
+	$resolved = $resolver( $context );
+	if ( null === $resolved ) {
+		return; // 0-state: nothing to render (COMPL02).
+	}
+
+	$plan_in = is_array( $resolved ) ? ( $resolved['plan'] ?? array() ) : null;
+	if (
+		! is_array( $resolved )
+		|| ! is_array( $resolved['section'] ?? null )
+		|| ! is_array( $resolved['props'] ?? null )
+		|| ! is_array( $plan_in )
+		|| array() !== array_diff( array_keys( $plan_in ), array( 'priorityMedia' ) )
+	) {
+		$message = sprintf( 'section "%s": %s() must return null or array{section: array, props: array, plan?: array{priorityMedia?: bool}} — section skipped.', $layout, $resolver );
+		salt_log( $message );
+		if ( salt_is_debug() ) {
+			throw new UnexpectedValueException( esc_html( $message ) );
+		}
+		return;
+	}
+
+	$props          = $resolved['props'];
+	$index          = (int) ( $context['index'] ?? 0 );
+	$priority_media = (bool) ( $plan_in['priorityMedia'] ?? false );
+
+	salt_section(
+		$resolved['section'],
+		static function ( int $level ) use ( $layout, $view, $props, $index, $priority_media ): void {
+			$before = salt_render_state()['section_index'];
+
+			load_template(
+				$view,
+				false,
+				array(
+					'props' => $props,
+					'plan'  => array(
+						'index'         => $index,
+						'headingLevel'  => $level,
+						'priorityMedia' => $priority_media,
+					),
+				)
+			);
+
+			// A view that opens its own wrapper is a whole-section override
+			// written before the split: say so instead of nesting silently.
+			if ( salt_render_state()['section_index'] !== $before ) {
+				salt_log( sprintf( 'section "%s": its view called salt_section() — a whole-section override from before the logic/view split? A view receives $args[\'props\'] and draws markup only (OVERRIDES.md).', $layout ) );
+			}
+		}
+	);
+}
+
 if ( ! function_exists( 'salt_render_section' ) ) {
 	/**
 	 * Resolve a Flexible Content layout to its section partial (PLUGGABLE — ARCH07).
 	 *
 	 * A missing layout degrades to fallback.php — error_logged, editor-visible,
 	 * never a silent public blank and never a fatal (ARCH05).
+	 *
+	 * The located template is handed to salt_render_resolved_section(): for
+	 * a split section it is the VIEW, drawn from its parent resolver's props;
+	 * for a section not yet split it is loaded whole, as before. A child
+	 * that overrides this function must render through
+	 * salt_render_resolved_section(), never load_template() directly.
 	 *
 	 * @param string              $layout  Layout slug (hyphenated).
 	 * @param array<string,mixed> $context Loop context: index, is_primary.
@@ -432,6 +613,6 @@ if ( ! function_exists( 'salt_render_section' ) ) {
 			return;
 		}
 
-		load_template( $located, false, $context );
+		salt_render_resolved_section( $layout, $located, $context );
 	}
 }

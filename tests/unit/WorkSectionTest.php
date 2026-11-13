@@ -528,4 +528,189 @@ final class WorkSectionTest extends SaltTestCase {
 			$this->assertStringStartsWith( 'field_salt_', (string) $key, 'DATA02 key convention.' );
 		}
 	}
+
+	// -----------------------------------------------------------------
+	// Resolver and view (logic/view split, ID-3587).
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one work FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields Row fields.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_work( array $fields = array() ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'work',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'work' );
+		$this->assertSame( 'salt_resolve_section_work', $resolver );
+
+		return $resolver(
+			array(
+				'index'      => 0,
+				'is_primary' => true,
+			)
+		);
+	}
+
+	public function test_resolver_returns_null_for_zero_items_malformed_items_and_a_disabled_module(): void {
+		$this->assertNull( $this->resolve_work( array( 'heading' => 'Our work' ) ) );
+
+		$this->seed_work_posts(
+			array(
+				array(
+					'ID'         => 1,
+					'post_title' => '  ',
+				),
+			)
+		);
+		$this->assertNull( $this->resolve_work( array( 'heading' => 'Our work' ) ) );
+		$this->assertSame( array(), salt_schema_queue() );
+
+		$this->seed_work_posts(
+			array(
+				array(
+					'ID'         => 1,
+					'post_title' => 'Alpha',
+				),
+			)
+		);
+		add_filter(
+			'salt_module_enabled',
+			static fn( bool $enabled, string $slug ): bool => 'work' === $slug ? false : $enabled,
+			20,
+			2
+		);
+		$this->assertNull( $this->resolve_work( array( 'heading' => 'Our work' ) ) );
+	}
+
+	public function test_resolver_props_items_and_fallbacks(): void {
+		$this->seed_work_posts(
+			array(
+				array(
+					'ID'         => 1,
+					'post_title' => 'Alpha',
+				),
+				array(
+					'ID'         => 2,
+					'post_title' => 'Beta',
+				),
+			)
+		);
+		$GLOBALS['salt_test_fields']['1'] = array(
+			'client'  => 'Acme',
+			'summary' => 'A summary.',
+		);
+
+		$resolved = $this->resolve_work(
+			array(
+				'eyebrow' => 'Portfolio',
+				'columns' => 9,
+			)
+		);
+
+		$this->assertSame( array( 'eyebrow', 'heading', 'columns', 'items', 'view_all_url' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( 'Portfolio', $resolved['props']['eyebrow'] );
+		$this->assertNull( $resolved['props']['heading'] );
+		$this->assertSame( 3, $resolved['props']['columns'] );
+		$this->assertNull( $resolved['props']['view_all_url'] );
+		$this->assertStringContainsString( 'invalid columns "9"', implode( ' ', $this->logs() ) );
+
+		$this->assertCount( 2, $resolved['props']['items'] );
+		$by_title = array_column( $resolved['props']['items'], null, 'title' );
+		$this->assertSame( array( 'title', 'url', 'client', 'summary', 'image_id' ), array_keys( $by_title['Alpha'] ) );
+		$this->assertSame( 'Acme', $by_title['Alpha']['client'] );
+		$this->assertSame( 'A summary.', $by_title['Alpha']['summary'] );
+		$this->assertSame( 0, $by_title['Beta']['image_id'] );
+		$this->assertFalse( $resolved['section']['has_heading'] );
+		$this->assertSame( 'work', $resolved['section']['name'] );
+	}
+
+	public function test_resolver_queues_the_schema_itself_and_resolves_view_all(): void {
+		$this->seed_work_posts(
+			array(
+				array(
+					'ID'         => 1,
+					'post_title' => 'Alpha',
+				),
+			)
+		);
+		$GLOBALS['salt_test_archive_links']['work'] = 'https://example.test/work/';
+
+		$on = $this->resolve_work( array( 'view_all' => 1 ) );
+		$this->assertSame( 'https://example.test/work/', $on['props']['view_all_url'] );
+		$this->assertCount( 1, salt_schema_queue(), 'Schema is logic: queued without the view ever running.' );
+
+		$GLOBALS['salt_test_archive_links']['work'] = false;
+		$this->assertNull( $this->resolve_work( array( 'view_all' => 1 ) )['props']['view_all_url'] );
+		$this->assertNull( $this->resolve_work( array( 'view_all' => 0 ) )['props']['view_all_url'] );
+	}
+
+	/**
+	 * Draw the view from props.
+	 *
+	 * @param array<string,mixed> $props Props.
+	 * @return string
+	 */
+	private function draw_work_view( array $props ): string {
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/work.php',
+			false,
+			array(
+				'props' => $props,
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		return (string) ob_get_clean();
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		$item  = array(
+			'title'    => 'Prop Project',
+			'url'      => 'https://example.test/work/prop/',
+			'client'   => 'Prop Client',
+			'summary'  => 'Drawn from props.',
+			'image_id' => 0,
+		);
+		$props = array(
+			'eyebrow'      => 'Portfolio',
+			'heading'      => 'From props',
+			'columns'      => 2,
+			'items'        => array( $item, array_merge( $item, array( 'title' => 'Second' ) ) ),
+			'view_all_url' => 'https://example.test/work/',
+		);
+
+		$html = $this->draw_work_view( $props );
+
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ), 'Section heading at the plan level.' );
+		$this->assertSame( 2, preg_match_all( '/<h3[\s>]/', $html ), 'Card titles one level below.' );
+		$this->assertStringContainsString( 'x-work-header', $html );
+		$this->assertStringContainsString( 'grid list-none gap-8 p-0 sm:grid-cols-2"', $html );
+		$this->assertStringNotContainsString( 'lg:grid-cols-3', $html );
+		$this->assertStringContainsString( 'Prop Project', $html );
+		$this->assertStringContainsString( 'View all work', $html );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+
+		$props['items']        = array( $item );
+		$props['eyebrow']      = null;
+		$props['heading']      = null;
+		$props['view_all_url'] = null;
+		$bare                  = $this->draw_work_view( $props );
+		$this->assertStringNotContainsString( 'x-work-header', $bare );
+		$this->assertStringNotContainsString( 'sm:grid-cols-2', $bare, 'One item draws a single column.' );
+		$this->assertStringNotContainsString( 'View all work', $bare );
+	}
 }

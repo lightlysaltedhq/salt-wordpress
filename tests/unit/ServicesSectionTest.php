@@ -425,4 +425,173 @@ final class ServicesSectionTest extends SaltTestCase {
 		$this->assertStringContainsString( 'https://example.test/services/service-7/', $html );
 		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ), 'Archive card titles are h2 under the archive H1.' );
 	}
+
+	// -----------------------------------------------------------------------
+	// Resolver and view (logic/view split, ID-3587).
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Seed one services FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields Row sub-field fixtures.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_services( array $fields = array() ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'services',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'services' );
+		$this->assertSame( 'salt_resolve_section_services', $resolver );
+
+		return $resolver(
+			array(
+				'index'      => 0,
+				'is_primary' => true,
+			)
+		);
+	}
+
+	public function test_resolver_returns_null_for_zero_items_and_a_disabled_module(): void {
+		$this->seed_posts( array() );
+		$this->assertNull( $this->resolve_services( array( 'heading' => 'Our services' ) ) );
+		$this->assertSame( array(), salt_schema_queue() );
+
+		$this->seed_services();
+		$GLOBALS['salt_test_fields']['option']['module_service'] = false;
+		$this->assertNull( $this->resolve_services( array( 'heading' => 'Our services' ) ) );
+	}
+
+	public function test_resolver_props_items_and_fallbacks(): void {
+		$this->seed_services();
+
+		$resolved = $this->resolve_services(
+			array(
+				'heading' => 'Our services',
+				'layout'  => 'carousel',
+				'columns' => '9',
+			)
+		);
+
+		$this->assertSame( array( 'eyebrow', 'heading', 'layout', 'columns', 'items', 'view_all_url' ), array_keys( $resolved['props'] ) );
+		$this->assertNull( $resolved['props']['eyebrow'] );
+		$this->assertSame( 'Our services', $resolved['props']['heading'] );
+		$this->assertSame( 'grid', $resolved['props']['layout'], 'Unknown layout falls back to grid.' );
+		$this->assertSame( '3', $resolved['props']['columns'], 'Unknown columns fall back to 3.' );
+		$this->assertNull( $resolved['props']['view_all_url'] );
+
+		$this->assertCount( 3, $resolved['props']['items'] );
+		$this->assertSame( array( 'title', 'url', 'summary', 'icon' ), array_keys( $resolved['props']['items'][0] ) );
+		$this->assertSame( 'Web Design', $resolved['props']['items'][0]['title'] );
+		$this->assertSame( 'star', $resolved['props']['items'][0]['icon'] );
+		$this->assertSame( '', $resolved['props']['items'][2]['icon'], 'A missing icon is an empty string.' );
+
+		$this->assertSame( 'services', $resolved['section']['name'] );
+		$this->assertTrue( $resolved['section']['has_heading'] );
+	}
+
+	public function test_resolver_skips_broken_rows_and_queues_the_schema_itself(): void {
+		$this->seed_posts(
+			array(
+				array(
+					'ID'         => 5,
+					'post_type'  => 'service',
+					'post_title' => 'Web Design',
+					'menu_order' => 1,
+				),
+				array(
+					'ID'         => 6,
+					'post_type'  => 'service',
+					'post_title' => '   ',
+					'menu_order' => 2,
+				),
+			)
+		);
+
+		$resolved = $this->resolve_services();
+
+		$this->assertCount( 1, $resolved['props']['items'] );
+		$this->assertStringContainsString( 'service 6 has an empty title', implode( ' ', $this->logs() ) );
+		$this->assertCount( 1, salt_schema_queue(), 'Schema is logic: queued without the view ever running.' );
+		$this->assertFalse( $resolved['section']['has_heading'], 'Heading-less section must not claim the H1 (A11Y01).' );
+	}
+
+	public function test_resolver_view_all_url_only_when_on_and_the_archive_exists(): void {
+		$this->seed_services();
+
+		$on = $this->resolve_services( array( 'view_all' => 1 ) );
+		$this->assertIsString( $on['props']['view_all_url'] );
+		$this->assertStringContainsString( '/services', $on['props']['view_all_url'] );
+
+		$off = $this->resolve_services( array( 'view_all' => 0 ) );
+		$this->assertNull( $off['props']['view_all_url'] );
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		$item  = array(
+			'title'   => 'Prop Service',
+			'url'     => 'https://example.test/services/prop/',
+			'summary' => 'From props.',
+			'icon'    => '',
+		);
+		$props = array(
+			'eyebrow'      => 'What we do',
+			'heading'      => 'From props',
+			'layout'       => 'featured',
+			'columns'      => '2',
+			'items'        => array( $item, array_merge( $item, array( 'title' => 'Second' ) ) ),
+			'view_all_url' => 'https://example.test/services/',
+		);
+
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/services.php',
+			false,
+			array(
+				'props' => $props,
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ), 'Heading at the plan level.' );
+		$this->assertStringContainsString( 'Prop Service', $html );
+		$this->assertStringContainsString( 'Second', $html );
+		$this->assertStringContainsString( 'x-services-featured', $html );
+		$this->assertStringContainsString( 'sm:grid-cols-2', $html );
+		$this->assertStringContainsString( 'What we do', $html );
+		$this->assertStringContainsString( 'From props.', $html );
+		$this->assertStringContainsString( 'https://example.test/services/', $html );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+
+		$props['view_all_url'] = null;
+		$props['eyebrow']      = null;
+		$props['heading']      = null;
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/services.php',
+			false,
+			array(
+				'props' => $props,
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		$bare = (string) ob_get_clean();
+		$this->assertStringNotContainsString( 'View all services', $bare );
+		$this->assertStringNotContainsString( '<h2', $bare );
+	}
 }

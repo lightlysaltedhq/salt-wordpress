@@ -435,4 +435,122 @@ final class FaqSectionTest extends SaltTestCase {
 			'mainEntity merges both instances, in render order.'
 		);
 	}
+
+	// -----------------------------------------------------------------
+	// Resolver (logic/view split, ID-3587).
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one faq FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields Row sub-field fixtures.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_faq( array $fields = array() ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'faq',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'faq' );
+		$this->assertSame( 'salt_resolve_section_faq', $resolver );
+
+		return $resolver(
+			array(
+				'index'      => 0,
+				'is_primary' => true,
+			)
+		);
+	}
+
+	public function test_resolver_returns_null_for_zero_items_and_a_disabled_module(): void {
+		$this->assertNull( $this->resolve_faq( array( 'heading' => 'FAQs' ) ) );
+
+		$this->seed_faqs(
+			array(
+				array(
+					'id'     => 1,
+					'title'  => 'Hidden?',
+					'answer' => '<p>Yes.</p>',
+				),
+			)
+		);
+		$GLOBALS['salt_test_fields']['option']['module_faq'] = false;
+
+		$this->assertNull( $this->resolve_faq( array( 'heading' => 'FAQs' ) ) );
+	}
+
+	public function test_resolver_items_use_the_contract_faq_item_names(): void {
+		$this->seed_faqs(
+			array(
+				array(
+					'id'     => 7,
+					'title'  => '  Is it safe?  ',
+					'answer' => '<p>Yes<script>alert(1)</script>.</p>',
+				),
+				array(
+					'id'     => 8,
+					'title'  => '',
+					'answer' => '<p>Orphan.</p>',
+				),
+			)
+		);
+
+		$resolved = $this->resolve_faq( array( 'heading' => 'FAQs' ) );
+
+		$this->assertSame( array( 'eyebrow', 'heading', 'items', 'structuredData' ), array_keys( $resolved['props'] ) );
+		$this->assertNull( $resolved['props']['eyebrow'] );
+		$this->assertSame( 'FAQs', $resolved['props']['heading'] );
+		$this->assertTrue( $resolved['props']['structuredData'], 'Unsaved toggle reads as on.' );
+
+		$this->assertCount( 1, $resolved['props']['items'], 'The broken row is skipped by the resolver.' );
+		$item = $resolved['props']['items'][0];
+		$this->assertSame( array( 'id', 'question', 'answer' ), array_keys( $item ) );
+		$this->assertSame( '7', $item['id'] );
+		$this->assertSame( 'Is it safe?', $item['question'] );
+		$this->assertStringNotContainsString( '<script', $item['answer'], 'Answers arrive sanitised.' );
+		$this->assertStringContainsString( 'post 8 skipped', implode( ' ', $this->logs() ) );
+
+		$this->assertSame( 'faq', $resolved['section']['name'] );
+		$this->assertTrue( $resolved['section']['has_heading'] );
+	}
+
+	public function test_resolver_queues_the_schema_node_itself(): void {
+		$this->seed_faqs(
+			array(
+				array(
+					'id'     => 1,
+					'title'  => 'What is salt?',
+					'answer' => '<p>A parent theme.</p>',
+				),
+			)
+		);
+
+		$this->resolve_faq( array( 'heading' => 'FAQs' ) );
+
+		$this->assertCount( 1, $this->faq_nodes(), 'Schema is logic: queued without the view ever running.' );
+	}
+
+	public function test_resolver_schema_toggle_off_reports_structured_data_false(): void {
+		$this->seed_faqs(
+			array(
+				array(
+					'id'     => 1,
+					'title'  => 'What is salt?',
+					'answer' => '<p>A parent theme.</p>',
+				),
+			)
+		);
+
+		$resolved = $this->resolve_faq( array( 'schema_toggle' => 0 ) );
+
+		$this->assertFalse( $resolved['props']['structuredData'] );
+		$this->assertFalse( $resolved['section']['has_heading'] );
+		$this->assertSame( array(), $this->faq_nodes() );
+	}
 }

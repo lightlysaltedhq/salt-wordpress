@@ -19,23 +19,29 @@ release requirement ("SECTIONS.md current" checklist line).
    fields first, then `salt_section_wrapper_fields('{name}')` (the shared
    §11 Advanced tab). CPT-backed sections embed
    `salt_query_control_fields($cpt)`.
-2. `template-parts/sections/{name}.php` — reads `get_sub_field()`, decides
-   its 0/1/N states (0 items ⇒ skip or empty-state, NEVER a blank band —
-   COMPL02), then renders through
-   `salt_section( wrapper_args + ['has_heading' => …], fn( int $level ) { … } )`.
-   The callback receives the derived heading level; render your main
-   heading at `$level`, sub-headings at `$level + 1` (A11Y01: a section
-   with no heading sets `has_heading => false`).
-3. Schema (if any): `salt_schema_add( $node )` — never an ad-hoc script tag
-   (SEO01/02/03 live in the graph builder).
+2. Logic and view, split (docs/contracts/CONVENTIONS.md, "Sections:
+   logic and view"):
+   - `inc/sections/{name}.php` — the resolver
+     `salt_resolve_section_{name_}( array $context ): ?array` reads
+     `get_sub_field()`, decides its 0/1/N states (0 items ⇒ return `null`
+     or props for a visible empty-state, NEVER a blank band — COMPL02),
+     and returns the wrapper args (`salt_section_wrapper_args()` +
+     `['has_heading' => …]`, A11Y01) and the view props, named after the
+     contract's view props.
+   - `template-parts/sections/{name}.php` — the view: draws
+     `$args['props']` only; main heading at
+     `$args['plan']['headingLevel']`, sub-headings one level below.
+3. Schema (if any): `salt_schema_add( $node )` in the resolver — never an
+   ad-hoc script tag (SEO01/02/03 live in the graph builder).
 4. JS only if genuinely needed: functional no-JS base first (CSS
    scroll-snap / stacked grid), module as progressive enhancement (FAIL02).
 5. Tests: a snapshot test per meaningful variant (FLEET01) + unit tests for
    logic. Run `php bin/extract-slugs.php --write` and commit the registry.
 6. Document the section in the table below.
 
-**The exemplar:** Rich Text (`rich_text` / `rich-text.php`) implements this
-recipe end-to-end — copy it.
+**The exemplar:** Rich Text (`rich_text` / `inc/sections/rich-text.php` +
+`template-parts/sections/rich-text.php`) implements this recipe
+end-to-end — copy it.
 
 ## Section registry
 

@@ -1,11 +1,16 @@
 <?php
 /**
- * Section: Rich Text (spec §10 #3) — the §17 exemplar section.
+ * View: Rich Text (spec §10 #3) — the §17 exemplar section.
  *
- * Fields: heading (text), content (WYSIWYG, salt_allowed_html-constrained).
- * States (COMPL02): both empty => renders NOTHING (skip). Heading renders
- * at the level the wrapper derives (H1 only when this is the designated
- * primary section).
+ * Draws the props from salt_resolve_section_rich_text() (inc/sections/
+ * rich-text.php), inside the x-section wrapper the shared entry opens. No
+ * field reads, queries, sanitising, schema or logging here: a child theme
+ * overriding this file overrides the markup only.
+ *
+ * $args:
+ *   props  array{ heading: string|null, body: string|null }
+ *          body is HTML already sanitised by salt_sanitize_html().
+ *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
  *
  * @package Salt
  */
@@ -14,35 +19,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$salt_heading = function_exists( 'get_sub_field' ) ? (string) get_sub_field( 'heading' ) : '';
-$salt_content = function_exists( 'get_sub_field' ) ? (string) get_sub_field( 'content' ) : '';
+$salt_props = $args['props'];
+$salt_plan  = $args['plan'];
 
-if ( '' === trim( $salt_heading ) && '' === trim( $salt_content ) ) {
-	return; // 0-state: skip the section entirely (COMPL02).
+if ( null !== $salt_props['heading'] ) {
+	salt_component(
+		'heading',
+		array(
+			'text'    => $salt_props['heading'],
+			'level'   => $salt_plan['headingLevel'],
+			'classes' => 'mb-6',
+		)
+	);
 }
-
-salt_section(
-	array_merge(
-		salt_section_wrapper_args( 'rich-text', $args ?? array() ),
-		// A section with no heading must not claim the page H1 (A11Y01).
-		array( 'has_heading' => '' !== trim( $salt_heading ) )
-	),
-	static function ( int $level ) use ( $salt_heading, $salt_content ): void {
-		if ( '' !== trim( $salt_heading ) ) {
-			salt_component(
-				'heading',
-				array(
-					'text'    => $salt_heading,
-					'level'   => $level,
-					'classes' => 'mb-6',
-				)
-			);
-		}
-		if ( '' !== trim( $salt_content ) ) {
-			printf(
-				'<div class="x-prose max-w-prose text-ink">%s</div>',
-				salt_sanitize_html( $salt_content ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Constrained by salt_allowed_html() (§16a), the named sanitisation artifact.
-			);
-		}
-	}
-);
+if ( null !== $salt_props['body'] ) {
+	printf(
+		'<div class="x-prose max-w-prose text-ink">%s</div>',
+		$salt_props['body'] // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised by the resolver through salt_sanitize_html(), constrained by salt_allowed_html() (§16a).
+	);
+}

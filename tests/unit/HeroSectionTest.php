@@ -315,4 +315,147 @@ final class HeroSectionTest extends SaltTestCase {
 
 		$this->assertSame( array(), salt_schema_queue() );
 	}
+
+	// -----------------------------------------------------------------
+	// Resolver (logic/view split, ID-3587).
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one hero FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields Row fields.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_hero( array $fields ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'hero',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'hero' );
+		$this->assertSame( 'salt_resolve_section_hero', $resolver );
+
+		return $resolver(
+			array(
+				'index'      => 0,
+				'is_primary' => true,
+			)
+		);
+	}
+
+	public function test_resolver_returns_null_for_the_zero_state(): void {
+		$this->assertNull( $this->resolve_hero( array( 'subheading' => 'Alone.' ) ) );
+	}
+
+	public function test_resolver_props_use_the_contract_names_and_null_blank_text(): void {
+		$resolved = $this->resolve_hero(
+			array(
+				'variant'    => 'minimal',
+				'eyebrow'    => '   ',
+				'heading'    => 'Welcome',
+				'subheading' => '',
+			)
+		);
+
+		$this->assertSame(
+			array( 'variant', 'eyebrow', 'heading', 'subheading', 'image_id', 'ctas' ),
+			array_keys( $resolved['props'] )
+		);
+		$this->assertSame( 'minimal', $resolved['props']['variant'] );
+		$this->assertNull( $resolved['props']['eyebrow'], 'Blank text is null, never an empty string.' );
+		$this->assertSame( 'Welcome', $resolved['props']['heading'] );
+		$this->assertNull( $resolved['props']['subheading'] );
+		$this->assertSame( 0, $resolved['props']['image_id'] );
+		$this->assertSame( array( 'priorityMedia' => true ), $resolved['plan'], 'The hero image is THE LCP image (§8), a contract plan key.' );
+		$this->assertSame( array(), $resolved['props']['ctas'] );
+	}
+
+	public function test_resolver_owns_the_wrapper_inputs(): void {
+		$this->seed_hero_image();
+
+		$resolved = $this->resolve_hero(
+			array(
+				'variant' => 'full-bleed',
+				'image'   => 41,
+			)
+		);
+
+		$this->assertSame( 'hero', $resolved['section']['name'] );
+		$this->assertSame( 'full', $resolved['section']['container'], 'Full-bleed forces the full container.' );
+		$this->assertTrue( $resolved['section']['flush_top'], 'An image banner meets the header.' );
+		$this->assertTrue( $resolved['section']['is_primary'] );
+		$this->assertFalse( $resolved['section']['has_heading'], 'Heading-less hero must not claim the H1.' );
+		$this->assertSame( 41, $resolved['props']['image_id'] );
+	}
+
+	public function test_resolver_drops_the_minimal_image_and_skips_malformed_ctas(): void {
+		$this->seed_hero_image();
+
+		$resolved = $this->resolve_hero(
+			array(
+				'variant'       => 'minimal',
+				'heading'       => 'Welcome',
+				'image'         => 41,
+				'cta_primary'   => array( 'title' => 'No destination' ),
+				'cta_secondary' => array(
+					'title'  => 'About',
+					'url'    => 'https://example.test/about/',
+					'target' => '_blank',
+				),
+			)
+		);
+
+		$this->assertSame( 0, $resolved['props']['image_id'] );
+		$this->assertSame(
+			array(
+				array(
+					'label'  => 'About',
+					'url'    => 'https://example.test/about/',
+					'style'  => 'secondary',
+					'target' => '_blank',
+				),
+			),
+			$resolved['props']['ctas']
+		);
+
+		$logs = implode( ' ', $this->logs() );
+		$this->assertStringContainsString( 'minimal variant ignores media', $logs );
+		$this->assertStringContainsString( 'cta_primary link is malformed', $logs );
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		// No FC row at all: everything the view prints must come from props.
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/hero.php',
+			false,
+			array(
+				'props' => array(
+					'variant'    => 'minimal',
+					'eyebrow'    => null,
+					'heading'    => 'From props',
+					'subheading' => 'Drawn, not read.',
+					'image_id'   => 0,
+					'ctas'       => array(),
+				),
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => true,
+				),
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'x-hero-minimal', $html );
+		$this->assertStringContainsString( 'From props', $html );
+		$this->assertStringContainsString( 'Drawn, not read.', $html );
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+	}
 }

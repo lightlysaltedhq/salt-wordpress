@@ -14,6 +14,41 @@ markup granularity (cross-reference your site's override manifest).
   first release from the public `lightlysaltedhq/contracts` repository, with an npm
   provenance attestation. The contract itself is unchanged from 3.0.0, and the
   conformance suite passes against it with only `PINNED` updated.
+- **Sections split into logic and view (hero, faq, rich-text).** Each split
+  section has a parent-only resolver, `inc/sections/{slug}.php`
+  (`salt_resolve_section_{slug}()`), that does the field reads, queries,
+  sanitising, schema, row skipping and logging, and returns the view props
+  named after the contract's view props. `template-parts/sections/{slug}.php`
+  is now the view and only draws `$args['props']` and `$args['plan']`
+  (`index`, `headingLevel`, `priorityMedia`). New shared entry
+  `salt_render_resolved_section()`; `salt_render_section()` renders through
+  it. A section without a resolver renders exactly as before. Rendered
+  markup is unchanged (no `.snap.html` file changed). Rules:
+  docs/contracts/CONVENTIONS.md "Sections: logic and view"; child themes:
+  docs/contracts/OVERRIDES.md "Section views".
+
+### BREAKING
+- **Child overrides of `template-parts/sections/hero.php`, `faq.php` or
+  `rich-text.php`** are now overrides of the VIEW. They receive
+  `$args = { props, plan }`, not the loop context, and must draw from the
+  props only. A copy written before the split still reads fields and calls
+  `salt_section()`, so it renders a second band nested inside the
+  parent's: the section heading drops to h2 and the page has no H1 (the
+  fallback H1 is suppressed). A pre-split faq copy also queues its FAQPage
+  questions a second time, so every question appears twice in the page's
+  FAQPage node. The parent logs `whole-section override` when this happens. Rewrite each such override from the parent's new
+  view and re-verify it in the site's override manifest.
+- **Code that loads a split section's template itself** (a child override
+  of the pluggable `salt_render_section()`, or a direct
+  `get_template_part()` / `load_template()` of the template) must render
+  through `salt_render_resolved_section( $layout, $located, $context )`.
+  Loaded directly, the view gets no props: hero emits PHP warnings and an
+  empty broken hero, rich-text emits PHP warnings and renders nothing, and
+  faq is a fatal error (`TypeError` from `array_map()`).
+- **Resolvers cannot be replaced by a child theme.** They load from the
+  parent theme only: a child file at `inc/sections/{slug}.php` is ignored,
+  and a child that defines `salt_resolve_section_*()` makes that section
+  render nothing (logged; an exception under `WP_DEBUG`).
 
 ## [5.0.0] — 2026-10-07
 
