@@ -471,4 +471,196 @@ final class LocationsSectionTest extends SaltTestCase {
 		$this->assertSame( array( '@id' => 'https://example.test#organization' ), $offices[0]['parentOrganization'] );
 		$this->assertArrayNotHasKey( 'salt_office', $offices[0], 'The internal flag is stripped from output (SEO01).' );
 	}
+
+	// -----------------------------------------------------------------------
+	// Logic/view split (ID-3587): resolver and view.
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Seed one locations FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields Row sub-field fixtures.
+	 * @param int                 $index  Loop index.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_locations( array $fields, int $index = 0 ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'locations',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'locations' );
+		$this->assertSame( 'salt_resolve_section_locations', $resolver );
+
+		return $resolver(
+			array(
+				'index'      => $index,
+				'is_primary' => false,
+			)
+		);
+	}
+
+	public function test_resolver_returns_null_for_the_zero_state(): void {
+		$this->assertNull( $this->resolve_locations( array( 'heading' => 'Find us' ) ), 'No offices.' );
+
+		$this->seed_offices( array( array( 'title' => '   ' ) ) );
+		$this->assertNull( $this->resolve_locations( array( 'heading' => 'Find us' ) ), 'Every office broken.' );
+		$this->assertCount( 1, $this->logs() );
+
+		$this->seed_offices( array( array( 'title' => 'Bath office' ) ) );
+		$GLOBALS['salt_test_fields']['option']['module_location'] = false;
+		$this->assertNull( $this->resolve_locations( array( 'heading' => 'Find us' ) ), 'Module off.' );
+		$this->assertSame( array(), salt_schema_queue() );
+	}
+
+	public function test_resolver_props_use_the_contract_names(): void {
+		$this->seed_offices(
+			array(
+				array(
+					'ID'            => 301,
+					'title'         => ' Bath office ',
+					'address'       => array(
+						'line1'    => ' 1 High Street ',
+						'region'   => '  ',
+						'city'     => 'Bath',
+						'postcode' => 'BA1 1AA',
+					),
+					'phone'         => ' +44 (0)1225 000000 ',
+					'email'         => '',
+					'opening_hours' => self::always_appointment_hours(),
+				),
+				array(
+					'ID'    => 302,
+					'title' => 'Wells office',
+					'phone' => 'Ask at the desk',
+				),
+			)
+		);
+
+		$resolved = $this->resolve_locations(
+			array(
+				'heading' => ' Find us ',
+				'eyebrow' => '',
+			)
+		);
+
+		$this->assertSame( array( 'eyebrow', 'heading', 'offices', 'details_group' ), array_keys( $resolved['props'] ) );
+		$this->assertNull( $resolved['props']['eyebrow'] );
+		$this->assertSame( ' Find us ', $resolved['props']['heading'], 'Optional text is never trimmed.' );
+		$this->assertTrue( $resolved['section']['has_heading'] );
+		$this->assertSame( 'locations', $resolved['section']['name'] );
+
+		$bath = $resolved['props']['offices'][0];
+		$this->assertSame(
+			array( 'id', 'title', 'address', 'phone', 'phoneHref', 'email', 'opening_hours', 'status', 'status_label', 'directionsHref' ),
+			array_keys( $bath )
+		);
+		$this->assertSame( '301', $bath['id'] );
+		$this->assertSame( 'Bath office', $bath['title'] );
+		$this->assertSame( array( '1 High Street', 'Bath', 'BA1 1AA' ), $bath['address'] );
+		$this->assertSame( '+44 (0)1225 000000', $bath['phone'] );
+		$this->assertSame( 'tel:+4401225000000', $bath['phoneHref'] );
+		$this->assertNull( $bath['email'] );
+		$this->assertSame( self::always_appointment_hours(), $bath['opening_hours'], 'Stored rows, as x-opening-hours takes them.' );
+		$this->assertSame( 'appointment', $bath['status'] );
+		$this->assertSame( 'By appointment', $bath['status_label'] );
+		$this->assertSame( 'https://www.openstreetmap.org/directions?to=' . rawurlencode( '1 High Street, Bath, BA1 1AA' ), $bath['directionsHref'] );
+
+		$wells = $resolved['props']['offices'][1];
+		$this->assertSame( 'Ask at the desk', $wells['phone'] );
+		$this->assertNull( $wells['phoneHref'], 'Rule 5: no dialable digits — drawn as text.' );
+		$this->assertSame( array(), $wells['address'] );
+		$this->assertNull( $wells['directionsHref'] );
+		$this->assertSame( 'unknown', $wells['status'] );
+		$this->assertSame( '', $wells['status_label'] );
+
+		$this->assertCount( 2, salt_schema_queue(), 'One LocalBusiness node per office, queued by the resolver.' );
+	}
+
+	public function test_details_group_is_always_locations_0_whatever_the_index(): void {
+		// Pre-split behaviour kept (CONVENTIONS.md rule 2): the old template
+		// read $args['index'] inside a closure that never captured $args, so
+		// every page emitted locations-0. Reported as a Work Item.
+		$this->seed_offices(
+			array(
+				array( 'title' => 'Bath office' ),
+				array( 'title' => 'Wells office' ),
+			)
+		);
+
+		$this->assertSame( 'locations-0', $this->resolve_locations( array(), 7 )['props']['details_group'] );
+
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'locations',
+					'fields' => array( 'heading' => 'Find us' ),
+				),
+			)
+		);
+		the_row();
+		ob_start();
+		salt_render_section(
+			'locations',
+			array(
+				'index'      => 7,
+				'is_primary' => false,
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 2, substr_count( $html, 'name="locations-0"' ), 'Rendered at index 7, still locations-0.' );
+		$this->assertStringNotContainsString( 'locations-7', $html );
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/locations.php',
+			false,
+			array(
+				'props' => array(
+					'eyebrow'       => null,
+					'heading'       => 'From props',
+					'offices'       => array(
+						array(
+							'id'             => '9',
+							'title'          => 'Bath <office>',
+							'address'        => array( '1 High Street' ),
+							'phone'          => 'Ask',
+							'phoneHref'      => null,
+							'email'          => 'bath@example.test',
+							'opening_hours'  => array(),
+							'status'         => 'closed',
+							'status_label'   => 'Closed',
+							'directionsHref' => 'https://www.openstreetmap.org/directions?to=1%20High%20Street',
+						),
+					),
+					'details_group' => 'group-from-props',
+				),
+				'plan'  => array(
+					'index'         => 3,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
+		$this->assertStringContainsString( "\t\t\t<details class=\"x-accordion-item group border-b border-border\" name=\"group-from-props\">", $html, 'Rule 1: the block keeps its three tabs.' );
+		$this->assertStringContainsString( 'Bath &lt;office&gt;', $html );
+		$this->assertStringContainsString( 'data-status="closed">Closed</span>', $html );
+		$this->assertStringContainsString( '<li>Ask</li>', $html, 'No phoneHref: the number is text.' );
+		$this->assertStringContainsString( 'href="mailto:bath@example.test"', $html );
+		$this->assertStringContainsString( 'Get directions', $html );
+		$this->assertStringNotContainsString( '<dl', $html, 'No hours: no x-opening-hours.' );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+		$this->assertSame( array(), salt_schema_queue(), 'The view never queues schema.' );
+	}
 }
