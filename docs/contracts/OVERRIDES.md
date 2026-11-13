@@ -89,41 +89,67 @@ FAQ and Rich Text are split so far.
 - **Override the view, not the logic.** For a split section,
   `template-parts/sections/{slug}.php` is its VIEW. A child copy at that
   path is loaded, as before, by `locate_template()` — but now inside the
-  section wrapper, with:
-  `$args['props']` (the view props: names and shapes in the parent
-  view's docblock and the resolver's) and `$args['plan']`
-  (`index`, `headingLevel`). Draw from those only: never read fields,
-  query, sanitise, log or queue schema, and never call `salt_section()`.
-  The parent resolver keeps doing all of that, so its fixes reach you
-  without touching your override. To change the band itself, override
-  `template-parts/components/section.php`.
-- **The resolver is not overridable.** It loads from the parent theme
-  directory only, never via `locate_template()`, and is not pluggable:
-  a child file at `inc/sections/{slug}.php` is ignored, and defining
-  `salt_resolve_section_*()` in a child is a fatal redeclaration. Do not
-  copy a resolver. (A supported way to replace a section's logic is a
-  separate, later contract.)
+  section wrapper, with `$args['props']` (the view props: names and
+  shapes in the parent view's docblock and the resolver's) and
+  `$args['plan']` (`index`, `headingLevel`, `priorityMedia`). Draw from
+  those only: never read fields, query, sanitise, log or queue schema,
+  and never call `salt_section()`. The parent resolver keeps doing all of
+  that, so its fixes reach you without touching your override. To change
+  the band itself, override `template-parts/components/section.php`.
 - **The 0-state is the resolver's.** When it decides a section renders
   nothing, your view is not loaded at all. A view is only loaded with
   something to draw.
 - **Escaping.** Plain-text props arrive raw: escape them at output.
   HTML props (rich text, e.g. Rich Text `body`, FAQ `answer`) arrive
   already sanitised by `salt_sanitize_html()`: print them as they are.
-- **BREAKING for existing overrides of split sections.** A child copy of
-  `template-parts/sections/{hero,faq,rich-text}.php` written before the
-  split is a whole section (it reads fields and calls `salt_section()`).
-  It is now loaded as the view, inside the wrapper, so it would render a
-  nested band; the parent logs `whole-section override` when that
-  happens. Rewrite it as a view drawing `$args['props']` (start from the
-  parent's new view) and re-verify it in the override manifest.
+  Props named `*_html` (service-produced markup, e.g. a CAPTCHA widget)
+  are likewise printed as they are.
+- **Resolvers cannot be replaced by a child theme — not until the
+  replaced-logic declaration exists (a later, separate contract).** A
+  resolver loads from the parent theme directory only, never via
+  `locate_template()`, and is not pluggable. A child file at
+  `inc/sections/{slug}.php` is ignored. A child (or plugin) that defines
+  `salt_resolve_section_*()` does not take over the logic: the parent
+  detects the conflict, does not load its own file (so there is no PHP
+  redeclaration fatal), logs `… is already defined in {file} — a resolver
+  cannot be replaced`, throws under `WP_DEBUG`, and renders NOTHING for
+  that section in production. Do not copy a resolver.
 - **Overriding `salt_render_section()`.** A child override must hand the
   located template to `salt_render_resolved_section( $layout, $located,
-  $context )`, never `load_template()` it directly, or split sections
-  render with no props.
+  $context )`, never `load_template()` it directly.
 - **Unsplit sections are unchanged.** Their template is still the whole
   section and receives the loop context (`index`, `is_primary`) as
   `$args`, exactly as before. Each later split is a BREAKING entry for
   overrides of that section's template.
+
+### What happens to code written before the split (BREAKING)
+
+1. **A pre-split copy of hero.php, rich-text.php or faq.php** in the
+   child is a whole section: it reads fields and calls `salt_section()`
+   itself. It is now loaded as the view, INSIDE the parent's band, so the
+   page gets a band nested in a band. The OUTER band (the parent's) is
+   the primary section and claims the page H1, but draws no heading. The
+   child's own `salt_section()` builds its wrapper args from `$args`,
+   which no longer holds `is_primary`, so it sees `is_primary` false and
+   renders the heading as **h2**. The page therefore has no H1, and the
+   page-level fallback H1 is suppressed because the claim was already
+   made. The parent logs `its view called salt_section() — a
+   whole-section override from before the logic/view split?`.
+2. **A pre-split copy of faq.php** does all of the above and also runs
+   its own query and `salt_schema_add()`: the FAQPage node is queued
+   twice (once by the parent resolver, once by the copy), and the graph
+   merges both, so every question appears twice in the page's FAQPage.
+3. **Anything that loads a split section's template directly** — a
+   child override of `salt_render_section()` that calls `load_template()`,
+   or any `get_template_part()` / `load_template()` of
+   `template-parts/sections/{hero,faq,rich-text}.php` — passes no props.
+   Hero then emits PHP warnings and an empty, broken hero; Rich Text emits
+   PHP warnings and renders nothing; FAQ is a **fatal error** (`TypeError`
+   from `array_map()`). Render through `salt_render_resolved_section()`.
+
+Fix for 1 and 2: rewrite the override as a view, starting from the
+parent's new `template-parts/sections/{slug}.php`, and re-verify it in the
+override manifest.
 
 ## Component render rule (Open Q6 — resolved)
 
