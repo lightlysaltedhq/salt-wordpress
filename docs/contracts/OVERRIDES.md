@@ -81,10 +81,10 @@ you when a re-verify is due.
 
 ## Section views (logic/view split)
 
-Sections are being split into a **resolver** (parent-only logic) and a
+Every section is split into a **resolver** (parent-only logic) and a
 **view** (markup); docs/contracts/CONVENTIONS.md has the full rules. A
-section is split when the parent has `inc/sections/{slug}.php`; Hero,
-FAQ and Rich Text are split so far.
+section is split when the parent has `inc/sections/{slug}.php`; all 20
+parent sections are.
 
 - **Override the view, not the logic.** For a split section,
   `template-parts/sections/{slug}.php` is its VIEW. A child copy at that
@@ -117,15 +117,15 @@ FAQ and Rich Text are split so far.
 - **Overriding `salt_render_section()`.** A child override must hand the
   located template to `salt_render_resolved_section( $layout, $located,
   $context )`, never `load_template()` it directly.
-- **Unsplit sections are unchanged.** Their template is still the whole
-  section and receives the loop context (`index`, `is_primary`) as
-  `$args`, exactly as before. Each later split is a BREAKING entry for
-  overrides of that section's template.
+- **A layout with no parent resolver loads its template whole.** A
+  child-only layout (one the parent does not define) is unsplit: its
+  template is still the whole section and receives the loop context
+  (`index`, `is_primary`) as `$args`, exactly as before.
 
 ### What happens to code written before the split (BREAKING)
 
-1. **A pre-split copy of hero.php, rich-text.php or faq.php** in the
-   child is a whole section: it reads fields and calls `salt_section()`
+1. **A pre-split copy of any `template-parts/sections/{slug}.php`** in
+   the child is a whole section: it reads fields and calls `salt_section()`
    itself. It is now loaded as the view, INSIDE the parent's band, so the
    page gets a band nested in a band. The OUTER band (the parent's) is
    the primary section and claims the page H1, but draws no heading. The
@@ -135,17 +135,21 @@ FAQ and Rich Text are split so far.
    page-level fallback H1 is suppressed because the claim was already
    made. The parent logs `its view called salt_section() — a
    whole-section override from before the logic/view split?`.
-2. **A pre-split copy of faq.php** does all of the above and also runs
-   its own query and `salt_schema_add()`: the FAQPage node is queued
-   twice (once by the parent resolver, once by the copy), and the graph
-   merges both, so every question appears twice in the page's FAQPage.
+2. **A pre-split copy of a section that queues schema** (contact, faq,
+   locations, process, services, team, testimonials, work) does all of
+   the above and also makes its own reads and `salt_schema_add()` calls,
+   so its nodes are queued twice (once by the parent resolver, once by
+   the copy). For faq the graph merges both FAQPage nodes, so every
+   question appears twice in the page's FAQPage.
 3. **Anything that loads a split section's template directly** — a
    child override of `salt_render_section()` that calls `load_template()`,
-   or any `get_template_part()` / `load_template()` of
-   `template-parts/sections/{hero,faq,rich-text}.php` — passes no props.
-   Hero then emits PHP warnings and an empty, broken hero; Rich Text emits
-   PHP warnings and renders nothing; FAQ is a **fatal error** (`TypeError`
-   from `array_map()`). Render through `salt_render_resolved_section()`.
+   or any `get_template_part()` / `load_template()` of a
+   `template-parts/sections/{slug}.php` — passes no props. Every view
+   then emits PHP warnings. Hero draws an empty, broken hero and Rich
+   Text draws nothing; blog-teaser, cta, faq, gallery, pricing,
+   scroll-carousel and work are a **fatal error** (`TypeError` from
+   `count()` or `array_map()`); the rest draw broken markup. Render
+   through `salt_render_resolved_section()`.
 
 Fix for 1 and 2: rewrite the override as a view, starting from the
 parent's new `template-parts/sections/{slug}.php`, and re-verify it in the
@@ -162,5 +166,5 @@ override manifest.
   section's resolver returns the wrapper args and props, and the shared
   entry draws its view inside `salt_section( $wrapper_args,
   $content_callback )`, passing the derived heading level as
-  `$args['plan']['headingLevel']` (A11Y01). An unsplit section composes
-  its body inside `salt_section()` itself, as before.
+  `$args['plan']['headingLevel']` (A11Y01). An unsplit (child-only)
+  section composes its body inside `salt_section()` itself, as before.
