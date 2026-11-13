@@ -354,6 +354,27 @@ final class LogosSectionTest extends SaltTestCase {
 		$this->assertStringContainsString( 'linked logo has no name or alt', implode( ' ', $this->logs() ) );
 	}
 
+	public function test_unlinked_logo_log_follows_every_row_skip_log(): void {
+		$this->seed_attachment( 8, 'Stored alt' );
+
+		$this->resolve_logos(
+			array(
+				'logos' => array(
+					array(
+						'image' => 8,
+						'url'   => 'https://acme.test/',
+					),
+					array( 'name' => 'No image' ),
+				),
+			)
+		);
+
+		$logs = $this->logs();
+		$this->assertCount( 2, $logs );
+		$this->assertStringContainsString( 'logo row has no image', $logs[0] );
+		$this->assertStringContainsString( 'linked logo has no name or alt', $logs[1] );
+	}
+
 	public function test_view_draws_from_props_alone(): void {
 		$this->seed_attachment( 7 );
 

@@ -66,7 +66,8 @@ function salt_resolve_section_logos( array $context ): ?array {
 	$rows = is_array( $rows ) ? $rows : array();
 
 	// Normalise to renderable logos; broken rows skipped + logged (DATA05).
-	$logos = array();
+	$logos    = array();
+	$unlinked = 0; // Logos with a URL but no accessible name.
 	foreach ( $rows as $row ) {
 		if ( ! is_array( $row ) ) {
 			salt_log( 'section logos: malformed logo row — skipped.' );
@@ -96,7 +97,7 @@ function salt_resolve_section_logos( array $context ): ?array {
 		// do not "fix" here.
 		$linked = '' !== $url && ( '' !== $name || '' !== $alt );
 		if ( ! $linked && '' !== $url ) {
-			salt_log( 'section logos: linked logo has no name or alt — rendered unlinked (accessible-name rule).' );
+			++$unlinked; // Logged after the loop, in row order (see below).
 		}
 
 		$logos[] = array(
@@ -109,6 +110,12 @@ function salt_resolve_section_logos( array $context ): ?array {
 
 	if ( array() === $logos ) {
 		return null; // 0-state: skip the section entirely (COMPL02).
+	}
+
+	// Before the split these lines were written while the logos were drawn,
+	// i.e. after every row's skip log above, one per unlinked logo in row order.
+	for ( $n = 0; $n < $unlinked; $n++ ) {
+		salt_log( 'section logos: linked logo has no name or alt — rendered unlinked (accessible-name rule).' );
 	}
 
 	return array(
