@@ -107,13 +107,15 @@ final class SectionSplitTest extends SaltTestCase {
 	}
 
 	/**
-	 * Layouts with no resolver.
+	 * Layouts with no resolver. Every parent layout is split, so the
+	 * unsplit case is a layout only a child theme adds (no parent
+	 * inc/sections/ file): its template still loads whole.
 	 *
 	 * @return array<string,array{0:string}>
 	 */
 	public static function unsplit_layouts(): array {
 		return array(
-			'not split yet'      => array( 'cta' ),
+			'child-only layout'  => array( 'child-only' ),
 			'no such layout'     => array( 'does-not-exist' ),
 			'ACF underscore'     => array( 'rich_text' ),
 			'path traversal'     => array( '../inc/render' ),
