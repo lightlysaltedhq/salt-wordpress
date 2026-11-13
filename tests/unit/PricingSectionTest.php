@@ -378,4 +378,150 @@ final class PricingSectionTest extends SaltTestCase {
 
 		$this->assertCount( $baseline, salt_schema_graph( $graph_args )['@graph'], 'Pricing section queues no schema nodes (Offer deferred).' );
 	}
+
+	// -----------------------------------------------------------------
+	// Logic/view split (ID-3587): resolver and view.
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one pricing FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields Row sub-field fixtures.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_pricing( array $fields ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'pricing',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'pricing' );
+		$this->assertSame( 'salt_resolve_section_pricing', $resolver );
+
+		return $resolver(
+			array(
+				'index'      => 0,
+				'is_primary' => false,
+			)
+		);
+	}
+
+	public function test_resolver_returns_null_without_a_named_plan(): void {
+		$this->assertNull(
+			$this->resolve_pricing(
+				array(
+					'heading' => 'Plans',
+					'plans'   => array( 'not a row', $this->plan( array( 'name' => '  ' ) ) ),
+				)
+			)
+		);
+	}
+
+	public function test_resolver_props_use_the_contract_names(): void {
+		$resolved = $this->resolve_pricing(
+			array(
+				'eyebrow' => ' Pricing ',
+				'heading' => ' Plans ',
+				'plans'   => array(
+					$this->plan(
+						array(
+							'name'     => ' Starter ',
+							'features' => array( array( 'text' => ' Site ' ), array( 'text' => ' ' ), 'bad' ),
+							'featured' => true,
+						)
+					),
+					$this->plan(
+						array(
+							'name'     => 'Pro',
+							'price'    => null,
+							'cta'      => array(
+								'url'   => 'https://example.test/pro/',
+								'title' => '',
+							),
+							'featured' => true,
+						)
+					),
+				),
+			)
+		);
+
+		$this->assertSame( array( 'eyebrow', 'heading', 'plans' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( 'Pricing', $resolved['props']['eyebrow'], 'Trimmed, as before the split.' );
+		$this->assertSame( 'Plans', $resolved['props']['heading'] );
+		$this->assertTrue( $resolved['section']['has_heading'] );
+
+		$this->assertSame(
+			array(
+				'name'     => 'Starter',
+				'price'    => '£29',
+				'period'   => '/month',
+				'features' => array( 'Site' ),
+				'cta'      => array(
+					'label' => 'Start now',
+					'url'   => 'https://example.test/signup/',
+				),
+				'featured' => true,
+			),
+			$resolved['props']['plans'][0]
+		);
+		$this->assertSame( '', $resolved['props']['plans'][1]['price'] );
+		$this->assertSame( 'Choose plan', $resolved['props']['plans'][1]['cta']['label'] );
+		$this->assertFalse( $resolved['props']['plans'][1]['featured'], 'Only the first featured plan is honoured.' );
+		$this->assertCount( 1, $this->logs(), 'The demotion is logged once.' );
+	}
+
+	public function test_resolver_blank_eyebrow_and_heading_are_null(): void {
+		$resolved = $this->resolve_pricing(
+			array(
+				'eyebrow' => '   ',
+				'plans'   => array( $this->plan( array( 'cta' => array( 'url' => ' ' ) ) ) ),
+			)
+		);
+
+		$this->assertNull( $resolved['props']['eyebrow'] );
+		$this->assertNull( $resolved['props']['heading'] );
+		$this->assertFalse( $resolved['section']['has_heading'] );
+		$this->assertSame( array(), $resolved['props']['plans'][0]['cta'], 'A link without a URL is no CTA.' );
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/pricing.php',
+			false,
+			array(
+				'props' => array(
+					'eyebrow' => null,
+					'heading' => 'From props',
+					'plans'   => array(
+						array(
+							'name'     => 'Solo',
+							'price'    => '£9',
+							'period'   => '',
+							'features' => array( 'One thing' ),
+							'cta'      => array(),
+							'featured' => false,
+						),
+					),
+				),
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
+		$this->assertSame( 1, preg_match_all( '/<h3[\s>]/', $html ), 'Plan name one level below the heading.' );
+		$this->assertStringContainsString( 'x-pricing-grid grid gap-6 pt-3 sm:max-w-md', $html, 'One plan: single-card grid.' );
+		$this->assertStringContainsString( 'One thing', $html );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+	}
 }
