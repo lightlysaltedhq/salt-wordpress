@@ -251,4 +251,145 @@ final class FeaturesSectionTest extends SaltTestCase {
 
 		$this->assertCount( $baseline, salt_schema_graph( $graph_args )['@graph'], 'Features section queues no schema nodes.' );
 	}
+
+	// -----------------------------------------------------------------
+	// Resolver and view (logic/view split, ID-3587).
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one features FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields  Row fields.
+	 * @param array<string,mixed> $context Loop context.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_features( array $fields, array $context = array(
+		'index'      => 0,
+		'is_primary' => false,
+	) ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'features',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'features' );
+		$this->assertSame( 'salt_resolve_section_features', $resolver );
+
+		return $resolver( $context );
+	}
+
+	public function test_resolver_returns_null_without_valid_items(): void {
+		$this->assertNull( $this->resolve_features( array( 'heading' => 'Why us' ) ) );
+		$this->assertNull(
+			$this->resolve_features(
+				array(
+					'items' => array(
+						array( 'text' => 'No title' ),
+						'not-a-row',
+					),
+				)
+			)
+		);
+	}
+
+	public function test_resolver_props_use_the_contract_names(): void {
+		$resolved = $this->resolve_features(
+			array(
+				'eyebrow' => 'Benefits',
+				'heading' => 'Why us',
+				'columns' => '4',
+				'items'   => array(
+					array(
+						'icon'  => 'star',
+						'title' => ' Fast ',
+						'text'  => ' Really fast. ',
+						'link'  => array( 'url' => '/fast' ),
+					),
+					array( 'title' => 'Bare' ),
+				),
+			)
+		);
+
+		$this->assertSame( array( 'eyebrow', 'heading', 'columns', 'items' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( 'Benefits', $resolved['props']['eyebrow'] );
+		$this->assertSame( 'Why us', $resolved['props']['heading'] );
+		$this->assertSame( '4', $resolved['props']['columns'] );
+		$this->assertSame(
+			array(
+				array(
+					'icon'  => 'star',
+					'title' => 'Fast',
+					'text'  => 'Really fast.',
+					'href'  => '/fast',
+				),
+				array(
+					'icon'  => null,
+					'title' => 'Bare',
+					'text'  => null,
+					'href'  => null,
+				),
+			),
+			$resolved['props']['items']
+		);
+	}
+
+	public function test_resolver_nulls_blank_text_defaults_columns_and_owns_the_wrapper(): void {
+		$resolved = $this->resolve_features(
+			array(
+				'eyebrow'         => '  ',
+				'columns'         => '7',
+				'section_spacing' => 'lg',
+				'items'           => array( array( 'title' => 'One' ) ),
+			)
+		);
+
+		$this->assertNull( $resolved['props']['eyebrow'] );
+		$this->assertNull( $resolved['props']['heading'] );
+		$this->assertSame( '3', $resolved['props']['columns'] );
+		$this->assertSame( 'features', $resolved['section']['name'] );
+		$this->assertSame( 'lg', $resolved['section']['spacing'] );
+		$this->assertFalse( $resolved['section']['has_heading'] );
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/features.php',
+			false,
+			array(
+				'props' => array(
+					'eyebrow' => 'Eyebrow from props',
+					'heading' => 'From props',
+					'columns' => '2',
+					'items'   => array(
+						array(
+							'icon'  => null,
+							'title' => 'Card title',
+							'text'  => 'Card copy',
+							'href'  => '/card',
+						),
+					),
+				),
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
+		$this->assertSame( 1, preg_match_all( '/<h3[\s>]/', $html ), 'Card titles step one level below the heading.' );
+		$this->assertStringContainsString( 'Eyebrow from props', $html );
+		$this->assertStringContainsString( 'Card copy', $html );
+		$this->assertStringContainsString( 'href="/card"', $html );
+		$this->assertStringContainsString( 'sm:grid-cols-2', $html );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+	}
 }
