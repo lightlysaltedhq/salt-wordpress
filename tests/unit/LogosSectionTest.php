@@ -248,4 +248,153 @@ final class LogosSectionTest extends SaltTestCase {
 		$this->assertStringContainsString( '<h1', $html );
 		$this->assertStringContainsString( 'As featured in', $html );
 	}
+
+	// -----------------------------------------------------------------
+	// Resolver and view (logic/view split, ID-3587).
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one logos FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields  Row fields.
+	 * @param array<string,mixed> $context Loop context.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_logos( array $fields, array $context = array(
+		'index'      => 0,
+		'is_primary' => false,
+	) ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'logos',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'logos' );
+		$this->assertSame( 'salt_resolve_section_logos', $resolver );
+
+		return $resolver( $context );
+	}
+
+	public function test_resolver_returns_null_without_resolvable_logos(): void {
+		$this->assertNull( $this->resolve_logos( array( 'heading' => 'As featured in' ) ) );
+		$this->assertNull( $this->resolve_logos( array( 'logos' => array( array( 'image' => 99 ), 'not-a-row' ) ) ) );
+	}
+
+	public function test_resolver_props_use_the_contract_names(): void {
+		$this->seed_attachment( 7 );
+		$this->seed_attachment( 8, 'Stored alt' );
+
+		$resolved = $this->resolve_logos(
+			array(
+				'heading'   => 'As featured in',
+				'greyscale' => 1,
+				'logos'     => array(
+					array(
+						'image' => 7,
+						'name'  => ' Acme ',
+						'url'   => ' https://acme.test/ ',
+					),
+					array(
+						'image' => array( 'ID' => 8 ),
+						'name'  => 'Beta',
+						'url'   => '',
+					),
+				),
+			)
+		);
+
+		$this->assertSame( array( 'heading', 'greyscale', 'items' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( 'As featured in', $resolved['props']['heading'] );
+		$this->assertTrue( $resolved['props']['greyscale'] );
+		$this->assertSame(
+			array(
+				array(
+					'image_id'   => 7,
+					'alt'        => 'Acme',
+					'href'       => 'https://acme.test/',
+					'link_label' => 'Acme',
+				),
+				array(
+					'image_id'   => 8,
+					'alt'        => '',
+					'href'       => '',
+					'link_label' => '',
+				),
+			),
+			$resolved['props']['items']
+		);
+		$this->assertFalse( $resolved['section']['is_primary'] );
+		$this->assertTrue( $resolved['section']['has_heading'] );
+	}
+
+	public function test_resolver_leaves_a_nameless_link_unlinked_and_logs_it(): void {
+		// Pre-split behaviour kept: with a stored alt but no name, alt stays
+		// '' (it is only ever filled from the name), so the link is dropped.
+		$this->seed_attachment( 8, 'Stored alt' );
+
+		$resolved = $this->resolve_logos(
+			array(
+				'logos' => array(
+					array(
+						'image' => 8,
+						'url'   => 'https://acme.test/',
+					),
+				),
+			)
+		);
+
+		$this->assertSame( '', $resolved['props']['items'][0]['href'] );
+		$this->assertSame( '', $resolved['props']['items'][0]['link_label'] );
+		$this->assertNull( $resolved['props']['heading'] );
+		$this->assertStringContainsString( 'linked logo has no name or alt', implode( ' ', $this->logs() ) );
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		$this->seed_attachment( 7 );
+
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/logos.php',
+			false,
+			array(
+				'props' => array(
+					'heading'   => 'From props',
+					'greyscale' => true,
+					'items'     => array(
+						array(
+							'image_id'   => 7,
+							'alt'        => 'Drawn logo',
+							'href'       => 'https://drawn.test/',
+							'link_label' => 'Drawn label',
+						),
+						array(
+							'image_id'   => 7,
+							'alt'        => '',
+							'href'       => '',
+							'link_label' => '',
+						),
+					),
+				),
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
+		$this->assertStringContainsString( 'From props', $html );
+		$this->assertStringContainsString( '<a href="https://drawn.test/" aria-label="Drawn label">', $html );
+		$this->assertSame( 1, substr_count( $html, '<a ' ), 'Only the logo with an href is linked.' );
+		$this->assertSame( 2, substr_count( $html, 'x-logos-item' ) );
+		$this->assertStringContainsString( 'grayscale', $html );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+	}
 }
