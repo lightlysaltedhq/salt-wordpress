@@ -504,7 +504,9 @@ function salt_section_resolver( string $layout ): ?string {
  * runs for it: no resolver, no wrapper, no H1 claim, no schema. The child's
  * template-parts/sections/{layout}.php is loaded WHOLE with the loop context
  * as $args (index, is_primary), exactly as an unsplit section's template
- * is, and composes the section itself (salt_section() and all).
+ * is, and composes the section itself: it must call salt_section(), or the
+ * render state (section index, adjacency collapse) is left describing the
+ * section before it — logged as a warning when it draws markup without it.
  *
  * Fails loudly — salt_log(), a throw under salt_is_debug(), nothing
  * rendered — when the located template is not the child's: a declaration
@@ -519,7 +521,19 @@ function salt_section_resolver( string $layout ): ?string {
  */
 function salt_render_replaced_section( string $layout, string $view, array $context = array() ): void {
 	if ( salt_override_is_child_file( $view ) ) {
+		$before = salt_render_state()['section_index'];
+
+		ob_start();
 		load_template( $view, false, $context );
+		$html = (string) ob_get_clean();
+		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The child template's own output, passed through unchanged.
+
+		// Drawn without the shared band: the render state still describes the
+		// section before this one, so the next section's index and adjacency
+		// collapse are computed from the wrong neighbour.
+		if ( '' !== $html && salt_render_state()['section_index'] === $before ) {
+			salt_log( sprintf( 'section "%1$s": its replacing template (tier "logic") drew markup without calling salt_section() — the next section\'s index and spacing collapse are now wrong. Wrap the section in salt_section() (OVERRIDES.md).', $layout ) );
+		}
 		return;
 	}
 
@@ -566,7 +580,7 @@ function salt_render_resolved_section( string $layout, string $view, array $cont
 		return;
 	}
 
-	if ( 'logic' === salt_override_tier( $layout ) ) {
+	if ( null !== salt_overrides() && 'logic' === salt_override_tier( $layout, salt_contract_section_variant( $layout ) ) ) {
 		salt_render_replaced_section( $layout, $view, $context );
 		return;
 	}

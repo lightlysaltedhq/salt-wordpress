@@ -8,18 +8,18 @@
  * every test. Loaded from tests/bootstrap.php because the render path asks
  * for it on every split section.
  *
- * locate_template() (tests/wp-shims.php) stays parent-only: tests hand a
- * child's template path to salt_render_resolved_section() themselves, the
- * path WordPress's locate_template() would return.
+ * It also defines locate_template() child-first, as WordPress's is: the
+ * stylesheet directory, then the template directory. With no child theme
+ * active the two are the same, so the lookup is exactly the parent-only one
+ * in tests/wp-shims.php. To win over that shim's definition, this file is
+ * required BEFORE tests/wp-shims.php (tests/bootstrap.php), which is why it
+ * has no ABSPATH guard: ABSPATH is not defined yet when it loads. Nothing
+ * here runs at load time.
  *
  * @package Salt\Tests
  */
 
 declare(strict_types=1);
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
 
 /**
  * Point get_stylesheet_directory() at a fixture child theme (null = none).
@@ -45,5 +45,26 @@ if ( ! function_exists( 'get_stylesheet_directory' ) ) {
 	function get_stylesheet_directory(): string {
 		$dir = $GLOBALS['salt_test_stylesheet_dir'] ?? null;
 		return is_string( $dir ) ? $dir : get_template_directory();
+	}
+}
+
+if ( ! function_exists( 'locate_template' ) ) {
+	/**
+	 * Child-first template lookup (WordPress order): the active child theme,
+	 * then the parent.
+	 *
+	 * @param string|string[] $template_names Template file(s), relative to the theme.
+	 * @return string Located path, or ''.
+	 */
+	function locate_template( $template_names ): string {
+		foreach ( (array) $template_names as $name ) {
+			foreach ( array_unique( array( get_stylesheet_directory(), get_template_directory() ) ) as $dir ) {
+				$path = $dir . '/' . ltrim( $name, '/' );
+				if ( is_readable( $path ) ) {
+					return $path;
+				}
+			}
+		}
+		return '';
 	}
 }

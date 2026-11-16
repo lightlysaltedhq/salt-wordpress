@@ -43,8 +43,9 @@ const SALT_OVERRIDES_MAX_BYTES = 65536;
  * the same mapping as the slug table in docs/contracts/CONVENTIONS.md.
  * Where the contract folds several layouts into one section
  * (collection-showcase, carousel, rich-text) every one of them is listed,
- * and `testimonials` is under both collection-showcase (its grid) and
- * carousel (its slider). A section WordPress does not ship yet (tabs,
+ * and `testimonials` is under both collection-showcase (its grid rows) and
+ * carousel (its slider rows); which one a row is comes from its layout
+ * field (salt_contract_section_conditions()). A section WordPress does not ship yet (tabs,
  * listing) maps to no layout. salt-wordpress takes no dependency on the
  * contract package, so this list is kept by hand: a new contract section
  * or a new layout adds a row here.
@@ -74,13 +75,58 @@ function salt_contract_section_layouts(): array {
 }
 
 /**
- * The contract section ids a layout belongs to (usually one; testimonials
- * belongs to two; a child-only layout to none).
+ * Layouts whose contract section depends on a field of the row (the
+ * contract's `when`): testimonials is collection-showcase when its layout
+ * field is grid and carousel when it is slider (sections.json,
+ * collection-showcase and carousel `formerly`).
  *
- * @param string $layout Layout slug (hyphenated).
+ * @return array<string, array{field: string, normalise: callable(string): string, sections: array<string,string>}>
+ *         Layout slug => the sub-field, its normaliser (the resolver's own),
+ *         and normalised value => contract section id.
+ */
+function salt_contract_section_conditions(): array {
+	return array(
+		'testimonials' => array(
+			'field'     => 'layout',
+			'normalise' => 'salt_testimonials_layout',
+			'sections'  => array(
+				'grid'   => 'collection-showcase',
+				'slider' => 'carousel',
+			),
+		),
+	);
+}
+
+/**
+ * The testimonials layout field normalised: 'grid' | 'slider', anything
+ * else 'grid'. The one rule both the testimonials resolver and the
+ * contract-id lookup use.
+ *
+ * @param string $value Raw `layout` sub-field value.
+ * @return string
+ */
+function salt_testimonials_layout( string $value ): string {
+	return in_array( $value, array( 'grid', 'slider' ), true ) ? $value : 'grid';
+}
+
+/**
+ * The contract section ids a layout belongs to (usually one; a child-only
+ * layout to none). For a layout whose section depends on its row
+ * (salt_contract_section_conditions()), pass the row's raw field value as
+ * $variant to get the one id that row is; with $variant null every id the
+ * layout can be is returned (testimonials: both).
+ *
+ * @param string      $layout  Layout slug (hyphenated).
+ * @param string|null $variant Raw value of the layout's condition field, or null.
  * @return string[]
  */
-function salt_contract_sections_for_layout( string $layout ): array {
+function salt_contract_sections_for_layout( string $layout, ?string $variant = null ): array {
+	$condition = salt_contract_section_conditions()[ $layout ] ?? null;
+	if ( null !== $condition && null !== $variant ) {
+		$id = $condition['sections'][ ( $condition['normalise'] )( $variant ) ] ?? null;
+		return null === $id ? array() : array( $id );
+	}
+
 	$ids = array();
 	foreach ( salt_contract_section_layouts() as $id => $layouts ) {
 		if ( in_array( $layout, $layouts, true ) ) {
@@ -88,6 +134,36 @@ function salt_contract_sections_for_layout( string $layout ): array {
 		}
 	}
 	return $ids;
+}
+
+/**
+ * The current Flexible Content row's value of a layout's condition field
+ * (raw; salt_contract_sections_for_layout() normalises it), or null when
+ * the layout has no condition.
+ *
+ * @param string $layout Layout slug (hyphenated).
+ * @return string|null
+ */
+function salt_contract_section_variant( string $layout ): ?string {
+	$condition = salt_contract_section_conditions()[ $layout ] ?? null;
+	if ( null === $condition ) {
+		return null;
+	}
+	return function_exists( 'get_sub_field' ) ? (string) get_sub_field( $condition['field'] ) : '';
+}
+
+/**
+ * How a layout reads when it is one contract section only for some rows:
+ * "testimonials (slider rows)" for carousel, "testimonials" otherwise.
+ *
+ * @param string $layout Layout slug.
+ * @param string $id     Contract section id.
+ * @return string
+ */
+function salt_contract_layout_label( string $layout, string $id ): string {
+	$condition = salt_contract_section_conditions()[ $layout ] ?? null;
+	$value     = null === $condition ? false : array_search( $id, $condition['sections'], true );
+	return false === $value ? $layout : sprintf( '%1$s (%2$s rows)', $layout, $value );
 }
 
 /**
@@ -166,7 +242,7 @@ function salt_overrides_validate( $data ): array {
 
 	$sections = array();
 	$seen     = array();
-	foreach ( $list( $top['sections'] ?? array(), 'sections' ) as $i => $item ) {
+	foreach ( ( array_key_exists( 'sections', $top ) ? $list( $top['sections'], 'sections' ) : array() ) as $i => $item ) {
 		$at   = sprintf( 'sections[%d]', $i );
 		$vars = $object( $item, $at, array( 'section', 'tier', 'files', 'reason', 'since', 'verified' ), array() );
 		if ( null === $vars ) {
@@ -213,7 +289,7 @@ function salt_overrides_validate( $data ): array {
 	}
 
 	$image_sizes = array();
-	foreach ( $list( $top['imageSizes'] ?? array(), 'imageSizes' ) as $i => $item ) {
+	foreach ( ( array_key_exists( 'imageSizes', $top ) ? $list( $top['imageSizes'], 'imageSizes' ) : array() ) as $i => $item ) {
 		$at   = sprintf( 'imageSizes[%d]', $i );
 		$vars = $object( $item, $at, array( 'section', 'slot', 'sizes', 'reason' ), array( 'band' ) );
 		if ( null === $vars ) {
@@ -243,7 +319,7 @@ function salt_overrides_validate( $data ): array {
 
 	$client_sections = array();
 	$seen            = array();
-	foreach ( $list( $top['clientSections'] ?? array(), 'clientSections' ) as $i => $item ) {
+	foreach ( ( array_key_exists( 'clientSections', $top ) ? $list( $top['clientSections'], 'clientSections' ) : array() ) as $i => $item ) {
 		$at   = sprintf( 'clientSections[%d]', $i );
 		$vars = $object( $item, $at, array( 'id', 'reason' ), array() );
 		if ( null === $vars ) {
@@ -432,15 +508,21 @@ function salt_overrides(): ?array {
 }
 
 /**
- * The declared tier of a layout: 'logic' when any contract section the
- * layout belongs to is declared `logic`, else 'view' when one is declared
- * `view`, else null (undeclared, or no valid declaration).
+ * The declared tier of a layout: 'logic' when a contract section the
+ * layout is (for this row) is declared `logic`, else 'view' when one is
+ * declared `view`, else null (undeclared, or no valid declaration).
  *
- * @param string $layout Layout slug (hyphenated).
+ * For testimonials pass the row's layout field as $variant (the render
+ * path reads it with salt_contract_section_variant()), so a grid row is
+ * looked up as collection-showcase and a slider row as carousel. With
+ * $variant null every section the layout can be counts.
+ *
+ * @param string      $layout  Layout slug (hyphenated).
+ * @param string|null $variant Raw value of the layout's condition field, or null.
  * @return string|null
  */
-function salt_override_tier( string $layout ): ?string {
-	return salt_override_tier_in( salt_overrides(), $layout );
+function salt_override_tier( string $layout, ?string $variant = null ): ?string {
+	return salt_override_tier_in( salt_overrides(), $layout, $variant );
 }
 
 /**
@@ -448,14 +530,15 @@ function salt_override_tier( string $layout ): ?string {
  *
  * @param array<string,mixed>|null $declaration Validated declaration, or null.
  * @param string                   $layout      Layout slug (hyphenated).
+ * @param string|null              $variant     Raw value of the layout's condition field, or null.
  * @return string|null 'logic' | 'view' | null.
  */
-function salt_override_tier_in( ?array $declaration, string $layout ): ?string {
+function salt_override_tier_in( ?array $declaration, string $layout, ?string $variant = null ): ?string {
 	if ( null === $declaration ) {
 		return null;
 	}
 
-	$ids  = salt_contract_sections_for_layout( $layout );
+	$ids  = salt_contract_sections_for_layout( $layout, $variant );
 	$tier = null;
 	foreach ( $declaration['sections'] as $entry ) {
 		if ( ! in_array( $entry['section'], $ids, true ) ) {
