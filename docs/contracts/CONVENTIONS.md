@@ -84,7 +84,10 @@ Every Flexible Content section is two files: a **resolver** (the logic)
 and a **view** (the markup). The resolver returns the section's view
 props, named after the design contract's view props; the view draws them
 and does nothing else. A child theme overrides the view only, so every
-fix to the logic still reaches it (OVERRIDES.md).
+fix to the logic still reaches it (OVERRIDES.md) — unless it DECLARES the
+section replaced (tier `logic` in its `salt-overrides.json`), when its own
+template is the whole section and none of the parent's code runs for it
+(OVERRIDES.md "Declaring replaced sections").
 
 A section is *split* when `inc/sections/{slug}.php` exists. All 20
 parent sections are split; Rich Text is the exemplar to copy. A layout
@@ -127,6 +130,12 @@ records, per contract section, which WordPress layouts it was `formerly`.
 | `contact` | `contact.json` | contract, except the service and form props (below) |
 | `locations` | `locations.json` | contract |
 
+The same mapping, from contract section id to layout slugs, is code:
+`salt_contract_section_layouts()` in `inc/overrides.php`, which reads a
+child theme's `salt-overrides.json` by contract id. A new layout or a new
+contract section adds a row to both (OverridesDeclarationTest fails on a
+parent layout with no contract section).
+
 "contract": name each prop after the file's `data` entry where it
 corresponds 1:1. "WordPress-local — no fold here": the contract folds
 this layout into another section; this work item does NOT fold it. Its
@@ -165,7 +174,11 @@ WordPress counterpart yet; `request_status`, `nonce`, `time_token`,
   exists but does not define the right function name, or the function is
   already defined elsewhere, the section logs, throws under
   `salt_is_debug()` and renders nothing — it never falls back to the
-  unsplit path.
+  unsplit path. The single exception is a section the child theme
+  declares replaced (tier `logic` in `salt-overrides.json`): the entry
+  never loads its resolver at all and loads the child's template whole
+  (see The shared entry). A replacement that is not declared still fails
+  as above.
 - **Does all the logic:** field and option reads (`get_sub_field`,
   `get_field`, `salt_option`), queries (`salt_resolve_query`), sanitising
   (`salt_sanitize_html`), validation and fallbacks, broken-row skipping +
@@ -248,6 +261,15 @@ a malformed return.
 (`inc/render.php`) runs resolver → `null` check → `salt_section(
 $resolved['section'], … )` → the view, loaded with
 `$args = array( 'props' => …, 'plan' => array( 'index' => …, 'headingLevel' => …, 'priorityMedia' => … ) )`.
+
+Before the resolver, it asks `salt_override_tier( $layout )`. When the
+child theme's `salt-overrides.json` declares the layout's contract
+section `logic`, it calls `salt_render_replaced_section()` instead: the
+located template is loaded whole with the loop context, if it is the
+child's, and otherwise the section logs, throws under `salt_is_debug()`
+and renders nothing. With no declaration (every site without the file)
+this step is a no-op and output is unchanged. A view never needs to know
+about it: tier `view` changes nothing at render time.
 
 ### The view
 

@@ -8,6 +8,35 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
+### Added
+
+- **Declared extension points: `salt-overrides.json` (ID-3613).** The
+  parent reads the salt-contract's replaced-logic declaration
+  (`schema/replaced-logic.schema.json`, SC-015) from the root of the child
+  theme: `salt_overrides()` returns it validated and memoised, or `null`
+  when there is no child theme, no file, or an invalid one (logged once,
+  never fatal). Section ids are the contract's, mapped to layout slugs by
+  `salt_contract_section_layouts()` (`call-to-action` is `cta`).
+  - Tier `view`: no rendering change; a child view loads as before,
+    declared or not.
+  - Tier `logic`: the declared section's parent resolver and wrapper no
+    longer run; the child's `template-parts/sections/{slug}.php` is loaded
+    whole with the loop context. With no child template it logs, throws
+    under `WP_DEBUG` and renders nothing. An UNDECLARED replacement fails
+    exactly as before.
+  - `clientSections` and `imageSizes`: read and exposed only.
+  - **The update flag:** a notice on the Themes and Updates screens
+    (`switch_themes` users) listing every `logic` entry, every `view` entry
+    whose `verified` is not the declaration's `contract`, and every
+    mismatch between the declaration and the child's files. It cannot tell
+    which view-props files a contract release changed, and says so.
+  - Design dials are not supported yet (ID-3612).
+  Docs: docs/contracts/OVERRIDES.md "Declaring replaced sections",
+  docs/templates/override-manifest.md, docs/contracts/CONVENTIONS.md.
+  Semver: MINOR (a new extension point; no pluggable function added or
+  removed, no args or markup change, no `.snap.html` changed, and a site
+  without `salt-overrides.json` renders byte-identically).
+
 ### Changed
 
 - The design contract pin moves to `@lightlysaltedhq/design-foundations` 3.0.1, the
@@ -56,7 +85,9 @@ markup granularity (cross-reference your site's override manifest).
 - **Resolvers cannot be replaced by a child theme.** They load from the
   parent theme only: a child file at `inc/sections/{slug}.php` is ignored,
   and a child that defines `salt_resolve_section_*()` makes that section
-  render nothing (logged; an exception under `WP_DEBUG`).
+  render nothing (logged; an exception under `WP_DEBUG`). To own a
+  section's logic, declare it `logic` in `salt-overrides.json` (Added,
+  above).
 
 ## [5.0.0] — 2026-10-07
 
