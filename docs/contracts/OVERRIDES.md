@@ -75,7 +75,9 @@ Any `template-parts/**` file can be overridden by placing the same path in
 the child — `locate_template()` checks the child first. Every override MUST
 be recorded in the child's override manifest
 (docs/templates/override-manifest.md): a parent update re-verifies exactly
-those parts. Overriding a part couples the child to that part's **markup
+those parts. A section view swap or takeover is declared in the child's
+`salt-overrides.json` instead, which the manifest points at (Declaring
+replaced sections, below). Overriding a part couples the child to that part's **markup
 structure**; snapshot diffs in the parent changelog (BREAKING section) tell
 you when a re-verify is due.
 
@@ -104,16 +106,18 @@ parent sections are.
   already sanitised by `salt_sanitize_html()`: print them as they are.
   Props named `*_html` (service-produced markup, e.g. a CAPTCHA widget)
   are likewise printed as they are.
-- **Resolvers cannot be replaced by a child theme — not until the
-  replaced-logic declaration exists (a later, separate contract).** A
-  resolver loads from the parent theme directory only, never via
-  `locate_template()`, and is not pluggable. A child file at
+- **A resolver cannot be replaced; a section can be taken over only by
+  declaring it.** A resolver loads from the parent theme directory only,
+  never via `locate_template()`, and is not pluggable. A child file at
   `inc/sections/{slug}.php` is ignored. A child (or plugin) that defines
   `salt_resolve_section_*()` does not take over the logic: the parent
   detects the conflict, does not load its own file (so there is no PHP
   redeclaration fatal), logs `… is already defined in {file} — a resolver
   cannot be replaced`, throws under `WP_DEBUG`, and renders NOTHING for
-  that section in production. Do not copy a resolver.
+  that section in production. Do not copy a resolver. The one way to own a
+  section's logic is to declare it `logic` in `salt-overrides.json` and
+  supply the whole section template (Declaring replaced sections, below);
+  an undeclared replacement still fails exactly as described here.
 - **Overriding `salt_render_section()`.** A child override must hand the
   located template to `salt_render_resolved_section( $layout, $located,
   $context )`, never `load_template()` it directly.
@@ -153,7 +157,174 @@ parent sections are.
 
 Fix for 1 and 2: rewrite the override as a view, starting from the
 parent's new `template-parts/sections/{slug}.php`, and re-verify it in the
-override manifest.
+override manifest. If the site really does need the whole section (its own
+reads, queries or schema), keep the copy and declare the section `logic`
+instead (below): it is then loaded whole, outside the parent's band.
+
+## Declaring replaced sections (`salt-overrides.json`)
+
+The salt-contract's customisation ladder (its README, "The customisation
+ladder") names the extension points both Salt platforms offer. Tiers 4 to
+6 are declared in one JSON file, **`salt-overrides.json` at the root of
+the child theme**, in the contract's format:
+`salt-contract/schema/replaced-logic.schema.json` (decision SC-015). The
+child's own `OVERRIDES.md` (the override manifest) points at that file and
+does not repeat it. The parent reads only the JSON, never the manifest.
+
+```json
+{
+  "$schema": "https://unpkg.com/@lightlysaltedhq/salt-contract@1.0.0/schema/replaced-logic.schema.json",
+  "site": "salt-{client}",
+  "platform": "wordpress",
+  "contract": "1.0.0",
+  "sections": [
+    { "section": "call-to-action", "tier": "view", "files": ["template-parts/sections/cta.php"],
+      "reason": "…", "since": "16/11/2026", "verified": "1.0.0" },
+    { "section": "stats", "tier": "logic", "files": ["template-parts/sections/stats.php"],
+      "reason": "…", "since": "16/11/2026", "verified": "1.0.0" }
+  ],
+  "clientSections": [ { "id": "showroom-finder", "reason": "…" } ]
+}
+```
+
+- **Section ids are the contract's, not the layout slugs.** The parent maps
+  them with `salt_contract_section_layouts()` (`inc/overrides.php`), the
+  same mapping as the slug table in CONVENTIONS.md: `call-to-action` is the
+  `cta` layout; `rich-text` is `rich-text` and `intro`;
+  `collection-showcase` is `services`, `work`, `team`, `testimonials` and
+  `blog-teaser`; `carousel` is `scroll-carousel` and `testimonials`.
+  Declaring a folded id covers every layout it maps to. `testimonials` is
+  decided **per row**, as the contract's `when` says: a row whose Layout
+  field is `grid` is `collection-showcase`, a `slider` row is `carousel`
+  (anything else counts as `grid`, the testimonials resolver's own
+  normalisation, `salt_testimonials_layout()`). So `carousel` declared
+  `logic` takes over slider testimonials only, and `collection-showcase`
+  `logic` with `carousel` `view` takes over grid rows while slider rows
+  load the same child file as a view. `tabs` and `listing` have no
+  WordPress layout yet.
+- **Reading it.** `salt_overrides()` returns the parsed declaration (plain
+  arrays, shape in its docblock), read once per request, or `null` when no
+  child theme is active, the file is absent, or it is invalid.
+  `salt_override_tier( $layout, $variant )` gives a layout's declared tier
+  (`'logic'` beats `'view'`; `null` when undeclared); for testimonials pass
+  the row's Layout value as `$variant` (the render path does).
+- **Validation.** Every rule of the schema (required and allowed keys,
+  id, release and `DD/MM/YYYY` date patterns, tier and band enums,
+  non-empty unique `files`; `sections`, `imageSizes` and `clientSections`
+  must be arrays when present, so `null` is refused), plus three of the parent's own: `platform`
+  must be `"wordpress"`, a section id has at most one entry, and a client
+  section id is listed once. Releases are `x.y.z` only, as in the schema
+  (`1.0.0-rc.6` is not accepted). A file that breaks a rule, is not JSON
+  or is over 64 KB is logged once per request (`salt-overrides.json in the
+  child theme "…" is not valid (…)`) and treated as **no declaration**:
+  never a fatal, never a throw, even under `WP_DEBUG`. Until it is fixed, a
+  section the site took over goes back through the parent's resolver and
+  wrapper. The parent resolver runs first, so the section may simply
+  vanish through the parent's 0-state (for example when the data the
+  child's template draws is not in the fields the parent reads); if it does not, its whole-section template is loaded as a view
+  and nests (item 1 above). The update flag says the file is invalid.
+
+### Tier 4: swap a section's view (`"tier": "view"`)
+
+The view swap is the one described under Section views: a child file at
+`template-parts/sections/{slug}.php`, found by `locate_template()`,
+drawing `$args['props']` and `$args['plan']`. The file path uses the
+**layout slug** (`cta.php`); the declaration uses the **contract id**
+(`call-to-action`). The contract names no file path for WordPress views, so
+the path is the native one and nothing about it changes. Declaring the
+swap changes no rendering: an **undeclared** child view still loads exactly
+as before, because refusing it would break every existing child theme. The
+mismatch is raised by the update flag instead (below). Declare every swap.
+
+### Tier 5: replace a section's logic (`"tier": "logic"`)
+
+The site takes the section over entirely: nothing of the parent runs for
+it. For a layout whose contract id is declared `logic`,
+`salt_render_resolved_section()` skips the parent resolver, the
+`salt_section()` wrapper, the H1 claim and the parent's schema, and loads
+the child's `template-parts/sections/{slug}.php` **whole**, with the loop
+context (`index`, `is_primary`) as `$args`, exactly as a child-only layout
+is loaded. That template is a whole section: it does its own reads,
+queries, sanitising and schema, and **must** wrap what it draws in
+`salt_section( salt_section_wrapper_args( '{slug}', $args ) + … )`. The
+wrapper is what moves the page's render state on: without it the section
+index is not advanced and the adjacency-collapse state still describes the
+section before, so the NEXT section gets this one's index (a duplicate
+accordion group name, for example) and collapses or keeps its top space
+against the wrong neighbour, and this section never claims the H1. The
+parent logs `… drew markup without calling salt_section()` when a
+template draws markup without it (a template that draws nothing is a
+0-state and is not warned about). Name its helpers with the child's own
+prefix, never `salt_resolve_section_*()`.
+
+- **No child template, no section.** If the declaration says `logic` but
+  the child has no `template-parts/sections/{slug}.php`, the section logs
+  `… declares it replaced (tier "logic"), but the child theme has no …`,
+  throws under `WP_DEBUG`, and renders nothing in production. It never
+  falls back to the parent view, which cannot draw without props. A folded
+  id covers every layout it maps to, so declaring `collection-showcase`
+  takes over all five layouts (testimonials for grid rows only): supply a
+  template for each one the site uses.
+- **A child resolver is never called.** For a layout declared `logic` the
+  parent never loads a resolver, so a `salt_resolve_section_{slug}()` the
+  child defines for it is not called and no conflict is logged. For every
+  layout not declared `logic` (tier `view` included) such a function still
+  fails loudly as above.
+- **What still reaches it on update: nothing.** Parent fixes to that
+  section's resolver, view and schema do not apply. The update flag raises
+  every `logic` entry on every update.
+
+### Tier 6: client-only sections (`clientSections`)
+
+A layout only this site has is a child-only (unsplit) layout and renders
+as before. List it under `clientSections` so the update flag can say when
+Salt gains a section, or this theme a layout, of the same id. Listing it
+changes no rendering.
+
+`imageSizes` (SC-016) is read, validated and exposed with the rest; the
+parent's image code does not consume it yet, and the flag raises each row
+with its section.
+
+### The update flag
+
+The override manifest's update procedure (re-verify the overrides after
+taking a parent update) is carried out in the site's admin, so the flag is
+an admin notice on the **Themes** and **Updates** screens (and the network
+**Updates** screen on multisite), shown to users who can `switch_themes`
+(`inc/services/override-flag.php`). It lists:
+
+- every `logic` entry, always (nothing in a release reaches it);
+- a `view` entry whose `verified` is not the file's own `contract` (and
+  only then: see below);
+- an `imageSizes` row whose section is raised or has no entry;
+- a client section whose id is a contract section or a parent layout;
+- an invalid file, and every disagreement between the declaration and the
+  child's files: an undeclared child view of a parent section, a declared
+  view or `logic` section with no child template (testimonials by grid or
+  slider rows), a declared file that is not in the child theme or lies
+  outside it (an absolute path or one through `..`), an id this theme does
+  not know.
+
+**What it cannot know.** The contract wants a `view` entry raised when the
+section's view-props file, or `_shared.json`, changed between the old
+contract pin and the new. salt-wordpress takes no dependency on the
+contract package and does not yet record which contract release it
+conforms to, so **it cannot tell whether an update changed a section's
+view props**. A view swap whose `verified` equals the file's `contract` is
+therefore **not listed**, whatever the update changed. When an update
+moves Salt to a newer contract release, re-verify every view swap by hand
+against that release's view props, then set the file's `contract` and each
+entry's `verified` to it. Today no parent release names the contract
+release it conforms to (the parent CHANGELOG will, once salt-wordpress
+conforms to one), so until then leave `contract` at the release the site
+was built against. The flag cannot list the contract CHANGELOG entries for
+a `logic` section either; read them in the contract's release notes. It
+makes no network calls and stores nothing.
+
+### Design dials (tier 2)
+
+Not supported yet. The theme's token layer has no rungs for the dials to
+move; the dials extension point arrives with ID-3612.
 
 ## Component render rule (Open Q6 — resolved)
 
