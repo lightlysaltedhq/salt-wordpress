@@ -184,4 +184,131 @@ final class IntroSectionTest extends SaltTestCase {
 
 		$this->assertSame( array(), salt_schema_queue() );
 	}
+
+	// -----------------------------------------------------------------
+	// Resolver and view (logic/view split, ID-3587).
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one intro FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields  Row fields.
+	 * @param array<string,mixed> $context Loop context.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_intro( array $fields, array $context = array(
+		'index'      => 0,
+		'is_primary' => false,
+	) ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'intro',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'intro' );
+		$this->assertSame( 'salt_resolve_section_intro', $resolver );
+
+		return $resolver( $context );
+	}
+
+	public function test_resolver_returns_null_for_the_zero_state(): void {
+		$this->assertNull( $this->resolve_intro( array() ) );
+		$this->assertNull( $this->resolve_intro( array( 'eyebrow' => 'Only an eyebrow' ) ) );
+		$this->assertNull(
+			$this->resolve_intro(
+				array(
+					'heading' => '  ',
+					'content' => "\n",
+				)
+			)
+		);
+	}
+
+	public function test_resolver_props_are_local_snake_case_with_shared_names(): void {
+		$resolved = $this->resolve_intro(
+			array(
+				'eyebrow' => 'Hello',
+				'heading' => 'Welcome',
+				'content' => '<p>Lead <strong>copy</strong>.</p>',
+				'align'   => 'center',
+			)
+		);
+
+		$this->assertSame( array( 'eyebrow', 'heading', 'content', 'align' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( 'Hello', $resolved['props']['eyebrow'] );
+		$this->assertSame( 'Welcome', $resolved['props']['heading'] );
+		$this->assertStringContainsString( '<strong>copy</strong>', $resolved['props']['content'] );
+		$this->assertSame( 'center', $resolved['props']['align'] );
+	}
+
+	public function test_resolver_sanitises_content_nulls_blanks_and_defaults_align(): void {
+		$resolved = $this->resolve_intro(
+			array(
+				'content' => '<p class="evil">Text</p><script>alert(1)</script>',
+				'align'   => 'diagonal',
+			)
+		);
+
+		$this->assertNull( $resolved['props']['eyebrow'] );
+		$this->assertNull( $resolved['props']['heading'] );
+		$this->assertStringNotContainsString( '<script', $resolved['props']['content'] );
+		$this->assertStringNotContainsString( 'class="evil"', $resolved['props']['content'] );
+		$this->assertSame( 'left', $resolved['props']['align'] );
+		$this->assertStringContainsString( 'unknown align "diagonal"', implode( ' ', $this->logs() ) );
+
+		$resolved = $this->resolve_intro( array( 'heading' => 'Heading only' ) );
+		$this->assertNull( $resolved['props']['content'] );
+		$this->assertTrue( $resolved['section']['has_heading'] );
+	}
+
+	public function test_resolver_owns_the_wrapper_inputs(): void {
+		$resolved = $this->resolve_intro(
+			array(
+				'content'         => '<p>Body only.</p>',
+				'section_spacing' => 'lg',
+			),
+			array(
+				'index'      => 2,
+				'is_primary' => true,
+			)
+		);
+
+		$this->assertSame( 'intro', $resolved['section']['name'] );
+		$this->assertSame( 'lg', $resolved['section']['spacing'] );
+		$this->assertTrue( $resolved['section']['is_primary'] );
+		$this->assertFalse( $resolved['section']['has_heading'], 'Heading-less section must not claim the H1 (A11Y01).' );
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/intro.php',
+			false,
+			array(
+				'props' => array(
+					'eyebrow' => 'Eyebrow from props',
+					'heading' => 'From props',
+					'content' => '<p>Already sanitised.</p>',
+					'align'   => 'center',
+				),
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
+		$this->assertStringContainsString( 'Eyebrow from props', $html );
+		$this->assertStringContainsString( 'x-intro max-w-prose mx-auto text-center', $html );
+		$this->assertStringContainsString( '<div class="x-prose text-lg text-ink"><p>Already sanitised.</p></div>', $html );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+	}
 }

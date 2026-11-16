@@ -15,6 +15,12 @@ declare(strict_types=1);
 // Dev-only Composer autoloader (PHPUnit itself). Production code never uses it.
 require dirname( __DIR__ ) . '/vendor/autoload.php';
 
+// The render path asks whether a child theme is active (salt-overrides.json,
+// inc/overrides.php), so get_stylesheet_directory() must exist for every suite.
+// Loaded BEFORE wp-shims.php so its child-first locate_template() is the one
+// defined (identical to the parent-only shim while no child theme is active).
+require __DIR__ . '/shims/child-theme.php';
+
 require __DIR__ . '/wp-shims.php';
 
 /**
@@ -39,6 +45,7 @@ $salt_modules = array(
 	'/inc/services/consent.php',
 	'/inc/services/location-status.php',
 	'/inc/services/updater.php',
+	'/inc/services/override-flag.php',
 	'/inc/services/rate-limit.php',
 	'/inc/services/captcha.php',
 	'/inc/services/mailer.php',
@@ -49,6 +56,7 @@ $salt_modules = array(
 	'/inc/performance.php',
 	'/inc/setup.php',
 	'/inc/render.php',
+	'/inc/overrides.php',
 	'/inc/acf.php',
 	'/inc/security.php',
 );

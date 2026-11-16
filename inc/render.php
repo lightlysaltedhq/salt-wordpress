@@ -433,7 +433,9 @@ function salt_nullable_text( string $value ): ?string {
  * Resolvers live in the PARENT theme only — inc/sections/{layout}.php,
  * under get_template_directory(), never found through locate_template() —
  * so a child theme cannot replace a section's logic by dropping in a file.
- * The file's existence is what makes a section split.
+ * The file's existence is what makes a section split. (A child takes a
+ * section's logic over only by declaring it in salt-overrides.json and
+ * supplying the whole template: salt_render_replaced_section().)
  *
  * @param string $layout Layout slug (hyphenated, as the loop passes it).
  * @return string|null Absolute path.
@@ -494,6 +496,55 @@ function salt_section_resolver( string $layout ): ?string {
 }
 
 /**
+ * Render a split section the child theme has DECLARED replaced: tier
+ * "logic" in salt-overrides.json (inc/overrides.php; OVERRIDES.md
+ * "Declaring replaced sections").
+ *
+ * The site has taken the section over entirely, so nothing of the parent's
+ * runs for it: no resolver, no wrapper, no H1 claim, no schema. The child's
+ * template-parts/sections/{layout}.php is loaded WHOLE with the loop context
+ * as $args (index, is_primary), exactly as an unsplit section's template
+ * is, and composes the section itself: it must call salt_section(), or the
+ * render state (section index, adjacency collapse) is left describing the
+ * section before it — logged as a warning when it draws markup without it.
+ *
+ * Fails loudly — salt_log(), a throw under salt_is_debug(), nothing
+ * rendered — when the located template is not the child's: a declaration
+ * with no child template behind it must not fall back to the parent view,
+ * which cannot draw without props.
+ *
+ * @param string              $layout  Layout slug (hyphenated).
+ * @param string              $view    Located template path.
+ * @param array<string,mixed> $context Loop context: index, is_primary.
+ * @return void
+ * @throws LogicException When the child theme has no template for the layout and debug is active.
+ */
+function salt_render_replaced_section( string $layout, string $view, array $context = array() ): void {
+	if ( salt_override_is_child_file( $view ) ) {
+		$before = salt_render_state()['section_index'];
+
+		ob_start();
+		load_template( $view, false, $context );
+		$html = (string) ob_get_clean();
+		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The child template's own output, passed through unchanged.
+
+		// Drawn without the shared band: the render state still describes the
+		// section before this one, so the next section's index and adjacency
+		// collapse are computed from the wrong neighbour.
+		if ( '' !== $html && salt_render_state()['section_index'] === $before ) {
+			salt_log( sprintf( 'section "%1$s": its replacing template (tier "logic") drew markup without calling salt_section() — the next section\'s index and spacing collapse are now wrong. Wrap the section in salt_section() (OVERRIDES.md).', $layout ) );
+		}
+		return;
+	}
+
+	$message = sprintf( 'section "%1$s": %2$s declares it replaced (tier "logic"), but the child theme has no template-parts/sections/%1$s.php — section skipped.', $layout, SALT_OVERRIDES_FILE );
+	salt_log( $message );
+	if ( salt_is_debug() ) {
+		throw new LogicException( esc_html( $message ) );
+	}
+}
+
+/**
  * Render one section from its located template: resolver → 0-state →
  * wrapper → view (the shared entry every split section goes through).
  *
@@ -513,6 +564,9 @@ function salt_section_resolver( string $layout ): ?string {
  * converted, or a child-only layout) loads its template exactly as before,
  * with the loop context as $args. A split section whose resolver cannot be
  * loaded renders nothing (salt_section_resolver() has logged / thrown).
+ * A split section the child theme's salt-overrides.json declares replaced
+ * (tier "logic") skips the parent resolver and wrapper and loads the
+ * child's template whole (salt_render_replaced_section()).
  *
  * @param string              $layout  Layout slug (hyphenated).
  * @param string              $view    Located template path.
@@ -523,6 +577,11 @@ function salt_section_resolver( string $layout ): ?string {
 function salt_render_resolved_section( string $layout, string $view, array $context = array() ): void {
 	if ( null === salt_section_resolver_file( $layout ) ) {
 		load_template( $view, false, $context );
+		return;
+	}
+
+	if ( null !== salt_overrides() && 'logic' === salt_override_tier( $layout, salt_contract_section_variant( $layout ) ) ) {
+		salt_render_replaced_section( $layout, $view, $context );
 		return;
 	}
 

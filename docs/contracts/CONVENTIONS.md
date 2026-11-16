@@ -84,12 +84,15 @@ Every Flexible Content section is two files: a **resolver** (the logic)
 and a **view** (the markup). The resolver returns the section's view
 props, named after the design contract's view props; the view draws them
 and does nothing else. A child theme overrides the view only, so every
-fix to the logic still reaches it (OVERRIDES.md).
+fix to the logic still reaches it (OVERRIDES.md) — unless it DECLARES the
+section replaced (tier `logic` in its `salt-overrides.json`), when its own
+template is the whole section and none of the parent's code runs for it
+(OVERRIDES.md "Declaring replaced sections").
 
-A section is *split* when `inc/sections/{slug}.php` exists. A section
-without one is *unsplit*: its template is still the whole section and
-renders exactly as before. Hero, FAQ and Rich Text are split; Rich Text
-is the exemplar to copy.
+A section is *split* when `inc/sections/{slug}.php` exists. All 20
+parent sections are split; Rich Text is the exemplar to copy. A layout
+with no parent resolver (a child-only layout) is *unsplit*: its template
+is still the whole section and renders exactly as before.
 
 **The split changes no output.** Every rule below exists to keep each
 section's rendered bytes, queued schema and log lines identical. Where
@@ -113,7 +116,7 @@ records, per contract section, which WordPress layouts it was `formerly`.
 | `features` | `features.json` | contract |
 | `media-text` | `media-text.json` | contract |
 | `stats` | `stats.json` | contract |
-| `testimonials` | `collection-showcase.json` (grid) / `carousel.json` (slider) (folds) | WordPress-local — no fold here |
+| `testimonials` | `collection-showcase.json` (grid rows) / `carousel.json` (slider rows), decided per row by the Layout field (folds) | WordPress-local — no fold here |
 | `logos` | `logos.json` | contract |
 | `cta` | `call-to-action.json` (name differs) | contract |
 | `pricing` | `pricing.json` | contract |
@@ -124,15 +127,41 @@ records, per contract section, which WordPress layouts it was `formerly`.
 | `gallery` | `gallery.json` | contract |
 | `blog-teaser` | `collection-showcase.json` (folds) | WordPress-local — no fold here |
 | `scroll-carousel` | `carousel.json` (folds) | WordPress-local — no fold here |
-| `contact` | `contact.json` | contract |
+| `contact` | `contact.json` | contract, except the service and form props (below) |
 | `locations` | `locations.json` | contract |
+
+The same mapping, from contract section id to layout slugs, is code:
+`salt_contract_section_layouts()` in `inc/overrides.php`, which reads a
+child theme's `salt-overrides.json` by contract id. Testimonials is the
+one layout whose contract section depends on its row:
+`salt_contract_section_conditions()` maps a `grid` row to
+collection-showcase and a `slider` row to carousel, normalising the field
+with `salt_testimonials_layout()`, which the testimonials resolver uses
+too. A new layout or a new
+contract section adds a row to both (OverridesDeclarationTest fails on a
+parent layout with no contract section).
 
 "contract": name each prop after the file's `data` entry where it
 corresponds 1:1. "WordPress-local — no fold here": the contract folds
 this layout into another section; this work item does NOT fold it. Its
 props keep WordPress-local snake_case names, and take the contract's name
 only for a prop that is identical in meaning (`eyebrow`, `heading`). The
-fold belongs to a later item.
+fold belongs to a later item. A prop such a section shares with other
+sections but its nearest contract file lacks (intro's `eyebrow`) is
+described as a "shared name", not "contract".
+
+A plain-text value never takes a contract prop name whose contract type
+is rich text: it gets a WordPress-local name (`body_text` in cta and
+features, where the contract's `body` / item `text` are rich text).
+
+Contact is contract-named, but its service and form props stay flat and
+WordPress-local (named as rule 4 names them) instead of forming the
+contract's nullable `form` object. The mapping: `form_enabled` = `form`
+non-null; `form_action` = `form.action`; `privacy_url` =
+`form.privacyHref`; `enquiry_types` = `form.enquiryTypes`, labels only;
+`null !== challenge` = `form.captcha`. `form.id` and `form.phone` have no
+WordPress counterpart yet; `request_status`, `nonce`, `time_token`,
+`page_url` and `captcha_widget_html` have no contract counterpart.
 
 ### The resolver
 
@@ -150,7 +179,11 @@ fold belongs to a later item.
   exists but does not define the right function name, or the function is
   already defined elsewhere, the section logs, throws under
   `salt_is_debug()` and renders nothing — it never falls back to the
-  unsplit path.
+  unsplit path. The single exception is a section the child theme
+  declares replaced (tier `logic` in `salt-overrides.json`): the entry
+  never loads its resolver at all and loads the child's template whole
+  (see The shared entry). A replacement that is not declared still fails
+  as above.
 - **Does all the logic:** field and option reads (`get_sub_field`,
   `get_field`, `salt_option`), queries (`salt_resolve_query`), sanitising
   (`salt_sanitize_html`), validation and fallbacks, broken-row skipping +
@@ -188,7 +221,11 @@ array(
   WordPress-local name (`image_id`, `ctas`), listed as WordPress-local in
   the resolver's docblock.
 - **Optional text:** `salt_nullable_text( $raw )` — `null` when blank,
-  otherwise the stored string UNCHANGED (never trimmed).
+  otherwise the stored string UNCHANGED (it never trims). Where the
+  pre-split code trimmed a value before use, the resolver trims first and
+  then nulls (rule 2 wins): pricing `eyebrow` and `heading`; stats item
+  `suffix` and `label`; features item `icon` and `body_text`; cta
+  `heading` and `body_text`.
 - **Rich text:** sanitised once, in the resolver, with
   `salt_sanitize_html()`. Never sanitise twice: the view prints it as it
   is.
@@ -199,7 +236,10 @@ array(
 - **Plain text, URLs, attributes:** raw strings; the view escapes them at
   output or passes them to a component that does.
 - **Images:** a validated (resolvable) attachment ID, `0` for none,
-  passed to x-image by the view.
+  passed to x-image by the view, where the pre-split code validated it.
+  Where it did not (scroll-carousel cards; work and blog-teaser
+  thumbnails), the unvalidated ID is passed through as before and x-image
+  decides (rule 2 wins).
 - **Components are never props** (rule 3): the view renders cards,
   images and every other component itself.
 
@@ -226,6 +266,18 @@ a malformed return.
 (`inc/render.php`) runs resolver → `null` check → `salt_section(
 $resolved['section'], … )` → the view, loaded with
 `$args = array( 'props' => …, 'plan' => array( 'index' => …, 'headingLevel' => …, 'priorityMedia' => … ) )`.
+
+Before the resolver, it asks `salt_override_tier( $layout, $variant )`
+(`$variant`: the row's Layout field for testimonials). When the
+child theme's `salt-overrides.json` declares the layout's contract
+section `logic`, it calls `salt_render_replaced_section()` instead: the
+located template is loaded whole with the loop context, if it is the
+child's, and otherwise the section logs, throws under `salt_is_debug()`
+and renders nothing. A replacing template must call `salt_section()`; one
+that draws markup without it is logged, because the render state (section
+index, adjacency collapse) is then wrong for the next section. With no declaration (every site without the file)
+this step is a no-op and output is unchanged. A view never needs to know
+about it: tier `view` changes nothing at render time.
 
 ### The view
 
@@ -368,7 +420,14 @@ calls them and passes the RESULTS as props: values as plain props
 
 Call them **under exactly the same conditions, the same number of times
 and in the same order as the old markup did**, and pass `null` for a
-result the old code never computed. For contact's CAPTCHA:
+result the old code never computed, except an `_html` prop, which is `''`
+when not computed (the view gates on the related prop, never on the
+HTML). "The same number of times" binds service and stateful calls
+(nonces, transients, tokens, providers, functions that log once per
+request). A pure read (`get_field()`, a permalink) may be read once and
+the value reused where the old code read it again, when the values are
+provably the same: work reads each item's permalink and `client` once,
+for both its schema node and its card. For contact's CAPTCHA:
 
 ```php
 $captcha_widget_html = '';
@@ -428,8 +487,9 @@ $logos[] = array(
 ```
 
 View: `if ( '' !== $salt_logo['href'] ) { printf( …, esc_url( $salt_logo['href'] ), esc_attr( $salt_logo['link_label'] ), $salt_img ); } else { echo $salt_img; }`.
-The same rule turns `contact.php`'s dialable-phone test into a
-`phone_href` prop (`''` = print the number as text).
+The same rule turns `contact.php`'s dialable-phone test into the
+contract's `details.phoneHref` prop (`null` = print the number as text),
+and `locations.php`'s into `offices[].phoneHref`, likewise.
 
 ## Third parties
 

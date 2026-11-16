@@ -339,4 +339,189 @@ final class ScrollCarouselSectionTest extends SaltTestCase {
 
 		$this->assertCount( $baseline, salt_schema_graph( $graph_args )['@graph'], 'Scroll carousel queues no schema nodes.' );
 	}
+
+	// -----------------------------------------------------------------
+	// Logic/view split (ID-3587): resolver and view.
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one scroll_carousel FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields Row sub-field fixtures.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_carousel( array $fields ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'scroll_carousel',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'scroll-carousel' );
+		$this->assertSame( 'salt_resolve_section_scroll_carousel', $resolver );
+
+		return $resolver(
+			array(
+				'index'      => 0,
+				'is_primary' => true,
+			)
+		);
+	}
+
+	public function test_resolver_returns_null_without_a_valid_card(): void {
+		$this->assertNull(
+			$this->resolve_carousel(
+				array(
+					'heading' => 'Carousel',
+					'cards'   => array(
+						'not a row',
+						array(
+							'title' => ' ',
+							'text'  => '',
+						),
+					),
+				)
+			)
+		);
+		$this->assertCount( 2, $this->logs(), 'Each broken row is logged.' );
+	}
+
+	public function test_resolver_props_keep_wordpress_local_names(): void {
+		$resolved = $this->resolve_carousel(
+			array(
+				'eyebrow'   => 'Eyebrow',
+				'heading'   => ' Voices ',
+				'card_type' => 'testimonial',
+				'cards'     => array(
+					array(
+						'title' => ' Ada ',
+						'text'  => ' Great work. ',
+						'role'  => ' CTO ',
+						'image' => array( 'ID' => 77 ),
+					),
+					array(
+						'text'  => 'Only text',
+						'image' => 'not numeric',
+					),
+				),
+			)
+		);
+
+		$this->assertSame( array( 'eyebrow', 'heading', 'card_type', 'cards' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( ' Voices ', $resolved['props']['heading'], 'Optional text is never trimmed.' );
+		$this->assertSame( 'testimonial', $resolved['props']['card_type'] );
+		$this->assertSame(
+			array(
+				array(
+					'image_id' => 77,
+					'title'    => 'Ada',
+					'text'     => 'Great work.',
+					'role'     => 'CTO',
+				),
+				array(
+					'image_id' => 0,
+					'title'    => '',
+					'text'     => 'Only text',
+					'role'     => '',
+				),
+			),
+			$resolved['props']['cards'],
+			'image_id is passed through unvalidated, as before the split (x-image decides).'
+		);
+		$this->assertSame( 'scroll-carousel', $resolved['section']['name'] );
+		$this->assertTrue( $resolved['section']['has_heading'] );
+	}
+
+	public function test_resolver_defaults_card_type_and_nulls_blank_text(): void {
+		$resolved = $this->resolve_carousel(
+			array(
+				'heading'   => '  ',
+				'card_type' => 'bogus',
+				'cards'     => array( array( 'title' => 'One' ) ),
+			)
+		);
+
+		$this->assertNull( $resolved['props']['eyebrow'] );
+		$this->assertNull( $resolved['props']['heading'] );
+		$this->assertSame( 'generic', $resolved['props']['card_type'] );
+		$this->assertFalse( $resolved['section']['has_heading'] );
+	}
+
+	/**
+	 * Draw the scroll-carousel view from props alone.
+	 *
+	 * @param array<string,mixed> $props View props.
+	 * @return string
+	 */
+	private function draw_carousel_view( array $props ): string {
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/scroll-carousel.php',
+			false,
+			array(
+				'props' => $props,
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		return (string) ob_get_clean();
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		$html = $this->draw_carousel_view(
+			array(
+				'eyebrow'   => null,
+				'heading'   => null,
+				'card_type' => 'generic',
+				'cards'     => array(
+					array(
+						'image_id' => 0,
+						'title'    => 'First',
+						'text'     => 'One',
+						'role'     => '',
+					),
+					array(
+						'image_id' => 0,
+						'title'    => 'Second',
+						'text'     => '',
+						'role'     => '',
+					),
+				),
+			)
+		);
+
+		$this->assertStringContainsString( 'data-salt-carousel="scroll-carousel"', $html );
+		$this->assertStringContainsString( 'aria-label="Carousel"', $html, 'No heading: the track gets the fallback name.' );
+		$this->assertSame( 2, preg_match_all( '/<h3[\s>]/', $html ), 'Card titles one level below the plan heading level.' );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+	}
+
+	public function test_view_draws_one_card_without_the_track(): void {
+		$html = $this->draw_carousel_view(
+			array(
+				'eyebrow'   => null,
+				'heading'   => 'Voices',
+				'card_type' => 'testimonial',
+				'cards'     => array(
+					array(
+						'image_id' => 0,
+						'title'    => 'Ada',
+						'text'     => 'Great.',
+						'role'     => 'CTO',
+					),
+				),
+			)
+		);
+
+		$this->assertStringContainsString( '<div class="x-scroll-carousel-single max-w-2xl"><figure', $html );
+		$this->assertStringNotContainsString( 'data-salt-carousel', $html );
+		$this->assertStringContainsString( 'x-scroll-carousel-role', $html );
+	}
 }

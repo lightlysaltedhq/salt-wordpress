@@ -459,4 +459,194 @@ final class MediaTextSectionTest extends SaltTestCase {
 
 		$this->assertSame( array(), salt_schema_queue() );
 	}
+
+	// -----------------------------------------------------------------
+	// Resolver and view (logic/view split, ID-3587).
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one media_text FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields  Row fields.
+	 * @param array<string,mixed> $context Loop context.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_media_text( array $fields, array $context = array(
+		'index'      => 0,
+		'is_primary' => false,
+	) ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'media_text',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'media-text' );
+		$this->assertSame( 'salt_resolve_section_media_text', $resolver );
+
+		return $resolver( $context );
+	}
+
+	public function test_resolver_returns_null_without_usable_rows(): void {
+		$this->assertNull( $this->resolve_media_text( array() ) );
+		$this->assertNull(
+			$this->resolve_media_text(
+				array(
+					'rows' => array(
+						array( 'image' => 99 ),
+						'not-a-row',
+					),
+				)
+			)
+		);
+	}
+
+	public function test_resolver_props_use_the_contract_names(): void {
+		$this->seed_attachment( 5 );
+
+		$resolved = $this->resolve_media_text(
+			array(
+				'mode' => 'single',
+				'rows' => array(
+					array(
+						'image'      => 5,
+						'heading'    => ' Our story ',
+						'content'    => '<p>Copy <strong>here</strong>.</p><script>x()</script>',
+						'media_side' => 'right',
+						'cta'        => array(
+							'url'    => '/about',
+							'title'  => 'Read more',
+							'target' => '_blank',
+						),
+					),
+					array( 'content' => '<p>Text only.</p>' ),
+				),
+			)
+		);
+
+		$this->assertSame( array( 'rows' ), array_keys( $resolved['props'] ) );
+		$first = $resolved['props']['rows'][0];
+		$this->assertSame( array( 'image_id', 'heading', 'content', 'mediaSide', 'cta' ), array_keys( $first ) );
+		$this->assertSame( 5, $first['image_id'] );
+		$this->assertSame( 'Our story', $first['heading'] );
+		$this->assertStringContainsString( '<strong>here</strong>', $first['content'] );
+		$this->assertStringNotContainsString( '<script', $first['content'] );
+		$this->assertSame( 'right', $first['mediaSide'] );
+		$this->assertSame(
+			array(
+				'url'    => '/about',
+				'title'  => 'Read more',
+				'target' => '_blank',
+			),
+			$first['cta']
+		);
+
+		$second = $resolved['props']['rows'][1];
+		$this->assertSame( 0, $second['image_id'] );
+		$this->assertNull( $second['heading'] );
+		$this->assertNull( $second['cta'] );
+		$this->assertSame( 'left', $second['mediaSide'] );
+		$this->assertTrue( $resolved['section']['has_heading'], 'The FIRST row\'s heading is the section heading.' );
+	}
+
+	public function test_resolver_applies_the_mode_rule_to_the_media_side(): void {
+		$rows = array();
+		foreach ( array( 'A', 'B', 'C' ) as $heading ) {
+			$rows[] = array(
+				'heading'    => $heading,
+				'media_side' => 'right',
+			);
+		}
+
+		$alternating = $this->resolve_media_text(
+			array(
+				'mode' => 'alternating',
+				'rows' => $rows,
+			)
+		);
+		$this->assertSame(
+			array( 'left', 'right', 'left' ),
+			array_column( $alternating['props']['rows'], 'mediaSide' ),
+			'Alternating ignores media_side and flips per rendered row.'
+		);
+		$this->assertTrue( $alternating['section']['has_heading'] );
+
+		$single = $this->resolve_media_text(
+			array(
+				'mode' => 'single',
+				'rows' => $rows,
+			)
+		);
+		$this->assertSame( array( 'right', 'right', 'right' ), array_column( $single['props']['rows'], 'mediaSide' ) );
+	}
+
+	public function test_resolver_owns_the_wrapper_inputs(): void {
+		$resolved = $this->resolve_media_text(
+			array(
+				'rows'            => array( array( 'heading' => 'Only' ) ),
+				'section_spacing' => 'lg',
+			),
+			array(
+				'index'      => 4,
+				'is_primary' => true,
+			)
+		);
+
+		$this->assertSame( 'media-text', $resolved['section']['name'] );
+		$this->assertSame( 'lg', $resolved['section']['spacing'] );
+		$this->assertTrue( $resolved['section']['is_primary'] );
+		$this->assertTrue( $resolved['section']['has_heading'] );
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		$this->seed_attachment( 5 );
+
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/media-text.php',
+			false,
+			array(
+				'props' => array(
+					'rows' => array(
+						array(
+							'image_id'  => 5,
+							'heading'   => 'First from props',
+							'content'   => '<p>Already sanitised.</p>',
+							'mediaSide' => 'right',
+							'cta'       => array(
+								'url'    => '/more',
+								'title'  => 'More',
+								'target' => '',
+							),
+						),
+						array(
+							'image_id'  => 0,
+							'heading'   => 'Second from props',
+							'content'   => null,
+							'mediaSide' => 'left',
+							'cta'       => null,
+						),
+					),
+				),
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 1,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match_all( '/<h1[\s>]/', $html ), 'Row 0 draws at the section level.' );
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ), 'Later rows step below an H1.' );
+		$this->assertStringContainsString( 'x-media-text-media md:order-2', $html );
+		$this->assertStringContainsString( '<div class="x-prose max-w-prose text-ink"><p>Already sanitised.</p></div>', $html );
+		$this->assertStringContainsString( 'href="/more"', $html );
+		$this->assertSame( 2, preg_match_all( '/class="x-media-text-row[" ]/', $html ) );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+	}
 }

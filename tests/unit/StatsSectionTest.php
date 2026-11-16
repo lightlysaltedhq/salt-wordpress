@@ -259,4 +259,130 @@ final class StatsSectionTest extends SaltTestCase {
 
 		$this->assertCount( $baseline, salt_schema_graph( $graph_args )['@graph'], 'Stats section queues no schema nodes.' );
 	}
+
+	// -----------------------------------------------------------------
+	// Resolver and view (logic/view split, ID-3587).
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one stats FC row and run its resolver (no rendering).
+	 *
+	 * @param array<string,mixed> $fields  Row fields.
+	 * @param array<string,mixed> $context Loop context.
+	 * @return array<string,mixed>|null
+	 */
+	private function resolve_stats( array $fields, array $context = array(
+		'index'      => 0,
+		'is_primary' => false,
+	) ): ?array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'stats',
+					'fields' => $fields,
+				),
+			)
+		);
+		the_row();
+
+		$resolver = salt_section_resolver( 'stats' );
+		$this->assertSame( 'salt_resolve_section_stats', $resolver );
+
+		return $resolver( $context );
+	}
+
+	public function test_resolver_returns_null_without_valid_items(): void {
+		$this->assertNull( $this->resolve_stats( array( 'heading' => 'Numbers' ) ) );
+		$this->assertNull( $this->resolve_stats( array( 'items' => array( array( 'number' => ' ' ), 'not-a-row' ) ) ) );
+	}
+
+	public function test_resolver_props_use_the_contract_names(): void {
+		$resolved = $this->resolve_stats(
+			array(
+				'heading' => 'The numbers',
+				'columns' => '4',
+				'items'   => array(
+					array(
+						'number' => ' 45 ',
+						'suffix' => '%',
+						'label'  => 'Conversions',
+					),
+					array( 'number' => '3' ),
+				),
+			)
+		);
+
+		$this->assertSame( array( 'heading', 'columns', 'items' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( 'The numbers', $resolved['props']['heading'] );
+		$this->assertSame( '4', $resolved['props']['columns'] );
+		$this->assertSame(
+			array(
+				array(
+					'value'  => '45',
+					'suffix' => '%',
+					'label'  => 'Conversions',
+				),
+				array(
+					'value'  => '3',
+					'suffix' => null,
+					'label'  => null,
+				),
+			),
+			$resolved['props']['items']
+		);
+	}
+
+	public function test_resolver_defaults_an_unknown_column_count_and_owns_the_wrapper(): void {
+		$resolved = $this->resolve_stats(
+			array(
+				'columns'         => '9',
+				'section_spacing' => 'lg',
+				'items'           => array( array( 'number' => '1' ) ),
+			),
+			array(
+				'index'      => 3,
+				'is_primary' => true,
+			)
+		);
+
+		$this->assertSame( '3', $resolved['props']['columns'] );
+		$this->assertNull( $resolved['props']['heading'] );
+		$this->assertSame( 'stats', $resolved['section']['name'] );
+		$this->assertSame( 'lg', $resolved['section']['spacing'] );
+		$this->assertFalse( $resolved['section']['has_heading'] );
+	}
+
+	public function test_view_draws_from_props_alone(): void {
+		ob_start();
+		load_template(
+			dirname( __DIR__, 2 ) . '/template-parts/sections/stats.php',
+			false,
+			array(
+				'props' => array(
+					'heading' => 'From props',
+					'columns' => '2',
+					'items'   => array(
+						array(
+							'value'  => '77',
+							'suffix' => '%',
+							'label'  => 'Drawn',
+						),
+					),
+				),
+				'plan'  => array(
+					'index'         => 0,
+					'headingLevel'  => 2,
+					'priorityMedia' => false,
+				),
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
+		$this->assertStringContainsString( 'From props', $html );
+		$this->assertStringContainsString( 'sm:grid-cols-2', $html );
+		$this->assertSame( 1, preg_match_all( '/x-stat-value/', $html ) );
+		$this->assertStringContainsString( 'Drawn', $html );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+	}
 }

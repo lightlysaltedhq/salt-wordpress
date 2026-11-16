@@ -14,9 +14,10 @@ abstract class SaltTestCase extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		salt_test_reset();
+		salt_test_use_child_theme( null );
 
 		// Per-request salt state (registered lazily as modules land).
-		foreach ( array( 'salt_render_state_reset', 'salt_schema_reset', 'salt_anchor_registry_reset' ) as $reset ) {
+		foreach ( array( 'salt_render_state_reset', 'salt_schema_reset', 'salt_anchor_registry_reset', 'salt_overrides_reset' ) as $reset ) {
 			if ( function_exists( $reset ) ) {
 				$reset();
 			}

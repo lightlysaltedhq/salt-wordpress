@@ -66,10 +66,7 @@ function salt_resolve_section_testimonials( array $context ): ?array {
 	$sub     = static fn( string $field ): string => function_exists( 'get_sub_field' ) ? (string) get_sub_field( $field ) : '';
 	$heading = $sub( 'heading' );
 	$eyebrow = $sub( 'eyebrow' );
-	$layout  = $sub( 'layout' );
-	if ( ! in_array( $layout, array( 'grid', 'slider' ), true ) ) {
-		$layout = 'grid';
-	}
+	$layout  = salt_testimonials_layout( $sub( 'layout' ) ); // Shared with the contract-id lookup (inc/overrides.php).
 
 	$posts = salt_resolve_query( salt_query_controls_from_row(), 'testimonial' );
 
