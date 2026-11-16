@@ -21,15 +21,24 @@ markup granularity (cross-reference your site's override manifest).
     declared or not.
   - Tier `logic`: the declared section's parent resolver and wrapper no
     longer run; the child's `template-parts/sections/{slug}.php` is loaded
-    whole with the loop context. With no child template it logs, throws
+    whole with the loop context and must call `salt_section()` (drawing
+    markup without it is logged). With no child template it logs, throws
     under `WP_DEBUG` and renders nothing. An UNDECLARED replacement fails
     exactly as before.
-  - `clientSections` and `imageSizes`: read and exposed only.
-  - **The update flag:** a notice on the Themes and Updates screens
-    (`switch_themes` users) listing every `logic` entry, every `view` entry
-    whose `verified` is not the declaration's `contract`, and every
-    mismatch between the declaration and the child's files. It cannot tell
-    which view-props files a contract release changed, and says so.
+  - Testimonials is matched per row: a `grid` row is collection-showcase,
+    a `slider` row is carousel (the contract's `when`).
+  - `clientSections` and `imageSizes`: read and exposed, and raised by the
+    update flag; no rendering change.
+  - **The update flag:** a notice on the Themes and Updates screens (and
+    the network Updates screen), for `switch_themes` users, listing every
+    `logic` entry, every `view` entry whose `verified` is not the file's
+    `contract`, `imageSizes` rows whose section is raised or undeclared,
+    client sections whose id Salt uses, an invalid file, and every
+    mismatch between the declaration and the child's files (including
+    declared files outside the child theme). It cannot tell whether an
+    update changed a section's view props: a view swap whose `verified`
+    equals `contract` is not listed, so every view swap is re-verified by
+    hand when an update moves to a newer contract release.
   - Design dials are not supported yet (ID-3612).
   Docs: docs/contracts/OVERRIDES.md "Declaring replaced sections",
   docs/templates/override-manifest.md, docs/contracts/CONVENTIONS.md.

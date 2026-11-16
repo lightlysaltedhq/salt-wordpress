@@ -116,7 +116,7 @@ records, per contract section, which WordPress layouts it was `formerly`.
 | `features` | `features.json` | contract |
 | `media-text` | `media-text.json` | contract |
 | `stats` | `stats.json` | contract |
-| `testimonials` | `collection-showcase.json` (grid) / `carousel.json` (slider) (folds) | WordPress-local — no fold here |
+| `testimonials` | `collection-showcase.json` (grid rows) / `carousel.json` (slider rows), decided per row by the Layout field (folds) | WordPress-local — no fold here |
 | `logos` | `logos.json` | contract |
 | `cta` | `call-to-action.json` (name differs) | contract |
 | `pricing` | `pricing.json` | contract |
@@ -132,7 +132,12 @@ records, per contract section, which WordPress layouts it was `formerly`.
 
 The same mapping, from contract section id to layout slugs, is code:
 `salt_contract_section_layouts()` in `inc/overrides.php`, which reads a
-child theme's `salt-overrides.json` by contract id. A new layout or a new
+child theme's `salt-overrides.json` by contract id. Testimonials is the
+one layout whose contract section depends on its row:
+`salt_contract_section_conditions()` maps a `grid` row to
+collection-showcase and a `slider` row to carousel, normalising the field
+with `salt_testimonials_layout()`, which the testimonials resolver uses
+too. A new layout or a new
 contract section adds a row to both (OverridesDeclarationTest fails on a
 parent layout with no contract section).
 
@@ -262,12 +267,15 @@ a malformed return.
 $resolved['section'], … )` → the view, loaded with
 `$args = array( 'props' => …, 'plan' => array( 'index' => …, 'headingLevel' => …, 'priorityMedia' => … ) )`.
 
-Before the resolver, it asks `salt_override_tier( $layout )`. When the
+Before the resolver, it asks `salt_override_tier( $layout, $variant )`
+(`$variant`: the row's Layout field for testimonials). When the
 child theme's `salt-overrides.json` declares the layout's contract
 section `logic`, it calls `salt_render_replaced_section()` instead: the
 located template is loaded whole with the loop context, if it is the
 child's, and otherwise the section logs, throws under `salt_is_debug()`
-and renders nothing. With no declaration (every site without the file)
+and renders nothing. A replacing template must call `salt_section()`; one
+that draws markup without it is logged, because the render state (section
+index, adjacency collapse) is then wrong for the next section. With no declaration (every site without the file)
 this step is a no-op and output is unchanged. A view never needs to know
 about it: tier `view` changes nothing at render time.
 

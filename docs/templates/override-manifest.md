@@ -53,8 +53,12 @@ Every other `template-parts/**` override (components, chrome parts).
 2. Cross-reference every row above; re-verify affected overrides. For
    declared sections, work through the parent's update flag (the
    "salt theme:" notice on the Themes and Updates screens): it lists every
-   `logic` entry, every `view` entry not yet verified against the
-   declaration's `contract`, and any mismatch between `salt-overrides.json`
-   and the child's files. Move `contract` with the pin and each entry's
-   `verified` as you re-verify it.
+   `logic` entry, every `view` entry whose `verified` differs from the
+   file's `contract`, and any mismatch between `salt-overrides.json` and
+   the child's files. It does NOT list a view swap whose `verified` equals
+   `contract`, and it cannot tell whether the update changed a section's
+   view props: when the update moves Salt to a newer contract release,
+   re-verify every view swap by hand, then set `contract` and each entry's
+   `verified` to that release. The parent does not yet record its contract
+   release; until its CHANGELOG names one, leave `contract` as it is.
 3. Update the pin, run the §16 sign-off checklist, record the date here.
