@@ -43,6 +43,7 @@ $salt_modules = array(
 	'/inc/services/consent.php',
 	'/inc/services/location-status.php',
 	'/inc/services/updater.php',
+	'/inc/services/override-flag.php',
 	'/inc/services/rate-limit.php',
 	'/inc/services/captcha.php',
 	'/inc/services/mailer.php',

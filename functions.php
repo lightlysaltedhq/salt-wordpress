@@ -35,6 +35,7 @@ require_once SALT_DIR . '/inc/services/post-meta.php';
 require_once SALT_DIR . '/inc/services/consent.php';
 require_once SALT_DIR . '/inc/services/location-status.php';
 require_once SALT_DIR . '/inc/services/updater.php';
+require_once SALT_DIR . '/inc/services/override-flag.php';
 require_once SALT_DIR . '/inc/services/rate-limit.php';
 require_once SALT_DIR . '/inc/services/captcha.php';
 require_once SALT_DIR . '/inc/services/mailer.php';
