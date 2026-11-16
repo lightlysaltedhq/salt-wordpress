@@ -24,6 +24,7 @@ require_once SALT_DIR . '/inc/colors.php';
 require_once SALT_DIR . '/inc/modules.php';
 require_once SALT_DIR . '/inc/sanitization.php';
 require_once SALT_DIR . '/inc/render.php';
+require_once SALT_DIR . '/inc/overrides.php';
 require_once SALT_DIR . '/inc/media.php';
 require_once SALT_DIR . '/inc/query/resolver.php';
 require_once SALT_DIR . '/inc/query/controls.php';

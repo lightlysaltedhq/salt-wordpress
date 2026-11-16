@@ -17,6 +17,10 @@ require dirname( __DIR__ ) . '/vendor/autoload.php';
 
 require __DIR__ . '/wp-shims.php';
 
+// The render path asks whether a child theme is active (salt-overrides.json,
+// inc/overrides.php), so get_stylesheet_directory() must exist for every suite.
+require __DIR__ . '/shims/child-theme.php';
+
 /**
  * Capturing override of the pluggable salt_log().
  *
@@ -49,6 +53,7 @@ $salt_modules = array(
 	'/inc/performance.php',
 	'/inc/setup.php',
 	'/inc/render.php',
+	'/inc/overrides.php',
 	'/inc/acf.php',
 	'/inc/security.php',
 );
