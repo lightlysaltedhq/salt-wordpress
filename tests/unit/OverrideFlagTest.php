@@ -54,7 +54,7 @@ final class OverrideFlagTest extends SaltOverridesTestCase {
 		);
 
 		$this->assertCount( 1, $items );
-		$this->assertStringContainsString( 'hero (view): last verified against 1.0.0, but the site\'s contract is 1.1.0', $items[0]['message'] );
+		$this->assertStringContainsString( 'hero (view): last verified against 1.0.0, but the file\'s "contract" is 1.1.0. Re-verify the view against that release\'s view props, then set "verified" to 1.1.0.', $items[0]['message'] );
 	}
 
 	public function test_flag_raises_mismatches_between_declaration_and_files(): void {
@@ -95,7 +95,7 @@ final class OverrideFlagTest extends SaltOverridesTestCase {
 
 		$this->assertStringContainsString( 'hero (view): declared, but the child theme has no template-parts/sections/hero.php, so the parent\'s view is drawn.', $text );
 		$this->assertStringContainsString( 'hero: the declared file template-parts/sections/hero.php is not in the child theme.', $text );
-		$this->assertStringContainsString( 'The child theme has no template-parts/sections/services.php, template-parts/sections/work.php, template-parts/sections/testimonials.php, template-parts/sections/blog-teaser.php, so that layout renders nothing.', $text );
+		$this->assertStringContainsString( 'The child theme has no template-parts/sections/services.php, template-parts/sections/work.php, template-parts/sections/testimonials.php (grid rows), template-parts/sections/blog-teaser.php, so that layout renders nothing.', $text );
 		$this->assertStringContainsString( 'Salt for WordPress has no layout for this section yet.', $text );
 		$this->assertStringContainsString( '"slider" is not a salt-contract section this theme knows', $text );
 		$this->assertStringContainsString( 'template-parts/sections/faq.php: the child theme swaps this view, but salt-overrides.json does not declare section faq', $text );
@@ -204,12 +204,67 @@ final class OverrideFlagTest extends SaltOverridesTestCase {
 		$GLOBALS['salt_test_screen'] = (object) array( 'id' => 'dashboard' );
 		$this->assertSame( '', $print(), 'Not an update screen.' );
 
-		foreach ( array( 'themes', 'update-core' ) as $screen ) {
+		foreach ( array( 'themes', 'update-core', 'update-core-network' ) as $screen ) {
 			$GLOBALS['salt_test_screen'] = (object) array( 'id' => $screen );
 			$this->assertStringContainsString( 'stats (logic', $print() );
 		}
 
 		$GLOBALS['salt_test_user']['caps'] = array( 'edit_posts' );
 		$this->assertSame( '', $print(), 'Capability checked.' );
+	}
+
+	public function test_the_notice_is_hooked_on_the_site_and_network_admin(): void {
+		// The hooks are added when the module loads (before salt_test_reset()
+		// clears the registry), so read the registration from the source.
+		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/inc/services/override-flag.php' );
+
+		$this->assertStringContainsString( "add_action( 'admin_notices', 'salt_override_flag_admin_notice' );", $source );
+		$this->assertStringContainsString( "add_action( 'network_admin_notices', 'salt_override_flag_admin_notice' );", $source );
+	}
+
+	public function test_flag_raises_declared_files_outside_the_child_theme(): void {
+		$items = $this->flag_for(
+			self::declaration(
+				array(
+					'sections' => array(
+						self::entry(
+							array(
+								'files' => array( 'template-parts/sections/hero.php', '/var/www/hero.php', '../salt-wordpress/hero.php', 'parts/../../x.php' ),
+							)
+						),
+					),
+				)
+			),
+			array( 'template-parts/sections/hero.php' => '<?php' )
+		);
+		$text  = implode( "\n", array_column( $items, 'message' ) );
+
+		foreach ( array( '/var/www/hero.php', '../salt-wordpress/hero.php', 'parts/../../x.php' ) as $file ) {
+			$this->assertStringContainsString( 'hero: the declared file ' . $file . ' is outside the child theme', $text );
+		}
+		$this->assertCount( 3, $items, 'The file inside the child theme is fine.' );
+	}
+
+	public function test_flag_reports_testimonials_rows_left_undeclared(): void {
+		$items = $this->flag_for(
+			self::declaration(
+				array(
+					'sections' => array(
+						self::entry(
+							array(
+								'section' => 'carousel',
+								'files'   => array( 'template-parts/sections/testimonials.php' ),
+							)
+						),
+					),
+				)
+			),
+			array( 'template-parts/sections/testimonials.php' => '<?php' )
+		);
+		$text  = implode( "\n", array_column( $items, 'message' ) );
+
+		$this->assertStringContainsString( 'testimonials.php: the child theme swaps this view, but salt-overrides.json does not declare section collection-showcase (grid rows)', $text );
+		$this->assertStringNotContainsString( 'carousel (view): declared, but', $text, 'testimonials.php is a carousel view for slider rows.' );
+		$this->assertCount( 1, $items );
 	}
 }
