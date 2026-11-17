@@ -33,18 +33,18 @@ final class SmokeRenderTest extends SaltTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'rich_text',
+					'layout' => 'rich-text',
 					'fields' => array(
 						'heading' => 'Welcome to the smoke page',
-						'content' => '<p>Intro copy with <strong>bold</strong>.</p>',
+						'body'    => '<p>Intro copy with <strong>bold</strong>.</p>',
 					),
 				),
 				array(
-					'layout' => 'rich_text',
+					'layout' => 'rich-text',
 					'fields' => array(
-						'heading'         => 'Second section',
-						'content'         => '<p>More copy.</p>',
-						'section_spacing' => 'lg',
+						'heading' => 'Second section',
+						'body'    => '<p>More copy.</p>',
+						'spacing' => 'lg',
 					),
 				),
 			)
@@ -66,8 +66,8 @@ final class SmokeRenderTest extends SaltTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'rich_text',
-					'fields' => array( 'content' => '<p>No heading here.</p>' ),
+					'layout' => 'rich-text',
+					'fields' => array( 'body' => '<p>No heading here.</p>' ),
 				),
 			)
 		);
@@ -90,10 +90,10 @@ final class SmokeRenderTest extends SaltTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'rich_text',
+					'layout' => 'rich-text',
 					'fields' => array(
 						'heading' => 'Safe content',
-						'content' => '<p style="color:red" class="evil">Text</p><script>alert(1)</script><h2>Smuggled</h2>',
+						'body'    => '<p style="color:red" class="evil">Text</p><script>alert(1)</script><h2>Smuggled</h2>',
 					),
 				),
 			)
@@ -123,14 +123,36 @@ final class SmokeRenderTest extends SaltTestCase {
 		$this->assertStringContainsString( 'retired-section', implode( ' ', $this->logs() ) );
 	}
 
-	public function test_no_third_party_origin_anywhere_in_rendered_output(): void {
+	public function test_layout_name_removed_in_6_takes_the_fallback(): void {
 		salt_test_seed_fc(
 			array(
 				array(
 					'layout' => 'rich_text',
+					'fields' => array( 'content' => '<p>Saved before 6.0.0.</p>' ),
+				),
+				array(
+					'layout' => 'blog_teaser',
+					'fields' => array(),
+				),
+			)
+		);
+
+		$html = $this->render_flexible_content();
+		$logs = implode( ' ', $this->logs() );
+
+		$this->assertStringContainsString( 'salt: section unavailable', $html, 'A legacy rich_text row is not resolved as an empty rich-text section.' );
+		$this->assertStringContainsString( 'section layout "rich_text" has no template', $logs );
+		$this->assertStringNotContainsString( '"blog_teaser" has no template', $logs, 'Layouts still registered with underscores keep mapping to their template.' );
+	}
+
+	public function test_no_third_party_origin_anywhere_in_rendered_output(): void {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'rich-text',
 					'fields' => array(
 						'heading' => 'Privacy check',
-						'content' => '<p><a href="https://example.test/ok">internal</a></p>',
+						'body'    => '<p><a href="https://example.test/ok">internal</a></p>',
 					),
 				),
 			)

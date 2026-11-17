@@ -55,7 +55,7 @@ final class FeaturesSectionSnapshotTest extends SaltSnapshotTestCase {
 							'icon'  => 'check',
 							'title' => 'Fast by default',
 							'text'  => 'Lean pages, quick loads.',
-							'link'  => array(
+							'url'   => array(
 								'url'   => 'https://example.test/fast/',
 								'title' => 'Fast by default',
 							),
@@ -64,7 +64,7 @@ final class FeaturesSectionSnapshotTest extends SaltSnapshotTestCase {
 							'icon'  => 'star',
 							'title' => 'Accessible',
 							'text'  => 'WCAG-first components.',
-							'link'  => array(
+							'url'   => array(
 								'url'   => 'https://example.test/accessible/',
 								'title' => 'Accessible',
 							),
@@ -73,7 +73,7 @@ final class FeaturesSectionSnapshotTest extends SaltSnapshotTestCase {
 							'icon'  => 'mail',
 							'title' => 'Low carbon',
 							'text'  => 'Every kilobyte counted.',
-							'link'  => array(
+							'url'   => array(
 								'url'   => 'https://example.test/low-carbon/',
 								'title' => 'Low carbon',
 							),

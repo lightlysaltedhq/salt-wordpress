@@ -6,7 +6,7 @@
  * TWO parts:
  *  1. Contact details — values from the Company options (DATA03 single
  *     source of truth): org_name, company_phone, company_email and
- *     company_address, each (but org_name) gated by the row's show_*
+ *     company_address, each (but org_name) gated by the row's show*
  *     toggle (toggles default ON when the row has never been saved).
  *  2. The FORM — only when salt_contact_configured() (a recipient is
  *     configured; the 'salt_contact_form_enabled' filter remains a
@@ -21,7 +21,7 @@
  * Schema: queues ONE ContactPoint node (telephone/email from options when
  * present, contactType 'customer service') via salt_schema_add().
  *
- * STATES (COMPL02): nothing to show (no heading/text/form_intro, no
+ * STATES (COMPL02): nothing to show (no heading/intro/formIntro, no
  * option-backed details after toggles, form off) => null (renders
  * NOTHING, no band).
  *
@@ -37,13 +37,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Props (contract view-props/contact.json; WordPress-local names in snake_case):
  *   heading              string|null  Contract `heading`. Null when blank.
- *   intro                string|null  Contract `intro`, from the `text` field
+ *   intro                string|null  Contract `intro`, from the `intro` field
  *                                     (plain text; the view applies nl2br).
  *                                     Null when blank.
  *   showPhone            bool         Contract `showPhone` (toggle; null/unsaved => on).
  *   showEmail            bool         Contract `showEmail`.
  *   showAddress          bool         Contract `showAddress`.
- *   formIntro            string|null  Contract `formIntro`, from `form_intro`.
+ *   formIntro            string|null  Contract `formIntro`, from `formIntro`.
  *                                     Null when blank.
  *   details              array{organisation: string|null, phone: string|null,
  *                              phoneHref: string|null, email: string|null,
@@ -98,13 +98,13 @@ function salt_resolve_section_contact( array $context ): ?array {
 	};
 
 	$heading    = (string) $sub( 'heading' );
-	$text       = (string) $sub( 'text' );
-	$form_intro = (string) $sub( 'form_intro' );
+	$text       = (string) $sub( 'intro' );
+	$form_intro = (string) $sub( 'formIntro' );
 
 	// Toggles default ON when the row has never been saved (null).
-	$show_phone   = false !== $sub( 'show_phone' ) && 0 !== $sub( 'show_phone' );
-	$show_email   = false !== $sub( 'show_email' ) && 0 !== $sub( 'show_email' );
-	$show_address = false !== $sub( 'show_address' ) && 0 !== $sub( 'show_address' );
+	$show_phone   = false !== $sub( 'showPhone' ) && 0 !== $sub( 'showPhone' );
+	$show_email   = false !== $sub( 'showEmail' ) && 0 !== $sub( 'showEmail' );
+	$show_address = false !== $sub( 'showAddress' ) && 0 !== $sub( 'showAddress' );
 
 	// Detail VALUES come from the Company options, never from the row (DATA03).
 	$org_name = trim( (string) get_field( 'org_name', 'option' ) );

@@ -68,7 +68,13 @@ consume this document verbatim and must not deviate.
 - Registered in PHP under `inc/fields/`, hooked on `acf/init`, guarded by
   `salt_acf_active()` (DEP01 — absence shows an admin notice, never fatals).
 - Canonical keys: groups `group_salt_{scope}`, fields
-  `field_salt_{scope}_{name}` (DATA02). Renaming a field name or FC layout
+  `field_salt_{scope}_{name}` (DATA02). `{scope}` and `{name}` are
+  written in snake_case in the key: a section's scope is its slug with
+  `-` as `_` (`field_salt_call_to_action_body`), and a camelCase contract
+  field name is split at its capitals (`mediaSide` →
+  `field_salt_media_text_row_media_side`). Field NAMES follow the
+  salt-contract's `contract/fields/*.json` verbatim (camelCase where the
+  contract is). Renaming a field name or FC layout
   slug is a MAJOR bump + entry in `docs/contracts/slug-migrations.json`
   (FLEET07 — CI enforces).
 
@@ -106,6 +112,12 @@ repository, under `salt-contract/contract/view-props/{file}.json`
 (`_shared.json` holds the shared types, including the plan). Read it;
 salt-wordpress takes no dependency on it. `salt-contract/contract/sections.json`
 records, per contract section, which WordPress layouts it was `formerly`.
+Since 6.0.0 (ID-3599) every section WordPress builds as one layout has
+the contract id as its slug, and its fields carry the contract's field
+names (`contract/fields/*.json`); the layouts the contract folds into
+collection-showcase and carousel, and intro, keep their former slugs
+until they are folded. Every renamed slug and field is listed in
+`docs/contracts/slug-migrations.json`.
 
 | WordPress slug | Contract view-props file | Prop names |
 |---|---|---|
@@ -118,7 +130,7 @@ records, per contract section, which WordPress layouts it was `formerly`.
 | `stats` | `stats.json` | contract |
 | `testimonials` | `collection-showcase.json` (grid rows) / `carousel.json` (slider rows), decided per row by the Layout field (folds) | WordPress-local — no fold here |
 | `logos` | `logos.json` | contract |
-| `cta` | `call-to-action.json` (name differs) | contract |
+| `call-to-action` | `call-to-action.json` | contract |
 | `pricing` | `pricing.json` | contract |
 | `team` | `collection-showcase.json` (folds) | WordPress-local — no fold here |
 | `faq` | `faq.json` | contract |
@@ -171,6 +183,13 @@ WordPress counterpart yet; `request_status`, `nonce`, `time_token`,
 - **Function:** `salt_resolve_section_{slug with "-" as "_"}( array $context ): ?array`
   — e.g. `salt_resolve_section_rich_text()`. `$context` is the loop
   context, `array{ index: int, is_primary: bool }`.
+- **The hyphen rule:** a section's slug is the contract section id
+  verbatim (`call-to-action`), and the ACF layout name, the resolver file,
+  the view file and the layout's fields file all use it as it is. PHP
+  function names cannot hold a hyphen, so the resolver's function name is
+  the only place a `-` is written `_`. The rule is code in one place,
+  `salt_section_resolver_function()` (`inc/render.php`); the render entry
+  and the tests call it, and nothing else builds the name.
 - **Final, not pluggable:** never wrapped in `function_exists()`. It is
   loaded from the PARENT theme directory by `salt_section_resolver()`,
   never through `locate_template()`, so no child file can replace it.

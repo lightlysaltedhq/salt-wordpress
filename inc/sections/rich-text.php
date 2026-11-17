@@ -4,7 +4,7 @@
  * view is template-parts/sections/rich-text.php. The §17 exemplar for the
  * logic/view split (docs/contracts/CONVENTIONS.md).
  *
- * Fields: heading (text), content (WYSIWYG, salt_allowed_html-constrained).
+ * Fields: heading (text), body (WYSIWYG, salt_allowed_html-constrained).
  * States (COMPL02): both blank => null (renders NOTHING, no band).
  *
  * @package Salt
@@ -15,11 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Resolve the current rich_text Flexible Content row to its view props.
+ * Resolve the current rich-text Flexible Content row to its view props.
  *
  * Props (contract view-props/rich-text.json):
  *   heading  string|null  Contract `heading`. Null when blank.
- *   body     string|null  Contract `body` (rich text), from the `content`
+ *   body     string|null  Contract `body` (rich text), from the `body`
  *                         field. Sanitised HTML (salt_sanitize_html()); null
  *                         when the stored content is blank.
  *
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function salt_resolve_section_rich_text( array $context ): ?array {
 	$heading = function_exists( 'get_sub_field' ) ? (string) get_sub_field( 'heading' ) : '';
-	$content = function_exists( 'get_sub_field' ) ? (string) get_sub_field( 'content' ) : '';
+	$content = function_exists( 'get_sub_field' ) ? (string) get_sub_field( 'body' ) : '';
 
 	if ( '' === trim( $heading ) && '' === trim( $content ) ) {
 		return null; // 0-state: skip the section entirely (COMPL02).

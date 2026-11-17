@@ -73,7 +73,7 @@ final class LogosSectionSnapshotTest extends SaltSnapshotTestCase {
 			'logos-single-plain',
 			$this->render_logos_section(
 				array(
-					'logos'     => array( array( 'image' => 1 ) ),
+					'items'     => array( array( 'image' => 1 ) ),
 					'greyscale' => 0,
 				)
 			)
@@ -89,9 +89,9 @@ final class LogosSectionSnapshotTest extends SaltSnapshotTestCase {
 			'logos-featured-in-full',
 			$this->render_logos_section(
 				array(
-					'heading'            => 'As featured in',
-					'greyscale'          => 1,
-					'logos'              => array(
+					'heading'   => 'As featured in',
+					'greyscale' => 1,
+					'items'     => array(
 						array(
 							'image' => 1,
 							'url'   => 'https://press.example.org/feature',
@@ -107,8 +107,8 @@ final class LogosSectionSnapshotTest extends SaltSnapshotTestCase {
 							'name'  => 'Acme Co',
 						),
 					),
-					'section_background' => 'surface-alt',
-					'section_spacing'    => 'sm',
+					'tone'      => 'surface-alt',
+					'spacing'   => 'sm',
 				)
 			)
 		);

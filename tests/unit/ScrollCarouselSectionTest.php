@@ -90,7 +90,7 @@ final class ScrollCarouselSectionTest extends SaltTestCase {
 			array( 'heading', 'eyebrow', 'card_type', 'cards' ),
 			array_slice( array_values( array_filter( $names ) ), 0, 4 )
 		);
-		$this->assertGreaterThan( array_search( 'cards', $names, true ), array_search( 'section_spacing', $names, true ) );
+		$this->assertGreaterThan( array_search( 'cards', $names, true ), array_search( 'spacing', $names, true ) );
 
 		$cards = null;
 		foreach ( $layout['sub_fields'] as $field ) {

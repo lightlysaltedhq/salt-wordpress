@@ -3,7 +3,7 @@
  * Media + Text slice tests (spec §10 #6; COMPL02, A11Y01, DATA02).
  *
  * Covers the FC layout shape, the 0/1/N row states, malformed-row skipping,
- * the single-mode media_side vs alternating auto-flip rule, the heading
+ * the single-mode mediaSide vs alternating auto-flip rule, the heading
  * outline rule (row 0 at $level, later rows stepped to h2 when row 0 took
  * the H1), the x-image 'half' sizes context, and the CTA button path.
  *
@@ -34,7 +34,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'media_text',
+					'layout' => 'media-text',
 					'fields' => $fields,
 				),
 			)
@@ -77,7 +77,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 	public function test_layout_file_shape(): void {
 		$layout = include dirname( __DIR__, 2 ) . '/inc/fields/layouts/media-text.php';
 
-		$this->assertSame( 'media_text', $layout['name'] );
+		$this->assertSame( 'media-text', $layout['name'] );
 		$this->assertSame( 'layout_salt_media_text', $layout['key'] );
 
 		$keys = array_column( $layout['sub_fields'], 'key' );
@@ -93,18 +93,19 @@ final class MediaTextSectionTest extends SaltTestCase {
 		foreach ( $rows['sub_fields'] as $field ) {
 			$row_fields[ $field['name'] ] = $field;
 		}
-		$this->assertSame( array( 'image', 'heading', 'content', 'media_side', 'cta' ), array_keys( $row_fields ) );
+		$this->assertSame( array( 'image', 'heading', 'content', 'mediaSide', 'cta' ), array_keys( $row_fields ) );
 		foreach ( $row_fields as $name => $field ) {
-			$this->assertSame( 'field_salt_media_text_row_' . $name, $field['key'], 'DATA02 key convention.' );
+			// DATA02: the key carries the field name in snake_case (mediaSide => media_side).
+			$this->assertSame( 'field_salt_media_text_row_' . strtolower( (string) preg_replace( '/[A-Z]/', '_$0', $name ) ), $field['key'], 'DATA02 key convention.' );
 		}
 		$this->assertSame( 'id', $row_fields['image']['return_format'] );
-		$this->assertSame( array( 'left', 'right' ), array_keys( $row_fields['media_side']['choices'] ) );
+		$this->assertSame( array( 'left', 'right' ), array_keys( $row_fields['mediaSide']['choices'] ) );
 		$this->assertSame( 'link', $row_fields['cta']['type'] );
 		$this->assertSame( array( 'single', 'alternating' ), array_keys( $layout['sub_fields'][0]['choices'] ) );
 
 		// Wrapper fields LAST (§11 Advanced tab).
 		$this->assertContains( 'field_salt_media_text_advanced_tab', $keys );
-		$this->assertSame( 'field_salt_media_text_section_divider', end( $keys ) );
+		$this->assertSame( 'field_salt_media_text_divider', end( $keys ) );
 	}
 
 	// -----------------------------------------------------------------
@@ -203,20 +204,20 @@ final class MediaTextSectionTest extends SaltTestCase {
 				'mode' => 'single',
 				'rows' => array(
 					array(
-						'image'      => 31,
-						'heading'    => 'Left row',
-						'media_side' => 'left',
+						'image'     => 31,
+						'heading'   => 'Left row',
+						'mediaSide' => 'left',
 					),
 					array(
-						'image'      => 32,
-						'heading'    => 'Right row',
-						'media_side' => 'right',
+						'image'     => 32,
+						'heading'   => 'Right row',
+						'mediaSide' => 'right',
 					),
 				),
 			)
 		);
 
-		$this->assertSame( 1, substr_count( $html, 'md:order-2' ), 'Only the media_side=right row flips.' );
+		$this->assertSame( 1, substr_count( $html, 'md:order-2' ), 'Only the mediaSide=right row flips.' );
 		$this->assertLessThan(
 			strpos( $html, 'md:order-2' ),
 			strpos( $html, 'media-31.jpg' ),
@@ -236,26 +237,26 @@ final class MediaTextSectionTest extends SaltTestCase {
 				'mode' => 'alternating',
 				'rows' => array(
 					array(
-						'image'      => 31,
-						'heading'    => 'Row zero',
-						'media_side' => 'right',
+						'image'     => 31,
+						'heading'   => 'Row zero',
+						'mediaSide' => 'right',
 					),
 					array(
-						'image'      => 32,
-						'heading'    => 'Row one',
-						'media_side' => 'right',
+						'image'     => 32,
+						'heading'   => 'Row one',
+						'mediaSide' => 'right',
 					),
 					array(
-						'image'      => 33,
-						'heading'    => 'Row two',
-						'media_side' => 'right',
+						'image'     => 33,
+						'heading'   => 'Row two',
+						'mediaSide' => 'right',
 					),
 				),
 			)
 		);
 
 		$this->assertSame( 3, substr_count( $html, 'md:grid-cols-2' ) );
-		$this->assertSame( 1, substr_count( $html, 'md:order-2' ), 'Exactly the odd row flips — media_side is ignored in alternating mode.' );
+		$this->assertSame( 1, substr_count( $html, 'md:order-2' ), 'Exactly the odd row flips — mediaSide is ignored in alternating mode.' );
 		$this->assertLessThan(
 			strpos( $html, 'md:order-2' ),
 			strpos( $html, 'media-31.jpg' ),
@@ -274,8 +275,8 @@ final class MediaTextSectionTest extends SaltTestCase {
 				'mode' => 'zigzag',
 				'rows' => array(
 					array(
-						'heading'    => 'Row',
-						'media_side' => 'right',
+						'heading'   => 'Row',
+						'mediaSide' => 'right',
 					),
 				),
 			)
@@ -465,7 +466,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 	// -----------------------------------------------------------------
 
 	/**
-	 * Seed one media_text FC row and run its resolver (no rendering).
+	 * Seed one media-text FC row and run its resolver (no rendering).
 	 *
 	 * @param array<string,mixed> $fields  Row fields.
 	 * @param array<string,mixed> $context Loop context.
@@ -478,7 +479,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'media_text',
+					'layout' => 'media-text',
 					'fields' => $fields,
 				),
 			)
@@ -513,11 +514,11 @@ final class MediaTextSectionTest extends SaltTestCase {
 				'mode' => 'single',
 				'rows' => array(
 					array(
-						'image'      => 5,
-						'heading'    => ' Our story ',
-						'content'    => '<p>Copy <strong>here</strong>.</p><script>x()</script>',
-						'media_side' => 'right',
-						'cta'        => array(
+						'image'     => 5,
+						'heading'   => ' Our story ',
+						'content'   => '<p>Copy <strong>here</strong>.</p><script>x()</script>',
+						'mediaSide' => 'right',
+						'cta'       => array(
 							'url'    => '/about',
 							'title'  => 'Read more',
 							'target' => '_blank',
@@ -557,8 +558,8 @@ final class MediaTextSectionTest extends SaltTestCase {
 		$rows = array();
 		foreach ( array( 'A', 'B', 'C' ) as $heading ) {
 			$rows[] = array(
-				'heading'    => $heading,
-				'media_side' => 'right',
+				'heading'   => $heading,
+				'mediaSide' => 'right',
 			);
 		}
 
@@ -571,7 +572,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 		$this->assertSame(
 			array( 'left', 'right', 'left' ),
 			array_column( $alternating['props']['rows'], 'mediaSide' ),
-			'Alternating ignores media_side and flips per rendered row.'
+			'Alternating ignores mediaSide and flips per rendered row.'
 		);
 		$this->assertTrue( $alternating['section']['has_heading'] );
 
@@ -587,8 +588,8 @@ final class MediaTextSectionTest extends SaltTestCase {
 	public function test_resolver_owns_the_wrapper_inputs(): void {
 		$resolved = $this->resolve_media_text(
 			array(
-				'rows'            => array( array( 'heading' => 'Only' ) ),
-				'section_spacing' => 'lg',
+				'rows'    => array( array( 'heading' => 'Only' ) ),
+				'spacing' => 'lg',
 			),
 			array(
 				'index'      => 4,

@@ -76,20 +76,20 @@ final class LogosSectionTest extends SaltTestCase {
 		$this->assertSame( 'layout_salt_logos', $layout['key'] );
 
 		$names = array_column( $layout['sub_fields'], 'name' );
-		$this->assertSame( array( 'heading', 'logos', 'greyscale' ), array_slice( $names, 0, 3 ) );
-		$this->assertContains( 'section_spacing', $names, 'Wrapper Advanced tab embedded last (§11).' );
+		$this->assertSame( array( 'heading', 'items', 'greyscale' ), array_slice( $names, 0, 3 ) );
+		$this->assertContains( 'spacing', $names, 'Wrapper Advanced tab embedded last (§11).' );
 		$this->assertGreaterThan(
 			array_search( 'greyscale', $names, true ),
-			array_search( 'section_spacing', $names, true ),
+			array_search( 'spacing', $names, true ),
 			'Content fields precede the wrapper fields.'
 		);
 
 		$fields = array_column( $layout['sub_fields'], null, 'name' );
 		$this->assertSame( 'field_salt_logos_greyscale', $fields['greyscale']['key'] );
 		$this->assertSame( 1, $fields['greyscale']['default_value'] );
-		$this->assertSame( 'repeater', $fields['logos']['type'] );
+		$this->assertSame( 'repeater', $fields['items']['type'] );
 
-		$sub = array_column( $fields['logos']['sub_fields'], null, 'name' );
+		$sub = array_column( $fields['items']['sub_fields'], null, 'name' );
 		$this->assertSame( 'id', $sub['image']['return_format'] );
 		$this->assertSame( 'url', $sub['url']['type'] );
 		$this->assertSame( 'text', $sub['name']['type'] );
@@ -100,7 +100,7 @@ final class LogosSectionTest extends SaltTestCase {
 	// -----------------------------------------------------------------
 
 	public function test_zero_logos_renders_nothing(): void {
-		$this->assertSame( '', $this->render_logos_section( array( 'logos' => array() ) ) );
+		$this->assertSame( '', $this->render_logos_section( array( 'items' => array() ) ) );
 		$this->assertSame( '', $this->render_logos_section( array() ) );
 	}
 
@@ -109,7 +109,7 @@ final class LogosSectionTest extends SaltTestCase {
 
 		$html = $this->render_logos_section(
 			array(
-				'logos' => array(
+				'items' => array(
 					array( 'image' => 7 ),
 					array(
 						'url'  => 'https://example.test/no-image',
@@ -131,7 +131,7 @@ final class LogosSectionTest extends SaltTestCase {
 	public function test_all_rows_broken_renders_nothing(): void {
 		$html = $this->render_logos_section(
 			array(
-				'logos' => array(
+				'items' => array(
 					array( 'image' => 999 ),
 					array( 'name' => 'Missing' ),
 				),
@@ -145,7 +145,7 @@ final class LogosSectionTest extends SaltTestCase {
 		$this->seed_attachment( 7 );
 
 		$html = $this->render_logos_section(
-			array( 'logos' => array( array( 'image' => 7 ) ) )
+			array( 'items' => array( array( 'image' => 7 ) ) )
 		);
 
 		$this->assertSame( 1, substr_count( $html, '<li' ) );
@@ -163,7 +163,7 @@ final class LogosSectionTest extends SaltTestCase {
 
 		$html = $this->render_logos_section(
 			array(
-				'logos' => array(
+				'items' => array(
 					array(
 						'image' => 7,
 						'url'   => 'https://press.example.org/feature',
@@ -184,7 +184,7 @@ final class LogosSectionTest extends SaltTestCase {
 
 		$on = $this->render_logos_section(
 			array(
-				'logos'     => array( array( 'image' => 7 ) ),
+				'items'     => array( array( 'image' => 7 ) ),
 				'greyscale' => 1,
 			)
 		);
@@ -193,7 +193,7 @@ final class LogosSectionTest extends SaltTestCase {
 
 		$off = $this->render_logos_section(
 			array(
-				'logos'     => array( array( 'image' => 7 ) ),
+				'items'     => array( array( 'image' => 7 ) ),
 				'greyscale' => 0,
 			)
 		);
@@ -206,7 +206,7 @@ final class LogosSectionTest extends SaltTestCase {
 
 		$html = $this->render_logos_section(
 			array(
-				'logos' => array(
+				'items' => array(
 					array(
 						'image' => 7,
 						'name'  => 'Acme Co',
@@ -228,7 +228,7 @@ final class LogosSectionTest extends SaltTestCase {
 		$this->seed_attachment( 7 );
 
 		$html = $this->render_logos_section(
-			array( 'logos' => array( array( 'image' => 7 ) ) )
+			array( 'items' => array( array( 'image' => 7 ) ) )
 		);
 
 		$this->assertStringNotContainsString( '<h1', $html );
@@ -241,7 +241,7 @@ final class LogosSectionTest extends SaltTestCase {
 		$html = $this->render_logos_section(
 			array(
 				'heading' => 'As featured in',
-				'logos'   => array( array( 'image' => 7 ) ),
+				'items'   => array( array( 'image' => 7 ) ),
 			)
 		);
 
@@ -282,7 +282,7 @@ final class LogosSectionTest extends SaltTestCase {
 
 	public function test_resolver_returns_null_without_resolvable_logos(): void {
 		$this->assertNull( $this->resolve_logos( array( 'heading' => 'As featured in' ) ) );
-		$this->assertNull( $this->resolve_logos( array( 'logos' => array( array( 'image' => 99 ), 'not-a-row' ) ) ) );
+		$this->assertNull( $this->resolve_logos( array( 'items' => array( array( 'image' => 99 ), 'not-a-row' ) ) ) );
 	}
 
 	public function test_resolver_props_use_the_contract_names(): void {
@@ -293,7 +293,7 @@ final class LogosSectionTest extends SaltTestCase {
 			array(
 				'heading'   => 'As featured in',
 				'greyscale' => 1,
-				'logos'     => array(
+				'items'     => array(
 					array(
 						'image' => 7,
 						'name'  => ' Acme ',
@@ -339,7 +339,7 @@ final class LogosSectionTest extends SaltTestCase {
 
 		$resolved = $this->resolve_logos(
 			array(
-				'logos' => array(
+				'items' => array(
 					array(
 						'image' => 8,
 						'url'   => 'https://acme.test/',
@@ -359,7 +359,7 @@ final class LogosSectionTest extends SaltTestCase {
 
 		$this->resolve_logos(
 			array(
-				'logos' => array(
+				'items' => array(
 					array(
 						'image' => 8,
 						'url'   => 'https://acme.test/',

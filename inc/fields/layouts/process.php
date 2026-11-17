@@ -77,8 +77,8 @@ return array(
 				),
 			),
 			array(
-				'key'           => 'field_salt_process_schema_toggle',
-				'name'          => 'schema_toggle',
+				'key'           => 'field_salt_process_structured_data',
+				'name'          => 'structuredData',
 				'label'         => __( 'HowTo schema', 'salt' ),
 				'instructions'  => __( 'Emit HowTo JSON-LD for these steps (AEO, §15). Off by default.', 'salt' ),
 				'type'          => 'true_false',

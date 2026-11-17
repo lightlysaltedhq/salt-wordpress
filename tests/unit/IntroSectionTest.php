@@ -168,7 +168,7 @@ final class IntroSectionTest extends SaltTestCase {
 		// Content fields first…
 		$this->assertSame( array( 'eyebrow', 'heading', 'content', 'align' ), array_slice( $names, 0, 4 ) );
 		// …then the §11 wrapper fields last.
-		$this->assertSame( 'section_divider', end( $names ) );
+		$this->assertSame( 'divider', end( $names ) );
 
 		$by_name = array_column( $layout['sub_fields'], null, 'name' );
 		$this->assertSame( 'wysiwyg', $by_name['content']['type'] );
@@ -269,8 +269,8 @@ final class IntroSectionTest extends SaltTestCase {
 	public function test_resolver_owns_the_wrapper_inputs(): void {
 		$resolved = $this->resolve_intro(
 			array(
-				'content'         => '<p>Body only.</p>',
-				'section_spacing' => 'lg',
+				'content' => '<p>Body only.</p>',
+				'spacing' => 'lg',
 			),
 			array(
 				'index'      => 2,

@@ -6,9 +6,15 @@ release requirement ("SECTIONS.md current" checklist line).
 
 ## Naming rules (DOC07)
 
-- ACF FC **layout slugs** use underscores (`rich_text`); section **template
-  files** use hyphens (`rich-text.php`) — the loop maps
-  `str_replace('_','-')`. One layout ↔ one file, always.
+- A section's **layout slug** is its salt-contract section id verbatim
+  (`rich-text`, `call-to-action`; SC-001, since 6.0.0), and the resolver,
+  view and fields files use it as it is (`rich-text.php`). Only the
+  resolver's function name writes `-` as `_`
+  (`salt_section_resolver_function()`; CONVENTIONS.md, "The hyphen
+  rule"). Layouts the contract folds into another section, not yet
+  folded (`blog_teaser`, `scroll_carousel`), keep their underscored slug;
+  the loop maps `str_replace('_','-')` for them. One layout ↔ one file,
+  always.
 - Components are `x-{name}` ↔ `template-parts/components/{name}.php`.
 - Field keys: `field_salt_{scope}_{name}`; groups `group_salt_{scope}`
   (DATA02). Layout slugs + field names are CI-guarded (FLEET07).
@@ -39,7 +45,7 @@ release requirement ("SECTIONS.md current" checklist line).
    logic. Run `php bin/extract-slugs.php --write` and commit the registry.
 6. Document the section in the table below.
 
-**The exemplar:** Rich Text (`rich_text` / `inc/sections/rich-text.php` +
+**The exemplar:** Rich Text (`rich-text` / `inc/sections/rich-text.php` +
 `template-parts/sections/rich-text.php`) implements this recipe
 end-to-end — copy it.
 
@@ -49,14 +55,14 @@ end-to-end — copy it.
 |---|---|---|---|---|---|
 | 1 | Hero | `hero` | inline | — | Image only in v1 (video absent this build); LCP image eager |
 | 2 | Intro / Lead | `intro` | inline | — | |
-| 3 | Rich Text | `rich_text` | inline | — | The §17 exemplar |
+| 3 | Rich Text | `rich-text` | inline | — | The §17 exemplar |
 | 4 | Services | `services` | `service` ✦ | Service | Default = legacy parity (DATA04) |
 | 5 | Feature Grid | `features` | inline repeater | — | |
-| 6 | Media + Text | `media_text` | inline repeater | — | Alternating mode auto-flips |
+| 6 | Media + Text | `media-text` | inline repeater | — | Alternating mode auto-flips |
 | 7 | Stats | `stats` | inline repeater | — | `x-stat`; no count-up JS (INP) |
 | 8 | Testimonials | `testimonials` | `testimonial` ✦ | Review (itemReviewed = related Service, SEO02) | Slider = scroll-snap base + JS enhancement; no AggregateRating in v1 |
 | 9 | Logo Strip | `logos` | inline repeater | — | Also the "as featured in" home |
-| 10 | Call to Action | `cta` | inline | — | Newsletter variant deferred (compliance phase) |
+| 10 | Call to Action | `call-to-action` | inline | — | Newsletter variant deferred (compliance phase) |
 | 11 | Pricing | `pricing` | inline repeater | — | Offer schema deferred |
 | 12 | Team | `team` | `team_member` ✦ | Person (no PII in graph) | CPT not public in v1 |
 | 13 | FAQ | `faq` | `faq` ✦ | FAQPage (merged once per page, SEO03) | Native `<details>`, zero JS |

@@ -1,7 +1,7 @@
 <?php
 /**
  * Contact section snapshots (FLEET01) — one per meaningful variant:
- * the v1 default (details + form_intro + mailto CTA; form OFF), and the
+ * the v1 default (details + formIntro + mailto CTA; form OFF), and the
  * compliance-phase form (salt_contact_form_enabled true — honeypot,
  * label + aria-describedby fields, submit button).
  *
@@ -61,9 +61,9 @@ final class ContactSectionSnapshotTest extends SaltSnapshotTestCase {
 			'contact-details-default',
 			$this->render_contact_section(
 				array(
-					'heading'    => 'Get in touch',
-					'text'       => 'We usually reply within one working day.',
-					'form_intro' => 'Prefer email? Use the button below.',
+					'heading'   => 'Get in touch',
+					'intro'     => 'We usually reply within one working day.',
+					'formIntro' => 'Prefer email? Use the button below.',
 				)
 			)
 		);
@@ -76,9 +76,9 @@ final class ContactSectionSnapshotTest extends SaltSnapshotTestCase {
 			'contact-form-enabled',
 			$this->render_contact_section(
 				array(
-					'heading'    => 'Get in touch',
-					'text'       => 'We usually reply within one working day.',
-					'form_intro' => 'Send us a message and we will get back to you.',
+					'heading'   => 'Get in touch',
+					'intro'     => 'We usually reply within one working day.',
+					'formIntro' => 'Send us a message and we will get back to you.',
 				)
 			)
 		);

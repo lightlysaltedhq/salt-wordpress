@@ -33,8 +33,8 @@ return array(
 				'type'  => 'text',
 			),
 			array(
-				'key'           => 'field_salt_faq_schema_toggle',
-				'name'          => 'schema_toggle',
+				'key'           => 'field_salt_faq_structured_data',
+				'name'          => 'structuredData',
 				'label'         => __( 'FAQ schema', 'salt' ),
 				'instructions'  => __( 'Emit FAQPage JSON-LD for these questions (AEO, §15).', 'salt' ),
 				'type'          => 'true_false',

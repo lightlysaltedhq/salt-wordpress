@@ -13,7 +13,7 @@
  * (never public), so there is no archive to link — no "view all", no
  * pagination.
  *
- * Schema (SEO03): when schema_toggle is on, ONE FAQPage node is queued via
+ * Schema (SEO03): when structuredData is on, ONE FAQPage node is queued via
  * salt_schema_add() per section instance; the graph builder merges every
  * queued FAQPage into the single {page}#faq node.
  *
@@ -35,7 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *                                never empty. answer is HTML already
  *                                sanitised by salt_sanitize_html().
  *   structuredData  bool         Contract `structuredData`, from the
- *                                schema_toggle field. The FAQPage node is
+ *                                structuredData field. The FAQPage node is
  *                                already queued; a view draws nothing for it.
  *
  * @param array<string,mixed> $context Loop context: index, is_primary.
@@ -50,7 +50,7 @@ function salt_resolve_section_faq( array $context ): ?array {
 	$heading = function_exists( 'get_sub_field' ) ? (string) get_sub_field( 'heading' ) : '';
 
 	// true_false, default 1: rows saved before the field existed read null => on.
-	$schema_raw = function_exists( 'get_sub_field' ) ? get_sub_field( 'schema_toggle' ) : null;
+	$schema_raw = function_exists( 'get_sub_field' ) ? get_sub_field( 'structuredData' ) : null;
 	$schema_on  = null === $schema_raw ? true : (bool) $schema_raw;
 
 	$faq_posts = salt_resolve_query( salt_query_controls_from_row(), 'faq' );

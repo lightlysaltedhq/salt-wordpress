@@ -36,15 +36,15 @@ return array(
 				'type'  => 'text',
 			),
 			array(
-				'key'   => 'field_salt_contact_text',
-				'name'  => 'text',
+				'key'   => 'field_salt_contact_intro',
+				'name'  => 'intro',
 				'label' => __( 'Intro text', 'salt' ),
 				'type'  => 'textarea',
 				'rows'  => 3,
 			),
 			array(
 				'key'           => 'field_salt_contact_show_phone',
-				'name'          => 'show_phone',
+				'name'          => 'showPhone',
 				'label'         => __( 'Show phone', 'salt' ),
 				'instructions'  => __( 'The number comes from Site Settings → Company & Schema.', 'salt' ),
 				'type'          => 'true_false',
@@ -54,7 +54,7 @@ return array(
 			),
 			array(
 				'key'           => 'field_salt_contact_show_email',
-				'name'          => 'show_email',
+				'name'          => 'showEmail',
 				'label'         => __( 'Show email', 'salt' ),
 				'instructions'  => __( 'The address comes from Site Settings → Company & Schema.', 'salt' ),
 				'type'          => 'true_false',
@@ -64,7 +64,7 @@ return array(
 			),
 			array(
 				'key'           => 'field_salt_contact_show_address',
-				'name'          => 'show_address',
+				'name'          => 'showAddress',
 				'label'         => __( 'Show address', 'salt' ),
 				'instructions'  => __( 'The address comes from Site Settings → Company & Schema.', 'salt' ),
 				'type'          => 'true_false',
@@ -74,7 +74,7 @@ return array(
 			),
 			array(
 				'key'          => 'field_salt_contact_form_intro',
-				'name'         => 'form_intro',
+				'name'         => 'formIntro',
 				'label'        => __( 'Form intro', 'salt' ),
 				'instructions' => __( 'Short copy above the form (or above the email button while the form is not live).', 'salt' ),
 				'type'         => 'textarea',

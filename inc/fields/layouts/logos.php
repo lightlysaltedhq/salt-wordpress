@@ -32,15 +32,15 @@ return array(
 				'type'         => 'text',
 			),
 			array(
-				'key'          => 'field_salt_logos_logos',
-				'name'         => 'logos',
+				'key'          => 'field_salt_logos_items',
+				'name'         => 'items',
 				'label'        => __( 'Logos', 'salt' ),
 				'type'         => 'repeater',
 				'layout'       => 'table',
 				'button_label' => __( 'Add logo', 'salt' ),
 				'sub_fields'   => array(
 					array(
-						'key'           => 'field_salt_logos_logos_image',
+						'key'           => 'field_salt_logos_items_image',
 						'name'          => 'image',
 						'label'         => __( 'Logo image', 'salt' ),
 						'type'          => 'image',
@@ -49,7 +49,7 @@ return array(
 						'wrapper'       => array( 'width' => '30' ),
 					),
 					array(
-						'key'          => 'field_salt_logos_logos_url',
+						'key'          => 'field_salt_logos_items_url',
 						'name'         => 'url',
 						'label'        => __( 'Link (optional)', 'salt' ),
 						'instructions' => __( 'e.g. the client site or the press article.', 'salt' ),
@@ -57,7 +57,7 @@ return array(
 						'wrapper'      => array( 'width' => '40' ),
 					),
 					array(
-						'key'          => 'field_salt_logos_logos_name',
+						'key'          => 'field_salt_logos_items_name',
 						'name'         => 'name',
 						'label'        => __( 'Name', 'salt' ),
 						'instructions' => __( 'Used as the image alt text when the attachment has none.', 'salt' ),

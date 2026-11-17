@@ -114,7 +114,7 @@ final class GallerySectionTest extends SaltTestCase {
 
 		// Wrapper fields LAST (§11 Advanced tab).
 		$this->assertContains( 'field_salt_gallery_advanced_tab', $keys );
-		$this->assertSame( 'field_salt_gallery_section_divider', end( $keys ) );
+		$this->assertSame( 'field_salt_gallery_divider', end( $keys ) );
 	}
 
 	// -----------------------------------------------------------------
@@ -418,11 +418,11 @@ final class GallerySectionTest extends SaltTestCase {
 
 		$resolved = $this->resolve_gallery(
 			array(
-				'layout'          => 'masonry',
-				'columns'         => 4,
-				'captions'        => true,
-				'images'          => array( $ids[0], 0, array( 'ID' => $ids[1] ) ),
-				'section_spacing' => 'lg',
+				'layout'   => 'masonry',
+				'columns'  => 4,
+				'captions' => true,
+				'images'   => array( $ids[0], 0, array( 'ID' => $ids[1] ) ),
+				'spacing'  => 'lg',
 			)
 		);
 

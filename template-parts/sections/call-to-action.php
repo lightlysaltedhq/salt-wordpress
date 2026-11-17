@@ -2,7 +2,7 @@
 /**
  * View: Call to Action (spec §10 #10) — thin composition over x-cta.
  *
- * Draws the props from salt_resolve_section_cta() (inc/sections/cta.php),
+ * Draws the props from salt_resolve_section_call_to_action() (inc/sections/call-to-action.php),
  * inside the x-section wrapper the shared entry opens. No field reads,
  * validation, logging or defaults here: a child theme overriding this file
  * overrides the markup only.

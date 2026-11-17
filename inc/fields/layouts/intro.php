@@ -4,7 +4,7 @@
  *
  * Layout slug 'intro' is a stability contract (FLEET07) — renaming it is a
  * MAJOR bump + slug-migrations.json entry. Width is NOT a content field:
- * it comes from the shared §11 wrapper (section_container).
+ * it comes from the shared §11 wrapper (width).
  *
  * @package Salt
  */

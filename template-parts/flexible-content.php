@@ -31,7 +31,7 @@ if ( have_rows( 'sections' ) ) {
 	while ( have_rows( 'sections' ) ) {
 		the_row();
 		salt_render_section(
-			str_replace( '_', '-', (string) get_row_layout() ),
+			salt_section_slug_for_layout( (string) get_row_layout() ),
 			array(
 				'index'      => $salt_index,
 				'is_primary' => 0 === $salt_index,

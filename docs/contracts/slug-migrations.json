@@ -1,4 +1,125 @@
 {
 	"_readme": "Each entry legitimises the removal/rename of a previously-registered ACF layout slug or field name (FLEET07). Shape: { \"slug\": \"layout:hero\" | \"field:field_salt_service_summary\", \"version\": \"x.y.z release that removes it\", \"replacement\": \"new slug or null\", \"note\": \"how existing DB content is migrated\" }.",
-	"migrations": []
+	"migrations": [
+		{
+			"slug": "field:section_spacing",
+			"version": "6.0.0",
+			"replacement": "field:spacing",
+			"note": "Renamed to spacing. Every layout's Advanced tab (the contract's section settings, contract/fields/_section-settings.json, SC-001); the field key changes with it (field_salt_{layout}_spacing). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each row's meta sections_{n}_section_spacing (and its _sections_{n}_section_spacing key reference) to sections_{n}_spacing, value unchanged."
+		},
+		{
+			"slug": "field:section_background",
+			"version": "6.0.0",
+			"replacement": "field:tone",
+			"note": "Renamed to tone. Every layout's Advanced tab (the contract's section settings, contract/fields/_section-settings.json, SC-001); the field key changes with it (field_salt_{layout}_tone). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each row's meta sections_{n}_section_background (and its _sections_{n}_section_background key reference) to sections_{n}_tone, value unchanged except inverse, which is stored as surface-inverse (the contract's tone value)."
+		},
+		{
+			"slug": "field:section_container",
+			"version": "6.0.0",
+			"replacement": "field:width",
+			"note": "Renamed to width. Every layout's Advanced tab (the contract's section settings, contract/fields/_section-settings.json, SC-001); the field key changes with it (field_salt_{layout}_width). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each row's meta sections_{n}_section_container (and its _sections_{n}_section_container key reference) to sections_{n}_width, value unchanged."
+		},
+		{
+			"slug": "field:section_anchor",
+			"version": "6.0.0",
+			"replacement": "field:anchorId",
+			"note": "Renamed to anchorId. Every layout's Advanced tab (the contract's section settings, contract/fields/_section-settings.json, SC-001); the field key changes with it (field_salt_{layout}_anchor_id). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each row's meta sections_{n}_section_anchor (and its _sections_{n}_section_anchor key reference) to sections_{n}_anchorId, value unchanged."
+		},
+		{
+			"slug": "field:section_divider",
+			"version": "6.0.0",
+			"replacement": "field:divider",
+			"note": "Renamed to divider. Every layout's Advanced tab (the contract's section settings, contract/fields/_section-settings.json, SC-001); the field key changes with it (field_salt_{layout}_divider). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each row's meta sections_{n}_section_divider (and its _sections_{n}_section_divider key reference) to sections_{n}_divider, value unchanged."
+		},
+		{
+			"slug": "layout:cta",
+			"version": "6.0.0",
+			"replacement": "layout:call-to-action",
+			"note": "Renamed to the salt-contract section id call-to-action (SC-001); its fields keep their names, and their keys move from field_salt_cta_* to field_salt_call_to_action_* (layout key layout_salt_call_to_action). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by setting each such row's acf_fc_layout (the value in the sections meta array) from cta to call-to-action and repointing its _sections_{n}_* key references at the new keys. Field values are unchanged, except those renamed under their own field: entries."
+		},
+		{
+			"slug": "layout:media_text",
+			"version": "6.0.0",
+			"replacement": "layout:media-text",
+			"note": "Renamed to the salt-contract section id media-text (SC-001); the layout key (layout_salt_media_text) and field keys are unchanged. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by setting each such row's acf_fc_layout (the value in the sections meta array) from media_text to media-text. Field values are unchanged, except those renamed under their own field: entries."
+		},
+		{
+			"slug": "layout:rich_text",
+			"version": "6.0.0",
+			"replacement": "layout:rich-text",
+			"note": "Renamed to the salt-contract section id rich-text (SC-001); the layout key (layout_salt_rich_text) and field keys are unchanged. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by setting each such row's acf_fc_layout (the value in the sections meta array) from rich_text to rich-text. Field values are unchanged, except those renamed under their own field: entries."
+		},
+		{
+			"slug": "field:content",
+			"version": "6.0.0",
+			"replacement": "field:body",
+			"note": "Layout rich-text only (the rich_text layout before 6.0.0): its content field renamed body (contract/fields/rich-text.json); key field_salt_rich_text_content becomes field_salt_rich_text_body. The name content stays registered for media-text rows and intro, which keep it. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each rich-text row's sections_{n}_content meta to sections_{n}_body (and its key reference to the new key), value unchanged."
+		},
+		{
+			"slug": "field:text",
+			"version": "6.0.0",
+			"replacement": "field:body",
+			"note": "Layout call-to-action only (the cta layout before 6.0.0): its text field renamed body (contract/fields/call-to-action.json); key field_salt_call_to_action_body. Still a plain textarea: rich text in its place is a contract owes, not part of this rename. The name text stays registered for other layouts. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each call-to-action row's sections_{n}_text meta to sections_{n}_body (and its key reference), value unchanged."
+		},
+		{
+			"slug": "field:text",
+			"version": "6.0.0",
+			"replacement": "field:intro",
+			"note": "Layout contact only: its text field renamed intro (contract/fields/contact.json); key field_salt_contact_text becomes field_salt_contact_intro. The name text stays registered for other layouts. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each contact row's sections_{n}_text meta to sections_{n}_intro (and its key reference), value unchanged."
+		},
+		{
+			"slug": "field:show_phone",
+			"version": "6.0.0",
+			"replacement": "field:showPhone",
+			"note": "contact's show_phone renamed showPhone (contract/fields/contact.json); the key field_salt_contact_show_phone is unchanged (keys are snake_case). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving sections_{n}_show_phone to sections_{n}_showPhone, value unchanged."
+		},
+		{
+			"slug": "field:show_email",
+			"version": "6.0.0",
+			"replacement": "field:showEmail",
+			"note": "contact's show_email renamed showEmail (contract/fields/contact.json); the key field_salt_contact_show_email is unchanged. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving sections_{n}_show_email to sections_{n}_showEmail, value unchanged."
+		},
+		{
+			"slug": "field:show_address",
+			"version": "6.0.0",
+			"replacement": "field:showAddress",
+			"note": "contact's show_address renamed showAddress (contract/fields/contact.json); the key field_salt_contact_show_address is unchanged. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving sections_{n}_show_address to sections_{n}_showAddress, value unchanged."
+		},
+		{
+			"slug": "field:form_intro",
+			"version": "6.0.0",
+			"replacement": "field:formIntro",
+			"note": "contact's form_intro renamed formIntro (contract/fields/contact.json); the key field_salt_contact_form_intro is unchanged. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving sections_{n}_form_intro to sections_{n}_formIntro, value unchanged."
+		},
+		{
+			"slug": "field:media_side",
+			"version": "6.0.0",
+			"replacement": "field:mediaSide",
+			"note": "media-text's row sub-field media_side renamed mediaSide (contract/fields/media-text.json); the key field_salt_media_text_row_media_side is unchanged. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each sections_{n}_rows_{m}_media_side to sections_{n}_rows_{m}_mediaSide, value (left or right) unchanged."
+		},
+		{
+			"slug": "field:number",
+			"version": "6.0.0",
+			"replacement": "field:value",
+			"note": "stats' item sub-field number renamed value (contract/fields/stats.json); key field_salt_stats_items_number becomes field_salt_stats_items_value. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each sections_{n}_items_{m}_number to sections_{n}_items_{m}_value (and its key reference), value unchanged."
+		},
+		{
+			"slug": "field:logos",
+			"version": "6.0.0",
+			"replacement": "field:items",
+			"note": "logos' repeater logos renamed items (contract/fields/logos.json); keys field_salt_logos_logos(_image, _url, _name) become field_salt_logos_items(_image, _url, _name), sub-field names unchanged. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving sections_{n}_logos (the row count) and every sections_{n}_logos_{m}_* to sections_{n}_items and sections_{n}_items_{m}_* (and their key references), values unchanged."
+		},
+		{
+			"slug": "field:link",
+			"version": "6.0.0",
+			"replacement": "field:url",
+			"note": "features' item sub-field link renamed url (contract/fields/features.json); key field_salt_features_items_link becomes field_salt_features_items_url. Still an ACF link field (the plain address the contract asks for is an owes, not part of this rename); only its url was ever used. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each sections_{n}_items_{m}_link to sections_{n}_items_{m}_url (and its key reference), value unchanged."
+		},
+		{
+			"slug": "field:schema_toggle",
+			"version": "6.0.0",
+			"replacement": "field:structuredData",
+			"note": "faq's and process's schema_toggle renamed structuredData (contract/fields/faq.json, process.json); keys field_salt_faq_schema_toggle and field_salt_process_schema_toggle become field_salt_faq_structured_data and field_salt_process_structured_data. Defaults unchanged (faq on, process off). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each faq and process row's sections_{n}_schema_toggle to sections_{n}_structuredData (and its key reference), value unchanged; a faq row with no stored value still reads as on."
+		}
+	]
 }

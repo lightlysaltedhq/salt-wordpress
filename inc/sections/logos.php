@@ -62,7 +62,7 @@ function salt_resolve_section_logos( array $context ): ?array {
 	$heading   = function_exists( 'get_sub_field' ) ? (string) get_sub_field( 'heading' ) : '';
 	$greyscale = function_exists( 'get_sub_field' ) ? (bool) get_sub_field( 'greyscale' ) : false;
 
-	$rows = function_exists( 'get_sub_field' ) ? get_sub_field( 'logos' ) : null;
+	$rows = function_exists( 'get_sub_field' ) ? get_sub_field( 'items' ) : null;
 	$rows = is_array( $rows ) ? $rows : array();
 
 	// Normalise to renderable logos; broken rows skipped + logged (DATA05).

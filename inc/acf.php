@@ -154,8 +154,14 @@ function salt_assert_field_keys( array $fields ): void {
  * The shared §11 wrapper controls every section layout embeds (collapsed
  * into an "Advanced" tab — spec §5a).
  *
- * Field NAMES are identical across layouts (section_spacing, …); field
- * KEYS are namespaced per section (DATA02/FLEET07).
+ * Field NAMES are identical across layouts and are the salt-contract's
+ * section settings (contract/fields/_section-settings.json, SC-001):
+ * spacing, tone, width, anchorId, divider — formerly section_spacing,
+ * section_background, section_container, section_anchor and
+ * section_divider (docs/contracts/slug-migrations.json). Field KEYS are
+ * namespaced per section, with the name in snake_case (DATA02/FLEET07).
+ * The tone stores the contract's value surface-inverse where it stored
+ * inverse; salt_section_wrapper_args() maps it to x-section's background.
  *
  * @param string $section Section slug (underscored), e.g. 'rich_text'.
  * @return array<int,array<string,mixed>>
@@ -170,8 +176,8 @@ function salt_section_wrapper_fields( string $section ): array {
 			'type'  => 'tab',
 		),
 		array(
-			'key'           => $key( 'section_spacing' ),
-			'name'          => 'section_spacing',
+			'key'           => $key( 'spacing' ),
+			'name'          => 'spacing',
 			'label'         => __( 'Spacing', 'salt' ),
 			'type'          => 'select',
 			'choices'       => array(
@@ -183,21 +189,21 @@ function salt_section_wrapper_fields( string $section ): array {
 			'default_value' => 'md',
 		),
 		array(
-			'key'           => $key( 'section_background' ),
-			'name'          => 'section_background',
+			'key'           => $key( 'tone' ),
+			'name'          => 'tone',
 			'label'         => __( 'Background', 'salt' ),
 			'type'          => 'select',
 			'choices'       => array(
-				'surface'     => __( 'Default surface', 'salt' ),
-				'surface-alt' => __( 'Subtle tint', 'salt' ),
-				'brand-tint'  => __( 'Brand tint', 'salt' ),
-				'inverse'     => __( 'Inverse (dark)', 'salt' ),
+				'surface'         => __( 'Default surface', 'salt' ),
+				'surface-alt'     => __( 'Subtle tint', 'salt' ),
+				'brand-tint'      => __( 'Brand tint', 'salt' ),
+				'surface-inverse' => __( 'Inverse (dark)', 'salt' ),
 			),
 			'default_value' => 'surface',
 		),
 		array(
-			'key'           => $key( 'section_container' ),
-			'name'          => 'section_container',
+			'key'           => $key( 'width' ),
+			'name'          => 'width',
 			'label'         => __( 'Width', 'salt' ),
 			'type'          => 'select',
 			'choices'       => array(
@@ -209,15 +215,15 @@ function salt_section_wrapper_fields( string $section ): array {
 			'default_value' => 'default',
 		),
 		array(
-			'key'          => $key( 'section_anchor' ),
-			'name'         => 'section_anchor',
+			'key'          => $key( 'anchor_id' ),
+			'name'         => 'anchorId',
 			'label'        => __( 'Anchor ID', 'salt' ),
 			'instructions' => __( 'Optional, for in-page links. Sanitised automatically; duplicates get a numeric suffix.', 'salt' ),
 			'type'         => 'text',
 		),
 		array(
-			'key'           => $key( 'section_divider' ),
-			'name'          => 'section_divider',
+			'key'           => $key( 'divider' ),
+			'name'          => 'divider',
 			'label'         => __( 'Divider line', 'salt' ),
 			'type'          => 'true_false',
 			'ui'            => 1,

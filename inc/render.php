@@ -382,7 +382,8 @@ function salt_section( array $args, callable $content ): void {
 
 /**
  * Build the x-section wrapper args for the current Flexible Content row:
- * the shared §11 Advanced-tab controls + loop context (AMBIG03).
+ * the shared §11 Advanced-tab controls (the contract's section settings,
+ * salt_section_wrapper_fields()) + loop context (AMBIG03).
  *
  * @param string              $name    Section slug (hyphenated).
  * @param array<string,mixed> $context Loop context: index, is_primary.
@@ -397,13 +398,16 @@ function salt_section_wrapper_args( string $name, array $context = array() ): ar
 		return is_string( $value ) && '' !== $value ? $value : $fallback;
 	};
 
+	// The contract's tone value surface-inverse is x-section's inverse background.
+	$tone = $sub( 'tone', 'surface' );
+
 	return array(
 		'name'       => $name,
-		'spacing'    => $sub( 'section_spacing', 'md' ),
-		'background' => $sub( 'section_background', 'surface' ),
-		'container'  => $sub( 'section_container', 'default' ),
-		'anchor'     => $sub( 'section_anchor', '' ),
-		'divider'    => function_exists( 'get_sub_field' ) ? (bool) get_sub_field( 'section_divider' ) : false,
+		'spacing'    => $sub( 'spacing', 'md' ),
+		'background' => 'surface-inverse' === $tone ? 'inverse' : $tone,
+		'container'  => $sub( 'width', 'default' ),
+		'anchor'     => $sub( 'anchorId', '' ),
+		'divider'    => function_exists( 'get_sub_field' ) ? (bool) get_sub_field( 'divider' ) : false,
 		'is_primary' => (bool) ( $context['is_primary'] ?? false ),
 	);
 }
@@ -450,9 +454,55 @@ function salt_section_resolver_file( string $layout ): ?string {
 }
 
 /**
+ * The section slug the loop renders for a row's stored layout name.
+ *
+ * A stored name maps "_" to "-" (blog_teaser => blog-teaser), EXCEPT a
+ * layout name removed in 6.0.0 (ID-3599): one that is not registered
+ * itself while its hyphenated form is (rich_text, media_text, now
+ * rich-text and media-text). Such a row has none of the new layout's
+ * sub-fields, so it is passed on unchanged, finds no template and takes
+ * the fallback path (logged, editor marker — ARCH05), as an old cta row
+ * does, instead of resolving to an empty section.
+ *
+ * @param string $stored Raw layout name (get_row_layout()).
+ * @return string Section slug.
+ */
+function salt_section_slug_for_layout( string $stored ): string {
+	static $registered = null;
+
+	$slug = str_replace( '_', '-', $stored );
+	if ( $slug === $stored ) {
+		return $slug;
+	}
+
+	if ( null === $registered ) {
+		$registered = array_column( salt_section_layouts(), 'name' );
+	}
+
+	return ! in_array( $stored, $registered, true ) && in_array( $slug, $registered, true ) ? $stored : $slug;
+}
+
+/**
+ * The resolver function name for a section slug: the one place the
+ * hyphen rule lives (docs/contracts/CONVENTIONS.md, "The resolver").
+ *
+ * Section slugs are the salt-contract section ids verbatim
+ * (`call-to-action`), and the layout name, resolver file and view file all
+ * use them as they are. PHP function names cannot contain a hyphen, so the
+ * function name alone writes each "-" as "_":
+ * `call-to-action` => salt_resolve_section_call_to_action().
+ *
+ * @param string $layout Section slug (hyphenated).
+ * @return string Function name.
+ */
+function salt_section_resolver_function( string $layout ): string {
+	return 'salt_resolve_section_' . str_replace( '-', '_', $layout );
+}
+
+/**
  * Load a split section's resolver and return its function name.
  *
- * The file defines salt_resolve_section_{layout, "-" as "_"}( array
+ * The file defines salt_section_resolver_function( $layout )( array
  * $context ): ?array. Resolvers are final (not pluggable). Fails loudly —
  * salt_log(), and a throw under salt_is_debug() — and returns null when:
  *  - the section is split but the file does not define that function
@@ -472,7 +522,7 @@ function salt_section_resolver( string $layout ): ?string {
 		return null;
 	}
 
-	$function = 'salt_resolve_section_' . str_replace( '-', '_', $layout );
+	$function = salt_section_resolver_function( $layout );
 	$message  = '';
 
 	if ( function_exists( $function ) && realpath( (string) ( new ReflectionFunction( $function ) )->getFileName() ) !== realpath( $file ) ) {

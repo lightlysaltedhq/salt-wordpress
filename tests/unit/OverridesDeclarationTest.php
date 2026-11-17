@@ -23,7 +23,7 @@ final class OverridesDeclarationTest extends SaltOverridesTestCase {
 	public function test_no_child_theme_means_no_declaration_and_no_log(): void {
 		$this->assertSame( 'none', salt_overrides_load()['state'] );
 		$this->assertNull( salt_overrides() );
-		$this->assertNull( salt_override_tier( 'cta' ) );
+		$this->assertNull( salt_override_tier( 'call-to-action' ) );
 		$this->assertSame( array(), $this->logs() );
 	}
 
@@ -46,7 +46,7 @@ final class OverridesDeclarationTest extends SaltOverridesTestCase {
 		$this->assertSame( '1.0.0', $declaration['contract'] );
 		$this->assertSame( array( 'call-to-action', 'stats' ), array_column( $declaration['sections'], 'section' ) );
 		$this->assertSame( array( 'view', 'logic' ), array_column( $declaration['sections'], 'tier' ) );
-		$this->assertSame( array( 'template-parts/sections/cta.php' ), $declaration['sections'][0]['files'] );
+		$this->assertSame( array( 'template-parts/sections/call-to-action.php' ), $declaration['sections'][0]['files'] );
 		$this->assertSame( array(), $declaration['imageSizes'] );
 		$this->assertSame( array( 'showroom-finder' ), array_column( $declaration['clientSections'], 'id' ) );
 		$this->assertSame( array(), $this->logs() );
@@ -222,7 +222,8 @@ final class OverridesDeclarationTest extends SaltOverridesTestCase {
 			}
 		}
 
-		$this->assertSame( array( 'call-to-action' ), salt_contract_sections_for_layout( 'cta' ), 'The contract name differs from the slug.' );
+		$this->assertSame( array( 'call-to-action' ), salt_contract_sections_for_layout( 'call-to-action' ), 'The layout slug is the contract id (6.0.0).' );
+		$this->assertSame( array(), salt_contract_sections_for_layout( 'cta' ), 'The slug before 6.0.0 is no layout any more.' );
 		$this->assertSame( array( 'collection-showcase', 'carousel' ), salt_contract_sections_for_layout( 'testimonials' ) );
 		$this->assertSame( array(), salt_contract_sections_for_layout( 'child-only' ) );
 	}
@@ -262,7 +263,7 @@ final class OverridesDeclarationTest extends SaltOverridesTestCase {
 		$this->assertSame( 'logic', salt_override_tier_in( $declaration, 'testimonials', 'masonry' ), 'An unknown layout is a grid, as the resolver normalises it.' );
 		$this->assertSame( array( 'carousel' ), salt_contract_sections_for_layout( 'testimonials', 'slider' ) );
 		$this->assertSame( array( 'collection-showcase' ), salt_contract_sections_for_layout( 'testimonials', '' ) );
-		$this->assertSame( array( 'call-to-action' ), salt_contract_sections_for_layout( 'cta', 'slider' ), 'The row is ignored for an unconditional layout.' );
+		$this->assertSame( array( 'call-to-action' ), salt_contract_sections_for_layout( 'call-to-action', 'slider' ), 'The row is ignored for an unconditional layout.' );
 		$this->assertNull( salt_override_tier_in( $declaration, 'hero' ) );
 		$this->assertNull( salt_override_tier_in( null, 'team' ) );
 	}

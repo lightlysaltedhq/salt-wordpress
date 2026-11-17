@@ -165,10 +165,10 @@ final class ProcessSectionTest extends SaltTestCase {
 
 		// Content fields first, wrapper controls last.
 		$this->assertSame(
-			array( 'heading', 'eyebrow', 'layout', 'steps', 'schema_toggle' ),
+			array( 'heading', 'eyebrow', 'layout', 'steps', 'structuredData' ),
 			array_slice( array_values( array_filter( $names ) ), 0, 5 )
 		);
-		$this->assertGreaterThan( array_search( 'schema_toggle', $names, true ), array_search( 'section_spacing', $names, true ) );
+		$this->assertGreaterThan( array_search( 'structuredData', $names, true ), array_search( 'spacing', $names, true ) );
 
 		$steps  = null;
 		$toggle = null;
@@ -176,7 +176,7 @@ final class ProcessSectionTest extends SaltTestCase {
 			if ( 'steps' === ( $field['name'] ?? '' ) ) {
 				$steps = $field;
 			}
-			if ( 'schema_toggle' === ( $field['name'] ?? '' ) ) {
+			if ( 'structuredData' === ( $field['name'] ?? '' ) ) {
 				$toggle = $field;
 			}
 		}
@@ -319,7 +319,7 @@ final class ProcessSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertCount( $baseline, $this->graph(), 'schema_toggle defaults OFF — no HowTo node.' );
+		$this->assertCount( $baseline, $this->graph(), 'structuredData defaults OFF — no HowTo node.' );
 	}
 
 	public function test_toggled_on_queues_one_howto_node_with_positioned_steps(): void {
@@ -327,9 +327,9 @@ final class ProcessSectionTest extends SaltTestCase {
 
 		$this->render_process_section(
 			array(
-				'heading'       => 'How we work',
-				'schema_toggle' => 1,
-				'steps'         => $this->three_steps(),
+				'heading'        => 'How we work',
+				'structuredData' => 1,
+				'steps'          => $this->three_steps(),
 			)
 		);
 
@@ -357,9 +357,9 @@ final class ProcessSectionTest extends SaltTestCase {
 
 		$this->render_process_section(
 			array(
-				'heading'       => 'How we work',
-				'schema_toggle' => 1,
-				'steps'         => array(
+				'heading'        => 'How we work',
+				'structuredData' => 1,
+				'steps'          => array(
 					array( 'title' => 'Only title' ),
 					array( 'text' => 'broken — no title' ),
 				),
@@ -414,9 +414,9 @@ final class ProcessSectionTest extends SaltTestCase {
 		$this->assertNull(
 			$this->resolve_process(
 				array(
-					'heading'       => 'How it works',
-					'steps'         => array( 'not a row', array( 'title' => '  ' ) ),
-					'schema_toggle' => true,
+					'heading'        => 'How it works',
+					'steps'          => array( 'not a row', array( 'title' => '  ' ) ),
+					'structuredData' => true,
 				)
 			)
 		);
@@ -426,10 +426,10 @@ final class ProcessSectionTest extends SaltTestCase {
 	public function test_resolver_props_use_the_contract_names(): void {
 		$resolved = $this->resolve_process(
 			array(
-				'eyebrow'       => 'Steps',
-				'heading'       => ' How it works ',
-				'layout'        => 'cards',
-				'steps'         => array(
+				'eyebrow'        => 'Steps',
+				'heading'        => ' How it works ',
+				'layout'         => 'cards',
+				'steps'          => array(
 					array(
 						'title' => ' Plan ',
 						'text'  => ' We talk. ',
@@ -437,7 +437,7 @@ final class ProcessSectionTest extends SaltTestCase {
 					),
 					array( 'title' => 'Build' ),
 				),
-				'schema_toggle' => true,
+				'structuredData' => true,
 			)
 		);
 

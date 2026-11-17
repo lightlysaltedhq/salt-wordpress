@@ -150,7 +150,7 @@ parent sections are.
    or any `get_template_part()` / `load_template()` of a
    `template-parts/sections/{slug}.php` — passes no props. Every view
    then emits PHP warnings. Hero draws an empty, broken hero and Rich
-   Text draws nothing; blog-teaser, cta, faq, gallery, pricing,
+   Text draws nothing; blog-teaser, call-to-action, faq, gallery, pricing,
    scroll-carousel and work are a **fatal error** (`TypeError` from
    `count()` or `array_map()`); the rest draw broken markup. Render
    through `salt_render_resolved_section()`.
@@ -178,7 +178,7 @@ does not repeat it. The parent reads only the JSON, never the manifest.
   "platform": "wordpress",
   "contract": "1.0.0",
   "sections": [
-    { "section": "call-to-action", "tier": "view", "files": ["template-parts/sections/cta.php"],
+    { "section": "call-to-action", "tier": "view", "files": ["template-parts/sections/call-to-action.php"],
       "reason": "…", "since": "16/11/2026", "verified": "1.0.0" },
     { "section": "stats", "tier": "logic", "files": ["template-parts/sections/stats.php"],
       "reason": "…", "since": "16/11/2026", "verified": "1.0.0" }
@@ -189,8 +189,10 @@ does not repeat it. The parent reads only the JSON, never the manifest.
 
 - **Section ids are the contract's, not the layout slugs.** The parent maps
   them with `salt_contract_section_layouts()` (`inc/overrides.php`), the
-  same mapping as the slug table in CONVENTIONS.md: `call-to-action` is the
-  `cta` layout; `rich-text` is `rich-text` and `intro`;
+  same mapping as the slug table in CONVENTIONS.md. Since 6.0.0 a section
+  WordPress builds as one layout has the contract id as its layout slug
+  (`call-to-action`, `media-text`, `rich-text`); `rich-text` is also
+  `intro`;
   `collection-showcase` is `services`, `work`, `team`, `testimonials` and
   `blog-teaser`; `carousel` is `scroll-carousel` and `testimonials`.
   Declaring a folded id covers every layout it maps to. `testimonials` is
@@ -229,8 +231,10 @@ does not repeat it. The parent reads only the JSON, never the manifest.
 The view swap is the one described under Section views: a child file at
 `template-parts/sections/{slug}.php`, found by `locate_template()`,
 drawing `$args['props']` and `$args['plan']`. The file path uses the
-**layout slug** (`cta.php`); the declaration uses the **contract id**
-(`call-to-action`). The contract names no file path for WordPress views, so
+**layout slug** (`call-to-action.php`, the same as the contract id for
+every one-layout section since 6.0.0); the declaration uses the
+**contract id** (`call-to-action`), which for a folded section names
+several layouts (`collection-showcase`). The contract names no file path for WordPress views, so
 the path is the native one and nothing about it changes. Declaring the
 swap changes no rendering: an **undeclared** child view still loads exactly
 as before, because refusing it would break every existing child theme. The

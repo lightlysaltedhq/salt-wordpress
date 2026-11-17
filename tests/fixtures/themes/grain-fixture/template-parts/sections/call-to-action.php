@@ -1,6 +1,6 @@
 <?php
 /**
- * Fixture child VIEW of the call-to-action section (layout cta): tier
+ * Fixture child VIEW of the call-to-action section (same layout slug): tier
  * "view" in salt-overrides.json. Draws the parent resolver's props only.
  *
  * $args:

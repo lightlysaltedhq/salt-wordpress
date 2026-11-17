@@ -100,6 +100,12 @@ final class SectionSplitTest extends SaltTestCase {
 	// Resolver lookup.
 	// -----------------------------------------------------------------
 
+	public function test_resolver_function_writes_each_hyphen_as_an_underscore(): void {
+		$this->assertSame( 'salt_resolve_section_hero', salt_section_resolver_function( 'hero' ) );
+		$this->assertSame( 'salt_resolve_section_rich_text', salt_section_resolver_function( 'rich-text' ) );
+		$this->assertSame( 'salt_resolve_section_call_to_action', salt_section_resolver_function( 'call-to-action' ) );
+	}
+
 	public function test_split_sections_resolve_to_their_parent_resolver(): void {
 		$this->assertSame( 'salt_resolve_section_hero', salt_section_resolver( 'hero' ) );
 		$this->assertSame( 'salt_resolve_section_faq', salt_section_resolver( 'faq' ) );
@@ -158,10 +164,10 @@ final class SectionSplitTest extends SaltTestCase {
 
 	public function test_child_view_receives_props_and_plan_inside_the_wrapper(): void {
 		$this->seed_row(
-			'rich_text',
+			'rich-text',
 			array(
 				'heading' => 'Child heading',
-				'content' => '<p>Body.</p>',
+				'body'    => '<p>Body.</p>',
 			)
 		);
 		$view = $this->temp_view(
@@ -186,7 +192,7 @@ final class SectionSplitTest extends SaltTestCase {
 	}
 
 	public function test_zero_state_never_loads_the_view_or_opens_a_wrapper(): void {
-		$this->seed_row( 'rich_text', array() );
+		$this->seed_row( 'rich-text', array() );
 		$view = $this->temp_view( '<?php echo "VIEW RAN";' );
 
 		ob_start();
@@ -208,7 +214,7 @@ final class SectionSplitTest extends SaltTestCase {
 	public function test_view_plan_carries_priority_media_only_when_the_resolver_sets_it(): void {
 		$view = $this->temp_view( '<?php echo "<p>" . var_export( $args[\'plan\'][\'priorityMedia\'], true ) . "</p>";' );
 
-		$this->seed_row( 'rich_text', array( 'heading' => 'Text' ) );
+		$this->seed_row( 'rich-text', array( 'heading' => 'Text' ) );
 		ob_start();
 		salt_render_resolved_section( 'rich-text', $view, array( 'index' => 0 ) );
 		$this->assertStringContainsString( '<p>false</p>', (string) ob_get_clean(), 'Default: no priority image.' );
@@ -315,7 +321,7 @@ final class SectionSplitTest extends SaltTestCase {
 	}
 
 	public function test_whole_section_override_inside_a_split_section_is_logged(): void {
-		$this->seed_row( 'rich_text', array( 'heading' => 'Legacy' ) );
+		$this->seed_row( 'rich-text', array( 'heading' => 'Legacy' ) );
 		$view = $this->temp_view(
 			'<?php salt_section( array( "name" => "rich-text" ), static function ( int $level ): void { echo "legacy"; } );'
 		);

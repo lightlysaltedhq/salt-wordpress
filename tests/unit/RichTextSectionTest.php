@@ -21,7 +21,7 @@ final class RichTextSectionTest extends SaltTestCase {
 	}
 
 	/**
-	 * Seed one rich_text FC row and run its resolver (no rendering).
+	 * Seed one rich-text FC row and run its resolver (no rendering).
 	 *
 	 * @param array<string,mixed> $fields  Row fields.
 	 * @param array<string,mixed> $context Loop context.
@@ -34,7 +34,7 @@ final class RichTextSectionTest extends SaltTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'rich_text',
+					'layout' => 'rich-text',
 					'fields' => $fields,
 				),
 			)
@@ -48,7 +48,7 @@ final class RichTextSectionTest extends SaltTestCase {
 	}
 
 	/**
-	 * Seed one rich_text FC row and render it through the loop entry.
+	 * Seed one rich-text FC row and render it through the loop entry.
 	 *
 	 * @param array<string,mixed> $fields Row fields.
 	 * @return string
@@ -57,7 +57,7 @@ final class RichTextSectionTest extends SaltTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'rich_text',
+					'layout' => 'rich-text',
 					'fields' => $fields,
 				),
 			)
@@ -90,10 +90,10 @@ final class RichTextSectionTest extends SaltTestCase {
 			'whitespace only' => array(
 				array(
 					'heading' => '   ',
-					'content' => "\n",
+					'body'    => "\n",
 				),
 			),
-			'wrapper fields'  => array( array( 'section_background' => 'surface-alt' ) ),
+			'wrapper fields'  => array( array( 'tone' => 'surface-alt' ) ),
 		);
 	}
 
@@ -110,7 +110,7 @@ final class RichTextSectionTest extends SaltTestCase {
 		$resolved = $this->resolve_rich_text(
 			array(
 				'heading' => 'About us',
-				'content' => '<p>Copy with <strong>bold</strong>.</p>',
+				'body'    => '<p>Copy with <strong>bold</strong>.</p>',
 			)
 		);
 
@@ -122,7 +122,7 @@ final class RichTextSectionTest extends SaltTestCase {
 	public function test_resolver_sanitises_the_body(): void {
 		$resolved = $this->resolve_rich_text(
 			array(
-				'content' => '<p class="evil">Text</p><script>alert(1)</script><h2>Smuggled</h2>',
+				'body' => '<p class="evil">Text</p><script>alert(1)</script><h2>Smuggled</h2>',
 			)
 		);
 
@@ -143,10 +143,10 @@ final class RichTextSectionTest extends SaltTestCase {
 	public function test_resolver_owns_the_wrapper_inputs(): void {
 		$resolved = $this->resolve_rich_text(
 			array(
-				'content'            => '<p>Body only.</p>',
-				'section_spacing'    => 'lg',
-				'section_background' => 'surface-alt',
-				'section_anchor'     => 'About',
+				'body'     => '<p>Body only.</p>',
+				'spacing'  => 'lg',
+				'tone'     => 'surface-alt',
+				'anchorId' => 'About',
 			),
 			array(
 				'index'      => 2,
@@ -170,7 +170,7 @@ final class RichTextSectionTest extends SaltTestCase {
 		$html = $this->render_rich_text(
 			array(
 				'heading' => 'Welcome',
-				'content' => '<p>Hello.</p>',
+				'body'    => '<p>Hello.</p>',
 			)
 		);
 

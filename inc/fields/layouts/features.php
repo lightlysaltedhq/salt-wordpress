@@ -77,8 +77,8 @@ return array(
 						'rows'  => 3,
 					),
 					array(
-						'key'           => 'field_salt_features_items_link',
-						'name'          => 'link',
+						'key'           => 'field_salt_features_items_url',
+						'name'          => 'url',
 						'label'         => __( 'Link', 'salt' ),
 						'type'          => 'link',
 						'return_format' => 'array',

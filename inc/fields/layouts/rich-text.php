@@ -2,7 +2,8 @@
 /**
  * Flexible Content layout: Rich Text (spec §10 #3).
  *
- * Layout slug 'rich_text' is a stability contract (FLEET07) — renaming it
+ * Layout slug 'rich-text' (formerly 'rich_text', renamed to the salt-contract
+ * section id in 6.0.0) is a stability contract (FLEET07) — renaming it
  * is a MAJOR bump + slug-migrations.json entry.
  *
  * @package Salt
@@ -14,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return array(
 	'key'        => 'layout_salt_rich_text',
-	'name'       => 'rich_text',
+	'name'       => 'rich-text',
 	'label'      => __( 'Rich Text', 'salt' ),
 	'display'    => 'block',
 	'sub_fields' => array_merge(
@@ -26,8 +27,8 @@ return array(
 				'type'  => 'text',
 			),
 			array(
-				'key'          => 'field_salt_rich_text_content',
-				'name'         => 'content',
+				'key'          => 'field_salt_rich_text_body',
+				'name'         => 'body',
 				'label'        => __( 'Content', 'salt' ),
 				'type'         => 'wysiwyg',
 				'tabs'         => 'visual',

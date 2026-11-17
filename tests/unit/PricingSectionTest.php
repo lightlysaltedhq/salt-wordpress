@@ -90,8 +90,8 @@ final class PricingSectionTest extends SaltTestCase {
 		// Content fields first…
 		$this->assertSame( array( 'eyebrow', 'heading', 'plans' ), array_slice( array_values( array_filter( $names ) ), 0, 3 ) );
 		// …then the shared §11 wrapper controls last.
-		$this->assertContains( 'section_spacing', $names );
-		$this->assertGreaterThan( array_search( 'plans', $names, true ), array_search( 'section_spacing', $names, true ) );
+		$this->assertContains( 'spacing', $names );
+		$this->assertGreaterThan( array_search( 'plans', $names, true ), array_search( 'spacing', $names, true ) );
 
 		$plans = null;
 		foreach ( $layout['sub_fields'] as $field ) {

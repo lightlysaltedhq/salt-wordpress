@@ -152,14 +152,14 @@ final class FaqSectionTest extends SaltTestCase {
 		$names = array_column( $layout['sub_fields'], 'name' );
 		$this->assertContains( 'eyebrow', $names );
 		$this->assertContains( 'heading', $names );
-		$this->assertContains( 'schema_toggle', $names );
+		$this->assertContains( 'structuredData', $names );
 		$this->assertContains( 'source', $names, 'Query controls embedded (§10a).' );
 		$this->assertContains( 'taxonomy_terms', $names, 'faq_category filter present.' );
-		$this->assertSame( 'section_divider', end( $names ), 'Wrapper fields come LAST.' );
+		$this->assertSame( 'divider', end( $names ), 'Wrapper fields come LAST.' );
 
 		$fields = array_column( $layout['sub_fields'], null, 'name' );
-		$this->assertSame( 1, $fields['schema_toggle']['default_value'], 'Schema toggle defaults ON (SEO03).' );
-		$this->assertSame( 'field_salt_faq_schema_toggle', $fields['schema_toggle']['key'] );
+		$this->assertSame( 1, $fields['structuredData']['default_value'], 'Schema toggle defaults ON (SEO03).' );
+		$this->assertSame( 'field_salt_faq_structured_data', $fields['structuredData']['key'] );
 	}
 
 	// -----------------------------------------------------------------
@@ -360,8 +360,8 @@ final class FaqSectionTest extends SaltTestCase {
 
 		$html = $this->render_faq_section(
 			array(
-				'heading'       => 'FAQs',
-				'schema_toggle' => 0,
+				'heading'        => 'FAQs',
+				'structuredData' => 0,
 			)
 		);
 
@@ -547,7 +547,7 @@ final class FaqSectionTest extends SaltTestCase {
 			)
 		);
 
-		$resolved = $this->resolve_faq( array( 'schema_toggle' => 0 ) );
+		$resolved = $this->resolve_faq( array( 'structuredData' => 0 ) );
 
 		$this->assertFalse( $resolved['props']['structuredData'] );
 		$this->assertFalse( $resolved['section']['has_heading'] );
