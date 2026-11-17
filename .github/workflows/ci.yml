@@ -147,3 +147,23 @@ jobs:
 
       - name: No slug removed without major bump or migration entry
         run: php bin/check-slug-stability.php
+  
+  release-tag:
+    name: Release tag gate
+    # Tag pushes only; on pull requests this job is listed as Skipped. Git Updater
+    # offers the newest tag and needs the style.css Version to match it. This runs
+    # after the tag is pushed: it flags a mismatched or off-main tag, it cannot stop it.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      # Full history, so origin/main exists and the ancestry test is real.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Version headers equal the tag, and the tag is on main
+        run: node bin/check-release-tag.mjs "$GITHUB_REF_NAME"
