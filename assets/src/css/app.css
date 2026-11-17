@@ -320,7 +320,7 @@
 [data-grayscale] {
 	--color-brand: var(--color-neutral-600);
 	--color-brand-strong: var(--color-neutral-700);
-	--color-brand-tint: var(--color-neutral-100);
+	--color-brand-tint: var(--color-neutral-50);
 	--color-on-brand: #f8fafc;
 	--color-accent: var(--color-neutral-600);
 	--color-focus: var(--color-neutral-700);
