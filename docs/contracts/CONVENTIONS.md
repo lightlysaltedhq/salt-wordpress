@@ -106,6 +106,12 @@ repository, under `salt-contract/contract/view-props/{file}.json`
 (`_shared.json` holds the shared types, including the plan). Read it;
 salt-wordpress takes no dependency on it. `salt-contract/contract/sections.json`
 records, per contract section, which WordPress layouts it was `formerly`.
+Since 6.0.0 (ID-3599) every section WordPress builds as one layout has
+the contract id as its slug, and its fields carry the contract's field
+names (`contract/fields/*.json`); the layouts the contract folds into
+collection-showcase and carousel, and intro, keep their former slugs
+until they are folded. Every renamed slug and field is listed in
+`docs/contracts/slug-migrations.json`.
 
 | WordPress slug | Contract view-props file | Prop names |
 |---|---|---|
@@ -118,7 +124,7 @@ records, per contract section, which WordPress layouts it was `formerly`.
 | `stats` | `stats.json` | contract |
 | `testimonials` | `collection-showcase.json` (grid rows) / `carousel.json` (slider rows), decided per row by the Layout field (folds) | WordPress-local — no fold here |
 | `logos` | `logos.json` | contract |
-| `cta` | `call-to-action.json` (name differs) | contract |
+| `call-to-action` | `call-to-action.json` | contract |
 | `pricing` | `pricing.json` | contract |
 | `team` | `collection-showcase.json` (folds) | WordPress-local — no fold here |
 | `faq` | `faq.json` | contract |

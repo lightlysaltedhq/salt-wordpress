@@ -21,7 +21,7 @@ final class RichTextSectionTest extends SaltTestCase {
 	}
 
 	/**
-	 * Seed one rich_text FC row and run its resolver (no rendering).
+	 * Seed one rich-text FC row and run its resolver (no rendering).
 	 *
 	 * @param array<string,mixed> $fields  Row fields.
 	 * @param array<string,mixed> $context Loop context.
@@ -34,7 +34,7 @@ final class RichTextSectionTest extends SaltTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'rich_text',
+					'layout' => 'rich-text',
 					'fields' => $fields,
 				),
 			)
@@ -48,7 +48,7 @@ final class RichTextSectionTest extends SaltTestCase {
 	}
 
 	/**
-	 * Seed one rich_text FC row and render it through the loop entry.
+	 * Seed one rich-text FC row and render it through the loop entry.
 	 *
 	 * @param array<string,mixed> $fields Row fields.
 	 * @return string
@@ -57,7 +57,7 @@ final class RichTextSectionTest extends SaltTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'rich_text',
+					'layout' => 'rich-text',
 					'fields' => $fields,
 				),
 			)

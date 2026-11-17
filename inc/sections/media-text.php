@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Resolve the current media_text Flexible Content row to its view props.
+ * Resolve the current media-text Flexible Content row to its view props.
  *
  * Props (contract view-props/media-text.json):
  *   rows  array<int, array{image_id: int, heading: string|null, content: string|null, mediaSide: string, cta: array{url: string, title: string, target: string}|null}>

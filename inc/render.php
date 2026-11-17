@@ -454,6 +454,35 @@ function salt_section_resolver_file( string $layout ): ?string {
 }
 
 /**
+ * The section slug the loop renders for a row's stored layout name.
+ *
+ * A stored name maps "_" to "-" (blog_teaser => blog-teaser), EXCEPT a
+ * layout name removed in 6.0.0 (ID-3599): one that is not registered
+ * itself while its hyphenated form is (rich_text, media_text, now
+ * rich-text and media-text). Such a row has none of the new layout's
+ * sub-fields, so it is passed on unchanged, finds no template and takes
+ * the fallback path (logged, editor marker — ARCH05), as an old cta row
+ * does, instead of resolving to an empty section.
+ *
+ * @param string $stored Raw layout name (get_row_layout()).
+ * @return string Section slug.
+ */
+function salt_section_slug_for_layout( string $stored ): string {
+	static $registered = null;
+
+	$slug = str_replace( '_', '-', $stored );
+	if ( $slug === $stored ) {
+		return $slug;
+	}
+
+	if ( null === $registered ) {
+		$registered = array_column( salt_section_layouts(), 'name' );
+	}
+
+	return ! in_array( $stored, $registered, true ) && in_array( $slug, $registered, true ) ? $stored : $slug;
+}
+
+/**
  * The resolver function name for a section slug: the one place the
  * hyphen rule lives (docs/contracts/CONVENTIONS.md, "The resolver").
  *

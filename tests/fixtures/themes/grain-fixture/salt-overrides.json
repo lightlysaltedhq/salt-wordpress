@@ -8,7 +8,7 @@
       "section": "call-to-action",
       "tier": "view",
       "files": [
-        "template-parts/sections/cta.php"
+        "template-parts/sections/call-to-action.php"
       ],
       "reason": "The call to action draws its buttons beside the heading, which no variant offers.",
       "since": "16/11/2026",

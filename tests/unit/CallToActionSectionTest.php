@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../shims/acf.php';
 
-final class CtaSectionTest extends SaltTestCase {
+final class CallToActionSectionTest extends SaltTestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -20,7 +20,7 @@ final class CtaSectionTest extends SaltTestCase {
 	}
 
 	/**
-	 * Render ONE cta section row.
+	 * Render ONE call-to-action section row.
 	 *
 	 * @param array<string,mixed> $fields  Row sub-field fixtures.
 	 * @param array<string,mixed> $context Loop context.
@@ -33,7 +33,7 @@ final class CtaSectionTest extends SaltTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'cta',
+					'layout' => 'call-to-action',
 					'fields' => $fields,
 				),
 			)
@@ -42,7 +42,7 @@ final class CtaSectionTest extends SaltTestCase {
 		the_row();
 
 		ob_start();
-		salt_render_section( 'cta', $context );
+		salt_render_section( 'call-to-action', $context );
 		return (string) ob_get_clean();
 	}
 
@@ -51,10 +51,10 @@ final class CtaSectionTest extends SaltTestCase {
 	// -----------------------------------------------------------------
 
 	public function test_layout_file_shape_and_key_conventions(): void {
-		$layout = include dirname( __DIR__, 2 ) . '/inc/fields/layouts/cta.php';
+		$layout = include dirname( __DIR__, 2 ) . '/inc/fields/layouts/call-to-action.php';
 
-		$this->assertSame( 'cta', $layout['name'] );
-		$this->assertSame( 'layout_salt_cta', $layout['key'] );
+		$this->assertSame( 'call-to-action', $layout['name'] );
+		$this->assertSame( 'layout_salt_call_to_action', $layout['key'] );
 
 		$names = array_map(
 			static fn( array $field ): string => (string) ( $field['name'] ?? '' ),
@@ -82,7 +82,7 @@ final class CtaSectionTest extends SaltTestCase {
 		$this->assertSame( 'repeater', $buttons['type'] );
 		$this->assertSame( 2, $buttons['max'], 'Buttons repeater caps at 2.' );
 		foreach ( $buttons['sub_fields'] as $sub ) {
-			$this->assertStringStartsWith( 'field_salt_cta_buttons_', (string) $sub['key'] );
+			$this->assertStringStartsWith( 'field_salt_call_to_action_buttons_', (string) $sub['key'] );
 		}
 		$this->assertSame(
 			array( 'label', 'url', 'style' ),
@@ -186,8 +186,8 @@ final class CtaSectionTest extends SaltTestCase {
 		$this->assertSame( 2, preg_match_all( '/<a\b/', $html ), 'Max 2 valid buttons render.' );
 		$this->assertStringNotContainsString( 'Third', $html );
 		$logs = implode( ' ', $this->logs() );
-		$this->assertStringContainsString( 'cta section: button 1 is not a row array', $logs );
-		$this->assertStringContainsString( 'cta section: button 2 is missing a label or URL', $logs );
+		$this->assertStringContainsString( 'call-to-action section: button 1 is not a row array', $logs );
+		$this->assertStringContainsString( 'call-to-action section: button 2 is missing a label or URL', $logs );
 		$this->assertStringContainsString( 'unknown style "wobbly"', $logs );
 		$this->assertStringContainsString( 'only the first 2 render', $logs );
 	}
@@ -295,7 +295,7 @@ final class CtaSectionTest extends SaltTestCase {
 	// -----------------------------------------------------------------
 
 	/**
-	 * Seed one cta FC row and run its resolver (no rendering).
+	 * Seed one call-to-action FC row and run its resolver (no rendering).
 	 *
 	 * @param array<string,mixed> $fields  Row fields.
 	 * @param array<string,mixed> $context Loop context.
@@ -308,15 +308,15 @@ final class CtaSectionTest extends SaltTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'cta',
+					'layout' => 'call-to-action',
 					'fields' => $fields,
 				),
 			)
 		);
 		the_row();
 
-		$resolver = salt_section_resolver( 'cta' );
-		$this->assertSame( 'salt_resolve_section_cta', $resolver );
+		$resolver = salt_section_resolver( 'call-to-action' );
+		$this->assertSame( 'salt_resolve_section_call_to_action', $resolver );
 
 		return $resolver( $context );
 	}
@@ -397,7 +397,7 @@ final class CtaSectionTest extends SaltTestCase {
 
 	public function test_resolver_owns_the_wrapper_inputs_and_the_brand_tint_default(): void {
 		$resolved = $this->resolve_cta( array( 'heading' => 'Hi' ) );
-		$this->assertSame( 'cta', $resolved['section']['name'] );
+		$this->assertSame( 'call-to-action', $resolved['section']['name'] );
 		$this->assertSame( 'brand-tint', $resolved['section']['background'] );
 		$this->assertTrue( $resolved['section']['has_heading'] );
 
@@ -426,7 +426,7 @@ final class CtaSectionTest extends SaltTestCase {
 	public function test_view_draws_from_props_alone(): void {
 		ob_start();
 		load_template(
-			dirname( __DIR__, 2 ) . '/template-parts/sections/cta.php',
+			dirname( __DIR__, 2 ) . '/template-parts/sections/call-to-action.php',
 			false,
 			array(
 				'props' => array(

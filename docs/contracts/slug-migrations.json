@@ -30,6 +30,24 @@
 			"version": "6.0.0",
 			"replacement": "field:divider",
 			"note": "Renamed to divider. Every layout's Advanced tab (the contract's section settings, contract/fields/_section-settings.json, SC-001); the field key changes with it (field_salt_{layout}_divider). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each row's meta sections_{n}_section_divider (and its _sections_{n}_section_divider key reference) to sections_{n}_divider, value unchanged."
+		},
+		{
+			"slug": "layout:cta",
+			"version": "6.0.0",
+			"replacement": "layout:call-to-action",
+			"note": "Renamed to the salt-contract section id call-to-action (SC-001); its fields keep their names, and their keys move from field_salt_cta_* to field_salt_call_to_action_* (layout key layout_salt_call_to_action). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by setting each such row's acf_fc_layout (the value in the sections meta array) from cta to call-to-action and repointing its _sections_{n}_* key references at the new keys. Field values are unchanged, except those renamed under their own field: entries."
+		},
+		{
+			"slug": "layout:media_text",
+			"version": "6.0.0",
+			"replacement": "layout:media-text",
+			"note": "Renamed to the salt-contract section id media-text (SC-001); the layout key (layout_salt_media_text) and field keys are unchanged. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by setting each such row's acf_fc_layout (the value in the sections meta array) from media_text to media-text. Field values are unchanged, except those renamed under their own field: entries."
+		},
+		{
+			"slug": "layout:rich_text",
+			"version": "6.0.0",
+			"replacement": "layout:rich-text",
+			"note": "Renamed to the salt-contract section id rich-text (SC-001); the layout key (layout_salt_rich_text) and field keys are unchanged. No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by setting each such row's acf_fc_layout (the value in the sections meta array) from rich_text to rich-text. Field values are unchanged, except those renamed under their own field: entries."
 		}
 	]
 }

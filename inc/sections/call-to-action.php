@@ -1,7 +1,7 @@
 <?php
 /**
  * Resolver: Call to Action (spec §10 #10) — the logic half of the section;
- * the view is template-parts/sections/cta.php.
+ * the view is template-parts/sections/call-to-action.php.
  *
  * Fields: heading (text), text (textarea), buttons (repeater, max 2:
  * label, url, style primary|secondary|ghost). Background defaults to
@@ -14,7 +14,7 @@
  *
  * DEFERRED (compliance phase): the spec's 'newsletter' variant — no email
  * input may ship while nothing can process the submission (PRIV01
- * posture). See inc/fields/layouts/cta.php.
+ * posture). See inc/fields/layouts/call-to-action.php.
  *
  * @package Salt
  */
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Resolve the current cta Flexible Content row to its view props.
+ * Resolve the current call-to-action Flexible Content row to its view props.
  *
  * Props (contract view-props/call-to-action.json):
  *   heading  string|null  Contract `heading`. Null when blank; trimmed.
@@ -41,7 +41,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param array<string,mixed> $context Loop context: index, is_primary.
  * @return array{section: array<string,mixed>, props: array<string,mixed>}|null Null = 0-state.
  */
-function salt_resolve_section_cta( array $context ): ?array {
+function salt_resolve_section_call_to_action( array $context ): ?array {
 	$sub = static function ( string $field ): string {
 		if ( ! function_exists( 'get_sub_field' ) ) {
 			return '';
@@ -62,20 +62,20 @@ function salt_resolve_section_cta( array $context ): ?array {
 	$buttons = array();
 	foreach ( $rows as $i => $row ) {
 		if ( ! is_array( $row ) ) {
-			salt_log( sprintf( 'cta section: button %d is not a row array — skipped (broken row).', (int) $i ) );
+			salt_log( sprintf( 'call-to-action section: button %d is not a row array — skipped (broken row).', (int) $i ) );
 			continue;
 		}
 
 		$label = is_string( $row['label'] ?? null ) ? trim( $row['label'] ) : '';
 		$url   = is_string( $row['url'] ?? null ) ? trim( $row['url'] ) : '';
 		if ( '' === $label || '' === $url ) {
-			salt_log( sprintf( 'cta section: button %d is missing a label or URL — skipped (broken row).', (int) $i ) );
+			salt_log( sprintf( 'call-to-action section: button %d is missing a label or URL — skipped (broken row).', (int) $i ) );
 			continue;
 		}
 
 		$style = is_string( $row['style'] ?? null ) ? $row['style'] : 'primary';
 		if ( ! in_array( $style, array( 'primary', 'secondary', 'ghost' ), true ) ) {
-			salt_log( sprintf( 'cta section: button %d has unknown style "%s" — using primary.', (int) $i, $style ) );
+			salt_log( sprintf( 'call-to-action section: button %d has unknown style "%s" — using primary.', (int) $i, $style ) );
 			$style = 'primary';
 		}
 
@@ -87,7 +87,7 @@ function salt_resolve_section_cta( array $context ): ?array {
 	}
 
 	if ( count( $buttons ) > 2 ) {
-		salt_log( sprintf( 'cta section: %d buttons given — only the first 2 render.', count( $buttons ) ) );
+		salt_log( sprintf( 'call-to-action section: %d buttons given — only the first 2 render.', count( $buttons ) ) );
 		$buttons = array_slice( $buttons, 0, 2 );
 	}
 
@@ -95,7 +95,7 @@ function salt_resolve_section_cta( array $context ): ?array {
 		return null; // 0-state: skip the section entirely (COMPL02).
 	}
 
-	$wrapper = salt_section_wrapper_args( 'cta', $context );
+	$wrapper = salt_section_wrapper_args( 'call-to-action', $context );
 
 	// The CTA band defaults to the brand tint when the editor left the shared
 	// wrapper control unset (salt_section_wrapper_args falls back to 'surface').

@@ -2,7 +2,8 @@
 /**
  * Flexible Content layout: Media + Text (spec §10 #6).
  *
- * Layout slug 'media_text' is a stability contract (FLEET07) — renaming it
+ * Layout slug 'media-text' (formerly 'media_text', renamed to the
+ * salt-contract section id in 6.0.0) is a stability contract (FLEET07) — renaming it
  * is a MAJOR bump + slug-migrations.json entry. Content fields first
  * (mode + rows repeater), then the shared §11 wrapper Advanced tab.
  *
@@ -21,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return array(
 	'key'        => 'layout_salt_media_text',
-	'name'       => 'media_text',
+	'name'       => 'media-text',
 	'label'      => __( 'Media + Text', 'salt' ),
 	'display'    => 'block',
 	'sub_fields' => array_merge(

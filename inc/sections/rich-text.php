@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Resolve the current rich_text Flexible Content row to its view props.
+ * Resolve the current rich-text Flexible Content row to its view props.
  *
  * Props (contract view-props/rich-text.json):
  *   heading  string|null  Contract `heading`. Null when blank.

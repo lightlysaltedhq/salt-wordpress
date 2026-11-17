@@ -2,7 +2,7 @@
 /**
  * Acceptance for ID-3613: tests/fixtures/themes/grain-fixture is a child
  * theme modelled on grain-wordpress that swaps the call-to-action section's
- * view (layout cta) and declares stats replaced (tier "logic"). Both are
+ * view (layout call-to-action) and declares stats replaced (tier "logic"). Both are
  * honoured without touching the parent; undeclared sections render as
  * before, and an UNDECLARED replacement still fails exactly as before.
  *
@@ -24,10 +24,10 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 
 	public function test_acceptance_the_declared_view_swap_draws_the_parent_props(): void {
 		salt_test_use_child_theme( self::fixture() );
-		$this->assertSame( 'view', salt_override_tier( 'cta' ) );
+		$this->assertSame( 'view', salt_override_tier( 'call-to-action' ) );
 
 		$this->seed_row(
-			'cta',
+			'call-to-action',
 			array(
 				'heading' => 'Ready?',
 				'buttons' => array(
@@ -39,15 +39,15 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 			)
 		);
 		$html = $this->render(
-			'cta',
-			self::fixture() . '/template-parts/sections/cta.php',
+			'call-to-action',
+			self::fixture() . '/template-parts/sections/call-to-action.php',
 			array(
 				'index'      => 0,
 				'is_primary' => true,
 			)
 		);
 
-		$this->assertStringContainsString( 'data-section="cta"', $html, 'Inside the parent wrapper.' );
+		$this->assertStringContainsString( 'data-section="call-to-action"', $html, 'Inside the parent wrapper.' );
 		$this->assertStringContainsString( '<div class="grain-cta">', $html, 'The child view drew it.' );
 		$this->assertStringContainsString( '<h1>Ready?</h1>', $html, 'From the parent resolver\'s props and plan.' );
 		$this->assertStringContainsString( 'href="https://example.test/contact/"', $html );
@@ -136,7 +136,7 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 			)
 		);
 		$view = $dir . '/template-parts/sections/rich-text.php';
-		$this->seed_row( 'rich_text', array( 'heading' => 'Legacy' ) );
+		$this->seed_row( 'rich-text', array( 'heading' => 'Legacy' ) );
 
 		$html = $this->render( 'rich-text', $view );
 
@@ -160,10 +160,10 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 	public function test_acceptance_through_salt_render_section_with_a_child_first_lookup(): void {
 		salt_test_use_child_theme( self::fixture() );
 
-		$this->seed_row( 'cta', array( 'heading' => 'Found first' ) );
+		$this->seed_row( 'call-to-action', array( 'heading' => 'Found first' ) );
 		ob_start();
 		salt_render_section(
-			'cta',
+			'call-to-action',
 			array(
 				'index'      => 0,
 				'is_primary' => false,
@@ -184,23 +184,23 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 	}
 
 	/**
-	 * A child that DECLARES cta as a view swap and also defines the cta
+	 * A child that DECLARES call-to-action as a view swap and also defines its
 	 * resolver still gets the loud failure: tier "view" grants nothing to
 	 * the logic. Separate process, because the defined function would
-	 * otherwise outlive the test and break every later cta test.
+	 * otherwise outlive the test and break every later call-to-action test.
 	 */
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
 	public function test_a_child_resolver_for_a_view_declared_section_still_fails_loudly(): void {
 		salt_test_use_child_theme( self::fixture() );
-		$this->assertSame( 'view', salt_override_tier( 'cta' ) );
-		$child = $this->temp_child( array( 'resolver.php' => "<?php\nfunction salt_resolve_section_cta( array \$context ): ?array {\n\treturn null;\n}\n" ) );
+		$this->assertSame( 'view', salt_override_tier( 'call-to-action' ) );
+		$child = $this->temp_child( array( 'resolver.php' => "<?php\nfunction salt_resolve_section_call_to_action( array \$context ): ?array {\n\treturn null;\n}\n" ) );
 		require $child . '/resolver.php';
-		$this->seed_row( 'cta', array( 'heading' => 'Hijacked?' ) );
+		$this->seed_row( 'call-to-action', array( 'heading' => 'Hijacked?' ) );
 
 		$this->expectException( LogicException::class );
 		$this->expectExceptionMessage( 'cannot be replaced' );
-		$this->render( 'cta', self::fixture() . '/template-parts/sections/cta.php' );
+		$this->render( 'call-to-action', self::fixture() . '/template-parts/sections/call-to-action.php' );
 	}
 
 	/**

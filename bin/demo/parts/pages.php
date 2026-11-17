@@ -149,7 +149,7 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'media_text',
+				'acf_fc_layout' => 'media-text',
 				'mode'          => 'single',
 				'rows'          => array(
 					array(
@@ -264,7 +264,7 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'cta',
+				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Ready to start?',
 				'text'          => 'Tell us what you are building. We will come back within a day with a few honest thoughts and next steps.',
 				'buttons'       => array(
@@ -309,7 +309,7 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'rich_text',
+				'acf_fc_layout' => 'rich-text',
 				'heading'       => 'Our story',
 				'content'       => '<p>Northbeam Studio began in 2013 above a coffee roastery in Shoreditch, with two founders, one laptop each and a stubborn belief that brand and product should be built together.</p><p>A decade on, we are a team of designers, engineers and strategists working with founders, marketing leads and product teams across the UK and beyond. We have grown carefully — hiring for craft and character rather than headcount — so the studio still feels like the one we set out to build.</p><blockquote><p>Do fewer things, and do them properly.</p></blockquote><p>That principle shows up everywhere: in the projects we take on, the way we scope them, and the long relationships that follow. Most of our new work still comes from people we have worked with before.</p>',
 				'spacing'       => 'lg',
@@ -435,7 +435,7 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'cta',
+				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Like how we think?',
 				'text'          => 'We would love to hear what you are working on. Start a conversation and we will take it from there.',
 				'buttons'       => array(
@@ -678,7 +678,7 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'cta',
+				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Have a project in mind?',
 				'text'          => 'Tell us about it. We will suggest the right way to work together — and never sell you more than you need.',
 				'buttons'       => array(
@@ -780,7 +780,7 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'cta',
+				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Want to join us?',
 				'text'          => 'We are always glad to meet good people. If you care about craft as much as we do, get in touch.',
 				'buttons'       => array(
@@ -834,7 +834,7 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'cta',
+				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Still have a question?',
 				'text'          => 'We are real people and we reply quickly. Send it over and we will get you an honest answer.',
 				'buttons'       => array(

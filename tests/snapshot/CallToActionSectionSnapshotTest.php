@@ -11,10 +11,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../shims/acf.php';
 
-final class CtaSectionSnapshotTest extends SaltSnapshotTestCase {
+final class CallToActionSectionSnapshotTest extends SaltSnapshotTestCase {
 
 	/**
-	 * Render the cta section for one seeded FC row.
+	 * Render the call-to-action section for one seeded FC row.
 	 *
 	 * @param array<string,mixed> $fields Row sub-field fixtures.
 	 * @return string
@@ -23,7 +23,7 @@ final class CtaSectionSnapshotTest extends SaltSnapshotTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'cta',
+					'layout' => 'call-to-action',
 					'fields' => $fields,
 				),
 			)
@@ -34,7 +34,7 @@ final class CtaSectionSnapshotTest extends SaltSnapshotTestCase {
 
 		ob_start();
 		salt_render_section(
-			'cta',
+			'call-to-action',
 			array(
 				'index'      => 0,
 				'is_primary' => true,
@@ -45,7 +45,7 @@ final class CtaSectionSnapshotTest extends SaltSnapshotTestCase {
 
 	public function test_cta_section_brand_tint_two_buttons(): void {
 		$this->assertMatchesHtmlSnapshot(
-			'cta-section-brand-tint',
+			'call-to-action-section-brand-tint',
 			$this->render_cta(
 				array(
 					'heading' => 'Ready to start your project?',

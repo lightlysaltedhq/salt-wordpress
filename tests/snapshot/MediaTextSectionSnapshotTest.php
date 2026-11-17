@@ -46,7 +46,7 @@ final class MediaTextSectionSnapshotTest extends SaltSnapshotTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'media_text',
+					'layout' => 'media-text',
 					'fields' => $fields,
 				),
 			)

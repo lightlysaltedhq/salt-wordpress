@@ -3,7 +3,7 @@
  * ACF Flexible Content loop shims (fixture-backed).
  *
  * Fixtures: $GLOBALS['salt_test_fc'] = array(
- *   'rows' => array( array( 'layout' => 'rich_text', 'fields' => array( 'heading' => '…' ) ), … ),
+ *   'rows' => array( array( 'layout' => 'rich-text', 'fields' => array( 'heading' => '…' ) ), … ),
  *   'i'    => -1,
  * );
  *

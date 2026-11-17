@@ -105,7 +105,7 @@ final class OverrideFlagTest extends SaltOverridesTestCase {
 		salt_test_use_child_theme(
 			$this->temp_child(
 				array(
-					'template-parts/sections/cta.php' => '<?php',
+					'template-parts/sections/call-to-action.php' => '<?php',
 					'template-parts/sections/child-only.php' => '<?php',
 				)
 			)
@@ -114,7 +114,7 @@ final class OverrideFlagTest extends SaltOverridesTestCase {
 		$items = $this->flag();
 
 		$this->assertCount( 1, $items, 'A child-only layout is not a swap.' );
-		$this->assertStringContainsString( 'cta.php: the child theme swaps this view, but salt-overrides.json does not declare section call-to-action', $items[0]['message'] );
+		$this->assertStringContainsString( 'call-to-action.php: the child theme swaps this view, but salt-overrides.json does not declare section call-to-action', $items[0]['message'] );
 	}
 
 	public function test_flag_raises_an_invalid_file(): void {

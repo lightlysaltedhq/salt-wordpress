@@ -82,7 +82,7 @@ final class IntegrationPageTest extends SaltTestCase {
 					),
 				),
 				array(
-					'layout' => 'rich_text',
+					'layout' => 'rich-text',
 					'fields' => array(
 						'heading' => 'About us',
 						'content' => '<p>Copy.</p>',
@@ -140,7 +140,7 @@ final class IntegrationPageTest extends SaltTestCase {
 		// Page containing a gallery (has a JS module) and rich text (none).
 		$GLOBALS['salt_test_fields']['current']['sections'] = array(
 			array( 'acf_fc_layout' => 'gallery' ),
-			array( 'acf_fc_layout' => 'rich_text' ),
+			array( 'acf_fc_layout' => 'rich-text' ),
 		);
 
 		$this->assertSame( array( 'gallery', 'rich-text' ), salt_page_section_slugs() );

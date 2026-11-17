@@ -34,7 +34,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'media_text',
+					'layout' => 'media-text',
 					'fields' => $fields,
 				),
 			)
@@ -77,7 +77,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 	public function test_layout_file_shape(): void {
 		$layout = include dirname( __DIR__, 2 ) . '/inc/fields/layouts/media-text.php';
 
-		$this->assertSame( 'media_text', $layout['name'] );
+		$this->assertSame( 'media-text', $layout['name'] );
 		$this->assertSame( 'layout_salt_media_text', $layout['key'] );
 
 		$keys = array_column( $layout['sub_fields'], 'key' );
@@ -465,7 +465,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 	// -----------------------------------------------------------------
 
 	/**
-	 * Seed one media_text FC row and run its resolver (no rendering).
+	 * Seed one media-text FC row and run its resolver (no rendering).
 	 *
 	 * @param array<string,mixed> $fields  Row fields.
 	 * @param array<string,mixed> $context Loop context.
@@ -478,7 +478,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 		salt_test_seed_fc(
 			array(
 				array(
-					'layout' => 'media_text',
+					'layout' => 'media-text',
 					'fields' => $fields,
 				),
 			)
