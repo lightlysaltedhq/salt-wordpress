@@ -37,8 +37,8 @@ return array(
 				'type'  => 'text',
 			),
 			array(
-				'key'   => 'field_salt_call_to_action_text',
-				'name'  => 'text',
+				'key'   => 'field_salt_call_to_action_body',
+				'name'  => 'body',
 				'label' => __( 'Text', 'salt' ),
 				'type'  => 'textarea',
 				'rows'  => 3,

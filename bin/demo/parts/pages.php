@@ -60,7 +60,7 @@ return array(
 			array(
 				'acf_fc_layout' => 'logos',
 				'heading'       => 'Trusted by teams building the next thing',
-				'logos'         => array(
+				'items'         => array(
 					array(
 						'image' => 'ref:image/client-1',
 						'url'   => '',
@@ -121,22 +121,22 @@ return array(
 				'columns'       => '4',
 				'items'         => array(
 					array(
-						'number' => '120',
+						'value'  => '120',
 						'suffix' => '+',
 						'label'  => 'Projects shipped',
 					),
 					array(
-						'number' => '12',
+						'value'  => '12',
 						'suffix' => '',
 						'label'  => 'Years in practice',
 					),
 					array(
-						'number' => '38',
+						'value'  => '38',
 						'suffix' => '%',
 						'label'  => 'Average lift in conversions',
 					),
 					array(
-						'number' => '9',
+						'value'  => '9',
 						'suffix' => '/10',
 						'label'  => 'Clients who return',
 					),
@@ -153,11 +153,11 @@ return array(
 				'mode'          => 'single',
 				'rows'          => array(
 					array(
-						'image'      => 'ref:image/about-story',
-						'heading'    => 'A studio, not a factory',
-						'content'    => '<p>We are a small senior team by design. The people who scope your project are the people who deliver it, so nothing gets lost between the pitch and the launch.</p><p>That means fewer handoffs, sharper decisions, and work we are genuinely proud to put our name to.</p>',
-						'media_side' => 'left',
-						'cta'        => array(
+						'image'     => 'ref:image/about-story',
+						'heading'   => 'A studio, not a factory',
+						'content'   => '<p>We are a small senior team by design. The people who scope your project are the people who deliver it, so nothing gets lost between the pitch and the launch.</p><p>That means fewer handoffs, sharper decisions, and work we are genuinely proud to put our name to.</p>',
+						'mediaSide' => 'left',
+						'cta'       => array(
 							'title'  => 'More about us',
 							'url'    => 'url:page/about',
 							'target' => '',
@@ -201,11 +201,11 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'process',
-				'eyebrow'       => 'How we work',
-				'heading'       => 'A clear path from idea to launch',
-				'layout'        => 'timeline',
-				'steps'         => array(
+				'acf_fc_layout'  => 'process',
+				'eyebrow'        => 'How we work',
+				'heading'        => 'A clear path from idea to launch',
+				'layout'         => 'timeline',
+				'steps'          => array(
 					array(
 						'title' => 'Discover',
 						'text'  => 'We dig into your goals, audience and market so every decision after this has a reason behind it.',
@@ -227,12 +227,12 @@ return array(
 						'icon'  => 'rocket',
 					),
 				),
-				'schema_toggle' => 0,
-				'spacing'       => 'md',
-				'tone'          => 'surface-alt',
-				'width'         => 'default',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'structuredData' => 0,
+				'spacing'        => 'md',
+				'tone'           => 'surface-alt',
+				'width'          => 'default',
+				'anchorId'       => '',
+				'divider'        => 0,
 			),
 
 			array(
@@ -253,7 +253,7 @@ return array(
 				'acf_fc_layout'  => 'faq',
 				'eyebrow'        => 'Good to know',
 				'heading'        => 'Common questions',
-				'schema_toggle'  => 1,
+				'structuredData' => 1,
 				'source'         => 'taxonomy',
 				'taxonomy_terms' => array( 'ref:term/faq_category/general' ),
 				'spacing'        => 'lg',
@@ -266,7 +266,7 @@ return array(
 			array(
 				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Ready to start?',
-				'text'          => 'Tell us what you are building. We will come back within a day with a few honest thoughts and next steps.',
+				'body'          => 'Tell us what you are building. We will come back within a day with a few honest thoughts and next steps.',
 				'buttons'       => array(
 					array(
 						'label' => 'Start a project',
@@ -311,7 +311,7 @@ return array(
 			array(
 				'acf_fc_layout' => 'rich-text',
 				'heading'       => 'Our story',
-				'content'       => '<p>Northbeam Studio began in 2013 above a coffee roastery in Shoreditch, with two founders, one laptop each and a stubborn belief that brand and product should be built together.</p><p>A decade on, we are a team of designers, engineers and strategists working with founders, marketing leads and product teams across the UK and beyond. We have grown carefully — hiring for craft and character rather than headcount — so the studio still feels like the one we set out to build.</p><blockquote><p>Do fewer things, and do them properly.</p></blockquote><p>That principle shows up everywhere: in the projects we take on, the way we scope them, and the long relationships that follow. Most of our new work still comes from people we have worked with before.</p>',
+				'body'          => '<p>Northbeam Studio began in 2013 above a coffee roastery in Shoreditch, with two founders, one laptop each and a stubborn belief that brand and product should be built together.</p><p>A decade on, we are a team of designers, engineers and strategists working with founders, marketing leads and product teams across the UK and beyond. We have grown carefully — hiring for craft and character rather than headcount — so the studio still feels like the one we set out to build.</p><blockquote><p>Do fewer things, and do them properly.</p></blockquote><p>That principle shows up everywhere: in the projects we take on, the way we scope them, and the long relationships that follow. Most of our new work still comes from people we have worked with before.</p>',
 				'spacing'       => 'lg',
 				'tone'          => 'surface-alt',
 				'width'         => 'narrow',
@@ -325,22 +325,22 @@ return array(
 				'columns'       => '4',
 				'items'         => array(
 					array(
-						'number' => '2013',
+						'value'  => '2013',
 						'suffix' => '',
 						'label'  => 'Founded in Shoreditch',
 					),
 					array(
-						'number' => '18',
+						'value'  => '18',
 						'suffix' => '',
 						'label'  => 'People in the studio',
 					),
 					array(
-						'number' => '120',
+						'value'  => '120',
 						'suffix' => '+',
 						'label'  => 'Projects delivered',
 					),
 					array(
-						'number' => '70',
+						'value'  => '70',
 						'suffix' => '%',
 						'label'  => 'Work from repeat clients',
 					),
@@ -367,11 +367,11 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'process',
-				'eyebrow'       => 'How we work',
-				'heading'       => 'A process built on fewer surprises',
-				'layout'        => 'cards',
-				'steps'         => array(
+				'acf_fc_layout'  => 'process',
+				'eyebrow'        => 'How we work',
+				'heading'        => 'A process built on fewer surprises',
+				'layout'         => 'cards',
+				'steps'          => array(
 					array(
 						'title' => 'Listen first',
 						'text'  => 'Every engagement opens with questions, not answers. We want to understand the business before we touch a pixel.',
@@ -388,12 +388,12 @@ return array(
 						'icon'  => 'life-buoy',
 					),
 				),
-				'schema_toggle' => 0,
-				'spacing'       => 'md',
-				'tone'          => 'surface-alt',
-				'width'         => 'default',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'structuredData' => 0,
+				'spacing'        => 'md',
+				'tone'           => 'surface-alt',
+				'width'          => 'default',
+				'anchorId'       => '',
+				'divider'        => 0,
 			),
 
 			array(
@@ -437,7 +437,7 @@ return array(
 			array(
 				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Like how we think?',
-				'text'          => 'We would love to hear what you are working on. Start a conversation and we will take it from there.',
+				'body'          => 'We would love to hear what you are working on. Start a conversation and we will take it from there.',
 				'buttons'       => array(
 					array(
 						'label' => 'Start a project',
@@ -500,7 +500,7 @@ return array(
 						'icon'  => 'sparkles',
 						'title' => 'Brand identity',
 						'text'  => 'Names, logos, systems and guidelines that make you look the size you want to be.',
-						'link'  => array(
+						'url'   => array(
 							'title'  => 'Explore brand identity',
 							'url'    => 'url:service/brand-identity',
 							'target' => '',
@@ -510,7 +510,7 @@ return array(
 						'icon'  => 'layout',
 						'title' => 'Web design',
 						'text'  => 'Websites designed around your goals and your visitors, not a template.',
-						'link'  => array(
+						'url'   => array(
 							'title'  => 'Explore web design',
 							'url'    => 'url:service/web-design',
 							'target' => '',
@@ -520,7 +520,7 @@ return array(
 						'icon'  => 'code',
 						'title' => 'Web development',
 						'text'  => 'Fast, accessible, maintainable builds — WordPress, headless or bespoke.',
-						'link'  => array(
+						'url'   => array(
 							'title'  => 'Explore web development',
 							'url'    => 'url:service/web-development',
 							'target' => '',
@@ -530,7 +530,7 @@ return array(
 						'icon'  => 'trending-up',
 						'title' => 'SEO & content',
 						'text'  => 'The words and structure that help the right people find you and stay.',
-						'link'  => array(
+						'url'   => array(
 							'title'  => 'Explore SEO & content',
 							'url'    => 'url:service/seo-content',
 							'target' => '',
@@ -540,7 +540,7 @@ return array(
 						'icon'  => 'shopping-cart',
 						'title' => 'Ecommerce',
 						'text'  => 'Storefronts that turn browsers into buyers and keep them coming back.',
-						'link'  => array(
+						'url'   => array(
 							'title'  => 'Explore ecommerce',
 							'url'    => 'url:service/ecommerce',
 							'target' => '',
@@ -550,7 +550,7 @@ return array(
 						'icon'  => 'users',
 						'title' => 'UX research',
 						'text'  => 'Evidence from real users so big decisions rest on more than opinion.',
-						'link'  => array(
+						'url'   => array(
 							'title'  => 'Explore UX research',
 							'url'    => 'url:service/ux-research',
 							'target' => '',
@@ -565,11 +565,11 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'process',
-				'eyebrow'       => 'The method',
-				'heading'       => 'Four phases, no black boxes',
-				'layout'        => 'timeline',
-				'steps'         => array(
+				'acf_fc_layout'  => 'process',
+				'eyebrow'        => 'The method',
+				'heading'        => 'Four phases, no black boxes',
+				'layout'         => 'timeline',
+				'steps'          => array(
 					array(
 						'title' => 'Discover',
 						'text'  => 'Workshops, interviews and audits to map the real problem before we spend a penny solving it.',
@@ -591,12 +591,12 @@ return array(
 						'icon'  => 'rocket',
 					),
 				),
-				'schema_toggle' => 1,
-				'spacing'       => 'lg',
-				'tone'          => 'surface',
-				'width'         => 'default',
-				'anchorId'      => 'method',
-				'divider'       => 0,
+				'structuredData' => 1,
+				'spacing'        => 'lg',
+				'tone'           => 'surface',
+				'width'          => 'default',
+				'anchorId'       => 'method',
+				'divider'        => 0,
 			),
 
 			array(
@@ -680,7 +680,7 @@ return array(
 			array(
 				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Have a project in mind?',
-				'text'          => 'Tell us about it. We will suggest the right way to work together — and never sell you more than you need.',
+				'body'          => 'Tell us about it. We will suggest the right way to work together — and never sell you more than you need.',
 				'buttons'       => array(
 					array(
 						'label' => 'Start a project',
@@ -707,11 +707,11 @@ return array(
 			array(
 				'acf_fc_layout' => 'contact',
 				'heading'       => 'Let us talk',
-				'text'          => 'Whether you have a detailed brief or just the beginnings of an idea, we would love to hear from you. Tell us a little and we will come back within one working day.',
-				'show_phone'    => 1,
-				'show_email'    => 1,
-				'show_address'  => 1,
-				'form_intro'    => 'Prefer to write it out? Drop us a line and the right person will pick it up.',
+				'intro'         => 'Whether you have a detailed brief or just the beginnings of an idea, we would love to hear from you. Tell us a little and we will come back within one working day.',
+				'showPhone'     => 1,
+				'showEmail'     => 1,
+				'showAddress'   => 1,
+				'formIntro'     => 'Prefer to write it out? Drop us a line and the right person will pick it up.',
 				'spacing'       => 'lg',
 				'tone'          => 'surface',
 				'width'         => 'default',
@@ -782,7 +782,7 @@ return array(
 			array(
 				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Want to join us?',
-				'text'          => 'We are always glad to meet good people. If you care about craft as much as we do, get in touch.',
+				'body'          => 'We are always glad to meet good people. If you care about craft as much as we do, get in touch.',
 				'buttons'       => array(
 					array(
 						'label' => 'Say hello',
@@ -820,23 +820,23 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'faq',
-				'eyebrow'       => '',
-				'heading'       => 'Frequently asked questions',
-				'schema_toggle' => 1,
-				'source'        => 'default',
-				'count'         => 0,
-				'spacing'       => 'lg',
-				'tone'          => 'surface-alt',
-				'width'         => 'narrow',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'acf_fc_layout'  => 'faq',
+				'eyebrow'        => '',
+				'heading'        => 'Frequently asked questions',
+				'structuredData' => 1,
+				'source'         => 'default',
+				'count'          => 0,
+				'spacing'        => 'lg',
+				'tone'           => 'surface-alt',
+				'width'          => 'narrow',
+				'anchorId'       => '',
+				'divider'        => 0,
 			),
 
 			array(
 				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Still have a question?',
-				'text'          => 'We are real people and we reply quickly. Send it over and we will get you an honest answer.',
+				'body'          => 'We are real people and we reply quickly. Send it over and we will get you an honest answer.',
 				'buttons'       => array(
 					array(
 						'label' => 'Contact us',

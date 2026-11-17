@@ -62,7 +62,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 		);
 
 		// Content fields first…
-		$this->assertSame( array( 'heading', 'text', 'buttons' ), array_slice( array_values( array_filter( $names ) ), 0, 3 ) );
+		$this->assertSame( array( 'heading', 'body', 'buttons' ), array_slice( array_values( array_filter( $names ) ), 0, 3 ) );
 		// …then the shared §11 wrapper controls last.
 		$this->assertContains( 'spacing', $names );
 		$this->assertGreaterThan( array_search( 'buttons', $names, true ), array_search( 'spacing', $names, true ) );
@@ -116,7 +116,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$html = $this->render_cta_section(
 			array(
 				'heading' => 'Ready to start?',
-				'text'    => 'Tell us about your project.',
+				'body'    => 'Tell us about your project.',
 				'buttons' => array(
 					array(
 						'label' => 'Get in touch',
@@ -226,7 +226,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$html = $this->render_cta_section(
 			array(
 				'heading' => 'Safe <script>alert(1)</script>',
-				'text'    => 'Copy <em>markup</em>',
+				'body'    => 'Copy <em>markup</em>',
 				'buttons' => array(
 					array(
 						'label' => 'Go <b>now</b>',
@@ -326,7 +326,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 			$this->resolve_cta(
 				array(
 					'heading' => '  ',
-					'text'    => "\n",
+					'body'    => "\n",
 					'buttons' => array(
 						array(
 							'label' => 'No url',
@@ -342,7 +342,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$resolved = $this->resolve_cta(
 			array(
 				'heading' => ' Ready? ',
-				'text'    => 'Talk to us.',
+				'body'    => 'Talk to us.',
 				'buttons' => array(
 					array(
 						'label' => 'Go',

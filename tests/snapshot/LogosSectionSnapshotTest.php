@@ -73,7 +73,7 @@ final class LogosSectionSnapshotTest extends SaltSnapshotTestCase {
 			'logos-single-plain',
 			$this->render_logos_section(
 				array(
-					'logos'     => array( array( 'image' => 1 ) ),
+					'items'     => array( array( 'image' => 1 ) ),
 					'greyscale' => 0,
 				)
 			)
@@ -91,7 +91,7 @@ final class LogosSectionSnapshotTest extends SaltSnapshotTestCase {
 				array(
 					'heading'   => 'As featured in',
 					'greyscale' => 1,
-					'logos'     => array(
+					'items'     => array(
 						array(
 							'image' => 1,
 							'url'   => 'https://press.example.org/feature',

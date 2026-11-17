@@ -93,12 +93,13 @@ final class MediaTextSectionTest extends SaltTestCase {
 		foreach ( $rows['sub_fields'] as $field ) {
 			$row_fields[ $field['name'] ] = $field;
 		}
-		$this->assertSame( array( 'image', 'heading', 'content', 'media_side', 'cta' ), array_keys( $row_fields ) );
+		$this->assertSame( array( 'image', 'heading', 'content', 'mediaSide', 'cta' ), array_keys( $row_fields ) );
 		foreach ( $row_fields as $name => $field ) {
-			$this->assertSame( 'field_salt_media_text_row_' . $name, $field['key'], 'DATA02 key convention.' );
+			// DATA02: the key carries the field name in snake_case (mediaSide => media_side).
+			$this->assertSame( 'field_salt_media_text_row_' . strtolower( (string) preg_replace( '/[A-Z]/', '_$0', $name ) ), $field['key'], 'DATA02 key convention.' );
 		}
 		$this->assertSame( 'id', $row_fields['image']['return_format'] );
-		$this->assertSame( array( 'left', 'right' ), array_keys( $row_fields['media_side']['choices'] ) );
+		$this->assertSame( array( 'left', 'right' ), array_keys( $row_fields['mediaSide']['choices'] ) );
 		$this->assertSame( 'link', $row_fields['cta']['type'] );
 		$this->assertSame( array( 'single', 'alternating' ), array_keys( $layout['sub_fields'][0]['choices'] ) );
 
@@ -203,14 +204,14 @@ final class MediaTextSectionTest extends SaltTestCase {
 				'mode' => 'single',
 				'rows' => array(
 					array(
-						'image'      => 31,
-						'heading'    => 'Left row',
-						'media_side' => 'left',
+						'image'     => 31,
+						'heading'   => 'Left row',
+						'mediaSide' => 'left',
 					),
 					array(
-						'image'      => 32,
-						'heading'    => 'Right row',
-						'media_side' => 'right',
+						'image'     => 32,
+						'heading'   => 'Right row',
+						'mediaSide' => 'right',
 					),
 				),
 			)
@@ -236,19 +237,19 @@ final class MediaTextSectionTest extends SaltTestCase {
 				'mode' => 'alternating',
 				'rows' => array(
 					array(
-						'image'      => 31,
-						'heading'    => 'Row zero',
-						'media_side' => 'right',
+						'image'     => 31,
+						'heading'   => 'Row zero',
+						'mediaSide' => 'right',
 					),
 					array(
-						'image'      => 32,
-						'heading'    => 'Row one',
-						'media_side' => 'right',
+						'image'     => 32,
+						'heading'   => 'Row one',
+						'mediaSide' => 'right',
 					),
 					array(
-						'image'      => 33,
-						'heading'    => 'Row two',
-						'media_side' => 'right',
+						'image'     => 33,
+						'heading'   => 'Row two',
+						'mediaSide' => 'right',
 					),
 				),
 			)
@@ -274,8 +275,8 @@ final class MediaTextSectionTest extends SaltTestCase {
 				'mode' => 'zigzag',
 				'rows' => array(
 					array(
-						'heading'    => 'Row',
-						'media_side' => 'right',
+						'heading'   => 'Row',
+						'mediaSide' => 'right',
 					),
 				),
 			)
@@ -513,11 +514,11 @@ final class MediaTextSectionTest extends SaltTestCase {
 				'mode' => 'single',
 				'rows' => array(
 					array(
-						'image'      => 5,
-						'heading'    => ' Our story ',
-						'content'    => '<p>Copy <strong>here</strong>.</p><script>x()</script>',
-						'media_side' => 'right',
-						'cta'        => array(
+						'image'     => 5,
+						'heading'   => ' Our story ',
+						'content'   => '<p>Copy <strong>here</strong>.</p><script>x()</script>',
+						'mediaSide' => 'right',
+						'cta'       => array(
 							'url'    => '/about',
 							'title'  => 'Read more',
 							'target' => '_blank',
@@ -557,8 +558,8 @@ final class MediaTextSectionTest extends SaltTestCase {
 		$rows = array();
 		foreach ( array( 'A', 'B', 'C' ) as $heading ) {
 			$rows[] = array(
-				'heading'    => $heading,
-				'media_side' => 'right',
+				'heading'   => $heading,
+				'mediaSide' => 'right',
 			);
 		}
 

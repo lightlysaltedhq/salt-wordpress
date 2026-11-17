@@ -4,11 +4,11 @@
  * section; the view is template-parts/sections/process.php.
  *
  * Fields: heading, eyebrow, layout (timeline|cards), steps [title, text,
- * icon], schema_toggle. States (COMPL02): 0 valid steps => null (renders
+ * icon], structuredData. States (COMPL02): 0 valid steps => null (renders
  * NOTHING, no band); 1 step => valid static single-step list; N =>
  * timeline or cards grid. Steps missing a title are skipped and logged.
  *
- * Schema (§15 — AEO not SEO): OPT-IN via schema_toggle (default OFF). When
+ * Schema (§15 — AEO not SEO): OPT-IN via structuredData (default OFF). When
  * on, ONE HowTo node is queued via salt_schema_add(): name = the section
  * heading (omitted when empty), step = HowToStep array [position, name,
  * text] built from the SAME rows the section renders.
@@ -35,7 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *                                contract's are nullable) — passed to
  *                                x-process-step as they are.
  *   structuredData  bool         Contract `structuredData`, from the
- *                                schema_toggle field. The HowTo node is
+ *                                structuredData field. The HowTo node is
  *                                already queued; a view draws nothing for it.
  *
  * Naming gaps against the contract: `intro` has no field; a step has no
@@ -92,7 +92,7 @@ function salt_resolve_section_process( array $context ): ?array {
 	}
 
 	// HowTo schema — OPT-IN, default off (AEO not SEO, §15).
-	$schema_on = function_exists( 'get_sub_field' ) ? (bool) get_sub_field( 'schema_toggle' ) : false;
+	$schema_on = function_exists( 'get_sub_field' ) ? (bool) get_sub_field( 'structuredData' ) : false;
 	if ( $schema_on ) {
 		$step_nodes = array();
 		foreach ( $items as $position => $item ) {

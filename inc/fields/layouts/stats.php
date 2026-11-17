@@ -48,8 +48,8 @@ return array(
 				'button_label' => __( 'Add stat', 'salt' ),
 				'sub_fields'   => array(
 					array(
-						'key'      => 'field_salt_stats_items_number',
-						'name'     => 'number',
+						'key'      => 'field_salt_stats_items_value',
+						'name'     => 'value',
 						'label'    => __( 'Number', 'salt' ),
 						'type'     => 'text',
 						'required' => 1,

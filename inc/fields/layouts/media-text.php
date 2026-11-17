@@ -8,9 +8,9 @@
  * (mode + rows repeater), then the shared §11 wrapper Advanced tab.
  *
  * mode:
- *  - 'single'      each row's own media_side field decides the media column.
+ *  - 'single'      each row's own mediaSide field decides the media column.
  *  - 'alternating' sides flip automatically per row (even rows media-left,
- *    odd rows media-right, 0-indexed); each row's media_side is IGNORED —
+ *    odd rows media-right, 0-indexed); each row's mediaSide is IGNORED —
  *    see the section partial docblock.
  *
  * @package Salt
@@ -70,7 +70,7 @@ return array(
 					),
 					array(
 						'key'           => 'field_salt_media_text_row_media_side',
-						'name'          => 'media_side',
+						'name'          => 'mediaSide',
 						'label'         => __( 'Media side', 'salt' ),
 						'instructions'  => __( 'Used in Single mode only — Alternating mode sets the side automatically.', 'salt' ),
 						'type'          => 'select',

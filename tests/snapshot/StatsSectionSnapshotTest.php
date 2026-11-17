@@ -51,17 +51,17 @@ final class StatsSectionSnapshotTest extends SaltSnapshotTestCase {
 					'columns' => '3',
 					'items'   => array(
 						array(
-							'number' => '45',
+							'value'  => '45',
 							'suffix' => '%',
 							'label'  => 'More conversions',
 						),
 						array(
-							'number' => '12',
+							'value'  => '12',
 							'suffix' => 'k',
 							'label'  => 'Happy users',
 						),
 						array(
-							'number' => '99.9',
+							'value'  => '99.9',
 							'suffix' => '%',
 							'label'  => 'Uptime',
 						),
@@ -79,7 +79,7 @@ final class StatsSectionSnapshotTest extends SaltSnapshotTestCase {
 					'columns' => '2',
 					'items'   => array(
 						array(
-							'number' => '10',
+							'value'  => '10',
 							'suffix' => '+',
 							'label'  => 'Years in business',
 						),

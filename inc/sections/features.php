@@ -3,7 +3,7 @@
  * Resolver: Feature / Benefits Grid (spec §10 #5) — the logic half of the
  * section; the view is template-parts/sections/features.php.
  *
- * Fields: eyebrow, heading, columns (2|3|4), items [icon, title, text, link].
+ * Fields: eyebrow, heading, columns (2|3|4), items [icon, title, text, url (an ACF link)].
  * States (COMPL02): 0 valid items => null (renders NOTHING); 1 item =>
  * valid static single-card grid; N => full grid. Items missing a title are
  * skipped and logged — never a blank card. No schema, no JS.
@@ -70,7 +70,7 @@ function salt_resolve_section_features( array $context ): ?array {
 			continue;
 		}
 
-		$link = is_array( $row['link'] ?? null ) ? $row['link'] : array();
+		$link = is_array( $row['url'] ?? null ) ? $row['url'] : array();
 		$href = is_string( $link['url'] ?? null ) ? $link['url'] : '';
 
 		$items[] = array(

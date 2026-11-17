@@ -9,8 +9,8 @@
  *
  * MODE RULE: in 'alternating' mode the media side flips automatically per
  * RENDERED row — even rows media-left, odd rows media-right (0-indexed) —
- * and each row's media_side sub-field is IGNORED. In 'single' mode each
- * row's own media_side ('left' default) decides the column order. The flip
+ * and each row's mediaSide sub-field is IGNORED. In 'single' mode each
+ * row's own mediaSide ('left' default) decides the column order. The flip
  * is purely visual (md:order-2 on the media cell); DOM order is always
  * media then body, so the reading order never changes. The resolver applies
  * the rule and hands the view the side each row is drawn on.
@@ -114,7 +114,7 @@ function salt_resolve_section_media_text( array $context ): ?array {
 			'heading'   => '' !== $heading ? $heading : null,
 			'content'   => '' !== $content ? salt_sanitize_html( $content ) : null,
 			// Stored side, until the MODE RULE below settles the effective one.
-			'mediaSide' => 'right' === ( $row['media_side'] ?? '' ) ? 'right' : 'left',
+			'mediaSide' => 'right' === ( $row['mediaSide'] ?? '' ) ? 'right' : 'left',
 			'cta'       => $cta,
 		);
 	}
@@ -124,7 +124,7 @@ function salt_resolve_section_media_text( array $context ): ?array {
 	}
 
 	// MODE RULE (see file docblock): alternating flips per RENDERED row and
-	// ignores media_side; single respects it.
+	// ignores mediaSide; single respects it.
 	if ( 'alternating' === $mode ) {
 		foreach ( array_keys( $rows ) as $n ) {
 			$rows[ $n ]['mediaSide'] = 0 === $n % 2 ? 'left' : 'right';

@@ -3,11 +3,11 @@
  * Resolver: Call to Action (spec §10 #10) — the logic half of the section;
  * the view is template-parts/sections/call-to-action.php.
  *
- * Fields: heading (text), text (textarea), buttons (repeater, max 2:
+ * Fields: heading (text), body (textarea), buttons (repeater, max 2:
  * label, url, style primary|secondary|ghost). Background defaults to
  * 'brand-tint' when the editor leaves the shared wrapper control unset.
  *
- * States (COMPL02): heading, text AND valid buttons all empty => null
+ * States (COMPL02): heading, body AND valid buttons all empty => null
  * (renders NOTHING). Malformed button rows are skipped and logged;
  * anything beyond the first two valid buttons is dropped + logged. No JS,
  * no schema.
@@ -51,7 +51,7 @@ function salt_resolve_section_call_to_action( array $context ): ?array {
 	};
 
 	$heading = trim( $sub( 'heading' ) );
-	$text    = trim( $sub( 'text' ) );
+	$text    = trim( $sub( 'body' ) );
 
 	$rows = function_exists( 'get_sub_field' ) ? get_sub_field( 'buttons' ) : array();
 	if ( ! is_array( $rows ) ) {

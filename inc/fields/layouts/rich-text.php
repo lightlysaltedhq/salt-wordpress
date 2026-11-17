@@ -27,8 +27,8 @@ return array(
 				'type'  => 'text',
 			),
 			array(
-				'key'          => 'field_salt_rich_text_content',
-				'name'         => 'content',
+				'key'          => 'field_salt_rich_text_body',
+				'name'         => 'body',
 				'label'        => __( 'Content', 'salt' ),
 				'type'         => 'wysiwyg',
 				'tabs'         => 'visual',

@@ -167,7 +167,7 @@ final class SectionSplitTest extends SaltTestCase {
 			'rich-text',
 			array(
 				'heading' => 'Child heading',
-				'content' => '<p>Body.</p>',
+				'body'    => '<p>Body.</p>',
 			)
 		);
 		$view = $this->temp_view(

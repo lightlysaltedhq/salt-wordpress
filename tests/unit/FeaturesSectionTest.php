@@ -79,7 +79,7 @@ final class FeaturesSectionTest extends SaltTestCase {
 			$this->assertStringStartsWith( 'field_salt_features_items_', (string) $sub['key'] );
 		}
 		$this->assertSame(
-			array( 'icon', 'title', 'text', 'link' ),
+			array( 'icon', 'title', 'text', 'url' ),
 			array_map( static fn( array $sub ): string => (string) $sub['name'], $items['sub_fields'] )
 		);
 	}
@@ -132,7 +132,7 @@ final class FeaturesSectionTest extends SaltTestCase {
 						'icon'  => 'check',
 						'title' => 'Fast',
 						'text'  => 'Quick.',
-						'link'  => array(
+						'url'   => array(
 							'url'   => 'https://example.test/fast/',
 							'title' => 'Fast',
 						),
@@ -203,7 +203,7 @@ final class FeaturesSectionTest extends SaltTestCase {
 					array(
 						'title' => 'Title <em>markup</em>',
 						'text'  => 'Text <script>alert(2)</script>',
-						'link'  => array( 'url' => 'javascript:alert(3)' ),
+						'url'   => array( 'url' => 'javascript:alert(3)' ),
 					),
 				),
 			)
@@ -308,7 +308,7 @@ final class FeaturesSectionTest extends SaltTestCase {
 						'icon'  => 'star',
 						'title' => ' Fast ',
 						'text'  => ' Really fast. ',
-						'link'  => array( 'url' => '/fast' ),
+						'url'   => array( 'url' => '/fast' ),
 					),
 					array( 'title' => 'Bare' ),
 				),

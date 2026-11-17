@@ -121,7 +121,7 @@ final class StatsSectionTest extends SaltTestCase {
 			$this->assertStringStartsWith( 'field_salt_stats_items_', (string) $sub['key'] );
 		}
 		$this->assertSame(
-			array( 'number', 'suffix', 'label' ),
+			array( 'value', 'suffix', 'label' ),
 			array_map( static fn( array $sub ): string => (string) $sub['name'], $items['sub_fields'] )
 		);
 	}
@@ -143,7 +143,7 @@ final class StatsSectionTest extends SaltTestCase {
 				'columns' => '3',
 				'items'   => array(
 					array(
-						'number' => '45',
+						'value'  => '45',
 						'suffix' => '%',
 						'label'  => 'More conversions',
 					),
@@ -163,23 +163,23 @@ final class StatsSectionTest extends SaltTestCase {
 				'columns' => '4',
 				'items'   => array(
 					array(
-						'number' => '45',
+						'value'  => '45',
 						'suffix' => '%',
 						'label'  => 'Conversions',
 					),
 					array(
-						'number' => '12',
+						'value'  => '12',
 						'suffix' => 'k',
 						'label'  => 'Users',
 					),
 					array(
-						'number' => '99.9',
+						'value'  => '99.9',
 						'suffix' => '%',
 						'label'  => 'Uptime',
 					),
 					array(
-						'number' => '3',
-						'label'  => 'Offices',
+						'value' => '3',
+						'label' => 'Offices',
 					),
 				),
 			)
@@ -195,12 +195,12 @@ final class StatsSectionTest extends SaltTestCase {
 				'heading' => 'Numbers',
 				'items'   => array(
 					array(
-						'number' => '45',
-						'label'  => 'Kept',
+						'value' => '45',
+						'label' => 'Kept',
 					),
 					array(
-						'number' => '  ',
-						'label'  => 'Blank number',
+						'value' => '  ',
+						'label' => 'Blank number',
 					),
 					'not-a-row',
 					array( 'label' => 'Missing number' ),
@@ -210,9 +210,9 @@ final class StatsSectionTest extends SaltTestCase {
 
 		$this->assertSame( 1, preg_match_all( '/x-stat-value/', $html ), 'Only the valid item renders.' );
 		$logs = implode( ' ', $this->logs() );
-		$this->assertStringContainsString( 'stats section: item 1 has no number', $logs );
+		$this->assertStringContainsString( 'stats section: item 1 has no value', $logs );
 		$this->assertStringContainsString( 'stats section: item 2 is not a row array', $logs );
-		$this->assertStringContainsString( 'stats section: item 3 has no number', $logs );
+		$this->assertStringContainsString( 'stats section: item 3 has no value', $logs );
 	}
 
 	public function test_all_items_malformed_renders_nothing(): void {
@@ -226,7 +226,7 @@ final class StatsSectionTest extends SaltTestCase {
 
 	public function test_headingless_section_does_not_claim_the_h1(): void {
 		$html = $this->render_stats_section(
-			array( 'items' => array( array( 'number' => '45' ) ) ),
+			array( 'items' => array( array( 'value' => '45' ) ) ),
 			array(
 				'index'      => 0,
 				'is_primary' => true,
@@ -253,7 +253,7 @@ final class StatsSectionTest extends SaltTestCase {
 		$this->render_stats_section(
 			array(
 				'heading' => 'Numbers',
-				'items'   => array( array( 'number' => '45' ) ),
+				'items'   => array( array( 'value' => '45' ) ),
 			)
 		);
 
@@ -293,7 +293,7 @@ final class StatsSectionTest extends SaltTestCase {
 
 	public function test_resolver_returns_null_without_valid_items(): void {
 		$this->assertNull( $this->resolve_stats( array( 'heading' => 'Numbers' ) ) );
-		$this->assertNull( $this->resolve_stats( array( 'items' => array( array( 'number' => ' ' ), 'not-a-row' ) ) ) );
+		$this->assertNull( $this->resolve_stats( array( 'items' => array( array( 'value' => ' ' ), 'not-a-row' ) ) ) );
 	}
 
 	public function test_resolver_props_use_the_contract_names(): void {
@@ -303,11 +303,11 @@ final class StatsSectionTest extends SaltTestCase {
 				'columns' => '4',
 				'items'   => array(
 					array(
-						'number' => ' 45 ',
+						'value'  => ' 45 ',
 						'suffix' => '%',
 						'label'  => 'Conversions',
 					),
-					array( 'number' => '3' ),
+					array( 'value' => '3' ),
 				),
 			)
 		);
@@ -337,7 +337,7 @@ final class StatsSectionTest extends SaltTestCase {
 			array(
 				'columns' => '9',
 				'spacing' => 'lg',
-				'items'   => array( array( 'number' => '1' ) ),
+				'items'   => array( array( 'value' => '1' ) ),
 			),
 			array(
 				'index'      => 3,

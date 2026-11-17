@@ -68,7 +68,13 @@ consume this document verbatim and must not deviate.
 - Registered in PHP under `inc/fields/`, hooked on `acf/init`, guarded by
   `salt_acf_active()` (DEP01 — absence shows an admin notice, never fatals).
 - Canonical keys: groups `group_salt_{scope}`, fields
-  `field_salt_{scope}_{name}` (DATA02). Renaming a field name or FC layout
+  `field_salt_{scope}_{name}` (DATA02). `{scope}` and `{name}` are
+  written in snake_case in the key: a section's scope is its slug with
+  `-` as `_` (`field_salt_call_to_action_body`), and a camelCase contract
+  field name is split at its capitals (`mediaSide` →
+  `field_salt_media_text_row_media_side`). Field NAMES follow the
+  salt-contract's `contract/fields/*.json` verbatim (camelCase where the
+  contract is). Renaming a field name or FC layout
   slug is a MAJOR bump + entry in `docs/contracts/slug-migrations.json`
   (FLEET07 — CI enforces).
 

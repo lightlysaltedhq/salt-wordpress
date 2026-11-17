@@ -3,7 +3,7 @@
  * Resolver: Stats / Metrics (spec §10 #7) — the logic half of the section;
  * the view is template-parts/sections/stats.php.
  *
- * Fields: heading (optional), columns (2|3|4), items [number, suffix, label].
+ * Fields: heading (optional), columns (2|3|4), items [value, suffix, label].
  * States (COMPL02): 0 valid items => null (renders NOTHING); 1 item =>
  * valid static single-stat row; N => full grid. Items missing a number are
  * skipped and logged. No schema. No JS — the count-up animation is
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   columns  string       Contract `columns`: '2'|'3'|'4' (default '3').
  *   items    array<int, array{value: string, suffix: string|null, label: string|null}>
  *                         Contract `items` (stat): `value` (from the
- *                         `number` field), `suffix`, `label`; never empty.
+ *                         `value` field), `suffix`, `label`; never empty.
  *                         The contract's `icon` is not supplied (the
  *                         layout has no icon field).
  *   The contract's `intro` is not supplied either (the layout has no such
@@ -62,14 +62,14 @@ function salt_resolve_section_stats( array $context ): ?array {
 			continue;
 		}
 
-		$number = is_string( $row['number'] ?? null ) ? trim( $row['number'] ) : '';
-		if ( '' === $number ) {
-			salt_log( sprintf( 'stats section: item %d has no number — skipped (broken row).', (int) $i ) );
+		$value = is_string( $row['value'] ?? null ) ? trim( $row['value'] ) : '';
+		if ( '' === $value ) {
+			salt_log( sprintf( 'stats section: item %d has no value — skipped (broken row).', (int) $i ) );
 			continue;
 		}
 
 		$items[] = array(
-			'value'  => $number,
+			'value'  => $value,
 			'suffix' => salt_nullable_text( is_string( $row['suffix'] ?? null ) ? trim( $row['suffix'] ) : '' ),
 			'label'  => salt_nullable_text( is_string( $row['label'] ?? null ) ? trim( $row['label'] ) : '' ),
 		);

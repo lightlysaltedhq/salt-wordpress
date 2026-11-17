@@ -58,7 +58,7 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 		salt_test_use_child_theme( self::fixture() );
 		$this->assertSame( 'logic', salt_override_tier( 'stats' ) );
 
-		// An item with no number: the PARENT resolver would log "has no number"
+		// An item with no value: the PARENT resolver would log "has no value"
 		// and return the 0-state. It must not run at all.
 		$this->seed_row(
 			'stats',
@@ -102,7 +102,7 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 			)
 		);
 		salt_test_use_child_theme( $dir );
-		$this->seed_row( 'stats', array( 'items' => array( array( 'number' => '9' ) ) ) );
+		$this->seed_row( 'stats', array( 'items' => array( array( 'value' => '9' ) ) ) );
 
 		try {
 			$this->render( 'stats', self::parent_view( 'stats' ) );

@@ -36,14 +36,14 @@ final class SmokeRenderTest extends SaltTestCase {
 					'layout' => 'rich-text',
 					'fields' => array(
 						'heading' => 'Welcome to the smoke page',
-						'content' => '<p>Intro copy with <strong>bold</strong>.</p>',
+						'body'    => '<p>Intro copy with <strong>bold</strong>.</p>',
 					),
 				),
 				array(
 					'layout' => 'rich-text',
 					'fields' => array(
 						'heading' => 'Second section',
-						'content' => '<p>More copy.</p>',
+						'body'    => '<p>More copy.</p>',
 						'spacing' => 'lg',
 					),
 				),
@@ -67,7 +67,7 @@ final class SmokeRenderTest extends SaltTestCase {
 			array(
 				array(
 					'layout' => 'rich-text',
-					'fields' => array( 'content' => '<p>No heading here.</p>' ),
+					'fields' => array( 'body' => '<p>No heading here.</p>' ),
 				),
 			)
 		);
@@ -93,7 +93,7 @@ final class SmokeRenderTest extends SaltTestCase {
 					'layout' => 'rich-text',
 					'fields' => array(
 						'heading' => 'Safe content',
-						'content' => '<p style="color:red" class="evil">Text</p><script>alert(1)</script><h2>Smuggled</h2>',
+						'body'    => '<p style="color:red" class="evil">Text</p><script>alert(1)</script><h2>Smuggled</h2>',
 					),
 				),
 			)
@@ -152,7 +152,7 @@ final class SmokeRenderTest extends SaltTestCase {
 					'layout' => 'rich-text',
 					'fields' => array(
 						'heading' => 'Privacy check',
-						'content' => '<p><a href="https://example.test/ok">internal</a></p>',
+						'body'    => '<p><a href="https://example.test/ok">internal</a></p>',
 					),
 				),
 			)

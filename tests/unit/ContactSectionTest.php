@@ -96,7 +96,7 @@ final class ContactSectionTest extends SaltTestCase {
 
 		$names = array_column( $layout['sub_fields'], 'name' );
 		$this->assertSame(
-			array( 'heading', 'text', 'show_phone', 'show_email', 'show_address', 'form_intro' ),
+			array( 'heading', 'intro', 'showPhone', 'showEmail', 'showAddress', 'formIntro' ),
 			array_slice( $names, 0, 6 )
 		);
 		$this->assertContains( 'spacing', $names, 'Wrapper Advanced tab embedded last (§11).' );
@@ -109,7 +109,7 @@ final class ContactSectionTest extends SaltTestCase {
 
 		$fields = array_column( $layout['sub_fields'], null, 'name' );
 		$this->assertSame( 'field_salt_contact_heading', $fields['heading']['key'] );
-		foreach ( array( 'show_phone', 'show_email', 'show_address' ) as $toggle ) {
+		foreach ( array( 'showPhone', 'showEmail', 'showAddress' ) as $toggle ) {
 			$this->assertSame( 'true_false', $fields[ $toggle ]['type'] );
 			$this->assertSame( 1, $fields[ $toggle ]['default_value'] );
 		}
@@ -192,8 +192,8 @@ final class ContactSectionTest extends SaltTestCase {
 
 		$html = $this->render_contact_section(
 			array(
-				'heading'    => 'Contact',
-				'show_phone' => 0,
+				'heading'   => 'Contact',
+				'showPhone' => 0,
 			)
 		);
 
@@ -226,7 +226,7 @@ final class ContactSectionTest extends SaltTestCase {
 		$this->render_contact_section(
 			array(
 				'heading' => 'Contact',
-				'text'    => 'Drop by the studio.',
+				'intro'   => 'Drop by the studio.',
 			)
 		);
 
@@ -243,8 +243,8 @@ final class ContactSectionTest extends SaltTestCase {
 
 		$this->render_contact_section(
 			array(
-				'heading'    => 'Contact',
-				'show_phone' => 0,
+				'heading'   => 'Contact',
+				'showPhone' => 0,
 			)
 		);
 
@@ -267,9 +267,9 @@ final class ContactSectionTest extends SaltTestCase {
 
 		$html = $this->render_contact_section(
 			array(
-				'heading'    => 'Contact',
-				'text'       => "Line one\n<script>alert(1)</script>",
-				'form_intro' => '<em>markup</em> stays text',
+				'heading'   => 'Contact',
+				'intro'     => "Line one\n<script>alert(1)</script>",
+				'formIntro' => '<em>markup</em> stays text',
 			)
 		);
 
@@ -454,10 +454,10 @@ final class ContactSectionTest extends SaltTestCase {
 
 		$resolved = $this->resolve_contact(
 			array(
-				'heading'    => ' Get in touch ',
-				'text'       => "Line one\nLine two",
-				'form_intro' => '',
-				'show_email' => 0,
+				'heading'   => ' Get in touch ',
+				'intro'     => "Line one\nLine two",
+				'formIntro' => '',
+				'showEmail' => 0,
 			)
 		);
 

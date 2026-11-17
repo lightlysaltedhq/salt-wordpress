@@ -61,9 +61,9 @@ final class ContactSectionSnapshotTest extends SaltSnapshotTestCase {
 			'contact-details-default',
 			$this->render_contact_section(
 				array(
-					'heading'    => 'Get in touch',
-					'text'       => 'We usually reply within one working day.',
-					'form_intro' => 'Prefer email? Use the button below.',
+					'heading'   => 'Get in touch',
+					'intro'     => 'We usually reply within one working day.',
+					'formIntro' => 'Prefer email? Use the button below.',
 				)
 			)
 		);
@@ -76,9 +76,9 @@ final class ContactSectionSnapshotTest extends SaltSnapshotTestCase {
 			'contact-form-enabled',
 			$this->render_contact_section(
 				array(
-					'heading'    => 'Get in touch',
-					'text'       => 'We usually reply within one working day.',
-					'form_intro' => 'Send us a message and we will get back to you.',
+					'heading'   => 'Get in touch',
+					'intro'     => 'We usually reply within one working day.',
+					'formIntro' => 'Send us a message and we will get back to you.',
 				)
 			)
 		);
