@@ -297,7 +297,7 @@ final class HeroSectionTest extends SaltTestCase {
 			array_slice( $names, 0, 7 )
 		);
 		// …then the §11 wrapper fields last.
-		$this->assertSame( 'section_divider', end( $names ) );
+		$this->assertSame( 'divider', end( $names ) );
 
 		$by_name = array_column( $layout['sub_fields'], null, 'name' );
 		$this->assertSame( array( 'full-bleed', 'split', 'minimal' ), array_keys( $by_name['variant']['choices'] ) );

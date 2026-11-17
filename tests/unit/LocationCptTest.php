@@ -129,7 +129,7 @@ final class LocationCptTest extends SaltTestCase {
 		$this->assertContains( 'field_salt_query_location_taxonomy_terms', $keys );
 
 		// Shared §11 wrapper fields LAST.
-		$this->assertSame( 'section_divider', end( $names ) );
-		$this->assertContains( 'field_salt_locations_section_spacing', $keys );
+		$this->assertSame( 'divider', end( $names ) );
+		$this->assertContains( 'field_salt_locations_spacing', $keys );
 	}
 }

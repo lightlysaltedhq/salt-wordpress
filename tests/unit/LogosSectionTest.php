@@ -77,10 +77,10 @@ final class LogosSectionTest extends SaltTestCase {
 
 		$names = array_column( $layout['sub_fields'], 'name' );
 		$this->assertSame( array( 'heading', 'logos', 'greyscale' ), array_slice( $names, 0, 3 ) );
-		$this->assertContains( 'section_spacing', $names, 'Wrapper Advanced tab embedded last (§11).' );
+		$this->assertContains( 'spacing', $names, 'Wrapper Advanced tab embedded last (§11).' );
 		$this->assertGreaterThan(
 			array_search( 'greyscale', $names, true ),
-			array_search( 'section_spacing', $names, true ),
+			array_search( 'spacing', $names, true ),
 			'Content fields precede the wrapper fields.'
 		);
 

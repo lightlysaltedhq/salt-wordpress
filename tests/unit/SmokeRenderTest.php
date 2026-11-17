@@ -42,9 +42,9 @@ final class SmokeRenderTest extends SaltTestCase {
 				array(
 					'layout' => 'rich_text',
 					'fields' => array(
-						'heading'         => 'Second section',
-						'content'         => '<p>More copy.</p>',
-						'section_spacing' => 'lg',
+						'heading' => 'Second section',
+						'content' => '<p>More copy.</p>',
+						'spacing' => 'lg',
 					),
 				),
 			)

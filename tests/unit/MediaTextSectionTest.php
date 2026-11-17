@@ -104,7 +104,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 
 		// Wrapper fields LAST (§11 Advanced tab).
 		$this->assertContains( 'field_salt_media_text_advanced_tab', $keys );
-		$this->assertSame( 'field_salt_media_text_section_divider', end( $keys ) );
+		$this->assertSame( 'field_salt_media_text_divider', end( $keys ) );
 	}
 
 	// -----------------------------------------------------------------
@@ -587,8 +587,8 @@ final class MediaTextSectionTest extends SaltTestCase {
 	public function test_resolver_owns_the_wrapper_inputs(): void {
 		$resolved = $this->resolve_media_text(
 			array(
-				'rows'            => array( array( 'heading' => 'Only' ) ),
-				'section_spacing' => 'lg',
+				'rows'    => array( array( 'heading' => 'Only' ) ),
+				'spacing' => 'lg',
 			),
 			array(
 				'index'      => 4,

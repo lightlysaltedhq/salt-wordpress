@@ -168,7 +168,7 @@ final class ProcessSectionTest extends SaltTestCase {
 			array( 'heading', 'eyebrow', 'layout', 'steps', 'schema_toggle' ),
 			array_slice( array_values( array_filter( $names ) ), 0, 5 )
 		);
-		$this->assertGreaterThan( array_search( 'schema_toggle', $names, true ), array_search( 'section_spacing', $names, true ) );
+		$this->assertGreaterThan( array_search( 'schema_toggle', $names, true ), array_search( 'spacing', $names, true ) );
 
 		$steps  = null;
 		$toggle = null;

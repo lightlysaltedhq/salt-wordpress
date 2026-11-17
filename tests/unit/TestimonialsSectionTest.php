@@ -249,7 +249,7 @@ final class TestimonialsSectionTest extends SaltTestCase {
 		$this->assertNotContains( 'taxonomy_terms', $names );
 
 		// Wrapper fields LAST.
-		$this->assertSame( 'field_salt_testimonials_section_divider', end( $keys ) );
+		$this->assertSame( 'field_salt_testimonials_divider', end( $keys ) );
 		$this->assertLessThan(
 			array_search( 'field_salt_testimonials_advanced_tab', $keys, true ),
 			array_search( 'field_salt_query_testimonial_source', $keys, true ),

@@ -11,7 +11,7 @@
  * can process the submission (PRIV01 posture) — adding the variant later
  * is additive (new fields only), not a slug migration.
  *
- * The shared section_background wrapper control defaults to 'brand-tint'
+ * The shared tone wrapper control defaults to 'brand-tint'
  * for this layout (the CTA band is the one section that wants to stand
  * out by default); every other wrapper control keeps its shared default.
  *
@@ -82,7 +82,7 @@ return array(
 		),
 		array_map(
 			static function ( array $field ): array {
-				if ( 'section_background' === ( $field['name'] ?? '' ) ) {
+				if ( 'tone' === ( $field['name'] ?? '' ) ) {
 					$field['default_value'] = 'brand-tint';
 				}
 				return $field;

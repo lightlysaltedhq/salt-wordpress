@@ -1,4 +1,35 @@
 {
 	"_readme": "Each entry legitimises the removal/rename of a previously-registered ACF layout slug or field name (FLEET07). Shape: { \"slug\": \"layout:hero\" | \"field:field_salt_service_summary\", \"version\": \"x.y.z release that removes it\", \"replacement\": \"new slug or null\", \"note\": \"how existing DB content is migrated\" }.",
-	"migrations": []
+	"migrations": [
+		{
+			"slug": "field:section_spacing",
+			"version": "6.0.0",
+			"replacement": "field:spacing",
+			"note": "Renamed to spacing. Every layout's Advanced tab (the contract's section settings, contract/fields/_section-settings.json, SC-001); the field key changes with it (field_salt_{layout}_spacing). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each row's meta sections_{n}_section_spacing (and its _sections_{n}_section_spacing key reference) to sections_{n}_spacing, value unchanged."
+		},
+		{
+			"slug": "field:section_background",
+			"version": "6.0.0",
+			"replacement": "field:tone",
+			"note": "Renamed to tone. Every layout's Advanced tab (the contract's section settings, contract/fields/_section-settings.json, SC-001); the field key changes with it (field_salt_{layout}_tone). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each row's meta sections_{n}_section_background (and its _sections_{n}_section_background key reference) to sections_{n}_tone, value unchanged except inverse, which is stored as surface-inverse (the contract's tone value)."
+		},
+		{
+			"slug": "field:section_container",
+			"version": "6.0.0",
+			"replacement": "field:width",
+			"note": "Renamed to width. Every layout's Advanced tab (the contract's section settings, contract/fields/_section-settings.json, SC-001); the field key changes with it (field_salt_{layout}_width). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each row's meta sections_{n}_section_container (and its _sections_{n}_section_container key reference) to sections_{n}_width, value unchanged."
+		},
+		{
+			"slug": "field:section_anchor",
+			"version": "6.0.0",
+			"replacement": "field:anchorId",
+			"note": "Renamed to anchorId. Every layout's Advanced tab (the contract's section settings, contract/fields/_section-settings.json, SC-001); the field key changes with it (field_salt_{layout}_anchor_id). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each row's meta sections_{n}_section_anchor (and its _sections_{n}_section_anchor key reference) to sections_{n}_anchorId, value unchanged."
+		},
+		{
+			"slug": "field:section_divider",
+			"version": "6.0.0",
+			"replacement": "field:divider",
+			"note": "Renamed to divider. Every layout's Advanced tab (the contract's section settings, contract/fields/_section-settings.json, SC-001); the field key changes with it (field_salt_{layout}_divider). No WordPress client site is live at 6.0.0, so no database migration runs; existing content maps by moving each row's meta sections_{n}_section_divider (and its _sections_{n}_section_divider key reference) to sections_{n}_divider, value unchanged."
+		}
+	]
 }

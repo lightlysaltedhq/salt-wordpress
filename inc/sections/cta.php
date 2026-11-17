@@ -99,7 +99,7 @@ function salt_resolve_section_cta( array $context ): ?array {
 
 	// The CTA band defaults to the brand tint when the editor left the shared
 	// wrapper control unset (salt_section_wrapper_args falls back to 'surface').
-	if ( '' === trim( $sub( 'section_background' ) ) ) {
+	if ( '' === trim( $sub( 'tone' ) ) ) {
 		$wrapper['background'] = 'brand-tint';
 	}
 

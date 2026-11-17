@@ -93,7 +93,7 @@ final class RichTextSectionTest extends SaltTestCase {
 					'content' => "\n",
 				),
 			),
-			'wrapper fields'  => array( array( 'section_background' => 'surface-alt' ) ),
+			'wrapper fields'  => array( array( 'tone' => 'surface-alt' ) ),
 		);
 	}
 
@@ -143,10 +143,10 @@ final class RichTextSectionTest extends SaltTestCase {
 	public function test_resolver_owns_the_wrapper_inputs(): void {
 		$resolved = $this->resolve_rich_text(
 			array(
-				'content'            => '<p>Body only.</p>',
-				'section_spacing'    => 'lg',
-				'section_background' => 'surface-alt',
-				'section_anchor'     => 'About',
+				'content'  => '<p>Body only.</p>',
+				'spacing'  => 'lg',
+				'tone'     => 'surface-alt',
+				'anchorId' => 'About',
 			),
 			array(
 				'index'      => 2,

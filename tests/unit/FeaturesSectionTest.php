@@ -63,8 +63,8 @@ final class FeaturesSectionTest extends SaltTestCase {
 		// Content fields first…
 		$this->assertSame( array( 'eyebrow', 'heading', 'columns', 'items' ), array_slice( array_values( array_filter( $names ) ), 0, 4 ) );
 		// …then the shared §11 wrapper controls last.
-		$this->assertContains( 'section_spacing', $names );
-		$this->assertGreaterThan( array_search( 'items', $names, true ), array_search( 'section_spacing', $names, true ) );
+		$this->assertContains( 'spacing', $names );
+		$this->assertGreaterThan( array_search( 'items', $names, true ), array_search( 'spacing', $names, true ) );
 
 		// Repeater sub-field keys follow field_salt_features_items_{name}.
 		$items = null;
@@ -341,10 +341,10 @@ final class FeaturesSectionTest extends SaltTestCase {
 	public function test_resolver_nulls_blank_text_defaults_columns_and_owns_the_wrapper(): void {
 		$resolved = $this->resolve_features(
 			array(
-				'eyebrow'         => '  ',
-				'columns'         => '7',
-				'section_spacing' => 'lg',
-				'items'           => array( array( 'title' => 'One' ) ),
+				'eyebrow' => '  ',
+				'columns' => '7',
+				'spacing' => 'lg',
+				'items'   => array( array( 'title' => 'One' ) ),
 			)
 		);
 

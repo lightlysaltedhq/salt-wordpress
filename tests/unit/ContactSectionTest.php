@@ -99,7 +99,7 @@ final class ContactSectionTest extends SaltTestCase {
 			array( 'heading', 'text', 'show_phone', 'show_email', 'show_address', 'form_intro' ),
 			array_slice( $names, 0, 6 )
 		);
-		$this->assertContains( 'section_spacing', $names, 'Wrapper Advanced tab embedded last (§11).' );
+		$this->assertContains( 'spacing', $names, 'Wrapper Advanced tab embedded last (§11).' );
 
 		// Maps are absent from this build — no map/geo fields of any kind.
 		foreach ( $names as $name ) {

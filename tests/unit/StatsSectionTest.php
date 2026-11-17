@@ -107,7 +107,7 @@ final class StatsSectionTest extends SaltTestCase {
 
 		// Content fields first, wrapper controls last.
 		$this->assertSame( array( 'heading', 'columns', 'items' ), array_slice( array_values( array_filter( $names ) ), 0, 3 ) );
-		$this->assertGreaterThan( array_search( 'items', $names, true ), array_search( 'section_spacing', $names, true ) );
+		$this->assertGreaterThan( array_search( 'items', $names, true ), array_search( 'spacing', $names, true ) );
 
 		$items = null;
 		foreach ( $layout['sub_fields'] as $field ) {
@@ -335,9 +335,9 @@ final class StatsSectionTest extends SaltTestCase {
 	public function test_resolver_defaults_an_unknown_column_count_and_owns_the_wrapper(): void {
 		$resolved = $this->resolve_stats(
 			array(
-				'columns'         => '9',
-				'section_spacing' => 'lg',
-				'items'           => array( array( 'number' => '1' ) ),
+				'columns' => '9',
+				'spacing' => 'lg',
+				'items'   => array( array( 'number' => '1' ) ),
 			),
 			array(
 				'index'      => 3,

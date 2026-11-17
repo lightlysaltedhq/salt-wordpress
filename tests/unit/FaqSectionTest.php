@@ -155,7 +155,7 @@ final class FaqSectionTest extends SaltTestCase {
 		$this->assertContains( 'schema_toggle', $names );
 		$this->assertContains( 'source', $names, 'Query controls embedded (§10a).' );
 		$this->assertContains( 'taxonomy_terms', $names, 'faq_category filter present.' );
-		$this->assertSame( 'section_divider', end( $names ), 'Wrapper fields come LAST.' );
+		$this->assertSame( 'divider', end( $names ), 'Wrapper fields come LAST.' );
 
 		$fields = array_column( $layout['sub_fields'], null, 'name' );
 		$this->assertSame( 1, $fields['schema_toggle']['default_value'], 'Schema toggle defaults ON (SEO03).' );

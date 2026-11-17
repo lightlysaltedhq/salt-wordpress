@@ -64,8 +64,8 @@ final class CtaSectionTest extends SaltTestCase {
 		// Content fields first…
 		$this->assertSame( array( 'heading', 'text', 'buttons' ), array_slice( array_values( array_filter( $names ) ), 0, 3 ) );
 		// …then the shared §11 wrapper controls last.
-		$this->assertContains( 'section_spacing', $names );
-		$this->assertGreaterThan( array_search( 'buttons', $names, true ), array_search( 'section_spacing', $names, true ) );
+		$this->assertContains( 'spacing', $names );
+		$this->assertGreaterThan( array_search( 'buttons', $names, true ), array_search( 'spacing', $names, true ) );
 
 		$buttons    = null;
 		$background = null;
@@ -73,7 +73,7 @@ final class CtaSectionTest extends SaltTestCase {
 			if ( 'buttons' === ( $field['name'] ?? '' ) ) {
 				$buttons = $field;
 			}
-			if ( 'section_background' === ( $field['name'] ?? '' ) ) {
+			if ( 'tone' === ( $field['name'] ?? '' ) ) {
 				$background = $field;
 			}
 		}
@@ -209,12 +209,13 @@ final class CtaSectionTest extends SaltTestCase {
 	public function test_editor_chosen_background_wins(): void {
 		$html = $this->render_cta_section(
 			array(
-				'heading'            => 'Ready?',
-				'section_background' => 'inverse',
+				'heading' => 'Ready?',
+				'tone'    => 'surface-inverse',
 			)
 		);
 
 		$this->assertStringNotContainsString( 'bg-brand-tint', $html );
+		$this->assertStringContainsString( 'bg-surface-inverse text-ink-inverse', $html, 'The contract tone surface-inverse is x-section\'s inverse band.' );
 	}
 
 	// -----------------------------------------------------------------
@@ -402,8 +403,8 @@ final class CtaSectionTest extends SaltTestCase {
 
 		$resolved = $this->resolve_cta(
 			array(
-				'heading'            => 'Hi',
-				'section_background' => 'surface-alt',
+				'heading' => 'Hi',
+				'tone'    => 'surface-alt',
 			)
 		);
 		$this->assertSame( 'surface-alt', $resolved['section']['background'] );

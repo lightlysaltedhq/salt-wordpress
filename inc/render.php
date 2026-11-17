@@ -382,7 +382,8 @@ function salt_section( array $args, callable $content ): void {
 
 /**
  * Build the x-section wrapper args for the current Flexible Content row:
- * the shared §11 Advanced-tab controls + loop context (AMBIG03).
+ * the shared §11 Advanced-tab controls (the contract's section settings,
+ * salt_section_wrapper_fields()) + loop context (AMBIG03).
  *
  * @param string              $name    Section slug (hyphenated).
  * @param array<string,mixed> $context Loop context: index, is_primary.
@@ -397,13 +398,16 @@ function salt_section_wrapper_args( string $name, array $context = array() ): ar
 		return is_string( $value ) && '' !== $value ? $value : $fallback;
 	};
 
+	// The contract's tone value surface-inverse is x-section's inverse background.
+	$tone = $sub( 'tone', 'surface' );
+
 	return array(
 		'name'       => $name,
-		'spacing'    => $sub( 'section_spacing', 'md' ),
-		'background' => $sub( 'section_background', 'surface' ),
-		'container'  => $sub( 'section_container', 'default' ),
-		'anchor'     => $sub( 'section_anchor', '' ),
-		'divider'    => function_exists( 'get_sub_field' ) ? (bool) get_sub_field( 'section_divider' ) : false,
+		'spacing'    => $sub( 'spacing', 'md' ),
+		'background' => 'surface-inverse' === $tone ? 'inverse' : $tone,
+		'container'  => $sub( 'width', 'default' ),
+		'anchor'     => $sub( 'anchorId', '' ),
+		'divider'    => function_exists( 'get_sub_field' ) ? (bool) get_sub_field( 'divider' ) : false,
 		'is_primary' => (bool) ( $context['is_primary'] ?? false ),
 	);
 }
