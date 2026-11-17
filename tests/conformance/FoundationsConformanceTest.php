@@ -51,9 +51,11 @@
  * --------
  * Every rule in `contrast.requirements`, and every rule in
  * `contrast.conditionalRequirements` whose `when` roles app.css declares (in
- * 3.0.0 that is still one: `ink` on `brand.tint`), is evaluated in every display
- * mode a visitor can combine (MODES: light or dark, with or without high
- * contrast, with or without grayscale), at rest and on hover (HOVER), for
+ * 3.0.0 that is still one: `ink` on `brand.tint`), and every pair in
+ * SALT_PAIRS (pairs salt paints that the contract has no rule for, measured
+ * the same way), is evaluated in every display mode a visitor can combine
+ * (MODES: light or dark, with or without high contrast, with or without
+ * grayscale), at rest and on hover (HOVER), for
  * each of the contract's frozen seeds and each seed on the sRGB grid at a
  * step of 15 (5,832) as salt_brand_css() emits it, and for the compiled
  * defaults a site with no brand set renders. Ratios come from
@@ -69,10 +71,11 @@
  *
  * WHAT THIS DOES NOT CHECK
  * ------------------------
- * - Pairs the contract has no rule for. salt also paints `text-brand` on
- *   `surface` (links, eyebrows), which is not measured. The `focus` ring is,
- *   against the three grounds 3.0.0 requires (`surface`, `surface.alt`,
- *   `brand.tint`). On `surface.inverse` the contract does not rely on the
+ * - Pairs the contract has no rule for, except those listed in SALT_PAIRS,
+ *   which are measured beside the contract's. salt also paints
+ *   `text-brand` on `surface` (links, eyebrows), which is not measured.
+ *   The `focus` ring is, against the three grounds 3.0.0 requires
+ *   (`surface`, `surface.alt`, `brand.tint`). On `surface.inverse` the contract does not rely on the
  *   ring; the `ink.inverse` keyline salt draws there is measured instead.
  * - What only a rendered page shows: that the keyline is painted where
  *   app.css says, and the 24 x 24 target size.
@@ -95,9 +98,9 @@
  *
  * A green run here says the vocabulary's rules are the ones last read, the
  * derivation reproduces the frozen vectors, every required role is declared
- * and the contract's contrast rules hold in every display mode for the
- * frozen seeds and the grid. It says nothing about other pairs, brands off
- * the grid or component discipline.
+ * and the contract's contrast rules and SALT_PAIRS hold in every display
+ * mode for the frozen seeds and the grid. It says nothing about other
+ * pairs, brands off the grid or component discipline.
  *
  * FAILS CLOSED. If the package or any file it exports is absent, this test
  * FAILS rather than skips — salt cannot claim to conform to something it cannot
@@ -173,6 +176,19 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * salt's templates.
 	 */
 	private const HOVER = array( 'brand' => 'brand.strong' );
+
+	/**
+	 * Pairs salt paints that the contract has no rule for, measured exactly
+	 * as its rules are. `ink.muted` on `brand.tint`: a brand-tint section
+	 * (section.php, the CTA's default ground) and the featured service card
+	 * (services.php) set their supporting copy in text-ink-muted. The
+	 * contract measures `ink` on `brand.tint` and `ink.muted` on `surface`
+	 * but not this, and in light mode with grayscale it measured 4.40:1
+	 * (lightlysaltedhq/salt-wordpress#6).
+	 */
+	private const SALT_PAIRS = array(
+		array( 'ink.muted', 'brand.tint', 4.5 ),
+	);
 
 	/**
 	 * Decode a JSON file, failing by name if it is absent or not an object.
@@ -1047,10 +1063,11 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
-	 * The contract's contrast rules hold in one combination of display modes,
-	 * for every frozen and grid seed and the compiled defaults, at rest and on
-	 * hover. Every failure in the combination is reported together, one line
-	 * per rule, with its worst palette and the colours that produced it.
+	 * The contract's contrast rules and SALT_PAIRS hold in one combination
+	 * of display modes, for every frozen and grid seed and the compiled
+	 * defaults, at rest and on hover. Every failure in the combination is
+	 * reported together, one line per rule, with its worst palette and the
+	 * colours that produced it.
 	 *
 	 * @param list<string> $combo Mode names in force.
 	 */
@@ -1108,6 +1125,13 @@ final class FoundationsConformanceTest extends SaltTestCase {
 				self::fail( "vocabulary.json's contrast.requirements has no `focus` pair, so there is no ring ratio to hold the keyline to." );
 			}
 			$checks[] = array( "focus keyline {$keyline['role']} on {$keyline['ground']}", $keyline['role'], $keyline['ground'], $ring_min );
+		}
+
+		foreach ( self::SALT_PAIRS as list( $fg, $bg, $min ) ) {
+			$checks[] = array( "{$fg} on {$bg} (salt's own pair), at rest", $fg, $bg, $min );
+			if ( isset( self::HOVER[ $bg ] ) ) {
+				$checks[] = array( "{$fg} on {$bg} (salt's own pair), on hover (" . self::HOVER[ $bg ] . ')', $fg, self::HOVER[ $bg ], $min );
+			}
 		}
 
 		$palettes = array( 'compiled defaults' => array() );
@@ -1197,7 +1221,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		if ( array() !== $report ) {
 			$this->fail(
 				sprintf(
-					"%s: the contract's contrast rules do not hold (%d checks per palette; %d conditional rules skipped because app.css does not declare their roles).\n%s\n"
+					"%s: the contract's contrast rules and SALT_PAIRS do not hold (%d checks per palette; %d conditional rules skipped because app.css does not declare their roles).\n%s\n"
 					. '  A palette is a seed as salt_brand_css() emits it (the contract\'s frozen seeds plus the sRGB grid at a step of 15), or the compiled defaults of a site with no brand set.',
 					$this->dataName(),
 					count( $checks ),

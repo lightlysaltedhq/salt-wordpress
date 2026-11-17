@@ -74,6 +74,19 @@ markup granularity (cross-reference your site's override manifest).
   docs/contracts/CONVENTIONS.md "Sections: logic and view"; child themes:
   docs/contracts/OVERRIDES.md "Section views".
 
+### Fixed
+
+- **Muted text on the brand tint clears 4.5:1 in light mode with grayscale
+  (ID-3588, lightlysaltedhq/salt-wordpress#6).** Grayscale pointed
+  `brand-tint` at neutral-100, where `ink-muted` (neutral-600) measured
+  4.40:1. It now uses neutral-50, the step light mode already uses on the
+  primary ramp: 4.81:1 for every seed. **Visual change:** brand-tint
+  grounds in light grayscale are a shade lighter (#f2f5fa, was #e7ebf1);
+  `ink` and `focus` on them rise to 13.35:1 and 6.80:1 (without high
+  contrast). Dark grayscale is unchanged. The conformance suite now also
+  measures `ink.muted` on `brand.tint`, a pair salt paints that the
+  contract has no rule for, in every display mode.
+
 ### BREAKING
 - **Child overrides of any `template-parts/sections/{slug}.php`** (all 20
   sections listed above) are now overrides of the VIEW. They receive
