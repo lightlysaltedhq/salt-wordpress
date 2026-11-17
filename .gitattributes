@@ -6,3 +6,6 @@
 /bin/seed-demo.php export-ignore
 /bin/demo/ export-ignore
 /tests/unit/DemoContentTest.php export-ignore
+# The salt-contract release candidate the theme is checked against: read at
+# build and test time only (ID-3627), so client sites never receive it.
+/vendor-contract/ export-ignore
