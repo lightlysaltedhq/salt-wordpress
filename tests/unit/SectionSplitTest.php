@@ -100,6 +100,12 @@ final class SectionSplitTest extends SaltTestCase {
 	// Resolver lookup.
 	// -----------------------------------------------------------------
 
+	public function test_resolver_function_writes_each_hyphen_as_an_underscore(): void {
+		$this->assertSame( 'salt_resolve_section_hero', salt_section_resolver_function( 'hero' ) );
+		$this->assertSame( 'salt_resolve_section_rich_text', salt_section_resolver_function( 'rich-text' ) );
+		$this->assertSame( 'salt_resolve_section_call_to_action', salt_section_resolver_function( 'call-to-action' ) );
+	}
+
 	public function test_split_sections_resolve_to_their_parent_resolver(): void {
 		$this->assertSame( 'salt_resolve_section_hero', salt_section_resolver( 'hero' ) );
 		$this->assertSame( 'salt_resolve_section_faq', salt_section_resolver( 'faq' ) );

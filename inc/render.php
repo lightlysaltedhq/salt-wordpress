@@ -450,9 +450,26 @@ function salt_section_resolver_file( string $layout ): ?string {
 }
 
 /**
+ * The resolver function name for a section slug: the one place the
+ * hyphen rule lives (docs/contracts/CONVENTIONS.md, "The resolver").
+ *
+ * Section slugs are the salt-contract section ids verbatim
+ * (`call-to-action`), and the layout name, resolver file and view file all
+ * use them as they are. PHP function names cannot contain a hyphen, so the
+ * function name alone writes each "-" as "_":
+ * `call-to-action` => salt_resolve_section_call_to_action().
+ *
+ * @param string $layout Section slug (hyphenated).
+ * @return string Function name.
+ */
+function salt_section_resolver_function( string $layout ): string {
+	return 'salt_resolve_section_' . str_replace( '-', '_', $layout );
+}
+
+/**
  * Load a split section's resolver and return its function name.
  *
- * The file defines salt_resolve_section_{layout, "-" as "_"}( array
+ * The file defines salt_section_resolver_function( $layout )( array
  * $context ): ?array. Resolvers are final (not pluggable). Fails loudly —
  * salt_log(), and a throw under salt_is_debug() — and returns null when:
  *  - the section is split but the file does not define that function
@@ -472,7 +489,7 @@ function salt_section_resolver( string $layout ): ?string {
 		return null;
 	}
 
-	$function = 'salt_resolve_section_' . str_replace( '-', '_', $layout );
+	$function = salt_section_resolver_function( $layout );
 	$message  = '';
 
 	if ( function_exists( $function ) && realpath( (string) ( new ReflectionFunction( $function ) )->getFileName() ) !== realpath( $file ) ) {

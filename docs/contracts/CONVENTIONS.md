@@ -171,6 +171,13 @@ WordPress counterpart yet; `request_status`, `nonce`, `time_token`,
 - **Function:** `salt_resolve_section_{slug with "-" as "_"}( array $context ): ?array`
   — e.g. `salt_resolve_section_rich_text()`. `$context` is the loop
   context, `array{ index: int, is_primary: bool }`.
+- **The hyphen rule:** a section's slug is the contract section id
+  verbatim (`call-to-action`), and the ACF layout name, the resolver file,
+  the view file and the layout's fields file all use it as it is. PHP
+  function names cannot hold a hyphen, so the resolver's function name is
+  the only place a `-` is written `_`. The rule is code in one place,
+  `salt_section_resolver_function()` (`inc/render.php`); the render entry
+  and the tests call it, and nothing else builds the name.
 - **Final, not pluggable:** never wrapped in `function_exists()`. It is
   loaded from the PARENT theme directory by `salt_section_resolver()`,
   never through `locate_template()`, so no child file can replace it.

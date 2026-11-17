@@ -70,7 +70,7 @@ final class SectionCompletenessTest extends SaltTestCase {
 	public function test_layout_has_a_parent_resolver( string $slug ): void {
 		$this->assertFileExists( self::root() . '/inc/sections/' . $slug . '.php' );
 		$this->assertSame(
-			'salt_resolve_section_' . str_replace( '-', '_', $slug ),
+			salt_section_resolver_function( $slug ),
 			salt_section_resolver( $slug )
 		);
 	}
