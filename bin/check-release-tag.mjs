@@ -65,7 +65,7 @@ if ( commit ) {
 
 	const style = show( 'style.css' );
 	if ( style !== null ) {
-		const m = style.match( /^[ \t\/*#@]*Version:(.*)$/mi );
+		const m = style.match( /^[ \t/*#@]*Version:(.*)$/mi );
 		if ( ! m ) {
 			errors.push( 'style.css has no "Version:" header.' );
 		} else if ( m[ 1 ].trim() !== expected ) {
