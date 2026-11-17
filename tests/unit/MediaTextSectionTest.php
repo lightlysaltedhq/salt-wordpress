@@ -3,7 +3,7 @@
  * Media + Text slice tests (spec §10 #6; COMPL02, A11Y01, DATA02).
  *
  * Covers the FC layout shape, the 0/1/N row states, malformed-row skipping,
- * the single-mode media_side vs alternating auto-flip rule, the heading
+ * the single-mode mediaSide vs alternating auto-flip rule, the heading
  * outline rule (row 0 at $level, later rows stepped to h2 when row 0 took
  * the H1), the x-image 'half' sizes context, and the CTA button path.
  *
@@ -217,7 +217,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( 1, substr_count( $html, 'md:order-2' ), 'Only the media_side=right row flips.' );
+		$this->assertSame( 1, substr_count( $html, 'md:order-2' ), 'Only the mediaSide=right row flips.' );
 		$this->assertLessThan(
 			strpos( $html, 'md:order-2' ),
 			strpos( $html, 'media-31.jpg' ),
@@ -256,7 +256,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 		);
 
 		$this->assertSame( 3, substr_count( $html, 'md:grid-cols-2' ) );
-		$this->assertSame( 1, substr_count( $html, 'md:order-2' ), 'Exactly the odd row flips — media_side is ignored in alternating mode.' );
+		$this->assertSame( 1, substr_count( $html, 'md:order-2' ), 'Exactly the odd row flips — mediaSide is ignored in alternating mode.' );
 		$this->assertLessThan(
 			strpos( $html, 'md:order-2' ),
 			strpos( $html, 'media-31.jpg' ),
@@ -572,7 +572,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 		$this->assertSame(
 			array( 'left', 'right', 'left' ),
 			array_column( $alternating['props']['rows'], 'mediaSide' ),
-			'Alternating ignores media_side and flips per rendered row.'
+			'Alternating ignores mediaSide and flips per rendered row.'
 		);
 		$this->assertTrue( $alternating['section']['has_heading'] );
 

@@ -1,7 +1,7 @@
 <?php
 /**
  * Contact section snapshots (FLEET01) — one per meaningful variant:
- * the v1 default (details + form_intro + mailto CTA; form OFF), and the
+ * the v1 default (details + formIntro + mailto CTA; form OFF), and the
  * compliance-phase form (salt_contact_form_enabled true — honeypot,
  * label + aria-describedby fields, submit button).
  *

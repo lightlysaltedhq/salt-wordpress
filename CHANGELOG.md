@@ -16,7 +16,8 @@ markup granularity (cross-reference your site's override manifest).
   theme: `salt_overrides()` returns it validated and memoised, or `null`
   when there is no child theme, no file, or an invalid one (logged once,
   never fatal). Section ids are the contract's, mapped to layout slugs by
-  `salt_contract_section_layouts()` (`call-to-action` is `cta`).
+  `salt_contract_section_layouts()` (since ID-3599, `call-to-action` is
+  the `call-to-action` layout).
   - Tier `view`: no rendering change; a child view loads as before,
     declared or not.
   - Tier `logic`: the declared section's parent resolver and wrapper no
@@ -101,6 +102,50 @@ markup granularity (cross-reference your site's override manifest).
   render nothing (logged; an exception under `WP_DEBUG`). To own a
   section's logic, declare it `logic` in `salt-overrides.json` (Added,
   above).
+- **Layouts and fields renamed to the salt-contract's section vocabulary
+  (ID-3599; SC-001; FLEET07: MAJOR, next release 6.0.0).** Every removed
+  slug and field name has an entry in `docs/contracts/slug-migrations.json`
+  (version 6.0.0) saying how stored content maps; no WordPress client site
+  is live, so no database migration ships. Field keys move with the names
+  (keys stay snake_case, `field_salt_{scope}_{name}`).
+  - Layout slugs are the contract ids: `cta` → `call-to-action` (layout key
+    `layout_salt_call_to_action`, field keys `field_salt_call_to_action_*`,
+    resolver `salt_resolve_section_call_to_action()`, files
+    `inc/fields/layouts/`, `inc/sections/` and
+    `template-parts/sections/call-to-action.php`); `rich_text` →
+    `rich-text`; `media_text` → `media-text` (their files were already
+    hyphenated). A resolver's function name comes from
+    `salt_section_resolver_function()`, the one place a `-` becomes `_`.
+  - Section settings, on every layout: `section_spacing` → `spacing`,
+    `section_background` → `tone` (stored value `inverse` →
+    `surface-inverse`; x-section's `background` arg is unchanged),
+    `section_container` → `width`, `section_anchor` → `anchorId`,
+    `section_divider` → `divider`.
+  - Fields: rich-text `content` → `body`; call-to-action `text` → `body`
+    (still a textarea); media-text rows `media_side` → `mediaSide`; contact
+    `text` → `intro`, `show_phone`/`show_email`/`show_address` →
+    `showPhone`/`showEmail`/`showAddress`, `form_intro` → `formIntro`;
+    stats items `number` → `value`; logos `logos` → `items`; features items
+    `link` → `url` (still an ACF link); faq and process `schema_toggle` →
+    `structuredData`.
+  - Markup: only the call-to-action band's printed slug changes:
+    `section-cta` → `section-call-to-action` and `data-section="cta"` →
+    `data-section="call-to-action"` (snapshot renamed
+    `call-to-action-section-brand-tint.snap.html`). Analytics events that
+    report the section (`section_view`, `cta_click`) now say
+    `call-to-action` for it. No other `.snap.html` changed.
+  - Child themes: rename a view override `template-parts/sections/cta.php`
+    to `call-to-action.php` (and its path in `salt-overrides.json`); CSS or
+    JS keyed to `.section-cta` or `[data-section="cta"]` must follow; code
+    reading the renamed fields with `get_sub_field()` must use the new
+    names.
+  - Not renamed yet: the sections the contract folds from several layouts
+    (collection-showcase: services, work, team, testimonials grid,
+    blog_teaser; carousel: scroll_carousel, testimonials slider), `intro`
+    (its fold into rich-text changes markup, an owner decision), `pricing`
+    (the contract renames none of its fields), and every structural change
+    the contract lists as owed (hero's and media-text's buttons lists, the
+    faq and locations query group, the settings group).
 
 ## [5.0.0] — 2026-10-07
 
