@@ -45,6 +45,10 @@ markup granularity (cross-reference your site's override manifest).
   Semver: MINOR (a new extension point; no pluggable function added or
   removed, no args or markup change, no `.snap.html` changed, and a site
   without `salt-overrides.json` renders byte-identically).
+- A "Release tag gate" CI job, on tag pushes only, runs `bin/check-release-tag.mjs`:
+  a `vX.Y.Z` tag fails unless `style.css` `Version` and `SALT_VERSION` equal it and
+  the tagged commit is on `main`. It detects a bad tag after the push; it does not
+  prevent one. See docs/RELEASE-POLICY.md.
 
 ### Changed
 

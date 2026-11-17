@@ -55,10 +55,16 @@ tests, and the SECTIONS.md registry row.
 
 ## Branching & releases
 
-- Work on branches; PR into `main`. CI must be green (all five jobs).
+- Work on branches; PR into `main`. CI must be green (all five jobs; a sixth,
+  "Release tag gate", runs on tag pushes only).
 - Releases: bump `style.css` + `SALT_VERSION`, update CHANGELOG.md
   (BREAKING section when applicable), tag `vX.Y.Z`, promote per
   docs/RELEASE-POLICY.md (canary first — never straight to the fleet).
+  Tag only a commit already on `main`, once the bump has merged: on a tag push
+  the "Release tag gate" job (`bin/check-release-tag.mjs`) fails unless the tag
+  is plain `vX.Y.Z`, `style.css` `Version` and `SALT_VERSION` equal it, and the
+  commit is on `origin/main`. The check runs after the tag is pushed, so delete a
+  failed tag at once (see docs/RELEASE-POLICY.md).
 - Field/layout renames additionally need a
   `docs/contracts/slug-migrations.json` entry (CI enforces, FLEET07).
 

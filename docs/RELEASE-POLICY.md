@@ -52,6 +52,29 @@ The release owner who applies the `auto-eligible` label is named in the
 release notes. Default fleet posture remains **pinned** (§4); auto-update is
 opt-in per site for patch releases only.
 
+## Release tag gate
+
+Git Updater offers the newest tag and requires the `style.css` `Version`
+header to match it. On every `v*` tag push, CI's "Release tag gate" job runs
+`bin/check-release-tag.mjs` and fails unless all hold: the tag is exactly
+`vX.Y.Z` (no pre-release suffix), `style.css` `Version` and `SALT_VERSION` at
+the tagged commit equal the tag without the `v`, and the tagged commit is on
+`main` (an ancestor of, or equal to, `origin/main`). Tag only after the
+version-bump PR has merged.
+
+The check runs **after** the tag is pushed, so it detects a bad tag; it does
+not prevent one, and the tag is already visible to Git Updater. If it fails:
+delete the tag at once (`git push origin :refs/tags/vX.Y.Z`), fix the versions
+on `main`, re-tag, and check any site on opt-in auto-update. Real prevention is
+a repository tag ruleset restricting who can create `v*` tags; that is a
+settings matter outside this check.
+
+Limitation: GitHub runs the workflow file from the tagged commit itself. A tag
+on a commit that predates this gate, or on a branch that edits `ci.yml` or the
+script, runs no gate or a modified one, so no red check appears.
+
+Self-test: `bash bin/check-release-tag.test.sh`.
+
 ## Rollout path
 
 tag → canary site → §16 sign-off checklist (incl. "rollback rehearsed") →
