@@ -15,6 +15,10 @@
  *    challenge h3 and h4, a features item, an FAQ answer and the service's
  *    intro (its own editor) no heading. Read from the live TinyMCE, and
  *    proved by what it keeps of headings 2 to 6 set into it.
+ * 6. The Topics box and term screens offer no parent; the service editor has
+ *    no Add Media button and Text tab buttons for its list alone; a service
+ *    or post summary of 301 two-byte characters is refused and 300 published;
+ *    the post fields unit 10 wires are not drawn.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -40,8 +44,8 @@ const info = ( line ) => console.log( `     ${ line }` );
 
 const meta = ( id ) =>
 	JSON.parse( execFileSync( php, [ path.join( here, 'php/meta.php' ), String( id ) ], { encoding: 'utf8' } ) );
-const publishedWithTitle = ( title ) =>
-	Number( execFileSync( php, [ path.join( here, 'php/meta.php' ), '--published-title', title ], { encoding: 'utf8' } ) );
+const publishedWithTitle = ( title, type = 'page' ) =>
+	Number( execFileSync( php, [ path.join( here, 'php/meta.php' ), '--published-title', title, type ], { encoding: 'utf8' } ) );
 
 // Every emitted field by key, for explaining what a re-save changed.
 const fieldsByKey = new Map();
@@ -320,6 +324,100 @@ try {
 		result( screen.errors.length === 0, `no console errors in the editors on ${ screen.where }`, `${ screen.errors.length } errors` );
 		screen.errors.slice( 0, 10 ).forEach( info );
 		await close( screen.page );
+	}
+	// ── 6. Topics, the service editor, the hidden post fields and the summary check ─────────
+	{
+		// The Topics box on a new service: labelled Topics, its "add new" form has no parent.
+		const { page, errors } = await open( '/wp-admin/post-new.php?post_type=service' );
+		await page.waitForFunction( () => window.acf && window.tinymce && document.readyState === 'complete' );
+		const box = await page.evaluate( () => ( {
+			title: document.querySelector( '#service_categorydiv .hndle, #service_categorydiv h2' )?.textContent.trim(),
+			adder: !! document.querySelector( '#service_category-adder' ),
+			parent: !! document.querySelector( '[name="newservice_category_parent"], label[for="newservice_category_parent"]' ),
+			// ACF's hidden template editor (acf_content) has its own Add Media button; the service's is #wp-content-media-buttons.
+			media: !! document.querySelector( '#wp-content-media-buttons' ),
+			// dfw is the distraction-free toggle WordPress adds to the post editor, not a format.
+			quicktags: ( window.tinyMCEPreInit?.qtInit?.content?.buttons ?? '' ).split( ',' ).filter( ( b ) => b && b !== 'dfw' ),
+		} ) );
+		result(
+			box.title === 'Topics' && box.adder && ! box.parent,
+			'the Topics box offers no parent',
+			`box "${ box.title }"; add-new form ${ box.adder ? 'present' : 'missing' }; parent control ${ box.parent ? 'PRESENT' : 'none' }`
+		);
+		result(
+			! box.media && JSON.stringify( box.quicktags ) === JSON.stringify( [ 'strong', 'em', 'link', 'ul', 'ol', 'li' ] ),
+			'the service editor offers only what its intro shows',
+			`Add Media ${ box.media ? 'PRESENT' : 'none' }; Text tab buttons ${ box.quicktags.join( ', ' ) }`
+		);
+
+		// The summary check (admin/summary-limit.js): 301 characters refused with the message, 300 not.
+		const trySummary = async ( p, summary ) => {
+			await p.evaluate( ( text ) => {
+				document.querySelector( '#excerpt' ).value = text;
+			}, summary );
+			await p.waitForSelector( '#publish:not(.disabled)' );
+			await p.click( '#publish' );
+			await p.waitForTimeout( 1500 );
+			return p.evaluate( () => document.querySelector( '#salt-summary-limit' )?.textContent.trim() ?? '' );
+		};
+		for ( const [ type, screen ] of [ [ 'service', page ], [ 'post', null ] ] ) {
+			const p = screen ?? ( await open( `/wp-admin/post-new.php?post_type=${ type }` ) ).page;
+			await p.waitForFunction( () => window.saltSummaryLimit && document.readyState === 'complete' );
+			const title = `Harness: summary ${ type } ${ Date.now() }`;
+			await p.fill( '#title', title );
+			await p.locator( '#title' ).blur();
+			await p.waitForSelector( '#edit-slug-box #sample-permalink', { timeout: 60000 } );
+			const refused = await trySummary( p, 'é'.repeat( 301 ) );
+			const notPublished = publishedWithTitle( title, type ) === 0;
+			result(
+				refused === 'The summary (the Excerpt box) is 301 characters long. Shorten it to 300 characters or fewer.' && notPublished,
+				`a ${ type } summary of 301 characters is refused`,
+				`301 two-byte characters: the editor says "${ refused }"; ${ notPublished ? 'not saved' : 'SAVED' }`
+			);
+			if ( type === 'service' ) {
+				// A new service still needs its required benefit, so ACF then refuses it for that alone.
+				const other = await trySummary( p, 'é'.repeat( 300 ) );
+				result( other === '', 'a service summary of 300 characters is accepted', '300 two-byte characters: no summary message (ACF then asks for the required benefit)' );
+			} else {
+				await p.evaluate( () => {
+					document.querySelector( '#excerpt' ).value = 'é'.repeat( 300 );
+				} );
+				await p.waitForSelector( '#publish:not(.disabled)' );
+				// The first autosave already put post.php?post=N in the address; a save adds message=.
+				await Promise.all( [ p.waitForURL( /message=\d+/, { timeout: 120000 } ), p.click( '#publish' ) ] );
+				result( publishedWithTitle( title, type ) === 1, `a ${ type } summary of 300 characters is published`, '300 two-byte characters' );
+				const hidden = await p.evaluate( () =>
+					[ 'author', 'primary_topic', 'layout' ].filter( ( n ) => document.querySelector( `.acf-field[data-key="field_salt_collection_posts_${ n }"]` ) )
+				);
+				result( hidden.length === 0, 'the post fields unit 10 wires are not in the editor', hidden.length ? `drawn: ${ hidden.join( ', ' ) }` : 'author, primaryTopic and layout not drawn' );
+			}
+			if ( screen === null ) {
+				await close( p );
+			}
+		}
+		result( errors.length === 0, 'no console errors on the service screen', `${ errors.length } errors` );
+		errors.slice( 0, 10 ).forEach( info );
+		await close( page );
+
+		// The term screens: no Parent field when adding or editing a topic.
+		const terms = await open( '/wp-admin/edit-tags.php?taxonomy=service_category&post_type=service' );
+		const addHasParent = await terms.page.locator( '.term-parent-wrap, #parent' ).count();
+		const heading = ( await terms.page.locator( 'h1.wp-heading-inline, .wrap h1' ).first().textContent() ).trim();
+		await terms.page.fill( '#tag-name', 'Harness topic' );
+		await Promise.all( [
+			terms.page.waitForResponse( ( r ) => r.url().includes( 'admin-ajax.php' ) && ( r.request().postData() ?? '' ).includes( 'action=add-tag' ) ),
+			terms.page.click( '#submit' ),
+		] );
+		const editHref = await terms.page.locator( '#the-list a.row-title', { hasText: 'Harness topic' } ).first().getAttribute( 'href' );
+		await close( terms.page );
+		const edit = await open( editHref.replace( url, '' ) );
+		const editHasParent = await edit.page.locator( '.term-parent-wrap, #parent' ).count();
+		await close( edit.page );
+		result(
+			heading === 'Topics' && addHasParent === 0 && editHasParent === 0,
+			'the topic screens offer no parent',
+			`"${ heading }"; Parent on the add form ${ addHasParent }, on the edit form ${ editHasParent }`
+		);
 	}
 	const unloadTotal = [ ...unloadBy.values() ].reduce( ( a, b ) => a + b, 0 );
 	info(

@@ -305,6 +305,36 @@ foreach ( $generated as $group ) {
 	);
 }
 
+// author, primaryTopic and layout do nothing until unit 10 (ID-3952): ACF does not draw them,
+// but the round trip above stored and read them like every other field.
+$hidden = array();
+foreach ( salt_collection_fields_hidden_until_id_3952() as $key ) {
+	$field          = acf_get_field( $key );
+	$hidden[ $key ] = is_array( $field ) && false === acf_prepare_field( $field );
+}
+$shown = acf_prepare_field( acf_get_field( 'field_salt_collection_services_price_from' ) );
+salt_harness_result(
+	! in_array( false, $hidden, true ) && is_array( $shown ),
+	'the post fields unit 10 wires are hidden from the editor, and still store',
+	sprintf( 'acf_prepare_field() gives false for %s; a service field is still drawn; posts round-trip above through update_field and get_field', implode( ', ', array_map( static fn( string $k, bool $ok ): string => $k . ( $ok ? '' : ' (DRAWN)' ), array_keys( $hidden ), $hidden ) ) )
+);
+
+// Topics stay flat (_topic.json): a parent asked for on insert or update is not kept.
+$flat = array();
+foreach ( salt_topic_taxonomies() as $taxonomy ) {
+	$parent       = wp_insert_term( 'Harness parent ' . $taxonomy, $taxonomy );
+	$child        = wp_insert_term( 'Harness child ' . $taxonomy, $taxonomy, array( 'parent' => (int) $parent['term_id'] ) );
+	$after_insert = (int) get_term( (int) $child['term_id'], $taxonomy )->parent;
+	wp_update_term( (int) $child['term_id'], $taxonomy, array( 'parent' => (int) $parent['term_id'] ) );
+	$after_update      = (int) get_term( (int) $child['term_id'], $taxonomy )->parent;
+	$flat[ $taxonomy ] = 0 === $after_insert && 0 === $after_update;
+}
+salt_harness_result(
+	! in_array( false, $flat, true ),
+	'every topic is stored flat',
+	implode( ', ', array_map( static fn( string $t, bool $ok ): string => $t . ( $ok ? ' parent 0 after insert and update' : ' KEPT A PARENT' ), array_keys( $flat ), $flat ) )
+);
+
 salt_harness_result(
 	0 === $totals['misses'],
 	'every collection field round-trips on real ACF',

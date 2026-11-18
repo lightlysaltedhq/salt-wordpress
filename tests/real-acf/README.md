@@ -82,16 +82,35 @@ in `composer.json`) and Playwright 1.65.1 with its headless Chromium (`package.j
    it offers. Each value is read back with `get_field()` and compared, and every meta path must
    carry its field key. The places WordPress keeps natively (`salt.native`: the title, the
    excerpt, the body and the featured image) are set the WordPress way and read back through the
-   theme's own readers.
-6. **The editor, in headless Chromium** against PHP's built-in server (`browser.mjs`):
+   theme's own readers. The post fields unit 10 wires (`author`, `primaryTopic`, `layout`) must be
+   hidden from the editor by `acf/prepare_field` and still store, and every topic must be stored
+   flat, whatever parent is asked for on insert or update.
+6. **The single templates over HTTP.** PHP's built-in server starts here (with or without
+   `--no-browser`). `php/singles.php` seeds one document each from the pinned contract's
+   `fixtures/service/full.json`, `fixtures/case-study/full.json` and `fixtures/post/full.json`:
+   each `document` value goes to its native place or, through `update_field()`, to its generated
+   field; named media become attachments with the fixture's alt text, and related or listed
+   services become services. It requests `single-service.php`, `single-work.php` and
+   `single-post.php` and checks each answers 200 and draws every seeded value the template draws.
+   It also checks the service intro runs no shortcode or embed, and that a testimonial rated 4.5
+   draws 90% of five stars on a page. This is a smoke render, not conformance: the view cases'
+   markup is a later unit. WordPress 6.8 passes null as an array offset inside `wp-includes` when
+   it renders a front-end page, which PHP 8.5 deprecates; on PHP 8.5 that one deprecation from
+   core is reported and not counted (`php/notices.php`).
+7. **The editor, in headless Chromium** against the same server (`browser.mjs`):
    - the fixtures page's classic edit screen renders every row and layout with no console errors;
    - the faq section's collection query mode shows categories or items, and order and count unless
      the mode is manual;
    - an empty required field (a features item's title) blocks publishing, and filling it lets the
      page publish;
    - re-saving the fixtures page from the browser changes nothing unexplained. Every meta row is
-     diffed before and after, and each change is put in a named class or failed.
-7. Prints a summary, drops the database and removes the temporary directory, whether the run
+     diffed before and after, and each change is put in a named class or failed;
+   - each rich-text editor offers only its field's contract list;
+   - the Topics box and the topic screens offer no parent; the service editor has no Add Media
+     button and Text tab buttons for its list alone; a summary of 301 two-byte characters is
+     refused with the editor message on a service and a post, and 300 is accepted; the hidden post
+     fields are not drawn.
+8. Prints a summary, drops the database and removes the temporary directory, whether the run
    passed, failed or was interrupted.
 
 ## Reading the re-save diff

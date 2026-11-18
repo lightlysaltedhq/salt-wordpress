@@ -4,7 +4,7 @@
  * JSON; for the browser phase's before-and-after diff. HARNESS ONLY.
  *
  * Usage: php meta.php <post id>
- *        php meta.php --published-title <title>   (count of published pages)
+ *        php meta.php --published-title <title> [post type]   (count published; pages by default)
  *        php meta.php --the-content < list.json    (each through acf_the_content)
  *
  * @package Salt\Tests\RealAcf
@@ -23,7 +23,7 @@ if ( '--the-content' === ( $argv[1] ?? '' ) ) {
 }
 
 if ( '--published-title' === ( $argv[1] ?? '' ) ) {
-	echo (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'page' AND post_status = 'publish' AND post_title = %s", (string) ( $argv[2] ?? '' ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the database itself, not a cache.
+	echo (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s AND post_status = 'publish' AND post_title = %s", (string) ( $argv[3] ?? 'page' ), (string) ( $argv[2] ?? '' ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the database itself, not a cache.
 	exit( 0 );
 }
 

@@ -214,17 +214,21 @@ phase "the theme renders it (resolvers on real ACF values)" "$PHP" "$HERE/php/re
 # After the render, so the posts it makes are not in the page's FAQ and locations queries.
 phase "collection fields: seed every post type, read back, storage" "$PHP" "$HERE/php/collections.php"
 
+# The site's own server, for the single templates over HTTP and the browser.
+# PHP's default max_input_vars (1000) truncates the re-save of a page holding every fixture
+# case; browser.mjs reports how many variables the form posts against this limit.
+export SALT_HARNESS_MAX_INPUT_VARS="${SALT_HARNESS_MAX_INPUT_VARS:-20000}"
+# A browser save of that page also outlasts the default 30-second max_execution_time.
+PHP_CLI_SERVER_WORKERS=4 "$PHP" -d max_input_vars="$SALT_HARNESS_MAX_INPUT_VARS" -d max_execution_time=600 -S "127.0.0.1:$PORT" -t "$WP" >"$TMP/server.log" 2>&1 &
+SERVER_PID=$!
+for _ in $(seq 1 50); do
+	curl -fs -o /dev/null "$URL/wp-login.php" && break
+	sleep 0.2
+done
+
+phase "single templates over HTTP (the contract's service, case-study and post fixtures)" "$PHP" "$HERE/php/singles.php"
+
 if [ "$BROWSER" = 1 ]; then
-	# PHP's default max_input_vars (1000) truncates the re-save of a page holding every fixture
-	# case; browser.mjs reports how many variables the form posts against this limit.
-	export SALT_HARNESS_MAX_INPUT_VARS="${SALT_HARNESS_MAX_INPUT_VARS:-20000}"
-	# A browser save of that page also outlasts the default 30-second max_execution_time.
-	PHP_CLI_SERVER_WORKERS=4 "$PHP" -d max_input_vars="$SALT_HARNESS_MAX_INPUT_VARS" -d max_execution_time=600 -S "127.0.0.1:$PORT" -t "$WP" >"$TMP/server.log" 2>&1 &
-	SERVER_PID=$!
-	for _ in $(seq 1 50); do
-		curl -fs -o /dev/null "$URL/wp-login.php" && break
-		sleep 0.2
-	done
 	phase "editor in a real browser (Chromium)" node "$HERE/browser.mjs"
 else
 	PHASES+=("SKIP  editor in a real browser (--no-browser)")
