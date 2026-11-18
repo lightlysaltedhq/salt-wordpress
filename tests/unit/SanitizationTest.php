@@ -27,14 +27,14 @@ final class SanitizationTest extends SaltTestCase {
 	 */
 	public static function forbidden_provider(): array {
 		return array(
-			'script tag'      => array( '<p>ok</p><script>alert(1)</script>', array( '<script' ) ),
-			'iframe tag'      => array( '<iframe src="https://evil.test/"></iframe>', array( '<iframe', 'src=' ) ),
-			'style attr on p' => array( '<p style="color:red">text</p>', array( 'style=' ) ),
-			'class attr'      => array( '<p class="fancy">text</p>', array( 'class=' ) ),
-			'id attr'         => array( '<h3 id="anchor">text</h3>', array( 'id=' ) ),
-			'span with style' => array( '<p><span style="font-size:40px">big</span></p>', array( '<span', 'style=' ) ),
-			'font tag'        => array( '<p><font color="red">loud</font></p>', array( '<font', 'color=' ) ),
-			'h1 tag'          => array( '<h1>page title</h1>', array( '<h1' ) ),
+			'script tag'       => array( '<p>ok</p><script>alert(1)</script>', array( '<script' ) ),
+			'iframe tag'       => array( '<iframe src="https://evil.test/"></iframe>', array( '<iframe', 'src=' ) ),
+			'style attr on p'  => array( '<p style="color:red">text</p>', array( 'style=' ) ),
+			'class attr'       => array( '<p class="fancy">text</p>', array( 'class=' ) ),
+			'id attr'          => array( '<h3 id="anchor">text</h3>', array( 'id=' ) ),
+			'span with style'  => array( '<p><span style="font-size:40px">big</span></p>', array( '<span', 'style=' ) ),
+			'font tag'         => array( '<p><font color="red">loud</font></p>', array( '<font', 'color=' ) ),
+			'h1 tag'           => array( '<h1>page title</h1>', array( '<h1' ) ),
 			'h6 with handlers' => array( '<h6 onclick="x()" style="a" data-x="1">t</h6>', array( 'onclick', 'style=', 'data-x' ) ),
 			'h2 with class'    => array( '<h2 class="c">t</h2>', array( 'class=' ) ),
 		);
@@ -313,23 +313,23 @@ final class SanitizationTest extends SaltTestCase {
 		$faq  = 'field_salt_collection_faqs_answer';
 		$case = 'field_salt_collection_case_studies_challenge';
 		return array(
-			'h2 survives in the rich-text body'   => array( $rich, '<h2>Title</h2>', '<h2>Title</h2>', '<p>' ),
-			'h6 survives in the rich-text body'   => array( $rich, '<h6>Small</h6>', '<h6>Small</h6>', '<p>' ),
-			'h2 stripped in the CTA body'         => array( $cta, '<h2>Title</h2>', 'Title', '<h2' ),
-			'h5 stripped in the CTA body'         => array( $cta, '<h5>Small</h5>', 'Small', '<h5' ),
-			'h3 survives in the CTA body'         => array( $cta, '<h3>Sub</h3>', '<h3>Sub</h3>', '<p>' ),
-			'h2 stripped in media-text content'   => array( 'field_salt_media_text_rows_content', '<h2>Title</h2>', 'Title', '<h2' ),
-			'h3 stripped in a features item'      => array( $feat, '<h3>Sub</h3>', 'Sub', '<h3' ),
-			'h2 stripped in a features item'      => array( $feat, '<h2>Card</h2>', 'Card', '<h2' ),
-			'blockquote survives in features'     => array( $feat, '<blockquote><p>Q</p></blockquote>', '<blockquote>', '<h' ),
-			'h3 stripped in an FAQ answer'        => array( $faq, '<h3>Sub</h3>', 'Sub', '<h3' ),
+			'h2 survives in the rich-text body'    => array( $rich, '<h2>Title</h2>', '<h2>Title</h2>', '<p>' ),
+			'h6 survives in the rich-text body'    => array( $rich, '<h6>Small</h6>', '<h6>Small</h6>', '<p>' ),
+			'h2 stripped in the CTA body'          => array( $cta, '<h2>Title</h2>', 'Title', '<h2' ),
+			'h5 stripped in the CTA body'          => array( $cta, '<h5>Small</h5>', 'Small', '<h5' ),
+			'h3 survives in the CTA body'          => array( $cta, '<h3>Sub</h3>', '<h3>Sub</h3>', '<p>' ),
+			'h2 stripped in media-text content'    => array( 'field_salt_media_text_rows_content', '<h2>Title</h2>', 'Title', '<h2' ),
+			'h3 stripped in a features item'       => array( $feat, '<h3>Sub</h3>', 'Sub', '<h3' ),
+			'h2 stripped in a features item'       => array( $feat, '<h2>Card</h2>', 'Card', '<h2' ),
+			'blockquote survives in features'      => array( $feat, '<blockquote><p>Q</p></blockquote>', '<blockquote>', '<h' ),
+			'h3 stripped in an FAQ answer'         => array( $faq, '<h3>Sub</h3>', 'Sub', '<h3' ),
 			'blockquote stripped in an FAQ answer' => array( $faq, '<blockquote><p>Q</p></blockquote>', '<p>Q</p>', '<blockquote' ),
-			'code stripped in an FAQ answer'      => array( $faq, '<p><code>x()</code></p>', 'x()', '<code' ),
-			'a link survives in an FAQ answer'    => array( $faq, '<p><a href="https://e.test/">e</a></p>', '<a href="https://e.test/">e</a>', '<h' ),
-			'h3 survives in a case-study block'   => array( $case, '<h3>Sub</h3>', '<h3>Sub</h3>', '<p>' ),
-			'h2 stripped in a case-study block'   => array( $case, '<h2>Title</h2>', 'Title', '<h2' ),
-			'code stripped in a case-study block' => array( $case, '<p><code>x()</code></p>', 'x()', '<code' ),
-			'blockquote stripped in a case study' => array( 'field_salt_collection_case_studies_solution', '<blockquote><p>Q</p></blockquote>', '<p>Q</p>', '<blockquote' ),
+			'code stripped in an FAQ answer'       => array( $faq, '<p><code>x()</code></p>', 'x()', '<code' ),
+			'a link survives in an FAQ answer'     => array( $faq, '<p><a href="https://e.test/">e</a></p>', '<a href="https://e.test/">e</a>', '<h' ),
+			'h3 survives in a case-study block'    => array( $case, '<h3>Sub</h3>', '<h3>Sub</h3>', '<p>' ),
+			'h2 stripped in a case-study block'    => array( $case, '<h2>Title</h2>', 'Title', '<h2' ),
+			'code stripped in a case-study block'  => array( $case, '<p><code>x()</code></p>', 'x()', '<code' ),
+			'blockquote stripped in a case study'  => array( 'field_salt_collection_case_studies_solution', '<blockquote><p>Q</p></blockquote>', '<p>Q</p>', '<blockquote' ),
 		);
 	}
 

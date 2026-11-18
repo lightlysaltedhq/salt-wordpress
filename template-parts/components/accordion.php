@@ -35,11 +35,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 $args = salt_require_args( // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- $args is WordPress's load_template() template variable.
 	$args ?? array(),
 	array(
-		'items' => array(
+		'items'   => array(
 			'type'     => 'array',
 			'required' => true,
 		),
-		'name'  => array(
+		'name'    => array(
 			'type'    => 'string',
 			'default' => 'accordion',
 		),

@@ -639,7 +639,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 				),
 			)
 		);
-		$content = $resolved['props']['rows'][0]['content'];
+		$content  = $resolved['props']['rows'][0]['content'];
 
 		$this->assertStringContainsString( '<h3>Three</h3>', $content );
 		$this->assertStringNotContainsString( '<h2', $content );

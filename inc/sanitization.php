@@ -298,7 +298,13 @@ function salt_rich_text_editor_enqueue(): void {
 		salt_log( 'salt_rich_text_editor: no manifest entry for "admin/rich-text-editor.js" — rich-text editors offer the whole allow-list. Re-run the asset build.' );
 		return;
 	}
-	wp_enqueue_script( 'salt-rich-text-editor', $src, array( 'acf-input' ), null, array( 'in_footer' => true ) );
+	wp_enqueue_script(
+		'salt-rich-text-editor',
+		$src,
+		array( 'acf-input' ),
+		null, // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Content hash in the dist filename is the cache-buster (ARCH03).
+		array( 'in_footer' => true )
+	);
 }
 
 /**

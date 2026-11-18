@@ -386,7 +386,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 				'body'    => '<h2>Two</h2><h3>Three</h3><h4>Four</h4><h5>Five</h5>',
 			)
 		);
-		$body = $resolved['props']['body'];
+		$body     = $resolved['props']['body'];
 
 		$this->assertStringContainsString( '<h3>Three</h3><h4>Four</h4>', $body );
 		$this->assertStringNotContainsString( '<h2', $body );

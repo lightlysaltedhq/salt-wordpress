@@ -381,7 +381,7 @@ final class FeaturesSectionTest extends SaltTestCase {
 				),
 			)
 		);
-		$text = $resolved['props']['items'][0]['text'];
+		$text     = $resolved['props']['items'][0]['text'];
 
 		$this->assertStringNotContainsString( '<h2', $text, 'A features item allows no heading (salt.allowed): an h2 would break the outline under the h3 card title (A11Y01).' );
 		$this->assertStringNotContainsString( '<h3', $text );
