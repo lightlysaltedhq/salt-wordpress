@@ -202,11 +202,11 @@ markup granularity (cross-reference your site's override manifest).
   conformance baseline in `tests/contract-adapter/baseline/` is
   regenerated against rc.7, and the adapter seeds a collection's native
   places from `salt.native`.
-- **Rich text stores headings 2 to 6 (ID-3950).** `salt_allowed_html()`
-  and the editor's formats widen from h3 and h4 to h2 to h6, still with no
-  attributes; h1 stays forbidden. Before, an editor re-save turned a
-  stored h2, h5 or h6 into a paragraph. Stored levels are drawn as stored;
-  the contract's re-ranking from the section's heading base is M4.
+- **The rich-text section's body stores headings 2 to 6 (ID-3950).**
+  Before, an editor re-save turned a stored h2, h5 or h6 into a paragraph.
+  Stored levels are drawn as stored; the contract's re-ranking from the
+  section's heading base is M4. Every other rich-text field keeps its own,
+  narrower list (see BREAKING).
 - **Slugs (FLEET07).** `docs/contracts/slug-registry.json` regenerated.
   The 6.0.0 entries in `docs/contracts/slug-migrations.json` are retired:
   they only described stored content from before 6.0.0, and no site holds
@@ -246,6 +246,34 @@ markup granularity (cross-reference your site's override manifest).
   contract has no rule for, in every display mode.
 
 ### BREAKING
+- **Rich-text allow-list widened, and narrowed per field (salt-contract
+  1.0.0-rc.7, ID-3950; security-reviewed on PR #26).** `salt_allowed_html()`
+  is the superset and now holds h2 to h6 (still no attribute on any of them;
+  h1 stays forbidden). Each rich-text field is sanitised and edited to its
+  own contract list only: `salt_sanitize_html( $html, $allowed )` takes the
+  field's element kinds, which `salt_field_allowed( $key )` reads from its
+  `salt.allowed` in the generated JSON (failing closed to paragraphs for an
+  unknown key), and `salt_allowed_html_for()` intersects them with the
+  superset, so no list can widen it. The service intro, kept in the post
+  body, uses `SALT_SERVICE_INTRO_ALLOWED`, held to the pinned contract by a
+  test. In the editor, `acf/prepare_field/type=wysiwyg` puts each field's
+  list on its wrapper and `assets/src/js/admin/rich-text-editor.js` narrows
+  its TinyMCE format menu, `valid_elements` and toolbar; the service's own
+  editor is narrowed in `salt_tinymce_config()`. Per field, h2 to h6 are
+  allowed only in the rich-text body:
+  - call-to-action `body` and media-text `content`: h3 and h4, plus
+    paragraph, bold, italic, code, link, lists and blockquote;
+  - a features item's `text`: no heading (it was h3 and h4);
+  - a case study's `challenge` and `solution`: h3 and h4, no code and no
+    blockquote (they were drawn through `wp_kses_post()`);
+  - an FAQ `answer`: paragraph, bold, italic, link and lists only (it was
+    also h3, h4, blockquote and code);
+  - the service intro: paragraph, bold, italic, link and lists only (it was
+    drawn unfiltered by `the_content()`).
+
+  Anything else is stripped to its text. `salt_sanitize_html()` with no
+  list, as a child theme calls it, keeps the whole superset. The accordion
+  component takes an optional `allowed` list for its re-run sanitiser.
 - **Collections read the contract's own field shape (ID-3610 part B,
   EP-72 M3 unit 7; FLEET07: MAJOR, 6.0.0).** As with the sections, no site
   holds Salt for WordPress content, so there is no dual reader and no
