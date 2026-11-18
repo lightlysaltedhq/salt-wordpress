@@ -103,7 +103,10 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    services become services. It requests `single-service.php`, `single-work.php` and
    `single-post.php` and checks each answers 200 and draws every seeded value the template draws.
    It also checks the service intro runs no shortcode or embed, and that a testimonial rated 4.5
-   draws 90% of five stars on a page. This is a smoke render, not conformance: the view cases'
+   draws 90% of five stars on a page. Known fixture mismatch, pending the contract's EP-70
+   correction: rc.7's service intro holds an `<h3>` its own list does not allow, so the intro's
+   heading is stripped to text; the phase checks the intro's two paragraphs and that no `<h2>` or
+   `<h3>` comes from it, not the heading. This is a smoke render, not conformance: the view cases'
    markup is a later unit.
 7. **The editor, in headless Chromium** against the same server (`browser.mjs`):
    - the fixtures page's classic edit screen renders every row and layout with no console errors;
@@ -117,7 +120,12 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    - the Topics box and the topic screens offer no parent; the service editor has no Add Media
      button and Text tab buttons for its list alone; a summary of 301 two-byte characters is
      refused with the editor message on a service and a post, and 300 is accepted; the hidden post
-     fields are not drawn.
+     fields are not drawn;
+   - a url that is not absolute http, https, mailto or tel is refused on save: a service's external
+     cta refuses `/contact`, `#pricing`, `//x.example`, `javascript:` and `ftp:` and takes https and
+     mailto, and a case study's `externalUrl` refuses a path and takes https;
+   - on each collection's edit screen, a title of 121 two-byte characters is refused with the
+     editor message and 120 is not.
 8. Prints a summary, drops the database and removes the temporary directory, whether the run
    passed, failed or was interrupted.
 
