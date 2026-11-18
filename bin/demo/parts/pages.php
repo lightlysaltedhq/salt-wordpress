@@ -14,8 +14,8 @@
  * CPT sections use view_all => 1 to link to the native archives via
  * url:archive/service and url:archive/work.
  *
- * Every section row carries the shared §11 wrapper fields (spacing, tone,
- * width, anchorId, divider: the contract's section settings);
+ * Every section row carries the contract's section settings in its
+ * `settings` group (spacing, tone, width, anchorId, divider);
  * backgrounds are varied for vertical rhythm.
  *
  * @package Salt\Demo
@@ -40,21 +40,31 @@ return array(
 				'heading'       => 'We build brands people remember',
 				'subheading'    => 'Northbeam Studio is a London design and development team helping ambitious companies launch brands, websites and products that earn attention and keep it.',
 				'image'         => 'ref:image/hero-home',
-				'cta_primary'   => array(
-					'title'  => 'Start a project',
-					'url'    => 'url:page/contact',
-					'target' => '',
+				'buttons'       => array(
+					array(
+						'link'  => array(
+							'label'    => 'Start a project',
+							'type'     => 'internal',
+							'document' => 'ref:page/contact',
+						),
+						'style' => 'primary',
+					),
+					array(
+						'link'  => array(
+							'label' => 'See our work',
+							'type'  => 'external',
+							'url'   => 'url:archive/work',
+						),
+						'style' => 'secondary',
+					),
 				),
-				'cta_secondary' => array(
-					'title'  => 'See our work',
-					'url'    => 'url:archive/work',
-					'target' => '',
+				'settings'      => array(
+					'spacing'  => 'md',
+					'tone'     => 'surface',
+					'width'    => 'wide',
+					'anchorId' => '',
+					'divider'  => 0,
 				),
-				'spacing'       => 'md',
-				'tone'          => 'surface',
-				'width'         => 'wide',
-				'anchorId'      => '',
-				'divider'       => 0,
 			),
 
 			array(
@@ -88,11 +98,13 @@ return array(
 					),
 				),
 				'greyscale'     => 1,
-				'spacing'       => 'md',
-				'tone'          => 'surface-alt',
-				'width'         => 'default',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'md',
+					'tone'     => 'surface-alt',
+					'width'    => 'default',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -108,11 +120,13 @@ return array(
 					'ref:service/web-design',
 					'ref:service/seo-content',
 				),
-				'spacing'       => 'lg',
-				'tone'          => 'surface',
-				'width'         => 'default',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface',
+					'width'    => 'default',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -141,11 +155,13 @@ return array(
 						'label'  => 'Clients who return',
 					),
 				),
-				'spacing'       => 'md',
-				'tone'          => 'surface-inverse',
-				'width'         => 'wide',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'md',
+					'tone'     => 'surface-inverse',
+					'width'    => 'wide',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -157,18 +173,25 @@ return array(
 						'heading'   => 'A studio, not a factory',
 						'content'   => '<p>We are a small senior team by design. The people who scope your project are the people who deliver it, so nothing gets lost between the pitch and the launch.</p><p>That means fewer handoffs, sharper decisions, and work we are genuinely proud to put our name to.</p>',
 						'mediaSide' => 'left',
-						'cta'       => array(
-							'title'  => 'More about us',
-							'url'    => 'url:page/about',
-							'target' => '',
+						'buttons'   => array(
+							array(
+								'link'  => array(
+									'label'    => 'More about us',
+									'type'     => 'internal',
+									'document' => 'ref:page/about',
+								),
+								'style' => 'secondary',
+							),
 						),
 					),
 				),
-				'spacing'       => 'lg',
-				'tone'          => 'surface',
-				'width'         => 'default',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface',
+					'width'    => 'default',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -178,11 +201,13 @@ return array(
 				'eyebrow'       => 'Client stories',
 				'source'        => 'default',
 				'count'         => 6,
-				'spacing'       => 'lg',
-				'tone'          => 'surface-alt',
-				'width'         => 'default',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface-alt',
+					'width'    => 'default',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -193,11 +218,13 @@ return array(
 				'view_all'      => 1,
 				'source'        => 'default',
 				'count'         => 4,
-				'spacing'       => 'lg',
-				'tone'          => 'surface',
-				'width'         => 'wide',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface',
+					'width'    => 'wide',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -228,11 +255,13 @@ return array(
 					),
 				),
 				'structuredData' => 0,
-				'spacing'        => 'md',
-				'tone'           => 'surface-alt',
-				'width'          => 'default',
-				'anchorId'       => '',
-				'divider'        => 0,
+				'settings'       => array(
+					'spacing'  => 'md',
+					'tone'     => 'surface-alt',
+					'width'    => 'default',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -242,11 +271,13 @@ return array(
 				'columns'       => '4',
 				'source'        => 'default',
 				'count'         => 4,
-				'spacing'       => 'lg',
-				'tone'          => 'surface',
-				'width'         => 'wide',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface',
+					'width'    => 'wide',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -254,36 +285,48 @@ return array(
 				'eyebrow'        => 'Good to know',
 				'heading'        => 'Common questions',
 				'structuredData' => 1,
-				'source'         => 'taxonomy',
-				'taxonomy_terms' => array( 'ref:term/faq_category/general' ),
-				'spacing'        => 'lg',
-				'tone'           => 'surface-alt',
-				'width'          => 'narrow',
-				'anchorId'       => '',
-				'divider'        => 0,
+				'query'          => array(
+					'mode'       => 'by-category',
+					'categories' => array( 'ref:term/faq_category/general' ),
+				),
+				'settings'       => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface-alt',
+					'width'    => 'narrow',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
 				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Ready to start?',
-				'body'          => 'Tell us what you are building. We will come back within a day with a few honest thoughts and next steps.',
+				'body'          => '<p>Tell us what you are building. We will come back within a day with a few honest thoughts and next steps.</p>',
 				'buttons'       => array(
 					array(
-						'label' => 'Start a project',
-						'url'   => 'url:page/contact',
+						'link'  => array(
+							'label'    => 'Start a project',
+							'type'     => 'internal',
+							'document' => 'ref:page/contact',
+						),
 						'style' => 'primary',
 					),
 					array(
-						'label' => 'See our work',
-						'url'   => 'url:archive/work',
+						'link'  => array(
+							'label' => 'See our work',
+							'type'  => 'external',
+							'url'   => 'url:archive/work',
+						),
 						'style' => 'ghost',
 					),
 				),
-				'spacing'       => 'lg',
-				'tone'          => 'brand-tint',
-				'width'         => 'default',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'brand-tint',
+					'width'    => 'default',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 		),
 	),
@@ -296,27 +339,31 @@ return array(
 		'sections' => array(
 
 			array(
-				'acf_fc_layout' => 'intro',
+				'acf_fc_layout' => 'rich-text',
 				'eyebrow'       => 'About Northbeam',
 				'heading'       => 'Design and technology in equal measure',
-				'content'       => '<p>We started Northbeam because too much good work falls apart in the gap between design and build. We close that gap by keeping both under one roof and one senior team.</p>',
-				'align'         => 'center',
-				'spacing'       => 'lg',
-				'tone'          => 'surface',
-				'width'         => 'narrow',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'body'          => '<p>We started Northbeam because too much good work falls apart in the gap between design and build. We close that gap by keeping both under one roof and one senior team.</p>',
+				'alignment'     => 'centre',
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface',
+					'width'    => 'narrow',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
 				'acf_fc_layout' => 'rich-text',
 				'heading'       => 'Our story',
 				'body'          => '<p>Northbeam Studio began in 2013 above a coffee roastery in Shoreditch, with two founders, one laptop each and a stubborn belief that brand and product should be built together.</p><p>A decade on, we are a team of designers, engineers and strategists working with founders, marketing leads and product teams across the UK and beyond. We have grown carefully — hiring for craft and character rather than headcount — so the studio still feels like the one we set out to build.</p><blockquote><p>Do fewer things, and do them properly.</p></blockquote><p>That principle shows up everywhere: in the projects we take on, the way we scope them, and the long relationships that follow. Most of our new work still comes from people we have worked with before.</p>',
-				'spacing'       => 'lg',
-				'tone'          => 'surface-alt',
-				'width'         => 'narrow',
-				'anchorId'      => 'story',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface-alt',
+					'width'    => 'narrow',
+					'anchorId' => 'story',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -345,11 +392,13 @@ return array(
 						'label'  => 'Work from repeat clients',
 					),
 				),
-				'spacing'       => 'md',
-				'tone'          => 'surface-inverse',
-				'width'         => 'wide',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'md',
+					'tone'     => 'surface-inverse',
+					'width'    => 'wide',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -359,11 +408,13 @@ return array(
 				'columns'       => '3',
 				'source'        => 'default',
 				'count'         => 0,
-				'spacing'       => 'lg',
-				'tone'          => 'surface',
-				'width'         => 'wide',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface',
+					'width'    => 'wide',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -389,11 +440,13 @@ return array(
 					),
 				),
 				'structuredData' => 0,
-				'spacing'        => 'md',
-				'tone'           => 'surface-alt',
-				'width'          => 'default',
-				'anchorId'       => '',
-				'divider'        => 0,
+				'settings'       => array(
+					'spacing'  => 'md',
+					'tone'     => 'surface-alt',
+					'width'    => 'default',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -427,40 +480,50 @@ return array(
 						'role'  => '',
 					),
 				),
-				'spacing'       => 'lg',
-				'tone'          => 'surface',
-				'width'         => 'wide',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface',
+					'width'    => 'wide',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
 				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Like how we think?',
-				'body'          => 'We would love to hear what you are working on. Start a conversation and we will take it from there.',
+				'body'          => '<p>We would love to hear what you are working on. Start a conversation and we will take it from there.</p>',
 				'buttons'       => array(
 					array(
-						'label' => 'Start a project',
-						'url'   => 'url:page/contact',
+						'link'  => array(
+							'label'    => 'Start a project',
+							'type'     => 'internal',
+							'document' => 'ref:page/contact',
+						),
 						'style' => 'primary',
 					),
 					array(
-						'label' => 'Meet the team',
-						'url'   => 'url:page/team',
+						'link'  => array(
+							'label'    => 'Meet the team',
+							'type'     => 'internal',
+							'document' => 'ref:page/team',
+						),
 						'style' => 'secondary',
 					),
 				),
-				'spacing'       => 'lg',
-				'tone'          => 'brand-tint',
-				'width'         => 'default',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'brand-tint',
+					'width'    => 'default',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 		),
 	),
 
 	// ---------------------------------------------------------------
-	// APPROACH — services as features, process, pricing, proof, CTA.
+	// APPROACH — services as features, process, proof, CTA.
 	// ---------------------------------------------------------------
 	'approach' => array(
 		'title'    => 'Our Approach',
@@ -472,22 +535,24 @@ return array(
 				'eyebrow'       => 'Our approach',
 				'heading'       => 'A considered way of working',
 				'subheading'    => 'Great outcomes are rarely an accident. Here is how we turn a brief into work that performs — and how we price it.',
-				'image'         => 'ref:image/hero-approach',
-				'cta_primary'   => array(
-					'title'  => 'Start a project',
-					'url'    => 'url:page/contact',
-					'target' => '',
+				'buttons'       => array(
+					array(
+						'link'  => array(
+							'label'    => 'Start a project',
+							'type'     => 'internal',
+							'document' => 'ref:page/contact',
+						),
+						'style' => 'primary',
+					),
 				),
-				'cta_secondary' => array(
-					'title'  => '',
-					'url'    => '',
-					'target' => '',
+				'settings'      => array(
+					'spacing'         => 'md',
+					'tone'            => 'surface',
+					'width'           => 'full',
+					'anchorId'        => '',
+					'divider'         => 0,
+					'backgroundImage' => array( 'image' => 'ref:image/hero-approach' ),
 				),
-				'spacing'       => 'md',
-				'tone'          => 'surface',
-				'width'         => 'full',
-				'anchorId'      => '',
-				'divider'       => 0,
 			),
 
 			array(
@@ -500,68 +565,46 @@ return array(
 						'icon'  => 'sparkles',
 						'title' => 'Brand identity',
 						'text'  => 'Names, logos, systems and guidelines that make you look the size you want to be.',
-						'url'   => array(
-							'title'  => 'Explore brand identity',
-							'url'    => 'url:service/brand-identity',
-							'target' => '',
-						),
+						'url'   => 'url:service/brand-identity',
 					),
 					array(
 						'icon'  => 'layout',
 						'title' => 'Web design',
 						'text'  => 'Websites designed around your goals and your visitors, not a template.',
-						'url'   => array(
-							'title'  => 'Explore web design',
-							'url'    => 'url:service/web-design',
-							'target' => '',
-						),
+						'url'   => 'url:service/web-design',
 					),
 					array(
 						'icon'  => 'code',
 						'title' => 'Web development',
 						'text'  => 'Fast, accessible, maintainable builds — WordPress, headless or bespoke.',
-						'url'   => array(
-							'title'  => 'Explore web development',
-							'url'    => 'url:service/web-development',
-							'target' => '',
-						),
+						'url'   => 'url:service/web-development',
 					),
 					array(
 						'icon'  => 'trending-up',
 						'title' => 'SEO & content',
 						'text'  => 'The words and structure that help the right people find you and stay.',
-						'url'   => array(
-							'title'  => 'Explore SEO & content',
-							'url'    => 'url:service/seo-content',
-							'target' => '',
-						),
+						'url'   => 'url:service/seo-content',
 					),
 					array(
 						'icon'  => 'shopping-cart',
 						'title' => 'Ecommerce',
 						'text'  => 'Storefronts that turn browsers into buyers and keep them coming back.',
-						'url'   => array(
-							'title'  => 'Explore ecommerce',
-							'url'    => 'url:service/ecommerce',
-							'target' => '',
-						),
+						'url'   => 'url:service/ecommerce',
 					),
 					array(
 						'icon'  => 'users',
 						'title' => 'UX research',
 						'text'  => 'Evidence from real users so big decisions rest on more than opinion.',
-						'url'   => array(
-							'title'  => 'Explore UX research',
-							'url'    => 'url:service/ux-research',
-							'target' => '',
-						),
+						'url'   => 'url:service/ux-research',
 					),
 				),
-				'spacing'       => 'lg',
-				'tone'          => 'surface-alt',
-				'width'         => 'wide',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface-alt',
+					'width'    => 'wide',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -592,75 +635,13 @@ return array(
 					),
 				),
 				'structuredData' => 1,
-				'spacing'        => 'lg',
-				'tone'           => 'surface',
-				'width'          => 'default',
-				'anchorId'       => 'method',
-				'divider'        => 0,
-			),
-
-			array(
-				'acf_fc_layout' => 'pricing',
-				'eyebrow'       => 'Ways to work together',
-				'heading'       => 'Engagements that flex to fit',
-				'plans'         => array(
-					array(
-						'name'     => 'Sprint',
-						'price'    => 'from £6k',
-						'period'   => '/ project',
-						'features' => array(
-							array( 'text' => 'A focused two-week engagement' ),
-							array( 'text' => 'One clear problem, one clear outcome' ),
-							array( 'text' => 'Senior designer and developer' ),
-							array( 'text' => 'Fixed scope and fixed price' ),
-						),
-						'cta'      => array(
-							'title'  => 'Enquire',
-							'url'    => 'url:page/contact',
-							'target' => '',
-						),
-						'featured' => 0,
-					),
-					array(
-						'name'     => 'Project',
-						'price'    => 'from £20k',
-						'period'   => '/ project',
-						'features' => array(
-							array( 'text' => 'Full brand or website build' ),
-							array( 'text' => 'Discovery, design and development' ),
-							array( 'text' => 'Dedicated senior team' ),
-							array( 'text' => 'Launch support and handover' ),
-						),
-						'cta'      => array(
-							'title'  => 'Enquire',
-							'url'    => 'url:page/contact',
-							'target' => '',
-						),
-						'featured' => 1,
-					),
-					array(
-						'name'     => 'Partner',
-						'price'    => 'POA',
-						'period'   => '/ month',
-						'features' => array(
-							array( 'text' => 'An ongoing retained relationship' ),
-							array( 'text' => 'A rolling roadmap of work' ),
-							array( 'text' => 'Priority access to the studio' ),
-							array( 'text' => 'Continuous measurement and iteration' ),
-						),
-						'cta'      => array(
-							'title'  => 'Enquire',
-							'url'    => 'url:page/contact',
-							'target' => '',
-						),
-						'featured' => 0,
-					),
+				'settings'       => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface',
+					'width'    => 'default',
+					'anchorId' => 'method',
+					'divider'  => 0,
 				),
-				'spacing'       => 'lg',
-				'tone'          => 'surface-alt',
-				'width'         => 'wide',
-				'anchorId'      => 'pricing',
-				'divider'       => 0,
 			),
 
 			array(
@@ -670,29 +651,36 @@ return array(
 				'eyebrow'       => 'In their words',
 				'source'        => 'default',
 				'count'         => 3,
-				'spacing'       => 'lg',
-				'tone'          => 'surface',
-				'width'         => 'default',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface',
+					'width'    => 'default',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
 				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Have a project in mind?',
-				'body'          => 'Tell us about it. We will suggest the right way to work together — and never sell you more than you need.',
+				'body'          => '<p>Tell us about it. We will suggest the right way to work together — and never sell you more than you need.</p>',
 				'buttons'       => array(
 					array(
-						'label' => 'Start a project',
-						'url'   => 'url:page/contact',
+						'link'  => array(
+							'label'    => 'Start a project',
+							'type'     => 'internal',
+							'document' => 'ref:page/contact',
+						),
 						'style' => 'primary',
 					),
 				),
-				'spacing'       => 'lg',
-				'tone'          => 'brand-tint',
-				'width'         => 'default',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'brand-tint',
+					'width'    => 'default',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 		),
 	),
@@ -712,24 +700,29 @@ return array(
 				'showEmail'     => 1,
 				'showAddress'   => 1,
 				'formIntro'     => 'Prefer to write it out? Drop us a line and the right person will pick it up.',
-				'spacing'       => 'lg',
-				'tone'          => 'surface',
-				'width'         => 'default',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface',
+					'width'    => 'default',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
 				'acf_fc_layout' => 'locations',
 				'eyebrow'       => 'Find us',
 				'heading'       => 'Our studios',
-				'source'        => 'default',
-				'count'         => 0,
-				'spacing'       => 'lg',
-				'tone'          => 'surface-alt',
-				'width'         => 'wide',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'query'         => array(
+					'mode' => 'automatic',
+				),
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface-alt',
+					'width'    => 'wide',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 		),
 	),
@@ -747,22 +740,23 @@ return array(
 				'eyebrow'       => 'Our people',
 				'heading'       => 'The team behind the work',
 				'subheading'    => 'Designers, engineers and strategists who genuinely like working together — and it shows in what we make.',
-				'image'         => 'ref:image/hero-team',
-				'cta_primary'   => array(
-					'title'  => 'Work with us',
-					'url'    => 'url:page/contact',
-					'target' => '',
+				'buttons'       => array(
+					array(
+						'link'  => array(
+							'label'    => 'Work with us',
+							'type'     => 'internal',
+							'document' => 'ref:page/contact',
+						),
+						'style' => 'primary',
+					),
 				),
-				'cta_secondary' => array(
-					'title'  => '',
-					'url'    => '',
-					'target' => '',
+				'settings'      => array(
+					'spacing'  => 'md',
+					'tone'     => 'surface',
+					'width'    => 'narrow',
+					'anchorId' => '',
+					'divider'  => 0,
 				),
-				'spacing'       => 'md',
-				'tone'          => 'surface',
-				'width'         => 'narrow',
-				'anchorId'      => '',
-				'divider'       => 0,
 			),
 
 			array(
@@ -772,51 +766,60 @@ return array(
 				'columns'       => '3',
 				'source'        => 'default',
 				'count'         => 0,
-				'spacing'       => 'lg',
-				'tone'          => 'surface-alt',
-				'width'         => 'wide',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface-alt',
+					'width'    => 'wide',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
 				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Want to join us?',
-				'body'          => 'We are always glad to meet good people. If you care about craft as much as we do, get in touch.',
+				'body'          => '<p>We are always glad to meet good people. If you care about craft as much as we do, get in touch.</p>',
 				'buttons'       => array(
 					array(
-						'label' => 'Say hello',
-						'url'   => 'url:page/contact',
+						'link'  => array(
+							'label'    => 'Say hello',
+							'type'     => 'internal',
+							'document' => 'ref:page/contact',
+						),
 						'style' => 'primary',
 					),
 				),
-				'spacing'       => 'lg',
-				'tone'          => 'brand-tint',
-				'width'         => 'default',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'brand-tint',
+					'width'    => 'default',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 		),
 	),
 
 	// ---------------------------------------------------------------
-	// FAQ — intro, full FAQ accordion (schema on), CTA.
+	// FAQ — rich-text lead, full FAQ accordion (schema on), CTA.
 	// ---------------------------------------------------------------
 	'faq'      => array(
 		'title'    => 'FAQ',
 		'sections' => array(
 
 			array(
-				'acf_fc_layout' => 'intro',
+				'acf_fc_layout' => 'rich-text',
 				'eyebrow'       => 'Questions & answers',
 				'heading'       => 'Everything you were about to ask',
-				'content'       => '<p>A few of the things people most often want to know before we begin. Cannot find your question? <a href="url:page/contact">Just ask us</a> — we are happy to help.</p>',
-				'align'         => 'center',
-				'spacing'       => 'lg',
-				'tone'          => 'surface',
-				'width'         => 'narrow',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'body'          => '<p>A few of the things people most often want to know before we begin. Cannot find your question? <a href="url:page/contact">Just ask us</a> — we are happy to help.</p>',
+				'alignment'     => 'centre',
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface',
+					'width'    => 'narrow',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
@@ -824,31 +827,39 @@ return array(
 				'eyebrow'        => '',
 				'heading'        => 'Frequently asked questions',
 				'structuredData' => 1,
-				'source'         => 'default',
-				'count'          => 0,
-				'spacing'        => 'lg',
-				'tone'           => 'surface-alt',
-				'width'          => 'narrow',
-				'anchorId'       => '',
-				'divider'        => 0,
+				'query'          => array(
+					'mode' => 'automatic',
+				),
+				'settings'       => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface-alt',
+					'width'    => 'narrow',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 
 			array(
 				'acf_fc_layout' => 'call-to-action',
 				'heading'       => 'Still have a question?',
-				'body'          => 'We are real people and we reply quickly. Send it over and we will get you an honest answer.',
+				'body'          => '<p>We are real people and we reply quickly. Send it over and we will get you an honest answer.</p>',
 				'buttons'       => array(
 					array(
-						'label' => 'Contact us',
-						'url'   => 'url:page/contact',
+						'link'  => array(
+							'label'    => 'Contact us',
+							'type'     => 'internal',
+							'document' => 'ref:page/contact',
+						),
 						'style' => 'primary',
 					),
 				),
-				'spacing'       => 'lg',
-				'tone'          => 'brand-tint',
-				'width'         => 'default',
-				'anchorId'      => '',
-				'divider'       => 0,
+				'settings'      => array(
+					'spacing'  => 'lg',
+					'tone'     => 'brand-tint',
+					'width'    => 'default',
+					'anchorId' => '',
+					'divider'  => 0,
+				),
 			),
 		),
 	),

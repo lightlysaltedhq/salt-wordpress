@@ -38,8 +38,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *                                structuredData field. The HowTo node is
  *                                already queued; a view draws nothing for it.
  *
- * Naming gaps against the contract: `intro` has no field; a step has no
- * `image` or `cta`; step `text`/`icon` are '' rather than null.
+ * Naming gaps against the contract: `intro` and a step's `image` and `cta`
+ * are stored but not supplied yet (M4); step `text`/`icon` are '' rather than null.
  *
  * @param array<string,mixed> $context Loop context: index, is_primary.
  * @return array{section: array<string,mixed>, props: array<string,mixed>}|null Null = 0-state.

@@ -4,8 +4,8 @@
  * "view" in salt-overrides.json. Draws the parent resolver's props only.
  *
  * $args:
- *   props  array{ heading: string|null, body_text: string|null,
- *                 buttons: array<int, array{label: string, href: string, style: string}> }
+ *   props  array{ heading: string|null, body: string|null,
+ *                 buttons: array<int, array{label: string, href: string, style: string, newTab: bool}> }
  *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
  *
  * @package Grain
