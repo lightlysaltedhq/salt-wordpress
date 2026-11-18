@@ -211,6 +211,8 @@ phase "theme's field groups" "$PHP" "$HERE/php/theme-groups.php"
 # The theme registers the generated JSON itself (inc/acf.php); the contract phase checks it.
 phase "contract field shape: register, seed, read back, storage" "$PHP" "$HERE/php/contract.php"
 phase "the theme renders it (resolvers on real ACF values)" "$PHP" "$HERE/php/render.php"
+# After the render, so the posts it makes are not in the page's FAQ and locations queries.
+phase "collection fields: seed every post type, read back, storage" "$PHP" "$HERE/php/collections.php"
 
 if [ "$BROWSER" = 1 ]; then
 	# PHP's default max_input_vars (1000) truncates the re-save of a page holding every fixture

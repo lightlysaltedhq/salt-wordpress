@@ -46,9 +46,11 @@ in `composer.json`) and Playwright 1.65.1 with its headless Chromium (`package.j
    has the salt theme active (symlinked to this checkout), ACF Pro activated, `WP_DEBUG_LOG` on
    and outbound HTTP blocked.
 2. **The theme's own groups.** It loads every field group the theme registers through ACF. That
-   is 23 groups; the page sections group holds the 12 layouts generated from the contract
-   (`inc/fields/generated/sections.json`) and the 6 hand-written collection layouts. Any PHP notice, warning, deprecation or `salt_log` line in `debug.log` fails the
-   phase. This applies to every phase.
+   is 24 groups. The page sections group holds the 12 layouts generated from the contract
+   (`inc/fields/generated/sections.json`) and the 6 hand-written collection layouts. The 7
+   collection groups, one per post type, are generated too (`inc/fields/generated/collections.json`).
+   Any PHP notice, warning, deprecation or `salt_log` line in `debug.log` fails the phase. This
+   applies to every phase.
 3. **The contract's field shape.** `emit.mjs` writes `acfSnapshot()` from the theme's pinned
    contract with the theme's own options (`inc/fields/generated/sections.options.json`) and
    reports whether it is identical to the committed JSON. The theme registers that JSON through
@@ -72,7 +74,16 @@ in `composer.json`) and Playwright 1.65.1 with its headless Chromium (`package.j
    content must draw a band (faq and locations have no posts to query there), button links must
    resolve (external with a new tab, internal to its document), `settings.anchorId` must reach the
    band, and the page must have one H1.
-5. **The editor, in headless Chromium** against PHP's built-in server (`browser.mjs`):
+5. **The collection fields.** `php/collections.php` checks that the theme registers the 7
+   collection groups verbatim from `inc/fields/generated/collections.json`, each located on its
+   post type (services on `service`, case studies on `work`, testimonials, posts, team on
+   `team_member`, faqs and locations). It makes a post of each type and seeds a value for every
+   generated field through `update_field()`, including a post's layout with a row of every section
+   it offers. Each value is read back with `get_field()` and compared, and every meta path must
+   carry its field key. The places WordPress keeps natively (`salt.native`: the title, the
+   excerpt, the body and the featured image) are set the WordPress way and read back through the
+   theme's own readers.
+6. **The editor, in headless Chromium** against PHP's built-in server (`browser.mjs`):
    - the fixtures page's classic edit screen renders every row and layout with no console errors;
    - the faq section's collection query mode shows categories or items, and order and count unless
      the mode is manual;
@@ -80,7 +91,7 @@ in `composer.json`) and Playwright 1.65.1 with its headless Chromium (`package.j
      page publish;
    - re-saving the fixtures page from the browser changes nothing unexplained. Every meta row is
      diffed before and after, and each change is put in a named class or failed.
-6. Prints a summary, drops the database and removes the temporary directory, whether the run
+7. Prints a summary, drops the database and removes the temporary directory, whether the run
    passed, failed or was interrupted.
 
 ## Reading the re-save diff
