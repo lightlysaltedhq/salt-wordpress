@@ -2,7 +2,7 @@
 
 Proves the Salt contract's field shape works natively on real ACF Pro. The field shape is the pinned
 `@lightlysaltedhq/salt-contract` emitter's `acfSnapshot` output. On ACF Pro 6.8.11 and WordPress
-7.1.4 (the latest release), the harness checks that it registers, saves, reads back, edits and
+7.1.5 (the latest release), the harness checks that it registers, saves, reads back, edits and
 re-saves. The theme's hand-written ACF stand-in (`tests/shims/acf.php`) can then be checked against real ACF behaviour.
 Dev only: nothing here ships, and the theme's own `composer install` and `npm ci` do not touch it.
 
@@ -38,7 +38,7 @@ It needs:
 
   Never commit the zip, `auth.json` or the credentials. `.gitignore` here covers the first two.
 
-On first use it installs its own locked dependencies: WordPress 7.1.4 (`roots/wordpress-no-content`
+On first use it installs its own locked dependencies: WordPress 7.1.5 (`roots/wordpress-no-content`
 in `composer.json`, pinned exactly) and Playwright 1.65.1 with its headless Chromium
 (`package.json`). It reinstalls WordPress when the installed copy differs from `composer.lock`.
 
@@ -162,5 +162,5 @@ These changes are expected and reported, not failed:
   `salt.modeRequires` server validation are not built yet. They are only stored and read back.
 - **Licensing.** It does not cover ACF Pro licence activation or updates. Pro field types work on
   this unlicensed local site.
-- **Other environments.** It covers ACF Pro 6.8.11 and WordPress 7.1.4 only, and does not check
+- **Other environments.** It covers ACF Pro 6.8.11 and WordPress 7.1.5 only, and does not check
   the block editor (the theme turns it off) or browsers other than Chromium.
