@@ -21,25 +21,112 @@
 		"work"
 	],
 	"fields": {
-		"group_salt_faq": [
+		"group_salt_collection_case_studies": [
+			"challenge",
+			"client",
+			"details",
+			"externalUrl",
+			"gallery",
+			"label",
+			"results",
+			"services",
+			"solution",
+			"stat",
+			"value"
+		],
+		"group_salt_collection_faqs": [
 			"answer"
 		],
-		"group_salt_location": [
+		"group_salt_collection_locations": [
 			"address",
-			"appointment_only",
-			"city",
+			"appointment",
 			"close",
 			"country",
 			"day",
 			"email",
-			"geo",
-			"line1",
-			"line2",
+			"hours",
+			"lat",
+			"lng",
+			"locality",
 			"open",
-			"opening_hours",
 			"phone",
-			"postcode",
-			"region"
+			"postalCode",
+			"region",
+			"street",
+			"zoom"
+		],
+		"group_salt_collection_posts": [
+			"alignment",
+			"anchorId",
+			"author",
+			"backgroundImage",
+			"body",
+			"buttons",
+			"captions",
+			"categories",
+			"columns",
+			"content",
+			"count",
+			"divider",
+			"document",
+			"eyebrow",
+			"firstPageOnly",
+			"fit",
+			"heading",
+			"image",
+			"images",
+			"intro",
+			"items",
+			"label",
+			"layout",
+			"link",
+			"mediaSide",
+			"mode",
+			"newTab",
+			"order",
+			"position",
+			"primaryTopic",
+			"query",
+			"rows",
+			"scrim",
+			"scrimStrength",
+			"settings",
+			"spacing",
+			"structuredData",
+			"style",
+			"tone",
+			"toneDark",
+			"type",
+			"url",
+			"width"
+		],
+		"group_salt_collection_services": [
+			"benefits",
+			"cta",
+			"document",
+			"icon",
+			"label",
+			"newTab",
+			"priceFrom",
+			"relatedServices",
+			"text",
+			"type",
+			"url"
+		],
+		"group_salt_collection_team": [
+			"bio",
+			"email",
+			"name",
+			"phone",
+			"role",
+			"socials",
+			"url"
+		],
+		"group_salt_collection_testimonials": [
+			"company",
+			"quote",
+			"rating",
+			"role"
 		],
 		"group_salt_options_analytics": [
 			"ga4_enabled",
@@ -205,47 +292,8 @@
 			"view_all",
 			"width"
 		],
-		"group_salt_service": [
-			"benefit",
-			"benefits",
-			"cta",
-			"headline",
-			"icon",
-			"price_from",
-			"related_services",
-			"summary"
-		],
-		"group_salt_team_member": [
-			"email",
-			"phone",
-			"platform",
-			"role",
-			"short_bio",
-			"socials",
-			"url"
-		],
-		"group_salt_testimonial": [
-			"company",
-			"logo",
-			"quote",
-			"rating",
-			"role",
-			"service"
-		],
 		"group_salt_user": [
 			"profile_photo"
-		],
-		"group_salt_work": [
-			"challenge",
-			"client",
-			"gallery",
-			"label",
-			"live_url",
-			"results",
-			"services",
-			"solution",
-			"stat",
-			"summary"
 		]
 	}
 }
