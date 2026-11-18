@@ -164,44 +164,44 @@ acf snapshot `inc/fields/generated/sections.json` with options `inc/fields/gener
 
 ### page
 
-- `page/fallback-heading`: the adapter exited 4; stderr: `salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `page/header-section-footer`: the adapter exited 4; stderr: `salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `page/hero-minimal-centre`: the adapter exited 4; stderr: `salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `page/hero-split-image`: the adapter exited 4; stderr: `salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `page/fallback-heading`: missing at `html > head > noscript`: expected `<noscript>`, found nothing
+- `page/header-section-footer`: missing at `html > head > noscript`: expected `<noscript>`, found nothing
+- `page/hero-minimal-centre`: missing at `html > head > noscript`: expected `<noscript>`, found nothing
+- `page/hero-split-image`: missing at `html > head > noscript`: expected `<noscript>`, found nothing
 
 ### post
 
-- `post/band-call-to-action`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `post/band-faq`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `post/band-gallery-one-image`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `post/band-media-text`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `post/full`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `post/minimal`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `post/band-call-to-action`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `post/band-faq`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `post/band-gallery-one-image`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `post/band-media-text`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `post/full`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `post/minimal`: attribute `tabindex` at `main`: expected `-1`, found nothing
 
 ### service
 
-- `service/full`: the adapter exited 4; stderr: `salt adapter: the view service is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `service/minimal`: the adapter exited 4; stderr: `salt adapter: the view service is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `service/full`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `service/minimal`: attribute `tabindex` at `main`: expected `-1`, found nothing
 
 ### case-study
 
-- `case-study/aside`: the adapter exited 4; stderr: `salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `case-study/band`: the adapter exited 4; stderr: `salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `case-study/full`: the adapter exited 4; stderr: `salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `case-study/minimal`: the adapter exited 4; stderr: `salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `case-study/aside`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `case-study/band`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `case-study/full`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `case-study/minimal`: attribute `tabindex` at `main`: expected `-1`, found nothing
 
 ### archive
 
-- `archive/author`: the adapter exited 4; stderr: `salt adapter: the view archive is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `archive/topic`: the adapter exited 4; stderr: `salt adapter: the view archive is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `archive/author`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `archive/topic`: attribute `tabindex` at `main`: expected `-1`, found nothing
 
 ### search
 
-- `search/no-query`: the adapter exited 4; stderr: `salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `search/no-results`: the adapter exited 4; stderr: `salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `search/results`: the adapter exited 4; stderr: `salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `search/no-query`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `search/no-results`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `search/results`: attribute `tabindex` at `main`: expected `-1`, found nothing
 
 ### not-found
 
-- `not-found/minimal`: the adapter exited 4; stderr: `salt adapter: the view not-found is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `not-found/with-search`: the adapter exited 4; stderr: `salt adapter: the view not-found is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `not-found/minimal`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `not-found/with-search`: attribute `tabindex` at `main`: expected `-1`, found nothing
