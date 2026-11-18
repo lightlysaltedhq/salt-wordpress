@@ -84,11 +84,11 @@
  *   for the frozen seeds and the grid only.
  * - Hover anywhere HOVER does not name. It is declared from the templates,
  *   not read from them.
- * - The built stylesheet. Tailwind drops theme variables that nothing
- *   reads, so a role measured here from app.css can be absent from
- *   assets/dist. Today `accent` is declared there only under grayscale, and
- *   `on-accent` only arrives with salt_brand_css()'s block when a brand is
- *   set (measured in Chrome 148.0.7778.96 against app.59614ed624.css).
+ * - The built stylesheet. app.css's block is `@theme static`, so Tailwind
+ *   writes out every role it declares; that the contract's token layer
+ *   reaches assets/dist is held by TokenLayerTest, not here. (Before
+ *   `static`, `accent` was declared there only under grayscale, measured in
+ *   Chrome 148.0.7778.96 against app.59614ed624.css.)
  * - That surface.alt, border and focus RESOLVE. The role check finds a
  *   declaration such as `--color-border:` in app.css and reads nothing after
  *   the colon; only the roles a contrast pair names are resolved.
@@ -184,10 +184,15 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * (services.php) set their supporting copy in text-ink-muted. The
 	 * contract measures `ink` on `brand.tint` and `ink.muted` on `surface`
 	 * but not this, and in light mode with grayscale it measured 4.40:1
-	 * (lightlysaltedhq/salt-wordpress#6).
+	 * (lightlysaltedhq/salt-wordpress#6). `border.strong` on `surface` and
+	 * `surface.alt`: the contract's stylesheet (salt.css) draws a control's
+	 * boundary with it on the light tones, and its token layer holds it to
+	 * 3:1 there, a rule the vocabulary does not state.
 	 */
 	private const SALT_PAIRS = array(
 		array( 'ink.muted', 'brand.tint', 4.5 ),
+		array( 'border.strong', 'surface', 3.0 ),
+		array( 'border.strong', 'surface.alt', 3.0 ),
 	);
 
 	/**
@@ -582,6 +587,12 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 */
 	private static function colour_rule( string $prelude, string $body, int $offset ): ?array {
 		$prelude = (string) preg_replace( '/\s+/', ' ', $prelude );
+
+		// `static` changes only which variables Tailwind writes out, not where
+		// they sit in the cascade, so the block ranks as @theme either way.
+		if ( '@theme static' === $prelude ) {
+			$prelude = '@theme';
+		}
 
 		if ( 0 === preg_match( '/(--color-[\w-]*)\s*:/', $body, $first ) ) {
 			return null;

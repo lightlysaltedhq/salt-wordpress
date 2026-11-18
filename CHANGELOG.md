@@ -10,6 +10,24 @@ markup granularity (cross-reference your site's override manifest).
 
 ### Added
 
+- **The contract's token layer and stylesheet, beside Tailwind (ID-3611,
+  EP-72 M3 unit 9).** `assets/src/css/app.css` now emits every token
+  salt-contract 1.0.0-rc.6's `contract/token-layer.json` asks of a theme
+  (109 required, plus the optional `--ease-in-out`): four new colour roles
+  (`ink-muted-inverse`, `border-inverse`, `border-strong`,
+  `border-strong-inverse`) in `@theme`, now `@theme static` so Tailwind
+  keeps roles only salt.css reads, and the text roles, type scale, space,
+  layout roles, measures, radii, opacity and scrims in a plain `:root`
+  block. The build copies the pinned `styles/salt.css` verbatim to
+  `assets/dist/salt.<hash>/salt.css` (the contract finds it by that file
+  name), and `salt_enqueue_assets()` serves it as `salt-contract`, after
+  `salt-app`, as the contract's README requires. `TokenLayerTest` holds the
+  built tokens to the token layer, `ContractStylesheetTest` holds the
+  served file to the package byte for byte, and FoundationsConformanceTest
+  now also measures `border-strong` at 3:1 on `surface` and `surface-alt`.
+  salt.css's base layer sets body text and the headings inside `#main` in
+  their text roles where no utility sets them, so body text grows from
+  16px to a fluid 16–18px. Tailwind stays until ID-3946.
 - **Every section's fields generated from the contract (ID-3610 part A,
   EP-72 M3 unit 3).** `inc/fields/generated/sections.json` is the pinned
   salt-contract 1.0.0-rc.6 emitter's `acfSnapshot` output, committed
