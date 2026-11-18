@@ -2,6 +2,7 @@
 	"admin/contrast-checker.js": "admin/contrast-checker.7215e61bf1.js",
 	"admin/rich-text-editor.js": "admin/rich-text-editor.1133e94113.js",
 	"admin/summary-limit.js": "admin/summary-limit.dac48040d6.js",
+	"admin/title-limit.js": "admin/title-limit.544abfcbc3.js",
 	"analytics/consent.js": "analytics/consent.92c1c22151.js",
 	"analytics/events.js": "analytics/events.d38d22575a.js",
 	"analytics/posthog.js": "analytics/posthog.3b3b52d45f.js",
