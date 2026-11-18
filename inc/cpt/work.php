@@ -70,20 +70,16 @@ function salt_register_cpt_work(): void {
 		'work_type',
 		'work',
 		array(
-			'labels'            => array(
-				'name'          => __( 'Work types', 'salt' ),
-				'singular_name' => __( 'Work type', 'salt' ),
-				'search_items'  => __( 'Search work types', 'salt' ),
-				'edit_item'     => __( 'Edit work type', 'salt' ),
-				'add_new_item'  => __( 'Add new work type', 'salt' ),
-				'menu_name'     => __( 'Work types', 'salt' ),
-			),
-			'hierarchical'      => true,
-			'public'            => true,
-			'show_ui'           => true,
-			'show_in_rest'      => false,
-			'show_admin_column' => true,
-			'rewrite'           => array(
+			'labels'               => salt_topic_labels(), // Topics (inc/cpt/topics.php).
+			'meta_box_cb'          => 'salt_topic_meta_box',
+			'meta_box_sanitize_cb' => 'taxonomy_meta_box_sanitize_cb_checkboxes',
+			// Hierarchical only to keep the checkbox box; topics are flat (inc/cpt/topics.php).
+			'hierarchical'         => true,
+			'public'               => true,
+			'show_ui'              => true,
+			'show_in_rest'         => false,
+			'show_admin_column'    => true,
+			'rewrite'              => array(
 				'slug'       => 'work-type',
 				'with_front' => false,
 			),

@@ -80,6 +80,7 @@ if ( true !== salt_module_enabled( 'service' ) ) {
 
 // 5. The exact production stack: CPT registration on init called
 // salt_module_enabled(), which fataled in ≤3.0.0. Drive it directly.
+require $salt_root . '/inc/cpt/topics.php';
 require $salt_root . '/inc/cpt/service.php';
 salt_register_cpt_service(); // Must not fatal.
 

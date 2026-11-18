@@ -59,21 +59,17 @@ function salt_register_cpt_location(): void {
 		'location_area',
 		array( 'location' ),
 		array(
-			'labels'            => array(
-				'name'          => __( 'Areas', 'salt' ),
-				'singular_name' => __( 'Area', 'salt' ),
-				'add_new_item'  => __( 'Add new area', 'salt' ),
-				'edit_item'     => __( 'Edit area', 'salt' ),
-				'search_items'  => __( 'Search areas', 'salt' ),
-				'not_found'     => __( 'No areas found', 'salt' ),
-			),
-			'description'       => __( 'Group offices by region for section filtering.', 'salt' ),
-			'public'            => false,
-			'show_ui'           => true,
-			'show_admin_column' => true,
-			'show_in_rest'      => false,
-			'hierarchical'      => true,
-			'rewrite'           => false,
+			'labels'               => salt_topic_labels(), // Topics (inc/cpt/topics.php).
+			'meta_box_cb'          => 'salt_topic_meta_box',
+			'meta_box_sanitize_cb' => 'taxonomy_meta_box_sanitize_cb_checkboxes',
+			'description'          => __( 'Group offices by region for section filtering.', 'salt' ),
+			'public'               => false,
+			'show_ui'              => true,
+			'show_admin_column'    => true,
+			'show_in_rest'         => false,
+			// Hierarchical only to keep the checkbox box; topics are flat (inc/cpt/topics.php).
+			'hierarchical'         => true,
+			'rewrite'              => false,
 		)
 	);
 }

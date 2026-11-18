@@ -57,21 +57,17 @@ function salt_register_cpt_faq(): void {
 		'faq_category',
 		'faq',
 		array(
-			'labels'            => array(
-				'name'          => __( 'FAQ categories', 'salt' ),
-				'singular_name' => __( 'FAQ category', 'salt' ),
-				'search_items'  => __( 'Search FAQ categories', 'salt' ),
-				'edit_item'     => __( 'Edit FAQ category', 'salt' ),
-				'add_new_item'  => __( 'Add new FAQ category', 'salt' ),
-				'menu_name'     => __( 'Categories', 'salt' ),
-			),
-			'hierarchical'      => true,
+			'labels'               => salt_topic_labels(), // Topics (inc/cpt/topics.php).
+			'meta_box_cb'          => 'salt_topic_meta_box',
+			'meta_box_sanitize_cb' => 'taxonomy_meta_box_sanitize_cb_checkboxes',
+			// Hierarchical only to keep the checkbox box; topics are flat (inc/cpt/topics.php).
+			'hierarchical'         => true,
 			// Same display-only posture as the CPT (SEC09).
-			'public'            => false,
-			'show_ui'           => true,
-			'show_in_rest'      => false,
-			'rewrite'           => false,
-			'show_admin_column' => true,
+			'public'               => false,
+			'show_ui'              => true,
+			'show_in_rest'         => false,
+			'rewrite'              => false,
+			'show_admin_column'    => true,
 		)
 	);
 }
