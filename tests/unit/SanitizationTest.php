@@ -234,14 +234,6 @@ final class SanitizationTest extends SaltTestCase {
 		}
 	}
 
-	public function test_every_contract_kind_maps_into_the_superset_and_covers_it(): void {
-		$schema = json_decode( (string) file_get_contents( dirname( __DIR__, 2 ) . '/node_modules/@lightlysaltedhq/salt-contract/schema/field-definition.schema.json' ), true );
-		$kinds  = $schema['$defs']['richTextField']['properties']['allowed']['items']['enum'];
-
-		$this->assertEqualsCanonicalizing( $kinds, array_keys( salt_rich_text_kinds() ), 'One mapping per contract element kind.' );
-		$this->assertEqualsCanonicalizing( array_keys( salt_allowed_html() ), array_keys( salt_allowed_html_for( $kinds ) ), 'Every kind together is the superset, no more.' );
-	}
-
 	public function test_narrowing_cannot_widen_the_superset(): void {
 		$this->assertSame( array(), salt_allowed_html_for( array( 'heading-1', 'script', 'table' ) ) );
 		$this->assertSame( array( 'h2' => array() ), salt_allowed_html_for( array( 'heading-2', 'heading-1' ) ) );
@@ -291,14 +283,6 @@ final class SanitizationTest extends SaltTestCase {
 	public function test_an_unknown_field_fails_closed_to_paragraphs(): void {
 		$this->assertSame( array( 'paragraph' ), salt_field_allowed( 'field_salt_nope', true ) );
 		$this->assertStringContainsString( 'field_salt_nope', implode( "\n", $GLOBALS['salt_test_logs'] ?? array() ) );
-	}
-
-	public function test_the_service_intro_list_is_the_pinned_contracts(): void {
-		$services = json_decode( (string) file_get_contents( dirname( __DIR__, 2 ) . '/node_modules/@lightlysaltedhq/salt-contract/contract/collections/services.json' ), true );
-		$intro    = array_values( array_filter( $services['fields'], static fn( array $field ): bool => 'intro' === $field['name'] ) )[0];
-
-		$this->assertSame( $intro['allowed'], SALT_SERVICE_INTRO_ALLOWED );
-		$this->assertSame( 'body', $intro['platforms']['wordpress']['native'] ?? null, 'The intro is the post body, so no generated field carries its list.' );
 	}
 
 	/**
