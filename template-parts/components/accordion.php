@@ -19,6 +19,9 @@
  *                          }
  *                          Empty items array renders NOTHING (COMPL02 0-state).
  *   name  string 'accordion' Native <details name> group (exclusive open).
+ *   allowed string[]|null  optional — the content's contract element kinds
+ *                          (salt_field_allowed()); the re-run sanitiser
+ *                          narrows to them. Null: the whole allow-list.
  *
  * Render via salt_component( 'accordion', … ) / salt_get_component().
  *
@@ -39,6 +42,10 @@ $args = salt_require_args( // phpcs:ignore WordPress.NamingConventions.PrefixAll
 		'name'  => array(
 			'type'    => 'string',
 			'default' => 'accordion',
+		),
+		'allowed' => array(
+			'type'    => 'mixed',
+			'default' => null,
 		),
 	),
 	'accordion'
@@ -67,7 +74,7 @@ if ( array() === $salt_items ) {
 			</span>
 		</summary>
 		<div class="x-accordion-content pb-4 text-ink-muted">
-			<?php echo salt_sanitize_html( (string) ( $salt_item['content'] ?? '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised via salt_sanitize_html() at the point of output. ?>
+			<?php echo salt_sanitize_html( (string) ( $salt_item['content'] ?? '' ), is_array( $args['allowed'] ) ? $args['allowed'] : null ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised via salt_sanitize_html() at the point of output. ?>
 		</div>
 	</details>
 	<?php endforeach; ?>

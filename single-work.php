@@ -147,8 +147,8 @@ while ( have_posts() ) {
 		echo '<div class="mx-auto w-full max-w-5xl px-4 pb-14 sm:px-6 lg:px-8 md:pb-20">';
 		echo '<div class="grid gap-10 md:grid-cols-2">';
 		foreach ( array(
-			array( __( 'The challenge', 'salt' ), $salt_challenge ),
-			array( __( 'The solution', 'salt' ), $salt_solution ),
+			array( __( 'The challenge', 'salt' ), $salt_challenge, 'field_salt_collection_case_studies_challenge' ),
+			array( __( 'The solution', 'salt' ), $salt_solution, 'field_salt_collection_case_studies_solution' ),
 		) as $salt_block ) {
 			if ( '' === trim( $salt_block[1] ) ) {
 				continue;
@@ -163,7 +163,7 @@ while ( have_posts() ) {
 					'classes' => 'mb-4',
 				)
 			);
-			echo '<div class="x-prose">' . wp_kses_post( $salt_block[1] ) . '</div>';
+			echo '<div class="x-prose">' . salt_sanitize_html( $salt_block[1], salt_field_allowed( $salt_block[2] ) ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised to the field's contract list.
 			echo '</div>';
 		}
 		echo '</div>';

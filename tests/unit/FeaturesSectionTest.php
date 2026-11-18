@@ -370,4 +370,22 @@ final class FeaturesSectionTest extends SaltTestCase {
 		$this->assertStringContainsString( 'sm:grid-cols-2', $html );
 		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
 	}
+	public function test_item_text_keeps_no_heading_under_the_card_title(): void {
+		$resolved = $this->resolve_features(
+			array(
+				'items' => array(
+					array(
+						'title' => 'Fast',
+						'text'  => '<h2>Card</h2><h3>Sub</h3><blockquote><p>Q</p></blockquote>',
+					),
+				),
+			)
+		);
+		$text = $resolved['props']['items'][0]['text'];
+
+		$this->assertStringNotContainsString( '<h2', $text, 'A features item allows no heading (salt.allowed): an h2 would break the outline under the h3 card title (A11Y01).' );
+		$this->assertStringNotContainsString( '<h3', $text );
+		$this->assertStringContainsString( 'Card', $text, 'Stripped to its text.' );
+		$this->assertStringContainsString( '<blockquote>', $text );
+	}
 }

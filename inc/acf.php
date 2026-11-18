@@ -297,6 +297,53 @@ function salt_generated_collections_decode( ?string $json ): ?array {
 }
 
 /**
+ * A generated rich-text field's contract element kinds (its `salt.allowed`
+ * in sections.json or collections.json), found by field key, for
+ * salt_sanitize_html(). The contract stays the source of each field's list.
+ *
+ * Fails closed: a key that is not a generated rich-text field (or a missing
+ * file) gives paragraphs alone, and is logged.
+ *
+ * @param string $key   Field key, e.g. 'field_salt_rich_text_body'.
+ * @param bool   $reset Forget the cached map (tests).
+ * @return string[] Element kinds.
+ */
+function salt_field_allowed( string $key, bool $reset = false ): array {
+	static $map = null;
+
+	if ( $reset ) {
+		$map = null;
+	}
+	if ( null === $map ) {
+		$map  = array();
+		$walk = static function ( array $fields ) use ( &$walk, &$map ): void {
+			foreach ( $fields as $field ) {
+				if ( ! is_array( $field ) ) {
+					continue;
+				}
+				if ( is_array( $field['salt']['allowed'] ?? null ) && isset( $field['key'] ) ) {
+					$map[ (string) $field['key'] ] = array_values( array_map( 'strval', $field['salt']['allowed'] ) );
+				}
+				$walk( is_array( $field['sub_fields'] ?? null ) ? $field['sub_fields'] : array() );
+				foreach ( is_array( $field['layouts'] ?? null ) ? $field['layouts'] : array() as $layout ) {
+					$walk( is_array( $layout['sub_fields'] ?? null ) ? $layout['sub_fields'] : array() );
+				}
+			}
+		};
+		$walk( salt_generated_sections_group()['fields'] ?? array() );
+		foreach ( salt_generated_collection_groups() as $group ) {
+			$walk( $group['fields'] );
+		}
+	}
+
+	if ( ! isset( $map[ $key ] ) ) {
+		salt_log( sprintf( 'salt_field_allowed: "%s" is not a generated rich-text field — sanitised as paragraphs alone.', $key ) );
+		return array( 'paragraph' );
+	}
+	return $map[ $key ];
+}
+
+/**
  * The post type a generated collection group is located on.
  *
  * @param array<string,mixed> $group A generated collection group.

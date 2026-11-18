@@ -628,4 +628,21 @@ final class MediaTextSectionTest extends SaltTestCase {
 		$this->assertSame( 2, preg_match_all( '/class="x-media-text-row[" ]/', $html ) );
 		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
 	}
+	public function test_row_content_keeps_only_headings_three_and_four(): void {
+		$resolved = $this->resolve_media_text(
+			array(
+				'rows' => array(
+					array(
+						'heading' => 'Row',
+						'content' => '<h2>Two</h2><h3>Three</h3><h6>Six</h6>',
+					),
+				),
+			)
+		);
+		$content = $resolved['props']['rows'][0]['content'];
+
+		$this->assertStringContainsString( '<h3>Three</h3>', $content );
+		$this->assertStringNotContainsString( '<h2', $content );
+		$this->assertStringNotContainsString( '<h6', $content );
+	}
 }

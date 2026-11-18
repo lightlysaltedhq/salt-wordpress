@@ -379,4 +379,18 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$this->assertStringContainsString( 'href="/pressed"', $html );
 		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
 	}
+	public function test_body_keeps_only_headings_three_and_four(): void {
+		$resolved = $this->resolve_cta(
+			array(
+				'heading' => 'Ready?',
+				'body'    => '<h2>Two</h2><h3>Three</h3><h4>Four</h4><h5>Five</h5>',
+			)
+		);
+		$body = $resolved['props']['body'];
+
+		$this->assertStringContainsString( '<h3>Three</h3><h4>Four</h4>', $body );
+		$this->assertStringNotContainsString( '<h2', $body );
+		$this->assertStringNotContainsString( '<h5', $body );
+		$this->assertStringContainsString( 'Two', $body, 'Stripped to its text.' );
+	}
 }

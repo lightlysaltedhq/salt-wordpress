@@ -46,7 +46,7 @@ function salt_resolve_section_rich_text( array $context ): ?array {
 			'heading' => salt_nullable_text( $heading ),
 			// Blankness is decided on the STORED content (as before the split):
 			// content that sanitises to nothing still draws its prose block.
-			'body'    => '' !== trim( $content ) ? salt_sanitize_html( $content ) : null,
+			'body'    => '' !== trim( $content ) ? salt_sanitize_html( $content, salt_field_allowed( 'field_salt_rich_text_body' ) ) : null,
 		),
 	);
 }

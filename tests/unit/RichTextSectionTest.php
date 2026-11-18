@@ -209,4 +209,9 @@ final class RichTextSectionTest extends SaltTestCase {
 		$this->assertStringContainsString( '<p>Already sanitised.</p>', $html );
 		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
 	}
+	public function test_resolver_keeps_headings_two_to_six(): void {
+		$resolved = $this->resolve_rich_text( array( 'body' => '<h2>Two</h2><h5>Five</h5><h6>Six</h6>' ) );
+
+		$this->assertSame( '<h2>Two</h2><h5>Five</h5><h6>Six</h6>', $resolved['props']['body'], 'The rich-text body alone allows heading-2 to heading-6 (rc.7, ID-3950).' );
+	}
 }

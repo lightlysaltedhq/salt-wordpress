@@ -559,4 +559,23 @@ final class FaqSectionTest extends SaltTestCase {
 		$this->assertFalse( $resolved['section']['has_heading'] );
 		$this->assertSame( array(), $this->faq_nodes() );
 	}
+	public function test_answer_keeps_only_its_contract_list(): void {
+		$this->seed_faqs(
+			array(
+				array(
+					'id'     => 1,
+					'title'  => 'What is salt?',
+					'answer' => '<h2>Two</h2><h3>Three</h3><blockquote><p>Quote</p></blockquote><p><code>x()</code> <a href="https://e.test/">link</a></p>',
+				),
+			)
+		);
+
+		$html = $this->render_faq_section( array( 'heading' => 'FAQs' ) );
+
+		foreach ( array( '<h2', '<h3', '<blockquote', '<code' ) as $tag ) {
+			$this->assertStringNotContainsString( $tag, $html, "{$tag} is not in the FAQ answer's list." );
+		}
+		$this->assertStringContainsString( 'Three', $html, 'Stripped to its text.' );
+		$this->assertStringContainsString( '<a href="https://e.test/">link</a>', $html );
+	}
 }

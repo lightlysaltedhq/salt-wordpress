@@ -47,7 +47,7 @@ if ( null !== $salt_props['heading'] ) {
 salt_component(
 	'accordion',
 	array(
-		'items' => array_map(
+		'items'   => array_map(
 			static fn( array $item ): array => array(
 				'title'   => $item['question'],
 				'content' => $item['answer'],
@@ -56,6 +56,7 @@ salt_component(
 		),
 		// Unique native <details name> group per section instance, so two FAQ
 		// sections on one page never share exclusive-open state.
-		'name'  => 'faq-' . (int) $salt_plan['index'],
+		'name'    => 'faq-' . (int) $salt_plan['index'],
+		'allowed' => salt_field_allowed( 'field_salt_collection_faqs_answer' ),
 	)
 );

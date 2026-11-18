@@ -139,7 +139,10 @@ while ( have_posts() ) {
 	if ( '' !== trim( (string) get_post_field( 'post_content', $salt_service_id ) ) ) {
 		echo '<div class="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
 		echo '<div class="x-prose">';
+		// The intro allows only its contract list (SALT_SERVICE_INTRO_ALLOWED).
+		ob_start();
 		the_content();
+		echo salt_sanitize_html( (string) ob_get_clean(), SALT_SERVICE_INTRO_ALLOWED ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised to the intro's contract list.
 		echo '</div>';
 		echo '</div>';
 	}
