@@ -243,12 +243,18 @@ DB_CREATED=1
 phase "install" "$PHP" "$HERE/php/install.php"
 
 # The conformance run: the site serves the contract's view and page cases while salt-conformance runs.
+# Its timeout is per case and includes the wait for view.php's lock (the cases take the one site in
+# turn), so it is ten minutes, not the runner's default minute. The report goes to report/ like any
+# run's, and is copied to the committed baseline only when every case rendered.
 conformance() {
 	local status=0
-	(cd "$REPO" && PATH="$(dirname "$PHP"):$PATH" npm run --silent conformance:contract >"$TMP/conformance.md") || status=$?
+	(cd "$REPO" && PATH="$(dirname "$PHP"):$PATH" npm run --silent conformance:contract -- --timeout 600000 >"$TMP/conformance.md") || status=$?
 	# The runner exits 1 on every partial run by design (SC-017); 2 or more is a usage error.
 	if [ "$status" -gt 1 ]; then cat "$TMP/conformance.md"; return 1; fi
-	"$PHP" "$HERE/php/conformance.php" "$REPO/tests/contract-adapter/baseline/conformance.json"
+	"$PHP" "$HERE/php/conformance.php" "$REPO/tests/contract-adapter/report/conformance.json" || return 1
+	mkdir -p "$REPO/tests/contract-adapter/baseline"
+	cp "$REPO/tests/contract-adapter/report/conformance.json" "$REPO/tests/contract-adapter/report/conformance.md" "$REPO/tests/contract-adapter/baseline/"
+	echo "PASS the report is copied to tests/contract-adapter/baseline/"
 }
 if [ "$CONFORMANCE" = 1 ]; then
 	phase "the site for the view and page cases" "$PHP" "$HERE/php/view.php" setup
