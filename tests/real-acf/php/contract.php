@@ -2,9 +2,11 @@
 /**
  * Phase 2: the contract's field shape on real ACF Pro. HARNESS ONLY.
  *
- * 1. Registration: the group registered under group_salt_sections is the
- *    emitted JSON (SALT_HARNESS_ACF_JSON), every layout and field present,
- *    each field's name, type and `salt` provenance kept.
+ * 1. Registration: the theme's own loader (inc/acf.php,
+ *    salt_section_layouts()) registers group_salt_sections; its layouts
+ *    begin with the emitted JSON's (SALT_HARNESS_ACF_JSON), every layout and
+ *    field present, each field's name, type and `salt` provenance kept. The
+ *    hand-written collection layouts registered after them are listed.
  * 2. Seeding: one page holds one row per contract fixture case of every
  *    section that is a page-sections layout, in fixture order, saved with
  *    update_field( 'sections', ... ). Named media and documents become real
@@ -40,7 +42,9 @@ foreach ( $emitted_layouts as $layout ) {
 
 $group     = acf_get_local_field_group( 'group_salt_sections' );
 $container = acf_get_field( 'field_salt_sections_container' );
-$layouts   = is_array( $container ) ? array_values( $container['layouts'] ) : array();
+$all       = is_array( $container ) ? array_values( $container['layouts'] ) : array();
+$layouts   = array_slice( $all, 0, count( $emitted_layouts ) );
+$written   = array_slice( $all, count( $emitted_layouts ) );
 $acf_count = 0;
 foreach ( $layouts as $layout ) {
 	$acf_count += count( salt_harness_walk_fields( $layout['sub_fields'] ?? array() ) );
@@ -48,8 +52,13 @@ foreach ( $layouts as $layout ) {
 
 salt_harness_result(
 	is_array( $group ) && 'Page sections' === $group['title'] && wp_list_pluck( $layouts, 'name' ) === wp_list_pluck( $emitted_layouts, 'name' ),
-	'emitted group registered in place of the hand-written one',
-	sprintf( '%d layouts registered of %d emitted: %s', count( $layouts ), count( $emitted_layouts ), implode( ', ', wp_list_pluck( $layouts, 'name' ) ) )
+	'the theme registers the emitted layouts first, in order',
+	sprintf( '%d generated layouts registered of %d emitted: %s', count( $layouts ), count( $emitted_layouts ), implode( ', ', wp_list_pluck( $layouts, 'name' ) ) )
+);
+salt_harness_result(
+	array() === array_intersect( wp_list_pluck( $written, 'name' ), wp_list_pluck( $emitted_layouts, 'name' ) ),
+	'no hand-written layout for a generated section',
+	sprintf( '%d hand-written layouts after them: %s', count( $written ), implode( ', ', wp_list_pluck( $written, 'name' ) ) )
 );
 
 $drift      = array();
@@ -301,12 +310,12 @@ foreach ( array_slice( $storage['misses'], 0, 30 ) as $miss ) {
 }
 
 // The probe: the paths the brief names, set explicitly (no fixture sets them all).
-$term  = wp_insert_term( 'Harness category', 'category' );
+$term  = wp_insert_term( 'Harness category', 'faq_category' );
 $post  = wp_insert_post(
 	array(
-		'post_type'   => 'post',
+		'post_type'   => 'faq',
 		'post_status' => 'publish',
-		'post_title'  => 'Harness post',
+		'post_title'  => 'Harness question',
 	)
 );
 $probe = wp_insert_post(
@@ -333,8 +342,8 @@ update_field(
 			),
 		),
 		array(
-			'acf_fc_layout' => 'collection-showcase',
-			'source'        => 'posts',
+			'acf_fc_layout' => 'faq',
+			'heading'       => 'Probe questions',
 			'query'         => array(
 				'mode'       => 'by-category',
 				'categories' => array( (string) $term['term_id'] ),
@@ -351,11 +360,11 @@ $named      = array(
 	'sections_0_settings_spacing'                       => 'field_salt_hero_settings_spacing',
 	'sections_0_settings_backgroundImage_image'         => 'field_salt_hero_settings_background_image_image',
 	'sections_0_settings_backgroundImage_scrimStrength' => 'field_salt_hero_settings_background_image_scrim_strength',
-	'sections_1_query_mode'                             => 'field_salt_collection_showcase_query_mode',
-	'sections_1_query_categories'                       => 'field_salt_collection_showcase_query_categories',
-	'sections_1_query_items'                            => 'field_salt_collection_showcase_query_items',
-	'sections_1_query_order'                            => 'field_salt_collection_showcase_query_order',
-	'sections_1_query_count'                            => 'field_salt_collection_showcase_query_count',
+	'sections_1_query_mode'                             => 'field_salt_faq_query_mode',
+	'sections_1_query_categories'                       => 'field_salt_faq_query_categories',
+	'sections_1_query_items'                            => 'field_salt_faq_query_items',
+	'sections_1_query_order'                            => 'field_salt_faq_query_order',
+	'sections_1_query_count'                            => 'field_salt_faq_query_count',
 );
 foreach ( $named as $path => $key ) {
 	salt_harness_result(

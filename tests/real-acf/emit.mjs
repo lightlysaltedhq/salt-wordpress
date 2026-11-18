@@ -4,10 +4,10 @@
  * the theme's own exact pin (node_modules/@lightlysaltedhq/salt-contract at
  * the repository root), never a contracts checkout.
  *
- * The emitter needs the site's icons (features.items.icon offers them): they
- * are the theme's bundled icons, assets/src/icons/*.svg, named by file.
- * Nothing else is passed, so every section and source is emitted with the
- * contract's defaults.
+ * The options are the theme's own (inc/fields/generated/sections.options.json:
+ * the sections the theme renders and its bundled icons), so the output is
+ * what the theme registers; every source is emitted with the contract's
+ * defaults.
  *
  * Usage: node tests/real-acf/emit.mjs <out.json>
  */
@@ -30,19 +30,16 @@ const pkgPath = require.resolve( '@lightlysaltedhq/salt-contract/package.json' )
 const { version } = JSON.parse( fs.readFileSync( pkgPath, 'utf8' ) );
 const { acfSnapshot } = await import( require.resolve( '@lightlysaltedhq/salt-contract/emit/acf' ) );
 
-const icons = fs
-	.readdirSync( path.join( repo, 'assets/src/icons' ) )
-	.filter( ( f ) => f.endsWith( '.svg' ) )
-	.sort()
-	.map( ( f ) => f.slice( 0, -4 ) )
-	.map( ( value ) => ( {
-		value,
-		label: value
-			.split( '-' )
-			.map( ( w ) => w.charAt( 0 ).toUpperCase() + w.slice( 1 ) )
-			.join( ' ' ),
-	} ) );
+// The theme's own options (sections + icons), as bin/check-fields-from-contract.php uses them:
+// the emitter's output must then be the theme's committed inc/fields/generated/sections.json.
+const options = JSON.parse( fs.readFileSync( path.join( repo, 'inc/fields/generated/sections.options.json' ), 'utf8' ) );
+const icons = options.icons;
 
-const json = acfSnapshot( { icons } );
+const json = acfSnapshot( options );
 fs.writeFileSync( out, json );
-console.log( `salt-contract ${ version }: emitted ${ json.length } bytes with ${ icons.length } icons` );
+const committed = fs.readFileSync( path.join( repo, 'inc/fields/generated/sections.json' ), 'utf8' );
+console.log(
+	`salt-contract ${ version }: emitted ${ json.length } bytes, ${ options.sections.length } sections, ${ icons.length } icons; ${
+		json === committed ? 'identical to' : 'DIFFERENT FROM'
+	} the theme's inc/fields/generated/sections.json`
+);
