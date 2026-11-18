@@ -70,5 +70,6 @@ require_once SALT_DIR . '/inc/fields/options-contact.php';
 require_once SALT_DIR . '/inc/fields/options-integrations.php';
 require_once SALT_DIR . '/inc/fields/options-advanced.php';
 require_once SALT_DIR . '/inc/fields/collections.php';
+require_once SALT_DIR . '/inc/fields/checks.php';
 require_once SALT_DIR . '/inc/fields/user.php';
 require_once SALT_DIR . '/inc/fields/sections.php';

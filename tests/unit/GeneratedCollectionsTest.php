@@ -11,6 +11,8 @@
 
 declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 require_once __DIR__ . '/../shims/acf.php';
 require_once __DIR__ . '/../shims/service.php';
 require_once __DIR__ . '/../shims/work.php';
@@ -150,5 +152,84 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 			sort( $used );
 			$this->assertSame( $used, $kept, "{$post_type} supports no native place the contract does not use (a dropped field's box is gone too)." );
 		}
+	}
+
+	public function test_the_post_fields_unit_10_wires_are_hidden_from_the_editor(): void {
+		$posts = array_values( array_filter( salt_generated_collection_groups( true ), static fn( array $group ): bool => 'posts' === $group['salt']['collection'] ) )[0];
+
+		$this->assertSame( array_column( $posts['fields'], 'key' ), salt_collection_fields_hidden_until_id_3952(), 'author, primaryTopic and layout: every field of the posts group, kept in it verbatim.' );
+		foreach ( $posts['fields'] as $field ) {
+			$this->assertFalse( salt_hide_fields_until_id_3952( $field ), "{$field['name']} is hidden until ID-3952." );
+		}
+		foreach ( salt_generated_collection_groups() as $group ) {
+			if ( 'posts' === $group['salt']['collection'] ) {
+				continue;
+			}
+			foreach ( $group['fields'] as $field ) {
+				$this->assertSame( $field, salt_hide_fields_until_id_3952( $field ), "{$field['key']} stays in the editor." );
+			}
+		}
+		$this->assertFalse( salt_hide_fields_until_id_3952( false ) );
+	}
+
+	/**
+	 * Excerpt, whether the save is refused.
+	 *
+	 * @return array<string,array{string,bool}>
+	 */
+	public static function summary_provider(): array {
+		return array(
+			'300 characters: saved'                 => array( str_repeat( 'a', 300 ), false ),
+			'301 characters: refused'               => array( str_repeat( 'a', 301 ), true ),
+			'300 two-byte characters: saved'        => array( str_repeat( 'é', 300 ), false ),
+			'301 two-byte characters: refused'      => array( str_repeat( 'é', 301 ), true ),
+			'300 with a CRLF counted as one: saved' => array( str_repeat( 'a', 298 ) . "\r\n" . 'a', false ),
+		);
+	}
+
+	#[DataProvider( 'summary_provider' )]
+	public function test_the_summary_limit_counts_characters( string $excerpt, bool $refused ): void {
+		$error = salt_summary_error( $excerpt );
+
+		$refused
+			? $this->assertSame( 'The summary (the Excerpt box) is 301 characters long. Shorten it to 300 characters or fewer.', $error )
+			: $this->assertNull( $error );
+	}
+
+	public function test_the_summary_check_loads_on_the_three_edit_screens_only(): void {
+		require_once __DIR__ . '/../shims/admin.php';
+		$GLOBALS['salt_test_enqueued']  = array();
+		$GLOBALS['salt_test_localized'] = array();
+		$loaded                         = array();
+		foreach ( array( 'service', 'work', 'post', 'testimonial', 'page' ) as $type ) {
+			$GLOBALS['typenow'] = $type;
+			unset( $GLOBALS['salt_test_enqueued']['scripts']['salt-summary-limit'] );
+			salt_summary_limit_enqueue( 'post.php' );
+			$loaded[ $type ] = isset( $GLOBALS['salt_test_enqueued']['scripts']['salt-summary-limit'] );
+		}
+		$GLOBALS['typenow'] = 'service';
+		unset( $GLOBALS['salt_test_enqueued']['scripts']['salt-summary-limit'] );
+		salt_summary_limit_enqueue( 'edit.php' );
+		$on_list = isset( $GLOBALS['salt_test_enqueued']['scripts']['salt-summary-limit'] );
+		unset( $GLOBALS['typenow'] );
+
+		$this->assertSame(
+			array(
+				'service'     => true,
+				'work'        => true,
+				'post'        => true,
+				'testimonial' => false,
+				'page'        => false,
+			),
+			$loaded
+		);
+		$this->assertFalse( $on_list, 'Not on the posts list.' );
+		$this->assertSame(
+			array(
+				'max'     => 300,
+				'message' => 'The summary (the Excerpt box) is {length} characters long. Shorten it to 300 characters or fewer.',
+			),
+			$GLOBALS['salt_test_localized']['salt-summary-limit']['saltSummaryLimit']
+		);
 	}
 }
