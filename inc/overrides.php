@@ -41,15 +41,11 @@ const SALT_OVERRIDES_MAX_BYTES = 65536;
  * Drawn from salt-contract/contract/sections.json (1.0.0-rc.7), the
  * WordPress platform's `formerly` names. Since 6.0.0 (ID-3599) a section
  * WordPress builds as one layout has the contract id as its layout slug
- * (call-to-action, media-text, rich-text); the folded sections keep their
- * former layouts, hyphenated — the same mapping as the slug table in
- * docs/contracts/CONVENTIONS.md.
- * Where the contract folds several layouts into one section
- * (collection-showcase, carousel) every one of them is listed,
- * and `testimonials` is under both collection-showcase (its grid rows) and
- * carousel (its slider rows); which one a row is comes from its layout
- * field (salt_contract_section_conditions()). A section WordPress does not ship (tabs,
- * listing, and pricing, a Grain for WordPress recipe since 6.0.0, SC-006) maps to no layout. salt-wordpress takes no dependency on the
+ * (call-to-action, media-text, rich-text), and since unit 8 (EP-72 M3)
+ * collection-showcase and carousel are layouts of their own, in place of
+ * the six layouts the contract folded into them — the same mapping as the
+ * slug table in docs/contracts/CONVENTIONS.md. A section WordPress does not
+ * ship (tabs, listing, and pricing, a Grain for WordPress recipe since 6.0.0, SC-006) maps to no layout. salt-wordpress takes no dependency on the
  * contract package, so this list is kept by hand: a new contract section
  * or a new layout adds a row here.
  *
@@ -68,8 +64,8 @@ function salt_contract_section_layouts(): array {
 		'process'             => array( 'process' ),
 		'faq'                 => array( 'faq' ),
 		'tabs'                => array(),
-		'collection-showcase' => array( 'services', 'work', 'team', 'testimonials', 'blog-teaser' ),
-		'carousel'            => array( 'scroll-carousel', 'testimonials' ),
+		'collection-showcase' => array( 'collection-showcase' ),
+		'carousel'            => array( 'carousel' ),
 		'listing'             => array(),
 		'contact'             => array( 'contact' ),
 		'locations'           => array( 'locations' ),
@@ -78,58 +74,13 @@ function salt_contract_section_layouts(): array {
 }
 
 /**
- * Layouts whose contract section depends on a field of the row (the
- * contract's `when`): testimonials is collection-showcase when its layout
- * field is grid and carousel when it is slider (sections.json,
- * collection-showcase and carousel `formerly`).
+ * The contract section ids a layout belongs to (one since unit 8, when
+ * every layout became one contract section; a child-only layout none).
  *
- * @return array<string, array{field: string, normalise: callable(string): string, sections: array<string,string>}>
- *         Layout slug => the sub-field, its normaliser (the resolver's own),
- *         and normalised value => contract section id.
- */
-function salt_contract_section_conditions(): array {
-	return array(
-		'testimonials' => array(
-			'field'     => 'layout',
-			'normalise' => 'salt_testimonials_layout',
-			'sections'  => array(
-				'grid'   => 'collection-showcase',
-				'slider' => 'carousel',
-			),
-		),
-	);
-}
-
-/**
- * The testimonials layout field normalised: 'grid' | 'slider', anything
- * else 'grid'. The one rule both the testimonials resolver and the
- * contract-id lookup use.
- *
- * @param string $value Raw `layout` sub-field value.
- * @return string
- */
-function salt_testimonials_layout( string $value ): string {
-	return in_array( $value, array( 'grid', 'slider' ), true ) ? $value : 'grid';
-}
-
-/**
- * The contract section ids a layout belongs to (usually one; a child-only
- * layout to none). For a layout whose section depends on its row
- * (salt_contract_section_conditions()), pass the row's raw field value as
- * $variant to get the one id that row is; with $variant null every id the
- * layout can be is returned (testimonials: both).
- *
- * @param string      $layout  Layout slug (hyphenated).
- * @param string|null $variant Raw value of the layout's condition field, or null.
+ * @param string $layout Layout slug (hyphenated).
  * @return string[]
  */
-function salt_contract_sections_for_layout( string $layout, ?string $variant = null ): array {
-	$condition = salt_contract_section_conditions()[ $layout ] ?? null;
-	if ( null !== $condition && null !== $variant ) {
-		$id = $condition['sections'][ ( $condition['normalise'] )( $variant ) ] ?? null;
-		return null === $id ? array() : array( $id );
-	}
-
+function salt_contract_sections_for_layout( string $layout ): array {
 	$ids = array();
 	foreach ( salt_contract_section_layouts() as $id => $layouts ) {
 		if ( in_array( $layout, $layouts, true ) ) {
@@ -137,36 +88,6 @@ function salt_contract_sections_for_layout( string $layout, ?string $variant = n
 		}
 	}
 	return $ids;
-}
-
-/**
- * The current Flexible Content row's value of a layout's condition field
- * (raw; salt_contract_sections_for_layout() normalises it), or null when
- * the layout has no condition.
- *
- * @param string $layout Layout slug (hyphenated).
- * @return string|null
- */
-function salt_contract_section_variant( string $layout ): ?string {
-	$condition = salt_contract_section_conditions()[ $layout ] ?? null;
-	if ( null === $condition ) {
-		return null;
-	}
-	return function_exists( 'get_sub_field' ) ? (string) get_sub_field( $condition['field'] ) : '';
-}
-
-/**
- * How a layout reads when it is one contract section only for some rows:
- * "testimonials (slider rows)" for carousel, "testimonials" otherwise.
- *
- * @param string $layout Layout slug.
- * @param string $id     Contract section id.
- * @return string
- */
-function salt_contract_layout_label( string $layout, string $id ): string {
-	$condition = salt_contract_section_conditions()[ $layout ] ?? null;
-	$value     = null === $condition ? false : array_search( $id, $condition['sections'], true );
-	return false === $value ? $layout : sprintf( '%1$s (%2$s rows)', $layout, $value );
 }
 
 /**
@@ -511,21 +432,15 @@ function salt_overrides(): ?array {
 }
 
 /**
- * The declared tier of a layout: 'logic' when a contract section the
- * layout is (for this row) is declared `logic`, else 'view' when one is
- * declared `view`, else null (undeclared, or no valid declaration).
+ * The declared tier of a layout: 'logic' when its contract section is
+ * declared `logic`, else 'view' when it is declared `view`, else null
+ * (undeclared, or no valid declaration).
  *
- * For testimonials pass the row's layout field as $variant (the render
- * path reads it with salt_contract_section_variant()), so a grid row is
- * looked up as collection-showcase and a slider row as carousel. With
- * $variant null every section the layout can be counts.
- *
- * @param string      $layout  Layout slug (hyphenated).
- * @param string|null $variant Raw value of the layout's condition field, or null.
+ * @param string $layout Layout slug (hyphenated).
  * @return string|null
  */
-function salt_override_tier( string $layout, ?string $variant = null ): ?string {
-	return salt_override_tier_in( salt_overrides(), $layout, $variant );
+function salt_override_tier( string $layout ): ?string {
+	return salt_override_tier_in( salt_overrides(), $layout );
 }
 
 /**
@@ -533,15 +448,14 @@ function salt_override_tier( string $layout, ?string $variant = null ): ?string 
  *
  * @param array<string,mixed>|null $declaration Validated declaration, or null.
  * @param string                   $layout      Layout slug (hyphenated).
- * @param string|null              $variant     Raw value of the layout's condition field, or null.
  * @return string|null 'logic' | 'view' | null.
  */
-function salt_override_tier_in( ?array $declaration, string $layout, ?string $variant = null ): ?string {
+function salt_override_tier_in( ?array $declaration, string $layout ): ?string {
 	if ( null === $declaration ) {
 		return null;
 	}
 
-	$ids  = salt_contract_sections_for_layout( $layout, $variant );
+	$ids  = salt_contract_sections_for_layout( $layout );
 	$tier = null;
 	foreach ( $declaration['sections'] as $entry ) {
 		if ( ! in_array( $entry['section'], $ids, true ) ) {

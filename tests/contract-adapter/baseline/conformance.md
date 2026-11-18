@@ -1,6 +1,6 @@
 # Salt conformance: wordpress 6.0.0-dev against @lightlysaltedhq/salt-contract 1.0.0-rc.7
 
-**Partial, not conforming.** 0 section(s) pass, 14 fail, 0 incomplete, 3 not shipped. Chrome, views and page: 0 pass, 9 fail, 0 not shipped. Adapter: command `php tests/contract-adapter/adapter.php`.
+**Partial, not conforming.** 2 section(s) pass, 12 fail, 0 incomplete, 3 not shipped. Chrome, views and page: 0 pass, 9 fail, 0 not shipped. Adapter: command `php tests/contract-adapter/adapter.php`.
 
 | Section | Fixtures | Field parity | Classes | Stylesheet pin |
 | --- | --- | --- | --- | --- |
@@ -15,8 +15,8 @@
 | process | 1/4 | pass | pass | pass |
 | faq | 1/3 | pass | pass | pass |
 | tabs | not shipped | not shipped | not shipped | not shipped |
-| collection-showcase | 1/8 | fail (1) | pass | pass |
-| carousel | 1/6 | fail (1) | pass | pass |
+| collection-showcase | 8/8 | pass | pass | pass |
+| carousel | 6/6 | pass | pass | pass |
 | listing | not shipped | not shipped | not shipped | not shipped |
 | contact | 0/5 | pass | pass | pass |
 | locations | 1/3 | pass | pass | pass |
@@ -111,26 +111,6 @@ acf snapshot `inc/fields/generated/sections.json` with options `inc/fields/gener
 
 - `faq/many`: attribute `aria-labelledby` at `section.salt-section`: expected `faq-help__heading`, found nothing
 - `faq/one-inverse`: attribute `aria-labelledby` at `section.salt-section`: expected `faq-one__heading`, found nothing
-
-### collection-showcase
-
-- `collection-showcase/accordion-testimonials`: missing at `section.salt-section`: expected `<section aria-labelledby="kind-words__heading" class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="collection-showcase-4" data-width="defaul…`, found nothing
-- `collection-showcase/featured-case-studies`: attribute `aria-labelledby` at `section.salt-section`: expected `recent-work__heading`, found nothing
-- `collection-showcase/grid-services-first`: attribute `aria-labelledby` at `section.salt-section`: expected `services-grid__heading`, found nothing
-- `collection-showcase/grid-team-contacts`: attribute `aria-labelledby` at `section.salt-section`: expected `the-team__heading`, found nothing
-- `collection-showcase/index-posts-grouped`: attribute `aria-labelledby` at `section.salt-section`: expected `journal-index__heading`, found nothing
-- `collection-showcase/index-posts-ungrouped`: attribute `aria-labelledby` at `section.salt-section`: expected `journal-all__heading`, found nothing
-- `collection-showcase/list-posts-dated`: attribute `aria-labelledby` at `section.salt-section`: expected `latest-posts__heading`, found nothing
-- fields: collection-showcase is not in the field snapshot
-
-### carousel
-
-- `carousel/inline-generic-heading`: attribute `aria-labelledby` at `section.salt-section`: expected `recent-gardens__heading`, found nothing
-- `carousel/inline-no-name-list`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="none" data-tone="surface" data-tone-dark="surface" data-track="carousel-3" data-width="narrow" id="two-steps">`, found `<section class="bg-surface section-scroll-carousel text-ink x-section" data-section="scroll-carousel" id="two-steps">`
-- `carousel/inline-one-card`: attribute `aria-labelledby` at `section.salt-section`: expected `our-base__heading`, found nothing
-- `carousel/inline-quote-label-inverse`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="carousel-2" data-width="default" id="client-quotes" style="--salt-section-space:var…`, found `<section class="bg-surface-inverse md:py-20 py-14 section-scroll-carousel text-ink-inverse x-section" data-section="scroll-carousel" id="client-quotes">`
-- `carousel/testimonials-source`: missing at `section.salt-section`: expected `<section aria-labelledby="kind-words-carousel__heading" class="salt-section" data-spacing="md" data-tone="brand-tint" data-tone-dark="brand-tint" data-track="carousel-5" data-width="default" id="kind-…`, found nothing
-- fields: carousel is not in the field snapshot
 
 ### contact
 

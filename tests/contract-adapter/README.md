@@ -93,21 +93,29 @@ real-ACF harness's WordPress (below).
   names, the gap shows in the report, which is the point. The row is rendered through
   `salt_render_section()`, so it goes through the theme's resolver (`inc/sections/<slug>.php`)
   and view (`template-parts/sections/<slug>.php`).
-- **The section for each case.** It is the theme's slug for the contract id. `collection-showcase`
-  is drawn by the former section for its `source`: services, work, team, testimonials or
-  blog-teaser. `carousel` is drawn by testimonials for that source and scroll-carousel otherwise.
+- **The section for each case.** It is the theme's slug for the contract id; `collection-showcase`
+  and `carousel` are layouts of their own since unit 8.
   `tabs`, `listing` and `pricing` have no theme section: the run declares them `--not-shipped`.
   Given one anyway, the adapter exits 3 with "not shipped" rather than crash.
 - **The case's other data:**
   - `media` becomes attachments in the media shim. The src is the upload at its intrinsic width.
-    The srcset is WordPress core's default sub-sizes below that width plus the intrinsic width,
-    since the theme registers no sizes of its own. Each URL comes from the record's `{width}`
-    template, as an upload URL filter would give it.
+    The srcset x-image draws is WordPress core's default sub-sizes below that width plus the
+    intrinsic width. The sections drawn to the contract (collection-showcase, carousel) read the
+    theme's `salt-<width>` sub-sizes instead, one per contract candidate below the upload's width,
+    seeded as attachment metadata. Each URL comes from the record's `{width}` template, as an
+    upload URL filter would give it.
   - `documents` become pages whose permalink is the case's `href`.
   - `collections` become posts of the theme's post types, in the order given. A field WordPress
     keeps natively (named under `salt.native` in `inc/fields/generated/collections.json`) goes to
     its place: `title` is the post's title, `text` its body and excerpt, and `image` its featured
-    image. Every other key becomes an ACF field on the post under the contract's name.
+    image. A resolved card key is stored where the collection's approved `display` reads it from
+    (team's `meta` is `role`, a testimonial's `text` is `quote`). An item's `tags` or `categories`
+    become terms in the source's taxonomy. Every other key becomes an ACF field on the post under
+    the contract's name.
+  - `site.collectionIndexes`, `site.labels` and `site.arrow` feed the theme's three seams pending
+    the founder's ruling (`salt_collection_index_url`, `salt_contract_labels`,
+    `salt_contract_arrow` filters), so conformance is proved against the contract whatever the
+    live sources become. `context.track` sets the section's count for `data-track`.
   - `context` gives the band's place on the page: its index, whether it is the primary heading,
     a heading claimed earlier, and the collapse with the band above.
 - **A chrome case** (`site-header`, `site-footer`). The case's `site` goes into the theme's

@@ -150,8 +150,7 @@ parent sections are.
    or any `get_template_part()` / `load_template()` of a
    `template-parts/sections/{slug}.php` — passes no props. Every view
    then emits PHP warnings. Hero draws an empty, broken hero and Rich
-   Text draws nothing; blog-teaser, call-to-action, faq, gallery, pricing,
-   scroll-carousel and work are a **fatal error** (`TypeError` from
+   Text draws nothing; call-to-action, faq and gallery are a **fatal error** (`TypeError` from
    `count()` or `array_map()`); the rest draw broken markup. Render
    through `salt_render_resolved_section()`.
 
@@ -192,18 +191,10 @@ does not repeat it. The parent reads only the JSON, never the manifest.
   same mapping as the slug table in CONVENTIONS.md. Since 6.0.0 a section
   WordPress builds as one layout has the contract id as its layout slug
   (`call-to-action`, `media-text`, `rich-text`); `rich-text` is also
-  `intro`;
-  `collection-showcase` is `services`, `work`, `team`, `testimonials` and
-  `blog-teaser`; `carousel` is `scroll-carousel` and `testimonials`.
-  Declaring a folded id covers every layout it maps to. `testimonials` is
-  decided **per row**, as the contract's `when` says: a row whose Layout
-  field is `grid` is `collection-showcase`, a `slider` row is `carousel`
-  (anything else counts as `grid`, the testimonials resolver's own
-  normalisation, `salt_testimonials_layout()`). So `carousel` declared
-  `logic` takes over slider testimonials only, and `collection-showcase`
-  `logic` with `carousel` `view` takes over grid rows while slider rows
-  load the same child file as a view. `tabs` and `listing` have no
-  WordPress layout yet.
+  `intro`; since unit 8 `collection-showcase` and `carousel` are layouts
+  of their own, in place of services, work, team, testimonials,
+  blog-teaser and scroll-carousel. `tabs` and `listing` have no WordPress
+  layout yet.
 - **Reading it.** `salt_overrides()` returns the parsed declaration (plain
   arrays, shape in its docblock), read once per request, or `null` when no
   child theme is active, the file is absent, or it is invalid.

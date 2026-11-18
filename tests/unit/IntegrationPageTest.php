@@ -209,12 +209,18 @@ final class IntegrationPageTest extends SaltTestCase {
 					),
 				),
 				array(
-					'layout' => 'services',
-					'fields' => array( 'heading' => 'What we do' ),
+					'layout' => 'collection-showcase',
+					'fields' => array(
+						'heading' => 'What we do',
+						'source'  => 'services',
+					),
 				),
 				array(
-					'layout' => 'testimonials',
-					'fields' => array( 'heading' => 'Kind words' ),
+					'layout' => 'carousel',
+					'fields' => array(
+						'heading' => 'Kind words',
+						'source'  => 'testimonials',
+					),
 				),
 				array(
 					'layout' => 'locations',

@@ -67,7 +67,7 @@ final class OverrideFlagTest extends SaltOverridesTestCase {
 							array(
 								'section' => 'collection-showcase',
 								'tier'    => 'logic',
-								'files'   => array( 'template-parts/sections/team.php' ),
+								'files'   => array( 'template-parts/sections/collection-showcase.php' ),
 							)
 						),
 						self::entry(
@@ -87,15 +87,14 @@ final class OverrideFlagTest extends SaltOverridesTestCase {
 				)
 			),
 			array(
-				'template-parts/sections/team.php' => '<?php',
-				'template-parts/sections/faq.php'  => '<?php',
+				'template-parts/sections/faq.php' => '<?php',
 			)
 		);
 		$text  = implode( "\n", array_column( $items, 'message' ) );
 
 		$this->assertStringContainsString( 'hero (view): declared, but the child theme has no template-parts/sections/hero.php, so the parent\'s view is drawn.', $text );
 		$this->assertStringContainsString( 'hero: the declared file template-parts/sections/hero.php is not in the child theme.', $text );
-		$this->assertStringContainsString( 'The child theme has no template-parts/sections/services.php, template-parts/sections/work.php, template-parts/sections/testimonials.php (grid rows), template-parts/sections/blog-teaser.php, so that layout renders nothing.', $text );
+		$this->assertStringContainsString( 'The child theme has no template-parts/sections/collection-showcase.php, so that layout renders nothing.', $text );
 		$this->assertStringContainsString( 'Salt for WordPress has no layout for this section yet.', $text );
 		$this->assertStringContainsString( '"slider" is not a salt-contract section this theme knows', $text );
 		$this->assertStringContainsString( 'template-parts/sections/faq.php: the child theme swaps this view, but salt-overrides.json does not declare section faq', $text );
@@ -243,28 +242,5 @@ final class OverrideFlagTest extends SaltOverridesTestCase {
 			$this->assertStringContainsString( 'hero: the declared file ' . $file . ' is outside the child theme', $text );
 		}
 		$this->assertCount( 3, $items, 'The file inside the child theme is fine.' );
-	}
-
-	public function test_flag_reports_testimonials_rows_left_undeclared(): void {
-		$items = $this->flag_for(
-			self::declaration(
-				array(
-					'sections' => array(
-						self::entry(
-							array(
-								'section' => 'carousel',
-								'files'   => array( 'template-parts/sections/testimonials.php' ),
-							)
-						),
-					),
-				)
-			),
-			array( 'template-parts/sections/testimonials.php' => '<?php' )
-		);
-		$text  = implode( "\n", array_column( $items, 'message' ) );
-
-		$this->assertStringContainsString( 'testimonials.php: the child theme swaps this view, but salt-overrides.json does not declare section collection-showcase (grid rows)', $text );
-		$this->assertStringNotContainsString( 'carousel (view): declared, but', $text, 'testimonials.php is a carousel view for slider rows.' );
-		$this->assertCount( 1, $items );
 	}
 }

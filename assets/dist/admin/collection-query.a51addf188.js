@@ -1,0 +1,1 @@
+(()=>{var t=window.acf;t&&typeof t.addFilter=="function"&&t.addFilter("select2_ajax_data",(c,r,n,e)=>{let o=e&&typeof e.get=="function"?e.get("key"):"";if(!/_query_categories$/.test(o))return c;let s=o.replace(/_query_categories$/,"_source"),a=e.$el.closest(".layout").find(`.acf-field[data-key="${s}"] select`).first();return{...c,salt_source:a.val()||""}});})();

@@ -224,11 +224,12 @@ final class OverridesDeclarationTest extends SaltOverridesTestCase {
 
 		$this->assertSame( array( 'call-to-action' ), salt_contract_sections_for_layout( 'call-to-action' ), 'The layout slug is the contract id (6.0.0).' );
 		$this->assertSame( array(), salt_contract_sections_for_layout( 'cta' ), 'The slug before 6.0.0 is no layout any more.' );
-		$this->assertSame( array( 'collection-showcase', 'carousel' ), salt_contract_sections_for_layout( 'testimonials' ) );
+		$this->assertSame( array( 'collection-showcase' ), salt_contract_sections_for_layout( 'collection-showcase' ), 'One layout per section since unit 8.' );
+		$this->assertSame( array(), salt_contract_sections_for_layout( 'testimonials' ), 'The six folded layouts are gone (unit 8).' );
 		$this->assertSame( array(), salt_contract_sections_for_layout( 'child-only' ) );
 	}
 
-	public function test_tier_is_looked_up_by_the_contract_id_and_testimonials_by_its_row(): void {
+	public function test_tier_is_looked_up_by_the_contract_id(): void {
 		$declaration = salt_overrides_validate(
 			json_decode(
 				self::json(
@@ -238,14 +239,14 @@ final class OverridesDeclarationTest extends SaltOverridesTestCase {
 								self::entry(
 									array(
 										'section' => 'carousel',
-										'files'   => array( 'template-parts/sections/scroll-carousel.php' ),
+										'files'   => array( 'template-parts/sections/carousel.php' ),
 									)
 								),
 								self::entry(
 									array(
 										'section' => 'collection-showcase',
 										'tier'    => 'logic',
-										'files'   => array( 'template-parts/sections/team.php' ),
+										'files'   => array( 'template-parts/sections/collection-showcase.php' ),
 									)
 								),
 							),
@@ -256,15 +257,10 @@ final class OverridesDeclarationTest extends SaltOverridesTestCase {
 			)
 		)['declaration'];
 
-		$this->assertSame( 'view', salt_override_tier_in( $declaration, 'scroll-carousel' ) );
-		$this->assertSame( 'logic', salt_override_tier_in( $declaration, 'team' ) );
-		$this->assertSame( 'logic', salt_override_tier_in( $declaration, 'testimonials', 'grid' ), 'A grid row is collection-showcase.' );
-		$this->assertSame( 'view', salt_override_tier_in( $declaration, 'testimonials', 'slider' ), 'A slider row is carousel.' );
-		$this->assertSame( 'logic', salt_override_tier_in( $declaration, 'testimonials', 'masonry' ), 'An unknown layout is a grid, as the resolver normalises it.' );
-		$this->assertSame( array( 'carousel' ), salt_contract_sections_for_layout( 'testimonials', 'slider' ) );
-		$this->assertSame( array( 'collection-showcase' ), salt_contract_sections_for_layout( 'testimonials', '' ) );
-		$this->assertSame( array( 'call-to-action' ), salt_contract_sections_for_layout( 'call-to-action', 'slider' ), 'The row is ignored for an unconditional layout.' );
+		$this->assertSame( 'view', salt_override_tier_in( $declaration, 'carousel' ) );
+		$this->assertSame( 'logic', salt_override_tier_in( $declaration, 'collection-showcase' ) );
+		$this->assertNull( salt_override_tier_in( $declaration, 'testimonials' ), 'A removed layout is no section.' );
 		$this->assertNull( salt_override_tier_in( $declaration, 'hero' ) );
-		$this->assertNull( salt_override_tier_in( null, 'team' ) );
+		$this->assertNull( salt_override_tier_in( null, 'carousel' ) );
 	}
 }

@@ -108,9 +108,8 @@ function salt_override_flag_items( array $loaded, array $child_views ): array {
 		}
 
 		$missing = array_values( array_diff( $layouts, $child_views ) );
-		$path    = static function ( string $slug ) use ( $id ): string {
-			// "template-parts/sections/testimonials.php (slider rows)" where only some rows are this section.
-			return 'template-parts/sections/' . $slug . '.php' . substr( salt_contract_layout_label( $slug, $id ), strlen( $slug ) );
+		$path    = static function ( string $slug ): string {
+			return 'template-parts/sections/' . $slug . '.php';
 		};
 
 		if ( 'logic' === $entry['tier'] ) {
@@ -218,13 +217,11 @@ function salt_override_flag_items( array $loaded, array $child_views ): array {
 		if ( null === salt_section_resolver_file( $slug ) ) {
 			continue; // A child-only layout.
 		}
-		// Every section this layout can be (testimonials: grid rows and
-		// slider rows) must be declared, or those rows use the file undeclared.
+		// The section this layout is must be declared, or the file is used undeclared.
 		$undeclared = array();
 		foreach ( salt_contract_sections_for_layout( $slug ) as $id ) {
 			if ( ! in_array( $id, $declared_ids, true ) ) {
-				$label        = substr( salt_contract_layout_label( $slug, $id ), strlen( $slug ) );
-				$undeclared[] = $id . $label;
+				$undeclared[] = $id;
 			}
 		}
 		if ( array() === $undeclared ) {

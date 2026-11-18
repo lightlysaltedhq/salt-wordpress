@@ -94,7 +94,8 @@ function salt_adapter_stop( int $code, string $message ) {
  * theme draws as one of several former sections, a map from the case's
  * `values.source` to that slug. From contract/sections.json, each
  * section's former WordPress names (`formerly`); the theme's layouts have
- * since taken the contract's ids where one exists (cta is call-to-action).
+ * since taken the contract's ids where one exists (cta is call-to-action;
+ * collection-showcase and carousel since unit 8).
  * tabs and listing are owed: the theme has no section for them.
  *
  * @return array<string,string|array<string,string>|null>
@@ -112,17 +113,8 @@ function salt_adapter_sections(): array {
 		'process'             => 'process',
 		'faq'                 => 'faq',
 		'tabs'                => null,
-		'collection-showcase' => array(
-			'services'     => 'services',
-			'case-studies' => 'work',
-			'team'         => 'team',
-			'testimonials' => 'testimonials',
-			'posts'        => 'blog-teaser',
-		),
-		'carousel'            => array(
-			'testimonials' => 'testimonials',
-			''             => 'scroll-carousel',
-		),
+		'collection-showcase' => 'collection-showcase',
+		'carousel'            => 'carousel',
 		'listing'             => null,
 		'contact'             => 'contact',
 		'locations'           => 'locations',
@@ -170,7 +162,7 @@ function salt_adapter_contract_json( string $path ): array {
  */
 function salt_adapter_boot(): void {
 	require SALT_ADAPTER_THEME . '/tests/bootstrap.php';
-	foreach ( array( 'acf', 'media', 'blog', 'nav', 'service', 'work', 'team', 'testimonial', 'faq', 'gallery', 'location', 'http' ) as $shim ) {
+	foreach ( array( 'acf', 'media', 'blog', 'nav', 'service', 'work', 'team', 'testimonial', 'faq', 'gallery', 'location', 'http', 'terms' ) as $shim ) {
 		require_once SALT_ADAPTER_THEME . '/tests/shims/' . $shim . '.php';
 	}
 	foreach ( array(
@@ -230,11 +222,26 @@ function salt_adapter_seed_media( array $media ): array {
 		$candidate = array_filter( salt_adapter_core_widths(), static fn( int $w ): bool => $w < $width );
 		$srcset    = array_map( static fn( int $w ): string => $url( $w ) . ' ' . $w . 'w', array_merge( $candidate, array( $width ) ) );
 
+		$height = (int) ( $record['height'] ?? 0 );
+		// The contract's candidate widths WordPress makes for the upload (the
+		// theme's salt-<width> sizes), for the sections drawn to the contract.
+		$sizes = array();
+		foreach ( salt_image_candidates() as $w ) {
+			if ( $w < $width ) {
+				$sizes[ 'salt-' . $w ] = array(
+					'width'  => $w,
+					'height' => (int) round( $height * $w / max( 1, $width ) ),
+					'url'    => $url( $w ),
+				);
+			}
+		}
+
 		$GLOBALS['salt_test_attachments'][ $next ] = array(
 			'src'     => $url( $width ),
 			'width'   => $width,
-			'height'  => (int) ( $record['height'] ?? 0 ),
+			'height'  => $height,
 			'srcset'  => implode( ', ', $srcset ),
+			'sizes'   => $sizes,
 			'alt'     => (string) ( $record['alt'] ?? '' ),
 			'caption' => (string) ( $record['caption'] ?? '' ),
 		);
@@ -299,8 +306,11 @@ function salt_adapter_seed_collections( array $collections, array $media ): arra
 	$next   = 1001;
 	$types  = salt_adapter_post_types();
 	$places = salt_adapter_native_places();
+	$terms  = array();
 	foreach ( $collections as $collection => $items ) {
 		$native = $places[ (string) $collection ] ?? array();
+		$parts  = salt_adapter_card_parts( (string) $collection );
+		$tax    = function_exists( 'salt_collection_sources' ) ? ( salt_collection_sources()[ (string) $collection ]['taxonomy'] ?? null ) : null;
 		foreach ( array_values( (array) $items ) as $order => $item ) {
 			$post = new WP_Post(
 				array(
@@ -318,8 +328,29 @@ function salt_adapter_seed_collections( array $collections, array $media ): arra
 				$post->salt_thumbnail_id = $media[ (string) $item['image'] ];
 			}
 			foreach ( $item as $key => $value ) {
-				if ( in_array( $key, array( 'id', 'title', 'text', 'href', 'image', 'date' ), true ) ) {
+				if ( in_array( $key, array( 'id', 'title', 'href', 'image', 'date' ), true ) ) {
 					continue;
+				}
+				// An item's topics, as the fixtures give them ({ title }), are terms in the source's taxonomy.
+				if ( in_array( $key, array( 'tags', 'categories' ), true ) ) {
+					foreach ( (array) $value as $topic ) {
+						$title             = (string) ( $topic['title'] ?? '' );
+						$terms[ $title ] ??= 9001 + count( $terms );
+						$GLOBALS['salt_test_post_terms'][ $next ][ (string) $tax ][] = new WP_Term(
+							array(
+								'term_id'  => $terms[ $title ],
+								'name'     => $title,
+								'taxonomy' => (string) $tax,
+							)
+						);
+					}
+					continue;
+				}
+				// A resolved card key is stored where the collection's approved
+				// display reads it from (the first field of a joined part).
+				$key = $parts[ $key ] ?? $key;
+				if ( 'text' === $key ) {
+					continue; // Already the body and the excerpt.
 				}
 				switch ( $native[ $key ] ?? null ) {
 					case 'title':
@@ -349,6 +380,49 @@ function salt_adapter_seed_collections( array $collections, array $media ): arra
 		}
 	}
 	return $ids;
+}
+
+/**
+ * A collection's card display, inverted: each resolved card key to the
+ * field it is read from (contract/collections/<collection>.json `display`,
+ * `as: card` only; the first field of a joined part).
+ *
+ * @param string $collection Contract collection id.
+ * @return array<string,string>
+ */
+function salt_adapter_card_parts( string $collection ): array {
+	$file = SALT_ADAPTER_CONTRACT . '/contract/collections/' . $collection . '.json';
+	if ( ! is_readable( $file ) ) {
+		return array();
+	}
+	$display = (array) ( salt_adapter_contract_json( 'contract/collections/' . $collection . '.json' )['display'] ?? array() );
+	if ( 'card' !== ( $display['as'] ?? null ) ) {
+		return array();
+	}
+	$parts = array();
+	foreach ( (array) ( $display['parts'] ?? array() ) as $key => $part ) {
+		$from = $part['from'] ?? null;
+		$from = is_array( $from ) ? ( $from[0] ?? null ) : $from;
+		if ( is_string( $from ) && $from !== $key ) {
+			$parts[ (string) $key ] = $from;
+		}
+	}
+	return $parts;
+}
+
+/**
+ * Feed the theme's pending-ruling seams the case's site data: the
+ * collection's index page (site.collectionIndexes), the labels
+ * (site.labels) and the arrow (site.arrow), so conformance is proved
+ * against the contract whatever the founder rules for the live sources.
+ *
+ * @param array<string,mixed> $site The case's `site`.
+ * @return void
+ */
+function salt_adapter_seed_site( array $site ): void {
+	add_filter( 'salt_collection_index_url', static fn( $url, string $source ) => $site['collectionIndexes'][ $source ] ?? null, 10, 2 );
+	add_filter( 'salt_contract_labels', static fn() => (array) ( $site['labels'] ?? array() ) );
+	add_filter( 'salt_contract_arrow', static fn() => $site['arrow'] ?? null );
 }
 
 /**
@@ -482,6 +556,10 @@ function salt_adapter_render_section( array $input, array $ids ): string {
 	if ( ! empty( $context['headingRendered'] ) ) {
 		salt_claim_h1( 'contract-adapter: a heading earlier on the page' );
 	}
+	// data-track counts the section on the page: the case's track gives the count before it.
+	if ( 1 === preg_match( '/^(.+)-(\d+)$/', (string) ( $context['track'] ?? '' ), $track ) ) {
+		salt_render_state( 'set', 'tracks', array( $track[1] => (int) $track[2] - 1 ) );
+	}
 	if ( ! empty( $context['collapseTop'] ) ) {
 		salt_render_state( 'set', 'last_background', salt_section_wrapper_args( $slug )['background'] );
 	}
@@ -582,6 +660,7 @@ if ( ! isset( $salt_adapter_input['section'] ) && ! isset( $salt_adapter_input['
 
 try {
 	salt_adapter_boot();
+	salt_adapter_seed_site( (array) ( $salt_adapter_input['site'] ?? array() ) );
 	$salt_adapter_ids          = array(
 		'media'     => salt_adapter_seed_media( (array) ( $salt_adapter_input['media'] ?? array() ) ),
 		'documents' => salt_adapter_seed_documents( (array) ( $salt_adapter_input['documents'] ?? array() ) ),

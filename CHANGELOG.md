@@ -8,7 +8,59 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
+### BREAKING
+
+- **The six collection layouts are gone; collection-showcase and carousel
+  replace them (ID-3600, EP-72 M3 unit 8).** Layouts `services`, `work`,
+  `team`, `testimonials`, `blog_teaser` and `scroll_carousel` are removed,
+  with their field files (`inc/fields/layouts/`), resolvers, views,
+  scripts (`sections/testimonials.js`, `sections/scroll-carousel.js`),
+  tests and snapshots, and with `inc/query/controls.php`
+  (`salt_query_control_fields()`), `salt_query_controls_from_row()`,
+  `salt_section_settings_fields()`, `salt_testimonials_layout()` and the
+  per-row section lookup (`salt_contract_section_conditions()`,
+  `salt_contract_section_variant()`, `salt_contract_layout_label()`;
+  `salt_override_tier()` takes no `$variant`). The components
+  `x-card-team` and `x-card-testimonial`
+  (`template-parts/components/card-team.php`, `card-testimonial.php`) go
+  too: nothing draws them. No
+  site uses them, so there is no migration. A child theme's
+  `template-parts/sections/{services,work,team,testimonials,blog-teaser,scroll-carousel}.php`
+  is no longer loaded; declare `collection-showcase` or `carousel` in
+  `salt-overrides.json` instead.
+
 ### Added
+
+- **Collection showcase and carousel, to salt-contract 1.0.0-rc.7 (ID-3600,
+  EP-72 M3 unit 8).** Both sections' fields are generated from the pinned
+  emitter. Resolvers return the contract's view props; views draw
+  `markup/collection-showcase.json`, `markup/carousel.json`,
+  `markup/carousel-track.json` and `markup/card.json` inside the contract's
+  section wrapper (`template-parts/components/contract-section.php`).
+  Showcase layouts are grid, list, featured, accordion and index (grouped
+  by category or not). Sources are services, case studies, team,
+  testimonials and posts, each card per its collection's approved
+  `display`. The carousel takes inline cards (generic or quote) or a
+  collection, and `sections/carousel.js` mounts the previous and next
+  controls (`aria-disabled` at the edges, instant under reduced motion).
+  Images use the contract's slots and srcset (`inc/media.php`: a
+  `salt-<width>` size per candidate, kept out of every other srcset).
+  WordPress makes those sizes only for new uploads: regenerate thumbnails
+  (for example `wp media regenerate`) for uploads made before this
+  version, or their srcset lists only the upload's own width.
+  Editor: by-category is refused on save for a source without categories
+  (`salt.modeRequires`), and the categories picker's choices and search
+  come from the chosen source's taxonomy (`inc/fields/collection-query.php`).
+  All 14 fixture cases pass `npm run conformance:contract`. As the founder
+  ruled, "view all" goes to the collection's own index page and is left
+  out where there is none (`salt_collection_index_url`: the post type
+  archive; for posts the posts page, or the home page only when it lists
+  the posts), and the labels are translatable theme strings in the
+  fixtures' English (`salt_contract_labels`, with "%1$s of %2$d" after a
+  slide or rating label). **Pending the founder's ruling:** the arrow
+  (`salt_contract_arrow`; →). The analytics events adapter now also counts
+  section views, CTA clicks, accordion opens and carousel controls on the
+  bands drawn to the contract's markup (`data-track`).
 
 - **A PHP fixture adapter and a partial contract conformance baseline
   (ID-3626, EP-72 M3 unit 5).** `tests/contract-adapter/adapter.php` is

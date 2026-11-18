@@ -35,17 +35,18 @@ if ( ! defined( 'WP_DEBUG' ) ) {
  * @return void
  */
 function salt_test_reset(): void {
-	$GLOBALS['salt_test_hooks']      = array();
-	$GLOBALS['salt_test_options']    = array();
-	$GLOBALS['salt_test_fields']     = array();
-	$GLOBALS['salt_test_posts']      = array();
-	$GLOBALS['salt_test_query_vars'] = array();
-	$GLOBALS['salt_test_enqueued']   = array(
+	$GLOBALS['salt_test_hooks']          = array();
+	$GLOBALS['salt_test_options']        = array();
+	$GLOBALS['salt_test_fields']         = array();
+	$GLOBALS['salt_test_posts']          = array();
+	$GLOBALS['salt_test_query_vars']     = array();
+	$GLOBALS['salt_test_enqueued']       = array(
 		'styles'  => array(),
 		'scripts' => array(),
 	); // phpcs:ignore Universal.Arrays.MixedKeyedUnkeyedArray
-	$GLOBALS['salt_test_logs']       = array();
-	$GLOBALS['salt_test_user']       = array(
+	$GLOBALS['salt_test_logs']           = array();
+	$GLOBALS['salt_test_inline_scripts'] = array();
+	$GLOBALS['salt_test_user']           = array(
 		'logged_in' => false,
 		'caps'      => array(),
 	);
@@ -511,6 +512,17 @@ if ( ! function_exists( 'get_field' ) ) {
 	}
 }
 
+if ( ! function_exists( 'get_locale' ) ) {
+	/**
+	 * get_locale shim — $GLOBALS['salt_test_locale'], defaults en_GB.
+	 *
+	 * @return string
+	 */
+	function get_locale(): string {
+		return (string) ( $GLOBALS['salt_test_locale'] ?? 'en_GB' );
+	}
+}
+
 if ( ! function_exists( 'wp_timezone' ) ) {
 	/**
 	 * wp_timezone shim — reads the timezone_string option, defaults UTC.
@@ -805,6 +817,34 @@ if ( ! function_exists( 'wp_enqueue_script' ) ) {
 	 */
 	function wp_enqueue_script( string $handle, string $src = '', array $deps = array(), $ver = false, array $args = array() ): void {
 		$GLOBALS['salt_test_enqueued']['scripts'][ $handle ] = compact( 'src', 'deps', 'ver', 'args' );
+	}
+}
+
+if ( ! function_exists( 'wp_script_is' ) ) {
+	/**
+	 * wp_script_is shim: whether a script was enqueued (the 'enqueued' list only).
+	 *
+	 * @param string $handle Handle.
+	 * @param string $status Status; only 'enqueued' is tracked.
+	 * @return bool
+	 */
+	function wp_script_is( string $handle, string $status = 'enqueued' ): bool {
+		return 'enqueued' === $status && isset( $GLOBALS['salt_test_enqueued']['scripts'][ $handle ] );
+	}
+}
+
+if ( ! function_exists( 'wp_add_inline_script' ) ) {
+	/**
+	 * wp_add_inline_script shim: records the script under its handle.
+	 *
+	 * @param string $handle   Handle.
+	 * @param string $data     The script.
+	 * @param string $position before|after.
+	 * @return bool
+	 */
+	function wp_add_inline_script( string $handle, string $data, string $position = 'after' ): bool {
+		$GLOBALS['salt_test_inline_scripts'][ $handle ][ $position ][] = $data;
+		return true;
 	}
 }
 

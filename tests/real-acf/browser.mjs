@@ -275,6 +275,135 @@ try {
 		errors.slice( 0, 10 ).forEach( info );
 		await close( page );
 	}
+	// ── 4b. The collection sections' query: categories follow source and mode; by-category is
+	// refused for a source without categories (salt.modeRequires, inc/fields/collection-query.php)
+	{
+		const title = `Harness: collection query ${ Date.now() }`;
+		const { page, errors } = await open( '/wp-admin/post-new.php?post_type=page' );
+		await page.waitForFunction( () => window.acf && document.readyState === 'complete' );
+		await page.fill( '#title', title );
+		const rows = {};
+		for ( const layout of [ 'collection-showcase', 'carousel' ] ) {
+			await page
+				.locator( '.acf-field[data-key="field_salt_sections_container"] a[data-name="add-layout"]' )
+				.filter( { visible: true } )
+				.first()
+				.click();
+			await page.click( `.acf-fc-popup a[data-layout="${ layout }"]` );
+			rows[ layout ] = page.locator( `${ rowsSel }[data-layout="${ layout }"]` ).first();
+			await rows[ layout ].waitFor();
+		}
+		const field = ( layout, name ) => rows[ layout ].locator( `.acf-field[data-key="field_salt_${ layout.replace( '-', '_' ) }_${ name }"]` );
+		const choose = async ( layout, name, value ) => {
+			await field( layout, name ).locator( 'select' ).first().selectOption( value );
+			await page.waitForTimeout( 300 );
+		};
+		const steps = [
+			[ 'collection-showcase', 'services', 'by-category', { categories: true } ],
+			[ 'collection-showcase', 'team', 'by-category', { categories: false } ],
+			[ 'collection-showcase', 'posts', 'by-category', { categories: true } ],
+			[ 'collection-showcase', 'posts', 'automatic', { categories: false } ],
+			[ 'carousel', 'inline', null, { query: false, cards: true, card_style: true } ],
+			[ 'carousel', 'case-studies', 'by-category', { query: true, categories: true, cards: false } ],
+			[ 'carousel', 'testimonials', 'by-category', { query: true, categories: false, cards: false } ],
+		];
+		for ( const [ layout, source, mode, want ] of steps ) {
+			await choose( layout, 'source', source );
+			if ( mode ) {
+				await choose( layout, 'query_mode', mode );
+			}
+			const got = {};
+			for ( const name of Object.keys( want ) ) {
+				got[ name ] = await field( layout, name === 'categories' ? 'query_categories' : name ).isVisible();
+			}
+			result(
+				JSON.stringify( got ) === JSON.stringify( want ),
+				`conditional logic: ${ layout }, source ${ source }${ mode ? `, mode ${ mode }` : '' }`,
+				Object.entries( got )
+					.map( ( [ k, v ] ) => `${ k } ${ v ? 'shown' : 'hidden' }` )
+					.join( ', ' )
+			);
+		}
+
+		// Both rows at by-category on a source without categories: the save is refused on each mode field.
+		await choose( 'collection-showcase', 'source', 'team' );
+		await choose( 'collection-showcase', 'query_mode', 'by-category' );
+		await choose( 'carousel', 'source', 'testimonials' );
+		await choose( 'carousel', 'query_mode', 'by-category' );
+		await page.locator( '#title' ).blur();
+		await page.waitForSelector( '#edit-slug-box #sample-permalink', { timeout: 60000 } );
+		await page.waitForSelector( '#publish:not(.disabled)' );
+		const isValidation = ( r ) => r.url().includes( 'admin-ajax.php' ) && ( r.request().postData() ?? '' ).includes( 'acf%2Fvalidate_save_post' );
+		await Promise.all( [ page.waitForResponse( isValidation, { timeout: 60000 } ), page.click( '#publish' ) ] );
+		await page.waitForSelector( '.acf-notice.-error', { timeout: 60000 } );
+		await page.waitForTimeout( 1000 );
+		for ( const layout of [ 'collection-showcase', 'carousel' ] ) {
+			const message = ( await field( layout, 'query_mode' ).locator( '.acf-notice.-error' ).textContent().catch( () => '' ) ).trim();
+			result(
+				message.startsWith( 'By category works only for' ),
+				`by-category on a source without categories is refused: ${ layout }`,
+				message !== '' ? `the mode field says "${ message }"` : 'no message on the mode field'
+			);
+		}
+		result( publishedWithTitle( title ) === 0, 'the refused page is not published', page.url().replace( url, '' ) );
+
+		await choose( 'collection-showcase', 'source', 'services' );
+		await choose( 'carousel', 'source', 'case-studies' );
+		await Promise.all( [ page.waitForURL( /post\.php\?post=\d+&action=edit/, { timeout: 120000 } ), page.click( '#publish' ) ] );
+		result( publishedWithTitle( title ) === 1, 'by-category on a source with categories publishes', `services and case studies (${ page.url().replace( url, '' ) })` );
+		result( errors.length === 0, 'no console errors on the collection query checks', `${ errors.length } errors` );
+		errors.slice( 0, 10 ).forEach( info );
+		await close( page );
+	}
+
+	// ── 4c. Analytics on the contract's markup ─────────────────────────────────────────────────
+	// The bands collection-showcase and carousel draw carry data-track, not data-section. The
+	// markup is the contract fixtures' (the theme draws it byte for byte: npm run
+	// conformance:contract); the scripts and stylesheet are the built ones from assets/dist.
+	{
+		const theme = path.resolve( here, '../..' );
+		const manifest = JSON.parse( fs.readFileSync( path.join( theme, 'assets/dist/manifest.json' ), 'utf8' ) );
+		const dist = ( entry ) => fs.readFileSync( path.join( theme, 'assets/dist', manifest[ entry ] ), 'utf8' );
+		const fixtures = path.join( theme, 'node_modules/@lightlysaltedhq/salt-contract/fixtures' );
+		const bands = [ 'collection-showcase/grid-services-first', 'collection-showcase/accordion-testimonials', 'carousel/inline-generic-heading' ]
+			.map( ( c ) => fs.readFileSync( path.join( fixtures, `${ c }.html` ), 'utf8' ) )
+			.join( '<div style="height:150vh"></div>' );
+		const page = await context.newPage();
+		// Narrow, so three slides overflow the track and the next control is not at its edge.
+		await page.setViewportSize( { width: 480, height: 900 } );
+		const errors = [];
+		page.on( 'pageerror', ( e ) => errors.push( e.message ) );
+		// The served stylesheet lays the track out as a scroll-snapping row.
+		const css = dist( 'salt.css' );
+		await page.setContent( `<!doctype html><html><head><style>${ css }</style></head><body><div style="height:150vh"></div>${ bands }</body></html>` );
+		await page.evaluate( () => {
+			window.saltEvents = [];
+			window.saltCarousel = { labels: { previous: 'Previous', next: 'Next' } };
+			window.salt = { posthog: { capture: ( name, props ) => window.saltEvents.push( [ name, props.section ] ) } };
+			window.requestIdleCallback = ( cb ) => cb();
+			document.addEventListener( 'click', ( e ) => e.target.closest( 'a' ) && e.preventDefault() );
+		} );
+		await page.addScriptTag( { content: dist( 'sections/carousel.js' ) } );
+		await page.addScriptTag( { content: dist( 'analytics/events.js' ) } );
+		await page.locator( '[data-block="collection-showcase"][data-source="services"]' ).scrollIntoViewIfNeeded();
+		await page.locator( '.salt-showcase__view-all a' ).click();
+		await page.locator( 'details.salt-accordion__item summary' ).first().click();
+		await page.locator( '.salt-carousel__control[data-direction="next"]' ).click();
+		await page.waitForTimeout( 500 );
+		const events = await page.evaluate( () => window.saltEvents );
+		const has = ( name, section ) => events.some( ( [ n, s ] ) => n === name && s === section );
+		for ( const [ name, section ] of [
+			[ 'section_view', 'collection-showcase' ],
+			[ 'cta_click', 'collection-showcase' ],
+			[ 'accordion_open', 'collection-showcase' ],
+			[ 'carousel_interact', 'carousel' ],
+		] ) {
+			result( has( name, section ), `analytics: ${ name } fires on a contract band`, `section "${ section }"; seen: ${ events.map( ( e ) => e.join( ' ' ) ).join( ', ' ) }` );
+		}
+		result( errors.length === 0, 'no page errors in the analytics check', `${ errors.length } errors` );
+		await page.close();
+	}
+
 	// ── 5. Each rich-text editor offers only its field's list ────────────────────────────────
 	// salt_wysiwyg_field_editor() and admin/rich-text-editor.js narrow each ACF editor to its
 	// contract list (salt.allowed); the service's own editor holds its intro. For each, read the

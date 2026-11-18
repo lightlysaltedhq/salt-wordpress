@@ -71,8 +71,8 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    has the salt theme active (symlinked to this checkout), ACF Pro activated, `WP_DEBUG_LOG` on
    and outbound HTTP blocked.
 2. **The theme's own groups.** It loads every field group the theme registers through ACF. That
-   is 24 groups. The page sections group holds the 12 layouts generated from the contract
-   (`inc/fields/generated/sections.json`) and the 6 hand-written collection layouts. The 7
+   is 24 groups. The page sections group holds the 14 layouts generated from the contract
+   (`inc/fields/generated/sections.json`); none is hand-written since unit 8. The 7
    collection groups, one per post type, are generated too (`inc/fields/generated/collections.json`).
    Any PHP notice, warning, deprecation or `salt_log` line in `debug.log` fails the phase. This
    applies to every phase.
@@ -127,6 +127,12 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    - the fixtures page's classic edit screen renders every row and layout with no console errors;
    - the faq section's collection query mode shows categories or items, and order and count unless
      the mode is manual;
+   - on collection-showcase and carousel rows, the categories picker follows both the source select
+     and the mode (shown for services, case studies and posts at by-category, hidden for team and
+     testimonials), and carousel's query and inline cards follow its source;
+   - publishing with by-category on a source without categories is refused with a message on each
+     mode field (`salt.modeRequires`, `inc/fields/collection-query.php`), and publishes once the
+     sources have categories;
    - an empty required field (a features item's title) blocks publishing, and filling it lets the
      page publish;
    - re-saving the fixtures page from the browser changes nothing unexplained. Every meta row is
@@ -174,10 +180,12 @@ These changes are expected and reported, not failed:
 ## What it does not prove
 
 - **Rendered markup.** The render phase checks the resolvers read the shape and draw; it does
-  not compare markup with the contract's fixtures (that is M4). Collection-showcase, carousel,
-  tabs and listing are not registered yet (unit 8 and later), so their fixtures are not seeded.
-- **Picker filling.** The multi-taxonomy category select (`choices` filled by the site) and
-  `salt.modeRequires` server validation are not built yet. They are only stored and read back.
+  not compare markup with the contract's fixtures (that is M4; collection-showcase and carousel
+  are proved by `npm run conformance:contract`). Tabs and listing are not registered yet, so their
+  fixtures are not seeded. Collection-showcase rows draw nothing here: the harness creates no posts
+  for their queries.
+- **The categories search.** The picker's ajax search, filtered to the chosen source's taxonomy,
+  is not exercised in the browser; only its visibility and the save check are.
 - **Licensing.** It does not cover ACF Pro licence activation or updates. Pro field types work on
   this unlicensed local site.
 - **Other environments.** It covers ACF Pro 6.8.11 and WordPress 7.1.5 only, and does not check

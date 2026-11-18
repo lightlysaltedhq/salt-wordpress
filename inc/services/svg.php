@@ -181,3 +181,41 @@ function salt_icon_svg( string $name ): string {
 
 	return $svg;
 }
+
+/**
+ * A bundled icon as the contract's icon (salt-contract markup/icon.json):
+ * the svg itself carries class salt-icon, data-icon, data-size, the 24 x 24
+ * box, focusable false and its naming (aria-hidden, or role img with an
+ * aria-label), with the artwork's fill and stroke. The artwork's other
+ * root attributes (stroke-width, stroke-linecap …) move onto a g around it,
+ * as the contract keeps them inside the artwork. '' for an unknown name
+ * (logged by salt_icon_svg()).
+ *
+ * @param string      $name  Icon name.
+ * @param string      $size  sm|md|lg.
+ * @param string|null $label The accessible name; null for a decorative icon.
+ * @return string
+ */
+function salt_contract_icon( string $name, string $size, ?string $label = null ): string {
+	$svg = salt_icon_svg( $name );
+	if ( 1 !== preg_match( '#^<svg\b([^>]*)>(.*)</svg>$#s', $svg, $match ) ) {
+		return '';
+	}
+	preg_match_all( '/([a-zA-Z:-]+)="([^"]*)"/', $match[1], $pairs, PREG_SET_ORDER );
+	$paint = array();
+	$inner = array();
+	foreach ( $pairs as $pair ) {
+		if ( in_array( $pair[1], array( 'fill', 'stroke' ), true ) ) {
+			$paint[ $pair[1] ] = $pair[2];
+		} elseif ( ! in_array( $pair[1], array( 'xmlns', 'viewBox', 'width', 'height', 'class' ), true ) ) {
+			$inner[] = $pair[1] . '="' . esc_attr( $pair[2] ) . '"';
+		}
+	}
+
+	$attributes  = 'class="salt-icon" data-icon="' . esc_attr( $name ) . '" data-size="' . esc_attr( $size ) . '" viewBox="0 0 24 24" width="24" height="24" focusable="false"';
+	$attributes .= null === $label ? ' aria-hidden="true"' : ' role="img" aria-label="' . esc_attr( $label ) . '"';
+	$attributes .= ' fill="' . esc_attr( $paint['fill'] ?? 'none' ) . '" stroke="' . esc_attr( $paint['stroke'] ?? 'none' ) . '"';
+	$art         = array() === $inner ? $match[2] : '<g ' . implode( ' ', $inner ) . '>' . $match[2] . '</g>';
+
+	return '<svg ' . $attributes . '>' . $art . '</svg>';
+}

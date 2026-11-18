@@ -16,8 +16,8 @@
   "partial": true,
   "problems": [],
   "summary": {
-    "pass": 0,
-    "fail": 14,
+    "pass": 2,
+    "fail": 12,
     "incomplete": 0,
     "notShipped": 3,
     "files": {
@@ -599,81 +599,16 @@
     },
     {
       "id": "collection-showcase",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 8,
-        "passed": 1,
-        "failed": 7,
-        "failures": [
-          {
-            "case": "accordion-testimonials",
-            "kind": "mismatch",
-            "difference": "missing",
-            "path": "section.salt-section",
-            "expected": "<section aria-labelledby=\"kind-words__heading\" class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"collection-showcase-4\" data-width=\"defaul…",
-            "found": null
-          },
-          {
-            "case": "featured-case-studies",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "recent-work__heading",
-            "found": null
-          },
-          {
-            "case": "grid-services-first",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "services-grid__heading",
-            "found": null
-          },
-          {
-            "case": "grid-team-contacts",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "the-team__heading",
-            "found": null
-          },
-          {
-            "case": "index-posts-grouped",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "journal-index__heading",
-            "found": null
-          },
-          {
-            "case": "index-posts-ungrouped",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "journal-all__heading",
-            "found": null
-          },
-          {
-            "case": "list-posts-dated",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "latest-posts__heading",
-            "found": null
-          }
-        ]
+        "passed": 8,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
-        "status": "fail",
-        "problems": [
-          "collection-showcase is not in the field snapshot"
-        ]
+        "status": "pass",
+        "problems": []
       },
       "classes": {
         "status": "pass",
@@ -685,61 +620,16 @@
     },
     {
       "id": "carousel",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 6,
-        "passed": 1,
-        "failed": 5,
-        "failures": [
-          {
-            "case": "inline-generic-heading",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "recent-gardens__heading",
-            "found": null
-          },
-          {
-            "case": "inline-no-name-list",
-            "kind": "mismatch",
-            "difference": "element",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"none\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"carousel-3\" data-width=\"narrow\" id=\"two-steps\">",
-            "found": "<section class=\"bg-surface section-scroll-carousel text-ink x-section\" data-section=\"scroll-carousel\" id=\"two-steps\">"
-          },
-          {
-            "case": "inline-one-card",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "our-base__heading",
-            "found": null
-          },
-          {
-            "case": "inline-quote-label-inverse",
-            "kind": "mismatch",
-            "difference": "element",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"carousel-2\" data-width=\"default\" id=\"client-quotes\" style=\"--salt-section-space:var…",
-            "found": "<section class=\"bg-surface-inverse md:py-20 py-14 section-scroll-carousel text-ink-inverse x-section\" data-section=\"scroll-carousel\" id=\"client-quotes\">"
-          },
-          {
-            "case": "testimonials-source",
-            "kind": "mismatch",
-            "difference": "missing",
-            "path": "section.salt-section",
-            "expected": "<section aria-labelledby=\"kind-words-carousel__heading\" class=\"salt-section\" data-spacing=\"md\" data-tone=\"brand-tint\" data-tone-dark=\"brand-tint\" data-track=\"carousel-5\" data-width=\"default\" id=\"kind-…",
-            "found": null
-          }
-        ]
+        "passed": 6,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
-        "status": "fail",
-        "problems": [
-          "carousel is not in the field snapshot"
-        ]
+        "status": "pass",
+        "problems": []
       },
       "classes": {
         "status": "pass",

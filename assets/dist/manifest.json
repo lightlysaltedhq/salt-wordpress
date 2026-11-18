@@ -1,22 +1,22 @@
 {
+	"admin/collection-query.js": "admin/collection-query.a51addf188.js",
 	"admin/contrast-checker.js": "admin/contrast-checker.7215e61bf1.js",
 	"admin/rich-text-editor.js": "admin/rich-text-editor.1133e94113.js",
 	"admin/summary-limit.js": "admin/summary-limit.dac48040d6.js",
 	"admin/title-limit.js": "admin/title-limit.544abfcbc3.js",
 	"admin/topic-name-limit.js": "admin/topic-name-limit.894065d196.js",
 	"analytics/consent.js": "analytics/consent.92c1c22151.js",
-	"analytics/events.js": "analytics/events.d38d22575a.js",
+	"analytics/events.js": "analytics/events.b037d4ad49.js",
 	"analytics/posthog.js": "analytics/posthog.3b3b52d45f.js",
-	"app.css": "app.d1abc7d9bb.css",
+	"app.css": "app.bfd179edd6.css",
 	"app.js": "app.f2979a93a3.js",
 	"booking.js": "booking.69ab18ff0e.js",
 	"display-prefs.js": "display-prefs.ec8a3b1f88.js",
 	"maps.js": "maps.941f63babf.js",
 	"maps/maplibre.js": "maps/maplibre.daa1846e81.js",
 	"salt.css": "salt.4f3bca2639/salt.css",
+	"sections/carousel.js": "sections/carousel.4722c9ffe9.js",
 	"sections/contact.js": "sections/contact.f9db9cdeb4.js",
 	"sections/gallery.js": "sections/gallery.a2ad5b3431.js",
-	"sections/scroll-carousel.js": "sections/scroll-carousel.5d59f4e875.js",
-	"sections/share.js": "sections/share.69ecd4c1bb.js",
-	"sections/testimonials.js": "sections/testimonials.61e5030f0d.js"
+	"sections/share.js": "sections/share.69ecd4c1bb.js"
 }

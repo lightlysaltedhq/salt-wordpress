@@ -17,7 +17,8 @@
  *
  * Also over HTTP: a service whose body holds a shortcode and a video address
  * (the intro runs no the_content filter), and a page whose testimonials
- * section holds a 4.5 rating (the half star).
+ * showcase holds a 4.5 rating (the half star; labels.rating then
+ * "{n} of {N}", markup/card.json).
  *
  * @package Salt\Tests\RealAcf
  */
@@ -199,8 +200,9 @@ update_field(
 	'sections',
 	array(
 		array(
-			'acf_fc_layout' => 'testimonials',
+			'acf_fc_layout' => 'collection-showcase',
 			'heading'       => 'What clients say',
+			'source'        => 'testimonials',
 			'layout'        => 'grid',
 		),
 	),
@@ -212,7 +214,7 @@ salt_harness_single_check(
 	array(
 		'the quote'                              => 'Half a star short of perfect.',
 		'90% of five stars filled'               => 'style="--salt-rating-fill: 90%"',
-		'the label (4.5, the founder\'s ruling)' => 'aria-label="Rated 4.5 out of 5 stars"',
+		'the label (4.5, the founder\'s ruling)' => 'aria-label="Rated 4.5 of 5"',
 	)
 );
 
