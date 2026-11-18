@@ -2,7 +2,7 @@
 
 Proves the Salt contract's field shape works natively on real ACF Pro. The field shape is the pinned
 `@lightlysaltedhq/salt-contract` emitter's `acfSnapshot` output. On ACF Pro 6.8.11 and WordPress
-7.1.4 (the latest release), the harness checks that it registers, saves, reads back, edits and
+7.1.5 (the latest release), the harness checks that it registers, saves, reads back, edits and
 re-saves. The theme's hand-written ACF stand-in (`tests/shims/acf.php`) can then be checked against real ACF behaviour.
 Dev only: nothing here ships, and the theme's own `composer install` and `npm ci` do not touch it.
 
@@ -38,7 +38,7 @@ It needs:
 
   Never commit the zip, `auth.json` or the credentials. `.gitignore` here covers the first two.
 
-On first use it installs its own locked dependencies: WordPress 7.1.4 (`roots/wordpress-no-content`
+On first use it installs its own locked dependencies: WordPress 7.1.5 (`roots/wordpress-no-content`
 in `composer.json`, pinned exactly) and Playwright 1.65.1 with its headless Chromium
 (`package.json`). It reinstalls WordPress when the installed copy differs from `composer.lock`.
 
@@ -125,7 +125,10 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
      cta refuses `/contact`, `#pricing`, `//x.example`, `javascript:` and `ftp:` and takes https and
      mailto, and a case study's `externalUrl` refuses a path and takes https;
    - on each collection's edit screen, a title of 121 two-byte characters is refused with the
-     editor message and 120 is not.
+     editor message and 120 is not;
+   - a topic name of 121 two-byte characters is refused with the editor message and not saved,
+     and 120 is saved, on the term add and edit screens and in the Topics box of a service, case
+     study, FAQ and location (by its button, by Enter, and as one part of a comma-separated list).
 8. Prints a summary, drops the database and removes the temporary directory, whether the run
    passed, failed or was interrupted.
 
@@ -162,5 +165,5 @@ These changes are expected and reported, not failed:
   `salt.modeRequires` server validation are not built yet. They are only stored and read back.
 - **Licensing.** It does not cover ACF Pro licence activation or updates. Pro field types work on
   this unlicensed local site.
-- **Other environments.** It covers ACF Pro 6.8.11 and WordPress 7.1.4 only, and does not check
+- **Other environments.** It covers ACF Pro 6.8.11 and WordPress 7.1.5 only, and does not check
   the block editor (the theme turns it off) or browsers other than Chromium.
