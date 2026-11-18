@@ -1,4 +1,4 @@
 {
-	"_readme": "Each entry legitimises the removal/rename of a previously-registered ACF layout slug or field name (FLEET07). Shape: { \"slug\": \"layout:hero\" | \"field:field_salt_service_summary\", \"version\": \"x.y.z release that removes it\", \"replacement\": \"new slug or null\", \"note\": \"how existing DB content is migrated\" }.",
+	"_readme": "Each entry legitimises the removal/rename of a previously-registered ACF layout slug, field name or field storage path (FLEET07). Shape: { \"slug\": \"layout:hero\" | \"field:summary\" | \"path:group_salt_sections / hero:sections_N_heading\", \"version\": \"x.y.z release that removes it\", \"replacement\": \"new slug or null\", \"note\": \"how existing DB content is migrated\" }.",
 	"migrations": []
 }

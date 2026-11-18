@@ -1,8 +1,11 @@
 <?php
 /**
- * FLEET07 gate: fail a non-major release that drops a layout slug or field
- * name registered in the previous tagged release, unless an entry in
- * docs/contracts/slug-migrations.json legitimises the removal.
+ * FLEET07 gate: fail a non-major release that drops a layout slug, field
+ * name or field storage path registered in the previous tagged release,
+ * unless an entry in docs/contracts/slug-migrations.json legitimises the
+ * removal. A changed path (a field moved into or out of a group, or a group
+ * or repeater renamed) is a removal of the old path: saved values stay
+ * under the old meta key and the field reads empty.
  *
  * Usage: php bin/check-slug-stability.php
  * Requires full git history (fetch-depth: 0 in CI).
@@ -119,7 +122,52 @@ foreach ( array_keys( $salt_prev_fields ) as $salt_field ) {
 	}
 }
 
+// Storage paths: a field that moves into or out of a group, or whose group or
+// repeater is renamed, keeps its name but not its meta key. A layout that is
+// gone is already reported above, so its scope is skipped here. The meta key
+// does not include the field group key, so groups without layouts are pooled.
+$salt_path_ids   = static function ( array $registry ): array {
+	$ids = array();
+	foreach ( (array) ( $registry['paths'] ?? array() ) as $scope => $paths ) {
+		$layout = str_contains( (string) $scope, ' / ' ) ? (string) $scope : '';
+		foreach ( (array) $paths as $path ) {
+			$ids[ $layout ][ (string) $path ] = (string) $scope;
+		}
+	}
+	return $ids;
+};
+$salt_prev_paths = $salt_path_ids( $salt_prev );
+$salt_curr_paths = $salt_path_ids( $salt_curr );
+$salt_moved_to   = array();
+foreach ( $salt_prev_paths as $salt_layout => $salt_paths ) {
+	if ( ! isset( $salt_curr_paths[ $salt_layout ] ) ) {
+		continue;
+	}
+	$salt_added = array_diff_key( $salt_curr_paths[ $salt_layout ], $salt_paths );
+	foreach ( $salt_paths as $salt_path => $salt_scope ) {
+		if ( isset( $salt_curr_paths[ $salt_layout ][ $salt_path ] ) ) {
+			continue;
+		}
+		$salt_slug      = 'path:' . $salt_scope . ':' . $salt_path;
+		$salt_missing[] = $salt_slug;
+		// Name the likely new path: an added path that ends in the same field name.
+		$salt_leaf                   = (string) substr( (string) strrchr( '_' . $salt_path, '_' ), 1 );
+		$salt_moved_to[ $salt_slug ] = array_values(
+			array_filter(
+				array_keys( $salt_added ),
+				static fn( string $p ): bool => $p === $salt_leaf || str_ends_with( $p, '_' . $salt_leaf )
+			)
+		);
+	}
+}
+
 $salt_violations = array_values( array_diff( $salt_missing, $salt_migrated ) );
+$salt_describe   = static function ( string $slug ) use ( $salt_moved_to ): string {
+	if ( ! isset( $salt_moved_to[ $slug ] ) ) {
+		return $slug;
+	}
+	return $slug . ' -> ' . ( array() === $salt_moved_to[ $slug ] ? '(no new path)' : implode( ' | ', $salt_moved_to[ $slug ] ) );
+};
 
 if ( array() === $salt_violations ) {
 	fwrite( STDOUT, "Slug stability OK against {$salt_prev_tag}.\n" );
@@ -127,13 +175,13 @@ if ( array() === $salt_violations ) {
 }
 
 if ( $salt_is_major ) {
-	fwrite( STDOUT, 'Slugs removed on a MAJOR bump (allowed, but document in the changelog): ' . implode( ', ', $salt_violations ) . "\n" );
+	fwrite( STDOUT, 'Slugs or storage paths removed on a MAJOR bump (allowed, but document in the changelog): ' . implode( ', ', array_map( $salt_describe, $salt_violations ) ) . "\n" );
 	exit( 0 );
 }
 
-fwrite( STDERR, "FLEET07 VIOLATION — slugs registered in {$salt_prev_tag} are gone without a migration entry, and this is not a major bump:\n" );
+fwrite( STDERR, "FLEET07 VIOLATION — slugs or storage paths registered in {$salt_prev_tag} are gone without a migration entry, and this is not a major bump:\n" );
 foreach ( $salt_violations as $salt_slug ) {
-	fwrite( STDERR, "  - {$salt_slug}\n" );
+	fwrite( STDERR, '  - ' . $salt_describe( $salt_slug ) . "\n" );
 }
 fwrite( STDERR, "Either bump the major version, or add entries to docs/contracts/slug-migrations.json.\n" );
 exit( 1 );
