@@ -10,6 +10,21 @@ markup granularity (cross-reference your site's override manifest).
 
 ### Added
 
+- **Real ACF Pro harness for the contract's field shape (ID-3610, EP-72
+  M3 unit 2).** `tests/real-acf/run.sh --php 8.2|8.5` builds a throwaway
+  WordPress 6.8 with the theme and ACF Pro 6.8.11 (the hash-checked zip,
+  or a Composer copy from ACF's private repository). It registers the
+  pinned emitter's `acfSnapshot` output through a harness-only mu-plugin
+  until the theme loads it (unit 3), and seeds every contract fixture case
+  through `update_field`. It then reads them back with the theme's
+  idioms, checks storage paths and case collisions in the database, and
+  drives the classic editor in headless Chromium: layouts, conditional
+  logic, required fields and a re-save diff. Afterwards it drops the
+  database and removes the site. It has its own locked
+  `composer.json`/`package.json`, and the theme's installs are unchanged.
+  It is `export-ignore`d. A CI job for it is proposed in
+  `docs/ci/real-acf-harness.patch` and needs the `ACF_PRO_KEY` and
+  `ACF_PRO_SITE_URL` secrets. See `tests/real-acf/README.md`.
 - **salt-contract pinned exactly (ID-3627).** `@lightlysaltedhq/salt-contract`
   1.0.0-rc.6 is a devDependency on a committed `npm pack` tarball,
   `vendor-contract/lightlysaltedhq-salt-contract-1.0.0-rc.6.tgz`, packed
