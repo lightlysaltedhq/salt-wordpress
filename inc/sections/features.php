@@ -3,7 +3,9 @@
  * Resolver: Feature / Benefits Grid (spec §10 #5) — the logic half of the
  * section; the view is template-parts/sections/features.php.
  *
- * Fields: eyebrow, heading, columns (2|3|4), items [icon, title, text, url (an ACF link)].
+ * Fields (contract/fields/features.json): eyebrow, heading, intro (stored,
+ * not drawn yet — M4), columns (2|3|4), items [icon (the site's icon
+ * select), title, text (rich text), url (an address)].
  * States (COMPL02): 0 valid items => null (renders NOTHING); 1 item =>
  * valid static single-card grid; N => full grid. Items missing a title are
  * skipped and logged — never a blank card. No schema, no JS.
@@ -22,14 +24,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   eyebrow  string|null  Contract `eyebrow`. Null when blank.
  *   heading  string|null  Contract `heading`. Null when blank.
  *   columns  string       Contract `columns`: '2'|'3'|'4' (default '3').
- *   items    array<int, array{icon: string|null, title: string, body_text: string|null, href: string|null}>
+ *   items    array<int, array{icon: string|null, title: string, text: string|null, href: string|null}>
  *                         Contract `items` (feature), never empty: `icon`
- *                         (an icon name), `title`, `href` (the link's url,
- *                         null when none), and `body_text`, which is
- *                         WordPress-local: the contract's `text` is rich
- *                         text, while this field is plain text that x-card
- *                         escapes, so the name is not shared.
- *   The contract's `intro` is not supplied (the layout has no such field).
+ *                         (an icon name), `title`, `text` (rich text:
+ *                         sanitised HTML, null when blank) and `href` (the
+ *                         item's url, null when none).
+ *   The contract's `intro` is not supplied yet (M4).
  *
  * @param array<string,mixed> $context Loop context: index, is_primary.
  * @return array{section: array<string,mixed>, props: array<string,mixed>}|null Null = 0-state.
@@ -70,15 +70,15 @@ function salt_resolve_section_features( array $context ): ?array {
 			continue;
 		}
 
-		$link = is_array( $row['url'] ?? null ) ? $row['url'] : array();
-		$href = is_string( $link['url'] ?? null ) ? $link['url'] : '';
+		$href = is_string( $row['url'] ?? null ) ? trim( $row['url'] ) : '';
+		$text = is_string( $row['text'] ?? null ) ? $row['text'] : '';
 
 		$items[] = array(
-			'icon'      => salt_nullable_text( is_string( $row['icon'] ?? null ) ? trim( $row['icon'] ) : '' ),
-			'title'     => $title,
-			'body_text' => salt_nullable_text( is_string( $row['text'] ?? null ) ? trim( $row['text'] ) : '' ),
-			// Only an empty url is "none": a blank-but-not-empty url was passed on as it was.
-			'href'      => '' !== $href ? $href : null,
+			'icon'  => salt_nullable_text( is_string( $row['icon'] ?? null ) ? trim( $row['icon'] ) : '' ),
+			'title' => $title,
+			// Rich text (contract `text`): sanitised HTML; null when blank.
+			'text'  => '' !== trim( $text ) ? salt_sanitize_html( $text ) : null,
+			'href'  => '' !== $href ? $href : null,
 		);
 	}
 

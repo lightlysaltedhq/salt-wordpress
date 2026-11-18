@@ -3,9 +3,8 @@
  * Flexible Content layout: Portfolio / Work (spec §10 #15) — CPT-backed ✦.
  *
  * Content fields first, then the shared query controls
- * (salt_query_control_fields('work') — §10a), then the shared §11
- * wrapper Advanced tab. Layout slug 'work' is a stability contract
- * (FLEET07) — renaming it is a MAJOR bump + slug-migrations.json entry.
+ * (salt_query_control_fields('work') — §10a), then the contract's section
+ * settings group. Layout slug 'work' is a stability contract (FLEET07) — renaming it is a MAJOR bump + slug-migrations.json entry.
  *
  * The §10 'filterable' flag is NOT implemented in v1 (see the section
  * partial docblock) — no field is registered for it.
@@ -58,6 +57,6 @@ return array(
 			),
 		),
 		salt_query_control_fields( 'work' ),
-		salt_section_wrapper_fields( 'work' )
+		salt_section_settings_fields( 'work' )
 	),
 );

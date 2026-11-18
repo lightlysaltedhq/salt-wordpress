@@ -128,3 +128,40 @@ function salt_test_seed_fc( array $rows ): void {
 		'i'    => -1,
 	);
 }
+
+/**
+ * One row of a contract `buttons` list (contract field type link + style),
+ * stored as the generated fields store it.
+ *
+ * @param string $label   Link label.
+ * @param string $url     External address ('' for none).
+ * @param string $style   primary|secondary|ghost.
+ * @param bool   $new_tab Open in a new tab.
+ * @return array<string,mixed>
+ */
+function salt_test_button( string $label, string $url, string $style = 'primary', bool $new_tab = false ): array {
+	return array(
+		'link'  => array(
+			'label'  => $label,
+			'type'   => 'external',
+			'url'    => $url,
+			'newTab' => $new_tab,
+		),
+		'style' => $style,
+	);
+}
+
+/**
+ * A registered page-sections layout by name (generated or hand-written).
+ *
+ * @param string $name Layout name.
+ * @return array<string,mixed>
+ */
+function salt_test_layout( string $name ): array {
+	foreach ( salt_section_layouts() as $layout ) {
+		if ( $name === $layout['name'] ) {
+			return $layout;
+		}
+	}
+	throw new RuntimeException( esc_html( "layout {$name} is not registered" ) );
+}

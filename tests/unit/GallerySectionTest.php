@@ -84,37 +84,21 @@ final class GallerySectionTest extends SaltTestCase {
 	// FC layout shape (§17 recipe, DATA02/FLEET07).
 	// -----------------------------------------------------------------
 
-	public function test_layout_file_shape(): void {
-		$layout = include dirname( __DIR__, 2 ) . '/inc/fields/layouts/gallery.php';
+	public function test_layout_is_generated_from_the_contract(): void {
+		$layout = salt_test_layout( 'gallery' );
 
-		$this->assertSame( 'gallery', $layout['name'] );
 		$this->assertSame( 'layout_salt_gallery', $layout['key'] );
+		$this->assertSame(
+			array( 'heading', 'intro', 'layout', 'columns', 'label', 'captions', 'images', 'settings' ),
+			array_column( $layout['sub_fields'], 'name' )
+		);
 
-		$keys   = array_column( $layout['sub_fields'], 'key' );
-		$fields = array();
-		foreach ( $layout['sub_fields'] as $field ) {
-			if ( isset( $field['name'] ) ) {
-				$fields[ $field['name'] ] = $field;
-			}
-		}
-
-		// Content fields first (DATA02 key convention).
-		$this->assertSame( 'field_salt_gallery_layout', $keys[0] );
-		foreach ( array( 'layout', 'images', 'columns', 'captions' ) as $name ) {
-			$this->assertSame( 'field_salt_gallery_' . $name, $fields[ $name ]['key'], 'DATA02 key convention.' );
-		}
+		$fields = array_column( $layout['sub_fields'], null, 'name' );
 		$this->assertSame( array( 'grid', 'masonry', 'carousel' ), array_keys( $fields['layout']['choices'] ) );
 		$this->assertSame( 'gallery', $fields['images']['type'] );
 		$this->assertSame( 'id', $fields['images']['return_format'] );
 		$this->assertSame( array( 2, 3, 4 ), array_keys( $fields['columns']['choices'] ) );
 		$this->assertSame( 'true_false', $fields['captions']['type'] );
-
-		// No heading field — the section never claims the H1 (A11Y01).
-		$this->assertArrayNotHasKey( 'heading', $fields );
-
-		// Wrapper fields LAST (§11 Advanced tab).
-		$this->assertContains( 'field_salt_gallery_advanced_tab', $keys );
-		$this->assertSame( 'field_salt_gallery_divider', end( $keys ) );
 	}
 
 	// -----------------------------------------------------------------
@@ -422,7 +406,9 @@ final class GallerySectionTest extends SaltTestCase {
 				'columns'  => 4,
 				'captions' => true,
 				'images'   => array( $ids[0], 0, array( 'ID' => $ids[1] ) ),
-				'spacing'  => 'lg',
+				'settings' => array(
+					'spacing' => 'lg',
+				),
 			)
 		);
 

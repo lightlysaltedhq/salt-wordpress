@@ -1,0 +1,17 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -71,6 +71,13 @@
+       - name: Contract pin + derivation vs frozen vectors + required roles + contrast in every display mode
+         run: vendor/bin/phpunit --testsuite conformance
+ 
++      # The page sections' fields are the pinned salt-contract's (ID-3610 part A): the committed
++      # inc/fields/generated/sections.json must be the pinned emitter's output, byte for byte,
++      # and the theme must register exactly those layouts, with no hand-written copy. Needs the
++      # npm ci above (the emitter runs from node_modules) and PHP.
++      - name: Section fields generated from the pinned salt-contract (drift check)
++        run: php bin/check-fields-from-contract.php
++
+   js:
+     name: ESLint + Stylelint
+     runs-on: ubuntu-latest

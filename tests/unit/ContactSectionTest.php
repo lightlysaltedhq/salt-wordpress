@@ -88,18 +88,12 @@ final class ContactSectionTest extends SaltTestCase {
 	// Layout shape (DATA02).
 	// -----------------------------------------------------------------
 
-	public function test_layout_shape_content_first_then_wrapper_no_map_fields(): void {
-		$layout = require dirname( __DIR__, 2 ) . '/inc/fields/layouts/contact.php';
+	public function test_layout_is_generated_from_the_contract_no_map_fields(): void {
+		$layout = salt_test_layout( 'contact' );
 
-		$this->assertSame( 'contact', $layout['name'] );
 		$this->assertSame( 'layout_salt_contact', $layout['key'] );
-
 		$names = array_column( $layout['sub_fields'], 'name' );
-		$this->assertSame(
-			array( 'heading', 'intro', 'showPhone', 'showEmail', 'showAddress', 'formIntro' ),
-			array_slice( $names, 0, 6 )
-		);
-		$this->assertContains( 'spacing', $names, 'Wrapper Advanced tab embedded last (§11).' );
+		$this->assertSame( array( 'heading', 'intro', 'showPhone', 'showEmail', 'showAddress', 'formIntro', 'settings' ), $names );
 
 		// Maps are absent from this build — no map/geo fields of any kind.
 		foreach ( $names as $name ) {

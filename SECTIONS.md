@@ -21,10 +21,17 @@ release requirement ("SECTIONS.md current" checklist line).
 
 ## Adding a section (§17 recipe, as implemented)
 
-1. `inc/fields/layouts/{name}.php` — returns the FC layout array: content
-   fields first, then `salt_section_wrapper_fields('{name}')` (the shared
-   §11 Advanced tab). CPT-backed sections embed
-   `salt_query_control_fields($cpt)`.
+1. Fields come from salt-contract, never by hand (6.0.0, ID-3610): add the
+   section id to `sections` in `inc/fields/generated/sections.options.json`,
+   run `php bin/check-fields-from-contract.php --write` and commit
+   `inc/fields/generated/sections.json` as written. Every layout carries
+   the contract's section settings in a group named `settings`, read only
+   by `salt_section_wrapper_args()`; a section built on the contract's
+   collection query reads its `query` group with
+   `salt_query_controls_from_query()`. (`inc/fields/layouts/*.php` holds
+   only the six collection layouts not yet folded into collection-showcase
+   and carousel; `bin/check-fields-from-contract.php` refuses a
+   hand-written copy of a generated section.)
 2. Logic and view, split (docs/contracts/CONVENTIONS.md, "Sections:
    logic and view"):
    - `inc/sections/{name}.php` — the resolver
@@ -54,8 +61,7 @@ end-to-end — copy it.
 | # | Section | Layout slug | Source | Schema | Notes |
 |---|---|---|---|---|---|
 | 1 | Hero | `hero` | inline | — | Image only in v1 (video absent this build); LCP image eager |
-| 2 | Intro / Lead | `intro` | inline | — | |
-| 3 | Rich Text | `rich-text` | inline | — | The §17 exemplar |
+| 3 | Rich Text | `rich-text` | inline | — | The §17 exemplar; intro folded in (6.0.0) |
 | 4 | Services | `services` | `service` ✦ | Service | Default = legacy parity (DATA04) |
 | 5 | Feature Grid | `features` | inline repeater | — | |
 | 6 | Media + Text | `media-text` | inline repeater | — | Alternating mode auto-flips |
@@ -63,19 +69,22 @@ end-to-end — copy it.
 | 8 | Testimonials | `testimonials` | `testimonial` ✦ | Review (itemReviewed = related Service, SEO02) | Slider = scroll-snap base + JS enhancement; no AggregateRating in v1 |
 | 9 | Logo Strip | `logos` | inline repeater | — | Also the "as featured in" home |
 | 10 | Call to Action | `call-to-action` | inline | — | Newsletter variant deferred (compliance phase) |
-| 11 | Pricing | `pricing` | inline repeater | — | Offer schema deferred |
 | 12 | Team | `team` | `team_member` ✦ | Person (no PII in graph) | CPT not public in v1 |
-| 13 | FAQ | `faq` | `faq` ✦ | FAQPage (merged once per page, SEO03) | Native `<details>`, zero JS |
+| 13 | FAQ | `faq` | `faq` ✦ (contract `query`) | FAQPage (merged once per page, SEO03) | Native `<details>`, zero JS |
 | 14 | Process | `process` | inline repeater | HowTo (opt-in toggle, AEO) | `<ol>` semantics |
 | 15 | Portfolio / Work | `work` | `work` ✦ | CreativeWork | Client-side filtering not in v1 |
 | 16 | Gallery | `gallery` | inline | — | Carousel = scroll-snap base + JS enhancement (FAIL02) |
 | 17 | Blog Teaser | `blog_teaser` | `post` ✦ | — | Never paginates (§6 teaser rule) |
 | 18 | Scroll Carousel | `scroll_carousel` | inline repeater | — | Scroll-snap base + JS enhancement |
 | 19 | Contact | `contact` | inline + options | ContactPoint | **LIVE (v2)**: REST + no-JS paths, honeypot/time-trap/rate-limit/CAPTCHA (SEC01/02), privacy link at collection; goes live when a recipient is configured (`salt_contact_form_enabled` kill-switch remains) |
-| 20 | Locations | `locations` | `location` ✦ | LocalBusiness (+ OpeningHoursSpecification; `parentOrganization` linked, SEO01) | Zero-JS accordion; status pill via `salt_location_status`; OSM directions link; no map in v1 |
+| 20 | Locations | `locations` | `location` ✦ (contract `query`) | LocalBusiness (+ OpeningHoursSpecification; `parentOrganization` linked, SEO01) | Zero-JS accordion; status pill via `salt_location_status`; OSM directions link; no map in v1 |
 
-✦ = CPT-backed; all seven resolve through `salt_resolve_query()` +
-`salt_query_control_fields()` (SCOPE01 — Locations included).
+✦ = CPT-backed; all seven resolve through `salt_resolve_query()`. FAQ and
+Locations read the contract's `query` group
+(`salt_query_controls_from_query()`); the five collection layouts still
+embed `salt_query_control_fields($cpt)` until unit 8 folds them (SCOPE01).
+Intro (folded into Rich Text) and Pricing (a Grain for WordPress recipe,
+SC-006) were removed in 6.0.0.
 
 ## Component args registry
 

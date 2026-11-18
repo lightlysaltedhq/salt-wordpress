@@ -19,7 +19,7 @@
  * $args:
  *   props  array{ rows: array<int, array{image_id: int, heading: string|null,
  *                 content: string|null, mediaSide: string,
- *                 cta: array{url: string, title: string, target: string}|null}> }
+ *                 buttons: array<int, array{label: string, url: string, style: string, target: string}>}> }
  *          rows is never empty; content is HTML already sanitised;
  *          mediaSide ('left'|'right') is the side the row is drawn on.
  *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
@@ -55,16 +55,20 @@ foreach ( $salt_props['rows'] as $salt_i => $salt_row ) {
 	if ( null !== $salt_row['content'] ) {
 		$salt_body .= '<div class="x-prose max-w-prose text-ink">' . $salt_row['content'] . '</div>';
 	}
-	if ( null !== $salt_row['cta'] ) {
-		$salt_body .= '<div class="mt-6">' . salt_get_component(
-			'button',
-			array(
-				'label'  => $salt_row['cta']['title'],
-				'url'    => $salt_row['cta']['url'],
-				'style'  => 'link-arrow',
-				'target' => $salt_row['cta']['target'],
-			)
-		) . '</div>';
+	if ( array() !== $salt_row['buttons'] ) {
+		$salt_body .= '<div class="mt-6">';
+		foreach ( $salt_row['buttons'] as $salt_button ) {
+			$salt_body .= salt_get_component(
+				'button',
+				array(
+					'label'  => $salt_button['label'],
+					'url'    => $salt_button['url'],
+					'style'  => 'link-arrow',
+					'target' => $salt_button['target'],
+				)
+			);
+		}
+		$salt_body .= '</div>';
 	}
 
 	if ( $salt_row['image_id'] > 0 ) {

@@ -31,10 +31,7 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 			array(
 				'heading' => 'Ready?',
 				'buttons' => array(
-					array(
-						'label' => 'Talk to us',
-						'url'   => 'https://example.test/contact/',
-					),
+					salt_test_button( 'Talk to us', 'https://example.test/contact/' ),
 				),
 			)
 		);

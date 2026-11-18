@@ -52,8 +52,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *                           aria-label; '' when unlinked). The contract's
  *                           `name` is not a prop: it only feeds `alt` and
  *                           `link_label`.
- *   The contract's `intro` and `columns` are not supplied (the layout has
- *   no such fields).
+ *   The contract's `intro` and `columns` are stored but not supplied yet
+ *   (M4).
  *
  * @param array<string,mixed> $context Loop context: index, is_primary.
  * @return array{section: array<string,mixed>, props: array<string,mixed>}|null Null = 0-state.

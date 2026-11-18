@@ -54,29 +54,20 @@ final class FeaturesSectionSnapshotTest extends SaltSnapshotTestCase {
 						array(
 							'icon'  => 'check',
 							'title' => 'Fast by default',
-							'text'  => 'Lean pages, quick loads.',
-							'url'   => array(
-								'url'   => 'https://example.test/fast/',
-								'title' => 'Fast by default',
-							),
+							'text'  => '<p>Lean pages, quick loads.</p>',
+							'url'   => 'https://example.test/fast/',
 						),
 						array(
 							'icon'  => 'star',
 							'title' => 'Accessible',
-							'text'  => 'WCAG-first components.',
-							'url'   => array(
-								'url'   => 'https://example.test/accessible/',
-								'title' => 'Accessible',
-							),
+							'text'  => '<p>WCAG-first components.</p>',
+							'url'   => 'https://example.test/accessible/',
 						),
 						array(
 							'icon'  => 'mail',
 							'title' => 'Low carbon',
-							'text'  => 'Every kilobyte counted.',
-							'url'   => array(
-								'url'   => 'https://example.test/low-carbon/',
-								'title' => 'Low carbon',
-							),
+							'text'  => '<p>Every kilobyte counted.</p>',
+							'url'   => 'https://example.test/low-carbon/',
 						),
 					),
 				)
@@ -95,7 +86,7 @@ final class FeaturesSectionSnapshotTest extends SaltSnapshotTestCase {
 						array(
 							'icon'  => 'check',
 							'title' => 'Fast by default',
-							'text'  => 'Lean pages, quick loads.',
+							'text'  => '<p>Lean pages, quick loads.</p>',
 						),
 					),
 				)

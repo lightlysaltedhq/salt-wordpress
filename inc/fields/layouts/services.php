@@ -4,7 +4,8 @@
  *
  * Layout slug 'services' is a stability contract (FLEET07) — renaming it
  * is a MAJOR bump + slug-migrations.json entry. Content fields first, then
- * the shared query controls (§10a), then the shared §11 Advanced tab.
+ * the shared query controls (§10a), then the contract's section settings
+ * group.
  *
  * @package Salt
  */
@@ -69,6 +70,6 @@ return array(
 			),
 		),
 		salt_query_control_fields( 'service' ),
-		salt_section_wrapper_fields( 'services' )
+		salt_section_settings_fields( 'services' )
 	),
 );

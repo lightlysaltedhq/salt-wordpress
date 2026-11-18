@@ -8,8 +8,8 @@
  * overrides the markup only.
  *
  * $args:
- *   props  array{ heading: string|null, body_text: string|null,
- *                 buttons: array<int, array{label: string, href: string, style: string}> }
+ *   props  array{ heading: string|null, body: string|null (sanitised HTML),
+ *                 buttons: array<int, array{label: string, href: string, style: string, newTab: bool}> }
  *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
  *
  * @package Salt
@@ -26,12 +26,13 @@ salt_component(
 	'cta',
 	array(
 		'heading' => $salt_props['heading'] ?? '',
-		'text'    => $salt_props['body_text'] ?? '',
+		'body'    => $salt_props['body'] ?? '',
 		'buttons' => array_map(
 			static fn( array $button ): array => array(
-				'label' => $button['label'],
-				'url'   => $button['href'],
-				'style' => $button['style'],
+				'label'  => $button['label'],
+				'url'    => $button['href'],
+				'style'  => $button['style'],
+				'target' => $button['newTab'] ? '_blank' : '',
 			),
 			$salt_props['buttons']
 		),

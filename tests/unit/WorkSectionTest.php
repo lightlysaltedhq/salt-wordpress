@@ -506,8 +506,8 @@ final class WorkSectionTest extends SaltTestCase {
 		$this->assertContains( 'source', $names );
 		$this->assertContains( 'taxonomy_terms', $names );
 		$this->assertContains( 'count', $names );
-		// …then the §11 wrapper fields last.
-		$this->assertSame( 'divider', end( $names ) );
+		// …then the contract's section settings group last.
+		$this->assertSame( 'settings', end( $names ) );
 
 		$this->assertLessThan(
 			array_search( 'source', $names, true ),
@@ -515,9 +515,9 @@ final class WorkSectionTest extends SaltTestCase {
 			'Query controls come after the content fields.'
 		);
 		$this->assertLessThan(
-			array_search( 'spacing', $names, true ),
+			array_search( 'settings', $names, true ),
 			array_search( 'count', $names, true ),
-			'Wrapper fields come after the query controls.'
+			'The settings group comes after the query controls.'
 		);
 
 		$columns = array_column( $layout['sub_fields'], null, 'name' )['columns'];

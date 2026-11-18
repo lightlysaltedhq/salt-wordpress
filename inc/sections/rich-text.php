@@ -4,7 +4,9 @@
  * view is template-parts/sections/rich-text.php. The §17 exemplar for the
  * logic/view split (docs/contracts/CONVENTIONS.md).
  *
- * Fields: heading (text), body (WYSIWYG, salt_allowed_html-constrained).
+ * Fields (contract/fields/rich-text.json): heading (text), body (WYSIWYG,
+ * salt_allowed_html-constrained). eyebrow and alignment, which intro
+ * folded in (ID-3599), are stored but not drawn yet (M4).
  * States (COMPL02): both blank => null (renders NOTHING, no band).
  *
  * @package Salt

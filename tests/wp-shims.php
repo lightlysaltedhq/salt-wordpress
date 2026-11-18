@@ -35,16 +35,17 @@ if ( ! defined( 'WP_DEBUG' ) ) {
  * @return void
  */
 function salt_test_reset(): void {
-	$GLOBALS['salt_test_hooks']    = array();
-	$GLOBALS['salt_test_options']  = array();
-	$GLOBALS['salt_test_fields']   = array();
-	$GLOBALS['salt_test_posts']    = array();
-	$GLOBALS['salt_test_enqueued'] = array(
+	$GLOBALS['salt_test_hooks']      = array();
+	$GLOBALS['salt_test_options']    = array();
+	$GLOBALS['salt_test_fields']     = array();
+	$GLOBALS['salt_test_posts']      = array();
+	$GLOBALS['salt_test_query_vars'] = array();
+	$GLOBALS['salt_test_enqueued']   = array(
 		'styles'  => array(),
 		'scripts' => array(),
 	); // phpcs:ignore Universal.Arrays.MixedKeyedUnkeyedArray
-	$GLOBALS['salt_test_logs']     = array();
-	$GLOBALS['salt_test_user']     = array(
+	$GLOBALS['salt_test_logs']       = array();
+	$GLOBALS['salt_test_user']       = array(
 		'logged_in' => false,
 		'caps'      => array(),
 	);
@@ -318,6 +319,19 @@ if ( ! function_exists( 'absint' ) ) {
 	 */
 	function absint( $maybeint ): int {
 		return abs( (int) $maybeint );
+	}
+}
+
+if ( ! function_exists( 'get_query_var' ) ) {
+	/**
+	 * get_query_var shim — reads $GLOBALS['salt_test_query_vars'].
+	 *
+	 * @param string $name          Query var.
+	 * @param mixed  $default_value Value when unset.
+	 * @return mixed
+	 */
+	function get_query_var( string $name, $default_value = '' ) {
+		return $GLOBALS['salt_test_query_vars'][ $name ] ?? $default_value;
 	}
 }
 

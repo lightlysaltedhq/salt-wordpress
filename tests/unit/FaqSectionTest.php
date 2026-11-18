@@ -143,21 +143,15 @@ final class FaqSectionTest extends SaltTestCase {
 		$this->assertSame( 'wysiwyg', $fields['answer']['type'] );
 	}
 
-	public function test_layout_shape_content_then_query_controls_then_wrapper(): void {
-		$layout = require dirname( __DIR__, 2 ) . '/inc/fields/layouts/faq.php';
+	public function test_layout_is_generated_from_the_contract(): void {
+		$layout = salt_test_layout( 'faq' );
 
-		$this->assertSame( 'faq', $layout['name'] );
 		$this->assertSame( 'layout_salt_faq', $layout['key'] );
-
-		$names = array_column( $layout['sub_fields'], 'name' );
-		$this->assertContains( 'eyebrow', $names );
-		$this->assertContains( 'heading', $names );
-		$this->assertContains( 'structuredData', $names );
-		$this->assertContains( 'source', $names, 'Query controls embedded (§10a).' );
-		$this->assertContains( 'taxonomy_terms', $names, 'faq_category filter present.' );
-		$this->assertSame( 'divider', end( $names ), 'Wrapper fields come LAST.' );
+		$this->assertSame( array( 'eyebrow', 'heading', 'intro', 'query', 'structuredData', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
 		$fields = array_column( $layout['sub_fields'], null, 'name' );
+		$this->assertSame( array( 'mode', 'categories', 'items', 'order', 'count' ), array_column( $fields['query']['sub_fields'], 'name' ), 'The contract\'s collection query.' );
+		$this->assertSame( 'faq_category', array_column( $fields['query']['sub_fields'], null, 'name' )['categories']['taxonomy'] );
 		$this->assertSame( 1, $fields['structuredData']['default_value'], 'Schema toggle defaults ON (SEO03).' );
 		$this->assertSame( 'field_salt_faq_structured_data', $fields['structuredData']['key'] );
 	}
@@ -392,16 +386,20 @@ final class FaqSectionTest extends SaltTestCase {
 					'layout' => 'faq',
 					'fields' => array(
 						'heading' => 'General FAQs',
-						'source'  => 'manual',
-						'manual'  => array( 1 ),
+						'query'   => array(
+							'mode'  => 'manual',
+							'items' => array( 1 ),
+						),
 					),
 				),
 				array(
 					'layout' => 'faq',
 					'fields' => array(
 						'heading' => 'Billing FAQs',
-						'source'  => 'manual',
-						'manual'  => array( 2 ),
+						'query'   => array(
+							'mode'  => 'manual',
+							'items' => array( 2 ),
+						),
 					),
 				),
 			)

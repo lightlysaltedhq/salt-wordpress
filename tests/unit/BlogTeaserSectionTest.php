@@ -491,10 +491,11 @@ final class BlogTeaserSectionTest extends SaltTestCase {
 		// Content fields first (DATA02 keys), query controls before the wrapper.
 		$this->assertSame( 'field_salt_blog_teaser_eyebrow', $layout['sub_fields'][0]['key'] );
 		$this->assertLessThan(
-			array_search( 'spacing', $names, true ),
+			array_search( 'settings', $names, true ),
 			array_search( 'source', $names, true ),
-			'Query controls precede the shared wrapper fields.'
+			'Query controls precede the shared settings group.'
 		);
+		$this->assertSame( 'settings', end( $names ), 'The contract\'s section settings group last.' );
 	}
 
 	// -----------------------------------------------------------------

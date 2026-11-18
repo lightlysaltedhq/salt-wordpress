@@ -6,9 +6,13 @@
  * MAJOR semver bump, §4/§12):
  *   heading string  ''       Optional heading text (escaped here).
  *   text    string  ''       Optional supporting copy (escaped here).
+ *   body    string  ''       Optional rich-text copy: HTML the caller has
+ *                            ALREADY sanitised (salt_sanitize_html()). Drawn
+ *                            in place of text when both are given.
  *   buttons array   array()  Each entry: array{ label: string, url: string,
- *                            style?: string }. Malformed entries (missing
- *                            label/url) are skipped and salt_log()ged.
+ *                            style?: string, target?: string }. Malformed
+ *                            entries (missing label/url) are skipped and
+ *                            salt_log()ged.
  *   level   int     2        Heading level. NO heading-claim logic here —
  *                            the level ARRIVES from the section wrapper
  *                            (salt_section() computes it before the body
@@ -33,6 +37,10 @@ $salt_args = salt_require_args(
 			'default' => '',
 		),
 		'text'    => array(
+			'type'    => 'string',
+			'default' => '',
+		),
+		'body'    => array(
 			'type'    => 'string',
 			'default' => '',
 		),
@@ -94,7 +102,9 @@ $salt_row_classes = salt_classnames(
 	<?php if ( '' !== $salt_args['heading'] ) : ?>
 		<h<?php echo (int) $salt_level; ?> class="x-heading text-3xl font-bold tracking-tight"><?php echo esc_html( $salt_args['heading'] ); ?></h<?php echo (int) $salt_level; ?>>
 	<?php endif; ?>
-	<?php if ( '' !== $salt_args['text'] ) : ?>
+	<?php if ( '' !== $salt_args['body'] ) : ?>
+		<div class="x-prose text-ink-muted"><?php echo $salt_args['body']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised by the caller through salt_sanitize_html() (ARGS CONTRACT). ?></div>
+	<?php elseif ( '' !== $salt_args['text'] ) : ?>
 		<p class="text-ink-muted"><?php echo esc_html( $salt_args['text'] ); ?></p>
 	<?php endif; ?>
 	<?php if ( array() !== $salt_args['buttons'] ) : ?>
@@ -113,11 +123,12 @@ $salt_row_classes = salt_classnames(
 				salt_component(
 					'button',
 					array(
-						'label' => $salt_button['label'],
-						'url'   => $salt_button['url'],
-						'style' => is_string( $salt_button['style'] ?? null ) && '' !== ( $salt_button['style'] ?? '' )
+						'label'  => $salt_button['label'],
+						'url'    => $salt_button['url'],
+						'style'  => is_string( $salt_button['style'] ?? null ) && '' !== ( $salt_button['style'] ?? '' )
 							? $salt_button['style']
 							: 'primary',
+						'target' => '_blank' === ( $salt_button['target'] ?? '' ) ? '_blank' : '',
 					)
 				);
 			}

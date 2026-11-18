@@ -397,7 +397,7 @@ final class TeamSectionTest extends SaltTestCase {
 		$this->assertSame( array( 'eyebrow', 'heading', 'columns' ), array_slice( $names, 0, 3 ), 'Content fields first.' );
 		$this->assertContains( 'source', $names, 'Query controls embedded (§10a).' );
 		$this->assertContains( 'taxonomy_terms', $names, 'department taxonomy filter present.' );
-		$this->assertSame( 'divider', end( $names ), 'Wrapper Advanced tab last.' );
+		$this->assertSame( 'settings', end( $names ), 'The contract\'s section settings group last.' );
 	}
 
 	// -----------------------------------------------------------------------

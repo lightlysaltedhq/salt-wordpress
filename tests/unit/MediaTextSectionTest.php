@@ -74,38 +74,21 @@ final class MediaTextSectionTest extends SaltTestCase {
 	// FC layout shape (§17 recipe, DATA02/FLEET07).
 	// -----------------------------------------------------------------
 
-	public function test_layout_file_shape(): void {
-		$layout = include dirname( __DIR__, 2 ) . '/inc/fields/layouts/media-text.php';
+	public function test_layout_is_generated_from_the_contract(): void {
+		$layout = salt_test_layout( 'media-text' );
 
-		$this->assertSame( 'media-text', $layout['name'] );
 		$this->assertSame( 'layout_salt_media_text', $layout['key'] );
+		$this->assertSame( array( 'mode', 'rows', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
-		$keys = array_column( $layout['sub_fields'], 'key' );
-
-		// Content fields first.
-		$this->assertSame( 'field_salt_media_text_mode', $keys[0] );
-		$this->assertSame( 'field_salt_media_text_rows', $keys[1] );
-
-		// Repeater row sub-fields (DATA02 key convention).
 		$rows = $layout['sub_fields'][1];
 		$this->assertSame( 'repeater', $rows['type'] );
-		$row_fields = array();
-		foreach ( $rows['sub_fields'] as $field ) {
-			$row_fields[ $field['name'] ] = $field;
-		}
-		$this->assertSame( array( 'image', 'heading', 'content', 'mediaSide', 'cta' ), array_keys( $row_fields ) );
-		foreach ( $row_fields as $name => $field ) {
-			// DATA02: the key carries the field name in snake_case (mediaSide => media_side).
-			$this->assertSame( 'field_salt_media_text_row_' . strtolower( (string) preg_replace( '/[A-Z]/', '_$0', $name ) ), $field['key'], 'DATA02 key convention.' );
-		}
+		$row_fields = array_column( $rows['sub_fields'], null, 'name' );
+		$this->assertSame( array( 'image', 'heading', 'content', 'mediaSide', 'buttons' ), array_keys( $row_fields ) );
+		$this->assertSame( 'field_salt_media_text_rows_media_side', $row_fields['mediaSide']['key'], 'DATA02: the name in snake_case.' );
 		$this->assertSame( 'id', $row_fields['image']['return_format'] );
 		$this->assertSame( array( 'left', 'right' ), array_keys( $row_fields['mediaSide']['choices'] ) );
-		$this->assertSame( 'link', $row_fields['cta']['type'] );
+		$this->assertSame( 2, $row_fields['buttons']['max'] );
 		$this->assertSame( array( 'single', 'alternating' ), array_keys( $layout['sub_fields'][0]['choices'] ) );
-
-		// Wrapper fields LAST (§11 Advanced tab).
-		$this->assertContains( 'field_salt_media_text_advanced_tab', $keys );
-		$this->assertSame( 'field_salt_media_text_divider', end( $keys ) );
 	}
 
 	// -----------------------------------------------------------------
@@ -410,11 +393,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 				'rows' => array(
 					array(
 						'heading' => 'With CTA',
-						'cta'     => array(
-							'url'    => 'https://example.test/contact/',
-							'title'  => 'Get in touch',
-							'target' => '',
-						),
+						'buttons' => array( salt_test_button( 'Get in touch', 'https://example.test/contact/' ) ),
 					),
 				),
 			)
@@ -431,10 +410,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 				'rows' => array(
 					array(
 						'heading' => 'CTA-less row',
-						'cta'     => array(
-							'url'   => '',
-							'title' => 'Dead link',
-						),
+						'buttons' => array( salt_test_button( 'Dead link', '' ) ),
 					),
 				),
 			)
@@ -442,7 +418,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 
 		$this->assertStringContainsString( 'CTA-less row', $html );
 		$this->assertStringNotContainsString( 'x-button', $html );
-		$this->assertStringContainsString( 'malformed CTA', implode( ' ', $this->logs() ) );
+		$this->assertStringContainsString( 'section media-text: row 0: button 0 has no label or no address', implode( ' ', $this->logs() ) );
 	}
 
 	// -----------------------------------------------------------------
@@ -518,11 +494,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 						'heading'   => ' Our story ',
 						'content'   => '<p>Copy <strong>here</strong>.</p><script>x()</script>',
 						'mediaSide' => 'right',
-						'cta'       => array(
-							'url'    => '/about',
-							'title'  => 'Read more',
-							'target' => '_blank',
-						),
+						'buttons'   => array( salt_test_button( 'Read more', '/about', 'primary', true ) ),
 					),
 					array( 'content' => '<p>Text only.</p>' ),
 				),
@@ -531,7 +503,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 
 		$this->assertSame( array( 'rows' ), array_keys( $resolved['props'] ) );
 		$first = $resolved['props']['rows'][0];
-		$this->assertSame( array( 'image_id', 'heading', 'content', 'mediaSide', 'cta' ), array_keys( $first ) );
+		$this->assertSame( array( 'image_id', 'heading', 'content', 'mediaSide', 'buttons' ), array_keys( $first ) );
 		$this->assertSame( 5, $first['image_id'] );
 		$this->assertSame( 'Our story', $first['heading'] );
 		$this->assertStringContainsString( '<strong>here</strong>', $first['content'] );
@@ -539,17 +511,20 @@ final class MediaTextSectionTest extends SaltTestCase {
 		$this->assertSame( 'right', $first['mediaSide'] );
 		$this->assertSame(
 			array(
-				'url'    => '/about',
-				'title'  => 'Read more',
-				'target' => '_blank',
+				array(
+					'label'  => 'Read more',
+					'url'    => '/about',
+					'style'  => 'primary',
+					'target' => '_blank',
+				),
 			),
-			$first['cta']
+			$first['buttons']
 		);
 
 		$second = $resolved['props']['rows'][1];
 		$this->assertSame( 0, $second['image_id'] );
 		$this->assertNull( $second['heading'] );
-		$this->assertNull( $second['cta'] );
+		$this->assertSame( array(), $second['buttons'] );
 		$this->assertSame( 'left', $second['mediaSide'] );
 		$this->assertTrue( $resolved['section']['has_heading'], 'The FIRST row\'s heading is the section heading.' );
 	}
@@ -588,8 +563,8 @@ final class MediaTextSectionTest extends SaltTestCase {
 	public function test_resolver_owns_the_wrapper_inputs(): void {
 		$resolved = $this->resolve_media_text(
 			array(
-				'rows'    => array( array( 'heading' => 'Only' ) ),
-				'spacing' => 'lg',
+				'rows'     => array( array( 'heading' => 'Only' ) ),
+				'settings' => array( 'spacing' => 'lg' ),
 			),
 			array(
 				'index'      => 4,
@@ -618,10 +593,13 @@ final class MediaTextSectionTest extends SaltTestCase {
 							'heading'   => 'First from props',
 							'content'   => '<p>Already sanitised.</p>',
 							'mediaSide' => 'right',
-							'cta'       => array(
-								'url'    => '/more',
-								'title'  => 'More',
-								'target' => '',
+							'buttons'   => array(
+								array(
+									'label'  => 'More',
+									'url'    => '/more',
+									'style'  => 'secondary',
+									'target' => '',
+								),
 							),
 						),
 						array(
@@ -629,7 +607,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 							'heading'   => 'Second from props',
 							'content'   => null,
 							'mediaSide' => 'left',
-							'cta'       => null,
+							'buttons'   => array(),
 						),
 					),
 				),

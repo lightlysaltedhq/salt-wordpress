@@ -49,18 +49,10 @@ final class CallToActionSectionSnapshotTest extends SaltSnapshotTestCase {
 			$this->render_cta(
 				array(
 					'heading' => 'Ready to start your project?',
-					'body'    => 'Tell us where you are and where you want to be — we will map the route.',
+					'body'    => '<p>Tell us where you are and where you want to be — we will map the route.</p>',
 					'buttons' => array(
-						array(
-							'label' => 'Get in touch',
-							'url'   => 'https://example.test/contact/',
-							'style' => 'primary',
-						),
-						array(
-							'label' => 'See our work',
-							'url'   => 'https://example.test/work/',
-							'style' => 'secondary',
-						),
+						salt_test_button( 'Get in touch', 'https://example.test/contact/', 'primary' ),
+						salt_test_button( 'See our work', 'https://example.test/work/', 'secondary' ),
 					),
 				)
 			)

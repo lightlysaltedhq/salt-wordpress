@@ -393,8 +393,8 @@ final class ServicesSectionTest extends SaltTestCase {
 		// …then the shared query controls (§10a)…
 		$this->assertContains( 'source', $names );
 		$this->assertContains( 'taxonomy_terms', $names );
-		// …then the shared §11 wrapper tab LAST.
-		$this->assertSame( 'divider', end( $names ) );
+		// …then the contract's section settings group LAST.
+		$this->assertSame( 'settings', end( $names ) );
 
 		foreach ( $layout['sub_fields'] as $field ) {
 			if ( isset( $field['key'] ) ) {

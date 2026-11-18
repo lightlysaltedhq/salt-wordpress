@@ -45,15 +45,17 @@ in `composer.json`) and Playwright 1.65.1 with its headless Chromium (`package.j
 1. Builds a throwaway site in a temporary directory with a random `salt_harness_*` database. It
    has the salt theme active (symlinked to this checkout), ACF Pro activated, `WP_DEBUG_LOG` on
    and outbound HTTP blocked.
-2. **The theme's own groups.** With no harness plugin installed, it loads every field group the
-   theme registers today through ACF. That is 23 groups, including the 20 hand-written section
-   layouts. Any PHP notice, warning, deprecation or `salt_log` line in `debug.log` fails the
+2. **The theme's own groups.** It loads every field group the theme registers through ACF. That
+   is 23 groups; the page sections group holds the 12 layouts generated from the contract
+   (`inc/fields/generated/sections.json`) and the 6 hand-written collection layouts. Any PHP notice, warning, deprecation or `salt_log` line in `debug.log` fails the
    phase. This applies to every phase.
 3. **The contract's field shape.** `emit.mjs` writes `acfSnapshot()` from the theme's pinned
-   contract, passing the theme's bundled icons. Then `mu-plugins/salt-harness-emitted-sections.php`
-   unhooks the theme's sections group and registers the emitted JSON verbatim. `php/contract.php`
-   then checks the following:
-   - every layout and field is registered, with its name, type and `salt` provenance kept;
+   contract with the theme's own options (`inc/fields/generated/sections.options.json`) and
+   reports whether it is identical to the committed JSON. The theme registers that JSON through
+   its own loader (`salt_section_layouts()` in `inc/acf.php`); no harness plugin is involved.
+   `php/contract.php` then checks the following:
+   - the theme registers the emitted layouts first and in order, with no hand-written layout for a
+     generated section, and every field with its name, type and `salt` provenance kept;
    - one page is seeded with one row per contract fixture case through `update_field()`. That is
      every `fixtures/<section>/*.json` whose section is a page-sections layout. Named images,
      galleries and documents become real attachments and posts;
@@ -62,18 +64,23 @@ in `composer.json`) and Playwright 1.65.1 with its headless Chromium (`package.j
      is reported per case;
    - in the database, each saved value is at its contract storage path with its `_key` reference.
      A probe page sets the paths named in M3, for example `sections_0_settings_spacing`,
-     `sections_0_settings_backgroundImage_scrimStrength` and `sections_1_query_mode`, `_categories`,
-     `_items`, `_order` and `_count`. Meta keys must not differ only in case, either in the stored
+     `sections_0_settings_backgroundImage_scrimStrength` and a faq row's `sections_1_query_mode`,
+     `_categories`, `_items`, `_order` and `_count`. Meta keys must not differ only in case, either in the stored
      rows or anywhere in the emitted shape.
-4. **The editor, in headless Chromium** against PHP's built-in server (`browser.mjs`):
+4. **The theme renders it.** `php/render.php` renders the fixtures page through the theme's page
+   loop, so every resolver reads real `get_sub_field()` values. Every generated section with
+   content must draw a band (faq and locations have no posts to query there), button links must
+   resolve (external with a new tab, internal to its document), `settings.anchorId` must reach the
+   band, and the page must have one H1.
+5. **The editor, in headless Chromium** against PHP's built-in server (`browser.mjs`):
    - the fixtures page's classic edit screen renders every row and layout with no console errors;
-   - a collection query's mode shows categories or items, and a source without categories hides
-     them;
-   - an empty required field (a collection showcase's source) blocks publishing, and filling it
-     lets the page publish;
+   - the faq section's collection query mode shows categories or items, and order and count unless
+     the mode is manual;
+   - an empty required field (a features item's title) blocks publishing, and filling it lets the
+     page publish;
    - re-saving the fixtures page from the browser changes nothing unexplained. Every meta row is
      diffed before and after, and each change is put in a named class or failed.
-5. Prints a summary, drops the database and removes the temporary directory, whether the run
+6. Prints a summary, drops the database and removes the temporary directory, whether the run
    passed, failed or was interrupted.
 
 ## Reading the re-save diff
@@ -102,19 +109,12 @@ These changes are expected and reported, not failed:
 
 ## What it does not prove
 
-- **Rendering.** It does not check the theme's rendering of these values: the theme does not yet
-  load the emitted JSON (EP-72 M3 unit 3), and its resolvers still read the hand-written names.
+- **Rendered markup.** The render phase checks the resolvers read the shape and draw; it does
+  not compare markup with the contract's fixtures (that is M4). Collection-showcase, carousel,
+  tabs and listing are not registered yet (unit 8 and later), so their fixtures are not seeded.
 - **Picker filling.** The multi-taxonomy category select (`choices` filled by the site) and
   `salt.modeRequires` server validation are not built yet. They are only stored and read back.
 - **Licensing.** It does not cover ACF Pro licence activation or updates. Pro field types work on
   this unlicensed local site.
 - **Other environments.** It covers ACF Pro 6.8.11 and WordPress 6.8 only, and does not check
   the block editor (the theme turns it off) or browsers other than Chromium.
-
-## When the theme registers the JSON itself (unit 3)
-
-Delete `mu-plugins/salt-harness-emitted-sections.php`. The contract phase then checks whatever the
-theme registers under `group_salt_sections` against the same emitted JSON. If unit 3 also removes
-`inc/fields/layouts/`, update the hand-written layout count check in `php/theme-groups.php`.
-`site/salt-harness-offline.php` stays: it only stops wp-admin's update checks from reaching the
-network.

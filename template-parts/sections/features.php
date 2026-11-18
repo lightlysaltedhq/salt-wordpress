@@ -9,7 +9,7 @@
  *
  * $args:
  *   props  array{ eyebrow: string|null, heading: string|null, columns: string,
- *                 items: array<int, array{icon: string|null, title: string, body_text: string|null, href: string|null}> }
+ *                 items: array<int, array{icon: string|null, title: string, text: string|null (sanitised HTML), href: string|null}> }
  *          columns is '2'|'3'|'4'; items is never empty.
  *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
  *
@@ -68,14 +68,14 @@ foreach ( $salt_props['items'] as $salt_item ) {
 	echo salt_get_component( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Component output escapes at the point each value is printed.
 		'card',
 		array(
-			'title'   => $salt_item['title'],
-			'url'     => $salt_item['href'] ?? '',
-			'level'   => $salt_card_level,
-			'body'    => $salt_item['body_text'] ?? '',
-			'media'   => '' !== $salt_icon_html
+			'title'     => $salt_item['title'],
+			'url'       => $salt_item['href'] ?? '',
+			'level'     => $salt_card_level,
+			'body_html' => $salt_item['text'] ?? '',
+			'media'     => '' !== $salt_icon_html
 				? '<div class="x-card-feature-icon px-6 pt-6 text-brand">' . $salt_icon_html . '</div>'
 				: '',
-			'classes' => 'x-card-feature',
+			'classes'   => 'x-card-feature',
 		)
 	);
 }
