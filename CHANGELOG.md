@@ -311,9 +311,9 @@ markup granularity (cross-reference your site's override manifest).
     `rating` arg is a float. The stars are drawn as the contract's card draws
     them (`markup/card.json`, rating): five empty stars with five filled ones
     clipped to `--salt-rating-fill`, the rating as a percentage of 5, so 4.5
-    fills 90%. The label reads "Rated 4.5 out of 5 stars"; how a half value
-    is written in it is pending the founder's ruling. The rest of the card's
-    markup is unchanged until M4.
+    fills 90%. The label reads "Rated 4.5 out of 5 stars" (the founder's
+    ruling on how a half value is written). The rest of the card's markup is
+    unchanged until M4.
   - **Topics (`_topic.json`; the topics owes of services, case studies, FAQs
     and locations).** `service_category`, `work_type`, `faq_category` and
     `location_area` are labelled Topics (a Topic) in place of "Service
@@ -325,8 +325,8 @@ markup granularity (cross-reference your site's override manifest).
   - **The summary is checked on save (services, case studies, posts).** An
     excerpt over 300 characters is refused by ACF's validation with "The
     summary (the Excerpt box) is N characters long. Shorten it to 300
-    characters or fewer". Characters are counted as ACF counts its own
-    limits (`mb_strlen`, a CRLF as one), pending the founder's ruling.
+    characters or fewer". Characters are counted as Unicode code points
+    (`mb_strlen`, a CRLF as one; the founder's ruling).
   - **Other checks on save the contract asks for** (`inc/fields/checks.php`):
     a field with the email format (a team member's and a location's
     `email`) must be one @, a domain with a dot and no spaces; a location's

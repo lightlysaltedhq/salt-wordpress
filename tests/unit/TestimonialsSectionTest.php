@@ -408,7 +408,7 @@ final class TestimonialsSectionTest extends SaltTestCase {
 
 		$this->assertStringContainsString( 'style="--salt-rating-fill: ' . $fill . '"', $html );
 		$this->assertSame( 1, substr_count( $html, 'style="--salt-rating-fill' ), 'One rated card.' );
-		// The label's "4.5" is provisional, pending the founder's ruling on how {n} is written.
+		// A half value is written "4.5" in the label (the founder's ruling on PR #26).
 		$this->assertStringContainsString( 'aria-label="' . $label . '"', $html );
 		$stars = substr( $html, (int) strpos( $html, 'x-card-testimonial-stars ' ) );
 		$stars = substr( $stars, 0, (int) strpos( $stars, '</blockquote>' ) );

@@ -93,11 +93,9 @@ function salt_summary_post_types(): array {
 /**
  * A summary's length in characters.
  *
- * PENDING the founder's ruling: the contract does not say how characters
- * are counted. This counts as ACF counts its own maxlength limits (the
- * contract's other limits on WordPress, such as a role's 80): Unicode code
- * points (mb_strlen), with a CRLF line break as one character, so "é" is
- * one character, not two bytes.
+ * Counted in Unicode code points (mb_strlen), with a CRLF line break as
+ * one character, so "é" is one character, not two bytes (the founder's
+ * ruling on PR #26; the same as ACF counts its own maxlength limits).
  *
  * @param string $summary The excerpt, unslashed.
  * @return int
