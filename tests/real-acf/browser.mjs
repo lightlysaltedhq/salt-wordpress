@@ -10,6 +10,11 @@
  *    filling it lets the same page publish.
  * 4. A browser re-save of the fixtures page: every meta row before and after,
  *    straight from the database, each change explained or reported.
+ * 5. Each rich-text editor offers only its field's contract list: the
+ *    rich-text body h2 to h6, the call-to-action body and a case study's
+ *    challenge h3 and h4, a features item, an FAQ answer and the service's
+ *    intro (its own editor) no heading. Read from the live TinyMCE, and
+ *    proved by what it keeps of headings 2 to 6 set into it.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -255,6 +260,66 @@ try {
 		result( errors.length === 0, 'no console errors while validating', `${ errors.length } errors` );
 		errors.slice( 0, 10 ).forEach( info );
 		await close( page );
+	}
+	// ── 5. Each rich-text editor offers only its field's list ────────────────────────────────
+	// salt_wysiwyg_field_editor() and admin/rich-text-editor.js narrow each ACF editor to its
+	// contract list (salt.allowed); the service's own editor holds its intro. For each, read the
+	// live TinyMCE's format menu and toolbar, then set headings 2 to 6 and read back what the
+	// editor keeps. Nothing is saved.
+	{
+		const probe = ( key ) => {
+			const wrap = [ ...document.querySelectorAll( `.acf-field[data-key="${ key }"]` ) ].find(
+				( el ) => ! el.closest( '.clones, .acf-clone' ) && el.querySelector( 'textarea.wp-editor-area' )
+			);
+			const id = key === 'content' ? 'content' : wrap?.querySelector( 'textarea.wp-editor-area' ).id;
+			const ed = id && window.tinymce ? window.tinymce.get( id ) : null;
+			if ( ! ed ) {
+				return null;
+			}
+			const formats = ( ed.settings.block_formats || '' ).split( ';' ).map( ( f ) => f.split( '=' )[ 1 ] );
+			ed.setContent( '<h2>a</h2><h3>b</h3><h4>c</h4><h5>d</h5><h6>e</h6><blockquote><p>f</p></blockquote>' );
+			const kept = [ ...ed.getBody().querySelectorAll( 'h2,h3,h4,h5,h6,blockquote' ) ].map( ( n ) => n.nodeName.toLowerCase() );
+			return { formats, toolbar: ed.settings.toolbar1 || '', kept };
+		};
+		const want = [
+			[ 'fixtures page', editUrl( state.fixturesPage ), 'field_salt_rich_text_body', [ 'p', 'h2', 'h3', 'h4', 'h5', 'h6' ], [ 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote' ] ],
+			[ 'fixtures page', null, 'field_salt_call_to_action_body', [ 'p', 'h3', 'h4' ], [ 'h3', 'h4', 'blockquote' ] ],
+			[ 'fixtures page', null, 'field_salt_features_items_text', [ 'p' ], [ 'blockquote' ] ],
+			[ 'a new FAQ', '/wp-admin/post-new.php?post_type=faq', 'field_salt_collection_faqs_answer', [ 'p' ], [] ],
+			[ 'a new case study', '/wp-admin/post-new.php?post_type=work', 'field_salt_collection_case_studies_challenge', [ 'p', 'h3', 'h4' ], [ 'h3', 'h4' ] ],
+			[ 'a new service', '/wp-admin/post-new.php?post_type=service', 'content', [ 'p' ], [] ],
+		];
+		let screen = null;
+		for ( const [ where, target, key, formats, kept ] of want ) {
+			if ( target ) {
+				if ( screen ) {
+					result( screen.errors.length === 0, `no console errors in the editors on ${ screen.where }`, `${ screen.errors.length } errors` );
+					screen.errors.slice( 0, 10 ).forEach( info );
+					await close( screen.page );
+				}
+				screen = { ...( await open( target ) ), where };
+				await screen.page.waitForFunction( () => window.acf && window.tinymce && document.readyState === 'complete' );
+				await screen.page.waitForTimeout( 1500 );
+			}
+			const got = await screen.page.evaluate( probe, key );
+			const headingButton = formats.length > 1;
+			const ok =
+				got !== null &&
+				JSON.stringify( got.formats ) === JSON.stringify( formats ) &&
+				JSON.stringify( got.kept ) === JSON.stringify( kept ) &&
+				got.toolbar.includes( 'formatselect' ) === headingButton &&
+				got.toolbar.includes( 'blockquote' ) === kept.includes( 'blockquote' );
+			result(
+				ok,
+				`rich-text editor narrowed: ${ key } (${ where })`,
+				got === null
+					? 'no TinyMCE found'
+					: `offers ${ got.formats.join( ', ' ) }; of h2–h6 and blockquote it keeps ${ got.kept.join( ', ' ) || 'none' }; toolbar ${ got.toolbar }`
+			);
+		}
+		result( screen.errors.length === 0, `no console errors in the editors on ${ screen.where }`, `${ screen.errors.length } errors` );
+		screen.errors.slice( 0, 10 ).forEach( info );
+		await close( screen.page );
 	}
 	const unloadTotal = [ ...unloadBy.values() ].reduce( ( a, b ) => a + b, 0 );
 	info(
