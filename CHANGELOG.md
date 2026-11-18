@@ -10,6 +10,20 @@ markup granularity (cross-reference your site's override manifest).
 
 ### Added
 
+- **A PHP fixture adapter and a partial contract conformance baseline
+  (ID-3626, EP-72 M3 unit 5).** `tests/contract-adapter/adapter.php` is
+  the command adapter for the pinned salt-contract's conformance runner.
+  It reads one fixture case on stdin and seeds its values into the ACF
+  shims in the contract's stored shape. It then renders the case through
+  the theme's resolver and view, or the chrome's template part, without
+  WordPress. Any PHP diagnostic fails the case. `npm run
+  conformance:contract` runs it with `--partial`; it always exits 1, as
+  every partial run does (SC-017). It checks field parity against
+  `inc/fields/generated/sections.json` and the stylesheet pin against the
+  served `salt.css`; `tabs`, `listing` and `pricing` are not shipped.
+  The baseline report against salt-contract 1.0.0-rc.6 is committed in
+  `tests/contract-adapter/baseline/` as M4's worklist. Views and the page
+  are not rendered yet. See `tests/contract-adapter/README.md`.
 - **The contract's token layer and stylesheet, beside Tailwind (ID-3611,
   EP-72 M3 unit 9).** `assets/src/css/app.css` now emits every token
   salt-contract 1.0.0-rc.6's `contract/token-layer.json` asks of a theme
