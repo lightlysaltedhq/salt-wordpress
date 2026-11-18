@@ -125,7 +125,10 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
      cta refuses `/contact`, `#pricing`, `//x.example`, `javascript:` and `ftp:` and takes https and
      mailto, and a case study's `externalUrl` refuses a path and takes https;
    - on each collection's edit screen, a title of 121 two-byte characters is refused with the
-     editor message and 120 is not.
+     editor message and 120 is not;
+   - a topic name of 121 two-byte characters is refused with the editor message and not saved,
+     and 120 is saved, on the term add and edit screens and in the Topics box of a service, case
+     study, FAQ and location (by its button, by Enter, and as one part of a comma-separated list).
 8. Prints a summary, drops the database and removes the temporary directory, whether the run
    passed, failed or was interrupted.
 

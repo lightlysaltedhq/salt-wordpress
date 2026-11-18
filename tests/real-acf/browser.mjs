@@ -25,6 +25,10 @@
  * 8. The title limit: on each collection's edit screen a title of 121
  *    two-byte characters is refused with the message and not saved, and
  *    one of 120 is not refused (a post then publishes).
+ * 9. The topic name limit: a name of 121 two-byte characters is refused with
+ *    the message and not saved, and one of 120 is saved, on the term add and
+ *    edit screens and in the Topics box of a service, case study, FAQ and
+ *    location (by the button, by Enter and as one part of a comma list).
  */
 
 import { execFileSync } from 'node:child_process';
@@ -534,6 +538,108 @@ try {
 				`121 two-byte: "${ refused }", ${ notPublished ? 'not published' : 'PUBLISHED' }; 120 two-byte: ${ accepted === '' ? 'no title message' : `"${ accepted }"` }, ${ published ? 'published' : 'not published (other fields still required)' }`
 			);
 			result( errors.length === 0, `no console errors on the ${ type } title check`, `${ errors.length } errors` );
+			errors.slice( 0, 10 ).forEach( info );
+			await close( page );
+		}
+	}
+	// ── 9. The topic name limit (admin/topic-name-limit.js) ────────────────────────────────────
+	{
+		const message = ( n ) => `The topic name is ${ n } characters long. Shorten it to 120 characters or fewer.`;
+		const termCount = ( name, taxonomy ) =>
+			Number( execFileSync( php, [ path.join( here, 'php/meta.php' ), '--term-name', name, taxonomy ], { encoding: 'utf8' } ) );
+		// A unique name of exactly n code points, the rest two-byte.
+		const nameOf = ( taxonomy, n ) => Array.from( `${ taxonomy } ${ Date.now() } ${ 'é'.repeat( n ) }` ).slice( 0, n ).join( '' );
+		const said = ( p ) => p.evaluate( () => document.querySelector( '#salt-topic-name-limit' )?.textContent.trim() ?? '' );
+
+		// The term add and edit screens.
+		{
+			const taxonomy = 'service_category';
+			const { page, errors } = await open( `/wp-admin/edit-tags.php?taxonomy=${ taxonomy }&post_type=service` );
+			await page.waitForFunction( () => window.saltTopicNameLimit && document.readyState === 'complete' );
+			const long = nameOf( taxonomy, 121 );
+			await page.fill( '#tag-name', long );
+			await page.click( '#submit' );
+			await page.waitForTimeout( 1500 );
+			const addRefused = await said( page );
+			const addNotSaved = termCount( long, taxonomy ) === 0;
+			const fits = nameOf( taxonomy, 120 );
+			await page.fill( '#tag-name', fits );
+			await Promise.all( [
+				page.waitForResponse( ( r ) => r.url().includes( 'admin-ajax.php' ) && ( r.request().postData() ?? '' ).includes( 'action=add-tag' ) ),
+				page.click( '#submit' ),
+			] );
+			const addAccepted = await said( page );
+			const addSaved = termCount( fits, taxonomy ) === 1;
+			result(
+				addRefused === message( 121 ) && addNotSaved && addAccepted === '' && addSaved,
+				'a topic name of 121 characters is refused on the term add screen and 120 is not',
+				`121 two-byte: "${ addRefused }", ${ addNotSaved ? 'not saved' : 'SAVED' }; 120 two-byte: ${ addAccepted === '' ? 'no message' : `"${ addAccepted }"` }, ${ addSaved ? 'saved' : 'NOT SAVED' }`
+			);
+			const editHref = await page.locator( '#the-list a.row-title', { hasText: fits.slice( 0, 30 ) } ).first().getAttribute( 'href' );
+			result( errors.length === 0, 'no console errors on the term add screen', `${ errors.length } errors` );
+			errors.slice( 0, 10 ).forEach( info );
+			await close( page );
+
+			const edit = await open( editHref.replace( url, '' ) );
+			await edit.page.waitForFunction( () => window.saltTopicNameLimit && document.readyState === 'complete' );
+			const longer = nameOf( taxonomy, 121 );
+			await edit.page.fill( '#name', longer );
+			await Promise.all( [ edit.page.waitForURL( /message=\d+/, { timeout: 3000 } ).catch( () => null ), edit.page.click( '#edittag [type="submit"]' ) ] );
+			await edit.page.waitForTimeout( 800 );
+			const editRefused = await said( edit.page );
+			const editNotSaved = termCount( longer, taxonomy ) === 0 && termCount( fits, taxonomy ) === 1;
+			const renamed = nameOf( taxonomy, 120 );
+			await edit.page.fill( '#name', renamed );
+			await Promise.all( [ edit.page.waitForURL( /message=\d+/, { timeout: 60000 } ), edit.page.click( '#edittag [type="submit"]' ) ] );
+			const editAccepted = await said( edit.page );
+			const editSaved = termCount( renamed, taxonomy ) === 1;
+			result(
+				editRefused === message( 121 ) && editNotSaved && editAccepted === '' && editSaved,
+				'a topic name of 121 characters is refused on the term edit screen and 120 is not',
+				`121 two-byte: "${ editRefused }", ${ editNotSaved ? 'not saved' : 'SAVED' }; 120 two-byte: ${ editAccepted === '' ? 'no message' : `"${ editAccepted }"` }, ${ editSaved ? 'saved' : 'NOT SAVED' }`
+			);
+			result( edit.errors.length === 0, 'no console errors on the term edit screen', `${ edit.errors.length } errors` );
+			edit.errors.slice( 0, 10 ).forEach( info );
+			await close( edit.page );
+		}
+
+		// The Topics box's "add new" form on each post type that has one.
+		for ( const [ type, taxonomy ] of [ [ 'service', 'service_category' ], [ 'work', 'work_type' ], [ 'faq', 'faq_category' ], [ 'location', 'location_area' ] ] ) {
+			const { page, errors } = await open( `/wp-admin/post-new.php?post_type=${ type }` );
+			await page.waitForFunction( () => window.saltTopicNameLimit && document.readyState === 'complete' );
+			await page.click( `#${ taxonomy }-add-toggle` );
+			const field = `#new${ taxonomy }`;
+			const tryAdd = async ( value, how ) => {
+				await page.fill( field, value );
+				if ( how === 'enter' ) {
+					await page.press( field, 'Enter' );
+				} else {
+					await page.click( `#${ taxonomy }-add-submit` );
+				}
+				await page.waitForTimeout( 1500 );
+				return said( page );
+			};
+			const long = nameOf( taxonomy, 121 );
+			const clickRefused = await tryAdd( long, 'click' );
+			const enterRefused = await tryAdd( long, 'enter' );
+			// WordPress makes a topic of each comma-separated part; one over-long part refuses them all.
+			const short = `${ taxonomy } short ${ Date.now() }`;
+			const listRefused = await tryAdd( `${ short }, ${ long }`, 'click' );
+			const notSaved = termCount( long, taxonomy ) === 0 && termCount( short, taxonomy ) === 0;
+			const fits = nameOf( taxonomy, 120 );
+			await page.fill( field, fits );
+			await Promise.all( [
+				page.waitForResponse( ( r ) => r.url().includes( 'admin-ajax.php' ) && ( r.request().postData() ?? '' ).includes( `action=add-${ taxonomy }` ) ),
+				page.click( `#${ taxonomy }-add-submit` ),
+			] );
+			const accepted = await said( page );
+			const saved = termCount( fits, taxonomy ) === 1;
+			result(
+				clickRefused === message( 121 ) && enterRefused === message( 121 ) && listRefused === message( 121 ) && notSaved && accepted === '' && saved,
+				`a topic name of 121 characters is refused in the ${ type } Topics box and 120 is not`,
+				`121 two-byte by the button: "${ clickRefused }", by Enter: "${ enterRefused }", in a list: "${ listRefused }", ${ notSaved ? 'none saved' : 'SAVED' }; 120 two-byte: ${ accepted === '' ? 'no message' : `"${ accepted }"` }, ${ saved ? 'saved' : 'NOT SAVED' }`
+			);
+			result( errors.length === 0, `no console errors on the ${ type } Topics box check`, `${ errors.length } errors` );
 			errors.slice( 0, 10 ).forEach( info );
 			await close( page );
 		}
