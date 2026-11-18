@@ -120,7 +120,7 @@ function salt_adapter_sections(): array {
 		'listing'             => null,
 		'contact'             => 'contact',
 		'locations'           => 'locations',
-		'pricing'             => 'pricing',
+		'pricing'             => null,
 	);
 }
 

@@ -21,7 +21,10 @@ The script runs:
 ```sh
 salt-conformance --platform wordpress \
   --adapter 'php tests/contract-adapter/adapter.php' \
-  --not-shipped tabs,listing --partial \
+  --not-shipped tabs,listing,pricing --partial \
+  --acf-snapshot inc/fields/generated/sections.json \
+  --fields-options inc/fields/generated/sections.options.json \
+  --styles assets/dist/salt.*/salt.css \
   --implementation-version <Version: in style.css> \
   --out tests/contract-adapter/baseline
 ```
@@ -63,8 +66,8 @@ bootstrap and shims as the unit and snapshot suites (`tests/bootstrap.php`, `tes
 - **The section for each case.** It is the theme's slug for the contract id. `collection-showcase`
   is drawn by the former section for its `source`: services, work, team, testimonials or
   blog-teaser. `carousel` is drawn by testimonials for that source and scroll-carousel otherwise.
-  `tabs` and `listing` have no theme section: the run declares them `--not-shipped`. Given one
-  anyway, the adapter exits 3 with "not shipped" rather than crash.
+  `tabs`, `listing` and `pricing` have no theme section: the run declares them `--not-shipped`.
+  Given one anyway, the adapter exits 3 with "not shipped" rather than crash.
 - **The case's other data:**
   - `media` becomes attachments in the media shim. The src is the upload at its intrinsic width.
     The srcset is WordPress core's default sub-sizes below that width plus the intrinsic width,
@@ -98,8 +101,8 @@ section passes only when all four ran and passed.
 | --- | --- | --- |
 | Fixtures | The adapter's HTML for each case equals the case's expected HTML once both are normalised. A failure names the section, the case and the first differing node, by path. | **Ran** for every section, the chrome, the views and the page. |
 | Classes | Every `salt-*` class in the output is one the contract's markup uses. | **Ran**, but it passes trivially: the theme draws `x-*` classes and no `salt-*` class yet. It starts to bite in M4. |
-| Field parity | The theme's committed ACF field snapshot is the one the contract's emitter generates. | **Not run.** |
-| Stylesheet pin | The CSS the theme serves is byte for byte the contract's `styles/salt.css`. | **Not run.** |
+| Field parity | The theme's committed ACF field snapshot is the one the contract's emitter generates. | **Ran** against `inc/fields/generated/sections.json`. It passes for the twelve generated sections and fails for collection-showcase and carousel, which the snapshot does not contain until unit 8 builds them. |
+| Stylesheet pin | The CSS the theme serves is byte for byte the contract's `styles/salt.css`. | **Ran** against the served copy, `assets/dist/salt.<hash>/salt.css`, and passes. |
 
 The chrome, views and page have no fields, so the runner holds them to fixtures and classes only.
 
@@ -108,16 +111,13 @@ The chrome, views and page have no fields, so the runner holds them to fixtures 
 A conforming run needs all four checks for every section the theme ships (SC-017). Three things
 are missing today, so the script passes `--partial` and the report says "Partial, not conforming".
 
-- **Field parity waits for unit 3.** The theme still registers hand-written field groups
-  (`inc/fields/layouts/*.php`). They have no committed snapshot, and their layout names are not
-  the contract's ids (`blog_teaser`, `scroll_carousel`). The emitter also needs the site's icons
-  in a `--fields-options` file. TODO(unit 3): when the theme registers the emitted JSON, add
-  `--acf-snapshot <that JSON> --fields-options <its options JSON, with the icons>` to the script.
-- **The stylesheet pin waits for unit 9.** The theme does not serve `salt.css` yet. TODO(unit
-  9): when it copies the package's `styles/salt.css` into the theme and enqueues that copy, add
-  `--styles <that file>` to the script. A path inside `node_modules` is refused by design.
-- **`tabs` and `listing` are not shipped.** The contract records both as owed by WordPress
-  (`contract/sections.json`). Only a partial run may leave a section out.
+- **Most fixtures fail.** The theme still draws its own `x-*` markup; M4 moves each section's
+  view to the contract's markup.
+- **collection-showcase and carousel fail field parity.** They are still drawn by the six
+  hand-written legacy layouts, which are not in the generated snapshot. Unit 8 replaces them.
+- **`tabs`, `listing` and `pricing` are not shipped.** The contract records `tabs` and `listing`
+  as owed by WordPress (`contract/sections.json`). The theme retired its pricing layout in 6.0.0;
+  pricing becomes a grain-wordpress recipe (ID-3955). Only a partial run may leave a section out.
 
 ## The report
 

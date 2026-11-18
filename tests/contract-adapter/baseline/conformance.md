@@ -1,26 +1,26 @@
-# Salt conformance: wordpress 5.0.0 against @lightlysaltedhq/salt-contract 1.0.0-rc.6
+# Salt conformance: wordpress 6.0.0-dev against @lightlysaltedhq/salt-contract 1.0.0-rc.6
 
-**Partial, not conforming.** 0 section(s) pass, 15 fail, 0 incomplete, 2 not shipped. Chrome, views and page: 0 pass, 9 fail, 0 not shipped. Adapter: command `php tests/contract-adapter/adapter.php`.
+**Partial, not conforming.** 0 section(s) pass, 14 fail, 0 incomplete, 3 not shipped. Chrome, views and page: 0 pass, 9 fail, 0 not shipped. Adapter: command `php tests/contract-adapter/adapter.php`.
 
 | Section | Fixtures | Field parity | Classes | Stylesheet pin |
 | --- | --- | --- | --- | --- |
-| hero | 1/10 | not run | pass | not run |
-| rich-text | 1/5 | not run | pass | not run |
-| call-to-action | 1/4 | not run | pass | not run |
-| media-text | 1/4 | not run | pass | not run |
-| features | 1/4 | not run | pass | not run |
-| stats | 1/3 | not run | pass | not run |
-| logos | 1/3 | not run | pass | not run |
-| gallery | 1/6 | not run | pass | not run |
-| process | 1/4 | not run | pass | not run |
-| faq | 1/3 | not run | pass | not run |
+| hero | 1/10 | pass | pass | pass |
+| rich-text | 1/5 | pass | pass | pass |
+| call-to-action | 1/4 | pass | pass | pass |
+| media-text | 1/4 | pass | pass | pass |
+| features | 1/4 | pass | pass | pass |
+| stats | 1/3 | pass | pass | pass |
+| logos | 1/3 | pass | pass | pass |
+| gallery | 1/6 | pass | pass | pass |
+| process | 1/4 | pass | pass | pass |
+| faq | 1/3 | pass | pass | pass |
 | tabs | not shipped | not shipped | not shipped | not shipped |
-| collection-showcase | 1/8 | not run | pass | not run |
-| carousel | 1/6 | not run | pass | not run |
+| collection-showcase | 1/8 | fail (1) | pass | pass |
+| carousel | 1/6 | fail (1) | pass | pass |
 | listing | not shipped | not shipped | not shipped | not shipped |
-| contact | 0/5 | not run | pass | not run |
-| locations | 1/3 | not run | pass | not run |
-| pricing | 1/3 | not run | pass | not run |
+| contact | 0/5 | pass | pass | pass |
+| locations | 1/3 | pass | pass | pass |
+| pricing | not shipped | not shipped | not shipped | not shipped |
 
 | Chrome, views and page | Kind | Fixtures | Classes |
 | --- | --- | --- | --- |
@@ -36,11 +36,11 @@
 
 ## Stylesheet pin
 
-Not run, so no section conforms (SC-017): pass `--styles <file>` or `--styles-url <url>`.
+Pass: `assets/dist/salt.4f3bca2639/salt.css` against this contract's `styles/salt.css` (1.0.0-rc.6): identical.
 
 ## Field parity
 
-Not run, so no section conforms (SC-017): pass `--payload-snapshot <file>` or `--acf-snapshot <file>`.
+acf snapshot `inc/fields/generated/sections.json` with options `inc/fields/generated/sections.options.json`.
 
 ## Failures
 
@@ -58,14 +58,14 @@ Not run, so no section conforms (SC-017): pass `--payload-snapshot <file>` or `-
 
 ### rich-text
 
-- `rich-text/body-only-first-on-page`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface" data-tone-dark="surface" data-track="rich-text-1" data-width="default" id="approach-first" style="--salt-section-space:var(--space-secti…`, found `<section class="bg-surface md:py-20 py-14 section-rich-text text-ink x-section" data-section="rich-text">`
-- `rich-text/body-only-no-heading`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface" data-tone-dark="surface" data-track="rich-text-1" data-width="default" id="approach" style="--salt-section-space:var(--space-section-md)…`, found `<section class="bg-surface md:py-20 py-14 section-rich-text text-ink x-section" data-section="rich-text">`
+- `rich-text/body-only-first-on-page`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface" data-tone-dark="surface" data-track="rich-text-1" data-width="default" id="approach-first" style="--salt-section-space:var(--space-secti…`, found `<section class="bg-surface md:py-20 py-14 section-rich-text text-ink x-section" data-section="rich-text" id="approach-first">`
+- `rich-text/body-only-no-heading`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface" data-tone-dark="surface" data-track="rich-text-1" data-width="default" id="approach" style="--salt-section-space:var(--space-section-md)…`, found `<section class="bg-surface md:py-20 py-14 section-rich-text text-ink x-section" data-section="rich-text" id="approach">`
 - `rich-text/centre-inverse`: attribute `aria-labelledby` at `section.salt-section`: expected `small-team__heading`, found nothing
 - `rich-text/left-eyebrow-heading-body`: attribute `aria-labelledby` at `section.salt-section`: expected `how-we-work__heading`, found nothing
 
 ### call-to-action
 
-- `call-to-action/body-and-button-no-heading`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="brand-tint" data-tone-dark="surface-inverse" data-track="call-to-action-3" data-width="full" id="calendar" style="--salt-section-space:var(--spac…`, found `<section class="bg-brand-tint md:py-20 py-14 section-call-to-action text-ink x-section" data-section="call-to-action">`
+- `call-to-action/body-and-button-no-heading`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="brand-tint" data-tone-dark="surface-inverse" data-track="call-to-action-3" data-width="full" id="calendar" style="--salt-section-space:var(--spac…`, found `<section class="bg-surface md:py-20 py-14 section-call-to-action text-ink x-section" data-section="call-to-action" id="calendar">`
 - `call-to-action/heading-body-two-buttons`: attribute `aria-labelledby` at `section.salt-section`: expected `book__heading`, found nothing
 - `call-to-action/heading-only-inverse`: attribute `aria-labelledby` at `section.salt-section`: expected `spring__heading`, found nothing
 
@@ -84,19 +84,19 @@ Not run, so no section conforms (SC-017): pass `--payload-snapshot <file>` or `-
 ### stats
 
 - `stats/many-with-icons`: attribute `aria-labelledby` at `section.salt-section`: expected `stats-many__heading`, found nothing
-- `stats/one-stat-inverse`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="stats-1" data-width="default" id="stats-one" style="--salt-section-space:var(--spac…`, found `<section class="bg-surface md:py-20 py-14 section-stats text-ink x-section" data-section="stats">`
+- `stats/one-stat-inverse`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="stats-1" data-width="default" id="stats-one" style="--salt-section-space:var(--spac…`, found `<section class="bg-surface-inverse md:py-20 py-14 section-stats text-ink-inverse x-section" data-section="stats" id="stats-one">`
 
 ### logos
 
 - `logos/many-linked-greyscale`: attribute `aria-labelledby` at `section.salt-section`: expected `logos-many__heading`, found nothing
-- `logos/one-unlinked-colour-inverse`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="logos-1" data-width="default" id="logos-one" style="--salt-section-space:var(--spac…`, found `<section class="bg-surface md:py-20 py-14 section-logos text-ink x-section" data-section="logos">`
+- `logos/one-unlinked-colour-inverse`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="logos-1" data-width="default" id="logos-one" style="--salt-section-space:var(--spac…`, found `<section class="bg-surface-inverse md:py-20 py-14 section-logos text-ink-inverse x-section" data-section="logos" id="logos-one">`
 
 ### gallery
 
 - `gallery/carousel-with-heading`: attribute `aria-labelledby` at `section.salt-section`: expected `gallery-slides__heading`, found nothing
-- `gallery/carousel-with-label`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface" data-tone-dark="surface" data-track="gallery-3" data-width="default" id="gallery-label" style="--salt-section-space:var(--space-section-…`, found `<section class="bg-surface md:py-20 py-14 section-gallery text-ink x-section" data-section="gallery">`
+- `gallery/carousel-with-label`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface" data-tone-dark="surface" data-track="gallery-3" data-width="default" id="gallery-label" style="--salt-section-space:var(--space-section-…`, found `<section class="bg-surface md:py-20 py-14 section-gallery text-ink x-section" data-section="gallery" id="gallery-label">`
 - `gallery/grid-captions-first`: attribute `aria-labelledby` at `section.salt-section`: expected `gallery-grid__heading`, found nothing
-- `gallery/masonry-captions-off`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="gallery-1" data-width="default" id="gallery-masonry" style="--salt-section-space:va…`, found `<section class="bg-surface md:py-20 py-14 section-gallery text-ink x-section" data-section="gallery">`
+- `gallery/masonry-captions-off`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="gallery-1" data-width="default" id="gallery-masonry" style="--salt-section-space:va…`, found `<section class="bg-surface-inverse md:py-20 py-14 section-gallery text-ink-inverse x-section" data-section="gallery" id="gallery-masonry">`
 - `gallery/one-image`: attribute `aria-labelledby` at `section.salt-section`: expected `gallery-one__heading`, found nothing
 
 ### process
@@ -119,14 +119,16 @@ Not run, so no section conforms (SC-017): pass `--payload-snapshot <file>` or `-
 - `collection-showcase/index-posts-grouped`: attribute `aria-labelledby` at `section.salt-section`: expected `journal-index__heading`, found nothing
 - `collection-showcase/index-posts-ungrouped`: attribute `aria-labelledby` at `section.salt-section`: expected `journal-all__heading`, found nothing
 - `collection-showcase/list-posts-dated`: attribute `aria-labelledby` at `section.salt-section`: expected `latest-posts__heading`, found nothing
+- fields: collection-showcase is not in the field snapshot
 
 ### carousel
 
 - `carousel/inline-generic-heading`: attribute `aria-labelledby` at `section.salt-section`: expected `recent-gardens__heading`, found nothing
-- `carousel/inline-no-name-list`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="none" data-tone="surface" data-tone-dark="surface" data-track="carousel-3" data-width="narrow" id="two-steps">`, found `<section class="bg-surface md:py-20 py-14 section-scroll-carousel text-ink x-section" data-section="scroll-carousel">`
+- `carousel/inline-no-name-list`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="none" data-tone="surface" data-tone-dark="surface" data-track="carousel-3" data-width="narrow" id="two-steps">`, found `<section class="bg-surface section-scroll-carousel text-ink x-section" data-section="scroll-carousel" id="two-steps">`
 - `carousel/inline-one-card`: attribute `aria-labelledby` at `section.salt-section`: expected `our-base__heading`, found nothing
-- `carousel/inline-quote-label-inverse`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="carousel-2" data-width="default" id="client-quotes" style="--salt-section-space:var…`, found `<section class="bg-surface md:py-20 py-14 section-scroll-carousel text-ink x-section" data-section="scroll-carousel">`
+- `carousel/inline-quote-label-inverse`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="carousel-2" data-width="default" id="client-quotes" style="--salt-section-space:var…`, found `<section class="bg-surface-inverse md:py-20 py-14 section-scroll-carousel text-ink-inverse x-section" data-section="scroll-carousel" id="client-quotes">`
 - `carousel/testimonials-source`: missing at `section.salt-section`: expected `<section aria-labelledby="kind-words-carousel__heading" class="salt-section" data-spacing="md" data-tone="brand-tint" data-tone-dark="brand-tint" data-track="carousel-5" data-width="default" id="kind-…`, found nothing
+- fields: carousel is not in the field snapshot
 
 ### contact
 
@@ -140,11 +142,6 @@ Not run, so no section conforms (SC-017): pass `--payload-snapshot <file>` or `-
 
 - `locations/many-offices-map-inverse`: attribute `aria-labelledby` at `section.salt-section`: expected `offices__heading`, found nothing
 - `locations/one-office-open`: attribute `aria-labelledby` at `section.salt-section`: expected `find-us__heading`, found nothing
-
-### pricing
-
-- `pricing/one-plan-inverse`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="pricing-1" data-width="default" id="pricing-one" style="--salt-section-space:var(--…`, found `<section class="bg-surface md:py-20 py-14 section-pricing text-ink x-section" data-section="pricing">`
-- `pricing/three-plans-featured`: attribute `aria-labelledby` at `section.salt-section`: expected `pricing-three__heading`, found nothing
 
 ### site-header
 

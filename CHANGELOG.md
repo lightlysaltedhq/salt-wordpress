@@ -18,8 +18,9 @@ markup granularity (cross-reference your site's override manifest).
   the theme's resolver and view, or the chrome's template part, without
   WordPress. Any PHP diagnostic fails the case. `npm run
   conformance:contract` runs it with `--partial`; it always exits 1, as
-  every partial run does (SC-017). The run left out field parity (unit 3)
-  and the stylesheet pin (unit 9), and `tabs` and `listing` are not shipped.
+  every partial run does (SC-017). It checks field parity against
+  `inc/fields/generated/sections.json` and the stylesheet pin against the
+  served `salt.css`; `tabs`, `listing` and `pricing` are not shipped.
   The baseline report against salt-contract 1.0.0-rc.6 is committed in
   `tests/contract-adapter/baseline/` as M4's worklist. Views and the page
   are not rendered yet. See `tests/contract-adapter/README.md`.

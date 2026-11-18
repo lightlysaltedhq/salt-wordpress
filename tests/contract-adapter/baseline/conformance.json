@@ -6,7 +6,7 @@
   },
   "platform": "wordpress",
   "implementation": {
-    "version": "5.0.0"
+    "version": "6.0.0-dev"
   },
   "adapter": {
     "kind": "command",
@@ -17,17 +17,28 @@
   "problems": [],
   "summary": {
     "pass": 0,
-    "fail": 15,
+    "fail": 14,
     "incomplete": 0,
-    "notShipped": 2,
+    "notShipped": 3,
     "files": {
       "pass": 0,
       "fail": 9,
       "notShipped": 0
     }
   },
-  "fields": null,
-  "stylesheets": null,
+  "fields": {
+    "platform": "acf",
+    "snapshot": "inc/fields/generated/sections.json",
+    "options": "inc/fields/generated/sections.options.json",
+    "problems": []
+  },
+  "stylesheets": {
+    "served": "assets/dist/salt.4f3bca2639/salt.css",
+    "bundle": "styles/salt.css",
+    "contract": "1.0.0-rc.6",
+    "ok": true,
+    "status": "identical"
+  },
   "sections": [
     {
       "id": "hero",
@@ -120,7 +131,7 @@
         ]
       },
       "fields": {
-        "status": "not run",
+        "status": "pass",
         "problems": []
       },
       "classes": {
@@ -128,7 +139,7 @@
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
@@ -145,7 +156,7 @@
             "difference": "element",
             "path": "div.salt-section",
             "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"rich-text-1\" data-width=\"default\" id=\"approach-first\" style=\"--salt-section-space:var(--space-secti…",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-rich-text text-ink x-section\" data-section=\"rich-text\">"
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-rich-text text-ink x-section\" data-section=\"rich-text\" id=\"approach-first\">"
           },
           {
             "case": "body-only-no-heading",
@@ -153,7 +164,7 @@
             "difference": "element",
             "path": "div.salt-section",
             "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"rich-text-1\" data-width=\"default\" id=\"approach\" style=\"--salt-section-space:var(--space-section-md)…",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-rich-text text-ink x-section\" data-section=\"rich-text\">"
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-rich-text text-ink x-section\" data-section=\"rich-text\" id=\"approach\">"
           },
           {
             "case": "centre-inverse",
@@ -176,7 +187,7 @@
         ]
       },
       "fields": {
-        "status": "not run",
+        "status": "pass",
         "problems": []
       },
       "classes": {
@@ -184,7 +195,7 @@
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
@@ -201,7 +212,7 @@
             "difference": "element",
             "path": "div.salt-section",
             "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"brand-tint\" data-tone-dark=\"surface-inverse\" data-track=\"call-to-action-3\" data-width=\"full\" id=\"calendar\" style=\"--salt-section-space:var(--spac…",
-            "found": "<section class=\"bg-brand-tint md:py-20 py-14 section-call-to-action text-ink x-section\" data-section=\"call-to-action\">"
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-call-to-action text-ink x-section\" data-section=\"call-to-action\" id=\"calendar\">"
           },
           {
             "case": "heading-body-two-buttons",
@@ -224,7 +235,7 @@
         ]
       },
       "fields": {
-        "status": "not run",
+        "status": "pass",
         "problems": []
       },
       "classes": {
@@ -232,7 +243,7 @@
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
@@ -273,7 +284,7 @@
         ]
       },
       "fields": {
-        "status": "not run",
+        "status": "pass",
         "problems": []
       },
       "classes": {
@@ -281,7 +292,7 @@
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
@@ -322,7 +333,7 @@
         ]
       },
       "fields": {
-        "status": "not run",
+        "status": "pass",
         "problems": []
       },
       "classes": {
@@ -330,7 +341,7 @@
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
@@ -356,12 +367,12 @@
             "difference": "element",
             "path": "div.salt-section",
             "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"stats-1\" data-width=\"default\" id=\"stats-one\" style=\"--salt-section-space:var(--spac…",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-stats text-ink x-section\" data-section=\"stats\">"
+            "found": "<section class=\"bg-surface-inverse md:py-20 py-14 section-stats text-ink-inverse x-section\" data-section=\"stats\" id=\"stats-one\">"
           }
         ]
       },
       "fields": {
-        "status": "not run",
+        "status": "pass",
         "problems": []
       },
       "classes": {
@@ -369,7 +380,7 @@
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
@@ -395,12 +406,12 @@
             "difference": "element",
             "path": "div.salt-section",
             "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"logos-1\" data-width=\"default\" id=\"logos-one\" style=\"--salt-section-space:var(--spac…",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-logos text-ink x-section\" data-section=\"logos\">"
+            "found": "<section class=\"bg-surface-inverse md:py-20 py-14 section-logos text-ink-inverse x-section\" data-section=\"logos\" id=\"logos-one\">"
           }
         ]
       },
       "fields": {
-        "status": "not run",
+        "status": "pass",
         "problems": []
       },
       "classes": {
@@ -408,7 +419,7 @@
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
@@ -434,7 +445,7 @@
             "difference": "element",
             "path": "div.salt-section",
             "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"gallery-3\" data-width=\"default\" id=\"gallery-label\" style=\"--salt-section-space:var(--space-section-…",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-gallery text-ink x-section\" data-section=\"gallery\">"
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-gallery text-ink x-section\" data-section=\"gallery\" id=\"gallery-label\">"
           },
           {
             "case": "grid-captions-first",
@@ -451,7 +462,7 @@
             "difference": "element",
             "path": "div.salt-section",
             "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"gallery-1\" data-width=\"default\" id=\"gallery-masonry\" style=\"--salt-section-space:va…",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-gallery text-ink x-section\" data-section=\"gallery\">"
+            "found": "<section class=\"bg-surface-inverse md:py-20 py-14 section-gallery text-ink-inverse x-section\" data-section=\"gallery\" id=\"gallery-masonry\">"
           },
           {
             "case": "one-image",
@@ -465,7 +476,7 @@
         ]
       },
       "fields": {
-        "status": "not run",
+        "status": "pass",
         "problems": []
       },
       "classes": {
@@ -473,7 +484,7 @@
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
@@ -514,7 +525,7 @@
         ]
       },
       "fields": {
-        "status": "not run",
+        "status": "pass",
         "problems": []
       },
       "classes": {
@@ -522,7 +533,7 @@
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
@@ -552,7 +563,7 @@
         ]
       },
       "fields": {
-        "status": "not run",
+        "status": "pass",
         "problems": []
       },
       "classes": {
@@ -560,7 +571,7 @@
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
@@ -640,15 +651,17 @@
         ]
       },
       "fields": {
-        "status": "not run",
-        "problems": []
+        "status": "fail",
+        "problems": [
+          "collection-showcase is not in the field snapshot"
+        ]
       },
       "classes": {
         "status": "pass",
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
@@ -674,7 +687,7 @@
             "difference": "element",
             "path": "div.salt-section",
             "expected": "<div class=\"salt-section\" data-spacing=\"none\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"carousel-3\" data-width=\"narrow\" id=\"two-steps\">",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-scroll-carousel text-ink x-section\" data-section=\"scroll-carousel\">"
+            "found": "<section class=\"bg-surface section-scroll-carousel text-ink x-section\" data-section=\"scroll-carousel\" id=\"two-steps\">"
           },
           {
             "case": "inline-one-card",
@@ -691,7 +704,7 @@
             "difference": "element",
             "path": "div.salt-section",
             "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"carousel-2\" data-width=\"default\" id=\"client-quotes\" style=\"--salt-section-space:var…",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-scroll-carousel text-ink x-section\" data-section=\"scroll-carousel\">"
+            "found": "<section class=\"bg-surface-inverse md:py-20 py-14 section-scroll-carousel text-ink-inverse x-section\" data-section=\"scroll-carousel\" id=\"client-quotes\">"
           },
           {
             "case": "testimonials-source",
@@ -704,15 +717,17 @@
         ]
       },
       "fields": {
-        "status": "not run",
-        "problems": []
+        "status": "fail",
+        "problems": [
+          "carousel is not in the field snapshot"
+        ]
       },
       "classes": {
         "status": "pass",
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
@@ -774,7 +789,7 @@
         ]
       },
       "fields": {
-        "status": "not run",
+        "status": "pass",
         "problems": []
       },
       "classes": {
@@ -782,7 +797,7 @@
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
@@ -814,7 +829,7 @@
         ]
       },
       "fields": {
-        "status": "not run",
+        "status": "pass",
         "problems": []
       },
       "classes": {
@@ -822,47 +837,12 @@
         "unknown": []
       },
       "stylesheets": {
-        "status": "not run"
+        "status": "pass"
       }
     },
     {
       "id": "pricing",
-      "status": "fail",
-      "fixtures": {
-        "total": 3,
-        "passed": 1,
-        "failed": 2,
-        "failures": [
-          {
-            "case": "one-plan-inverse",
-            "kind": "mismatch",
-            "difference": "element",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"pricing-1\" data-width=\"default\" id=\"pricing-one\" style=\"--salt-section-space:var(--…",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-pricing text-ink x-section\" data-section=\"pricing\">"
-          },
-          {
-            "case": "three-plans-featured",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "pricing-three__heading",
-            "found": null
-          }
-        ]
-      },
-      "fields": {
-        "status": "not run",
-        "problems": []
-      },
-      "classes": {
-        "status": "pass",
-        "unknown": []
-      },
-      "stylesheets": {
-        "status": "not run"
-      }
+      "status": "not shipped"
     }
   ],
   "files": [
