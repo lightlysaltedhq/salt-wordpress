@@ -8,9 +8,13 @@
 - A **markup structure** change in any shared component or section part —
   mechanically detected: a changed `.snap.html` file (FLEET01). The snapshot
   diff in the PR is the semver evidence.
-- An ACF **field name or FC layout slug** rename/removal (FLEET07 —
-  mechanically enforced by `bin/check-slug-stability.php`; requires an entry
-  in `docs/contracts/slug-migrations.json`).
+- An ACF **field name or FC layout slug** rename/removal, or a change to a
+  field's **storage path** (moving it into or out of a group or repeater,
+  or renaming an enclosing group or repeater, which changes its meta key)
+  (FLEET07 — mechanically enforced by `bin/check-slug-stability.php`
+  against `docs/contracts/slug-registry.json`; requires an entry in
+  `docs/contracts/slug-migrations.json`; self-test:
+  `bash bin/check-slug-stability.test.sh`).
 - Widening `salt_allowed_html()` (security-reviewed, §16a).
 - Adding/removing a **pluggable** function (OVERRIDES.md list).
 
