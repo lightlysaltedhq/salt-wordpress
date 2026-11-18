@@ -306,6 +306,43 @@ markup granularity (cross-reference your site's override manifest).
     `layout`.
   - **Removed schema:** the testimonial `Review` nodes. A Review needs the
     service it reviews, and the contract stores none.
+  - **Half stars (testimonials.json rating, step 0.5).** The resolver keeps
+    a stored rating as stored (clamped to 0..5), and `card-testimonial`'s
+    `rating` arg is a float. The stars are drawn as the contract's card draws
+    them (`markup/card.json`, rating): five empty stars with five filled ones
+    clipped to `--salt-rating-fill`, the rating as a percentage of 5, so 4.5
+    fills 90%. The label reads "Rated 4.5 out of 5 stars"; how a half value
+    is written in it is pending the founder's ruling. The rest of the card's
+    markup is unchanged until M4.
+  - **Topics (`_topic.json`; the topics owes of services, case studies, FAQs
+    and locations).** `service_category`, `work_type`, `faq_category` and
+    `location_area` are labelled Topics (a Topic) in place of "Service
+    categories", "Work types", "FAQ categories" and "Areas", keep their
+    checkbox box, and offer no parent anywhere: not in the box's "add new"
+    form (`salt_topic_meta_box()`) and not on the term add or edit screens.
+    Every term is stored at the top level, whatever parent is sent
+    (`inc/cpt/topics.php`). Posts' categories are ID-3952's.
+  - **The summary is checked on save (services, case studies, posts).** An
+    excerpt over 300 characters is refused by ACF's validation with "The
+    summary (the Excerpt box) is N characters long. Shorten it to 300
+    characters or fewer". Characters are counted as ACF counts its own
+    limits (`mb_strlen`, a CRLF as one), pending the founder's ruling.
+  - **Other checks on save the contract asks for** (`inc/fields/checks.php`):
+    a field with the email format (a team member's and a location's
+    `email`) must be one @, a domain with a dot and no spaces; a location's
+    `street` holds at most two lines (`maxLines`); a service cannot be among
+    its own `relatedServices`.
+  - **Post fields hidden until unit 10.** `author`, `primaryTopic` and
+    `layout` stay in the generated posts group (so the drift check holds and
+    they store and read), but `acf/prepare_field` keeps them out of the
+    editor until ID-3952 wires them.
+  - **The service intro (the founder's ruling).** `single-service.php` draws
+    the stored body with paragraphs added (`wpautop()`) and sanitised to the
+    intro's list, with no shortcode, oEmbed or other `the_content` filter
+    (`salt_service_intro_html()`). A service's body is stored sanitised to
+    the same list (`wp_insert_post_data`), so what is stored is what shows.
+    The service editor has no Add Media button, and its Visual and Text
+    toolbars offer only the list.
   - **Visible changes:** the service card draws its featured image, and its
     icon only when it has none (rc.7 card mapping); the testimonial card
     draws the author's photo, not the company logo; a team member's social
@@ -313,7 +350,13 @@ markup granularity (cross-reference your site's override manifest).
     single's H1 is the title, its price reads "Projects from" and the text
     as written (no £ added), and a service is never related to itself; the
     case study single no longer draws its industry fact or its body; a post
-    author with no profile photo has no avatar.
+    author with no profile photo has no avatar; a testimonial rated 4.5
+    draws four and a half stars (the star markup is now an empty row with a
+    clipped filled row over it); the topics taxonomies are labelled Topics
+    with no parent; the service intro draws no shortcode, embed or media;
+    an FAQ answer loses h3, h4, blockquote and code, a features item's text
+    loses its headings, and a case study's challenge and solution narrow
+    from `wp_kses_post()` to their lists (see the rich-text entry above).
   - **Removed field slugs in the registry:** `appointment_only`, `benefit`,
     `city`, `geo`, `headline`, `line1`, `line2`, `live_url`, `logo`,
     `opening_hours`, `platform`, `postcode`, `price_from`,
