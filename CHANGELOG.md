@@ -194,6 +194,16 @@ markup granularity (cross-reference your site's override manifest).
   harness-only mu-plugin is gone; the harness checks that the theme's
   generated layouts are the emitter's output, and a new phase renders the
   fixture page through the theme's section loop on real ACF values.
+- **The real ACF harness runs on the latest WordPress, 7.1.4 (the
+  founder's ruling: clients run the latest release, and the theme must
+  raise no deprecation on it).** `roots/wordpress-no-content` is pinned to
+  7.1.4 exactly, in place of 6.8. Each run asks api.wordpress.org for the
+  latest release and fails, naming both, when the pin is older
+  (`tests/real-acf/php/latest.php`); only `--offline` skips that, reported
+  as "STALENESS NOT CHECKED". The PHP 8.5 exemption for a WordPress 6.8
+  core deprecation is gone: any PHP deprecation, notice or warning fails
+  the run, on every PHP version. `docs/DEPENDENCY-MATRIX.md` gains a
+  v6.0.x row: the latest WordPress release only.
 - **salt-contract 1.0.0-rc.7 (ID-3944, ID-3949, ID-3950).** The pin moves
   to `vendor-contract/lightlysaltedhq-salt-contract-1.0.0-rc.7.tgz`, packed
   from lightlysaltedhq/contracts at `d292ecc`; the rc.6 tarball is gone.
@@ -311,9 +321,9 @@ markup granularity (cross-reference your site's override manifest).
     `rating` arg is a float. The stars are drawn as the contract's card draws
     them (`markup/card.json`, rating): five empty stars with five filled ones
     clipped to `--salt-rating-fill`, the rating as a percentage of 5, so 4.5
-    fills 90%. The label reads "Rated 4.5 out of 5 stars"; how a half value
-    is written in it is pending the founder's ruling. The rest of the card's
-    markup is unchanged until M4.
+    fills 90%. The label reads "Rated 4.5 out of 5 stars" (the founder's
+    ruling on how a half value is written). The rest of the card's markup is
+    unchanged until M4.
   - **Topics (`_topic.json`; the topics owes of services, case studies, FAQs
     and locations).** `service_category`, `work_type`, `faq_category` and
     `location_area` are labelled Topics (a Topic) in place of "Service
@@ -323,15 +333,29 @@ markup granularity (cross-reference your site's override manifest).
     Every term is stored at the top level, whatever parent is sent
     (`inc/cpt/topics.php`). Posts' categories are ID-3952's.
   - **The summary is checked on save (services, case studies, posts).** An
-    excerpt over 300 characters is refused by ACF's validation with "The
-    summary (the Excerpt box) is N characters long. Shorten it to 300
-    characters or fewer". Characters are counted as ACF counts its own
-    limits (`mb_strlen`, a CRLF as one), pending the founder's ruling.
+    excerpt over 300 characters is refused in the editor
+    (`admin/summary-limit.js`) with "The summary (the Excerpt box) is N
+    characters long. Shorten it to 300 characters or fewer". Characters are
+    counted as Unicode code points (`mb_strlen`, a CRLF as one; the
+    founder's ruling).
+  - **The title is checked on save (every collection; the founder's
+    ruling).** The post title of a service, case study, post, testimonial
+    (name), team member (name), FAQ (question) and location (name) over the
+    contract's 120 characters is refused in the editor
+    (`admin/title-limit.js`, the same way as the summary) with "The title is
+    N characters long. Shorten it to 120 characters or fewer", counted as
+    the summary is.
   - **Other checks on save the contract asks for** (`inc/fields/checks.php`):
     a field with the email format (a team member's and a location's
     `email`) must be one @, a domain with a dot and no spaces; a location's
     `street` holds at most two lines (`maxLines`); a service cannot be among
-    its own `relatedServices`.
+    its own `relatedServices`; and a field with the url format must be an
+    absolute http, https, mailto or tel address (the founder's ruling): a
+    team member's `socials` url, a case study's `externalUrl`, a features or
+    logos item's `url`, and the `url` of every external link (a service's
+    `cta`, the sections' buttons and links). A path such as `/contact`, an
+    anchor such as `#pricing`, `//x.example`, `javascript:` and `ftp:` are
+    refused with a message naming the four schemes.
   - **Post fields hidden until unit 10.** `author`, `primaryTopic` and
     `layout` stay in the generated posts group (so the drift check holds and
     they store and read), but `acf/prepare_field` keeps them out of the

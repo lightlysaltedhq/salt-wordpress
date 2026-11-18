@@ -232,4 +232,81 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 			$GLOBALS['salt_test_localized']['salt-summary-limit']['saltSummaryLimit']
 		);
 	}
+
+	/**
+	 * Title, whether the 120-character limit refuses it.
+	 *
+	 * @return array<string,array{string,bool}>
+	 */
+	public static function title_provider(): array {
+		return array(
+			'120 characters: saved'            => array( str_repeat( 'a', 120 ), false ),
+			'121 characters: refused'          => array( str_repeat( 'a', 121 ), true ),
+			'120 two-byte characters: saved'   => array( str_repeat( 'é', 120 ), false ),
+			'121 two-byte characters: refused' => array( str_repeat( 'é', 121 ), true ),
+			'120 four-byte characters: saved'  => array( str_repeat( '🌱', 120 ), false ),
+		);
+	}
+
+	#[DataProvider( 'title_provider' )]
+	public function test_the_title_limit_counts_characters( string $title, bool $refused ): void {
+		$error = salt_title_error( $title );
+
+		$refused
+			? $this->assertSame( 'The title is 121 characters long. Shorten it to 120 characters or fewer.', $error )
+			: $this->assertNull( $error );
+	}
+
+	public function test_the_title_limit_covers_every_collection_whose_title_is_the_post_title(): void {
+		$types = array();
+		foreach ( json_decode( (string) file_get_contents( dirname( __DIR__, 2 ) . '/inc/fields/generated/collections.json' ), true ) as $group ) {
+			if ( in_array( 'title', $group['salt']['native'] ?? array(), true ) ) {
+				$types[] = $group['location'][0][0]['value'];
+			}
+		}
+
+		$this->assertEqualsCanonicalizing( array( 'service', 'work', 'post', 'testimonial', 'team_member', 'faq', 'location' ), $types );
+		$this->assertEqualsCanonicalizing( $types, salt_title_post_types() );
+	}
+
+	public function test_the_title_check_loads_on_the_collection_edit_screens_only(): void {
+		require_once __DIR__ . '/../shims/admin.php';
+		$GLOBALS['salt_test_enqueued']  = array();
+		$GLOBALS['salt_test_localized'] = array();
+		$loaded                         = array();
+		foreach ( array( 'service', 'work', 'post', 'testimonial', 'team_member', 'faq', 'location', 'page', 'salt_submission' ) as $type ) {
+			$GLOBALS['typenow'] = $type;
+			unset( $GLOBALS['salt_test_enqueued']['scripts']['salt-title-limit'] );
+			salt_title_limit_enqueue( 'post-new.php' );
+			$loaded[ $type ] = isset( $GLOBALS['salt_test_enqueued']['scripts']['salt-title-limit'] );
+		}
+		$GLOBALS['typenow'] = 'faq';
+		unset( $GLOBALS['salt_test_enqueued']['scripts']['salt-title-limit'] );
+		salt_title_limit_enqueue( 'edit.php' );
+		$on_list = isset( $GLOBALS['salt_test_enqueued']['scripts']['salt-title-limit'] );
+		unset( $GLOBALS['typenow'] );
+
+		$this->assertSame(
+			array(
+				'service'         => true,
+				'work'            => true,
+				'post'            => true,
+				'testimonial'     => true,
+				'team_member'     => true,
+				'faq'             => true,
+				'location'        => true,
+				'page'            => false,
+				'salt_submission' => false,
+			),
+			$loaded
+		);
+		$this->assertFalse( $on_list, 'Not on the list screen.' );
+		$this->assertSame(
+			array(
+				'max'     => 120,
+				'message' => 'The title is {length} characters long. Shorten it to 120 characters or fewer.',
+			),
+			$GLOBALS['salt_test_localized']['salt-title-limit']['saltTitleLimit']
+		);
+	}
 }

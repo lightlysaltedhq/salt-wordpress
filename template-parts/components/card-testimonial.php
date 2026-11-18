@@ -91,10 +91,9 @@ $salt_attribution_line = implode(
 
 $salt_has_attribution = '' !== trim( $args['author'] ) || '' !== $salt_attribution_line || '' !== $args['media'];
 
-// PENDING the founder's ruling: the contract's label is "{n} of {N}"
-// (markup/card.json) and does not say how a half value is written. It is
-// written "4.5" for now (PHP's own float string, the same in every locale),
-// not with the locale's decimal separator.
+// The contract's label is "{n} of {N}" (markup/card.json). A half value is
+// written "4.5" (the founder's ruling on PR #26): PHP's own float string,
+// the same in every locale, not the locale's decimal separator.
 $salt_rating_label = sprintf(
 	/* translators: 1: given star rating, such as 4 or 4.5. 2: maximum star rating. */
 	__( 'Rated %1$s out of %2$d stars', 'salt' ),

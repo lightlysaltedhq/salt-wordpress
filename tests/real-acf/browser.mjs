@@ -19,6 +19,12 @@
  *    no Add Media button and Text tab buttons for its list alone; a service
  *    or post summary of 301 two-byte characters is refused and 300 published;
  *    the post fields unit 10 wires are not drawn.
+ * 7. The url format on save: a service's external cta link and a case
+ *    study's externalUrl refuse /contact, #pricing, //x.example, javascript:
+ *    and ftp:, and take https and mailto.
+ * 8. The title limit: on each collection's edit screen a title of 121
+ *    two-byte characters is refused with the message and not saved, and
+ *    one of 120 is not refused (a post then publishes).
  */
 
 import { execFileSync } from 'node:child_process';
@@ -418,6 +424,119 @@ try {
 			'the topic screens offer no parent',
 			`"${ heading }"; Parent on the add form ${ addHasParent }, on the edit form ${ editHasParent }`
 		);
+	}
+	// ── 7. The url format on save (inc/fields/checks.php) ──────────────────────────────────────
+	{
+		const URL_MESSAGE =
+			'Enter a full address that starts with http://, https://, mailto: or tel:. A path such as /contact or an anchor such as #pricing is not accepted; link to a page on this site with an internal link instead.';
+		const isValidation = ( r ) => r.url().includes( 'admin-ajax.php' ) && ( r.request().postData() ?? '' ).includes( 'acf%2Fvalidate_save_post' );
+		// Set the value, press Publish, wait for ACF's validation and read the field's message.
+		const tryUrl = async ( p, input, key, value ) => {
+			await p.evaluate(
+				( [ sel, v ] ) => {
+					document.querySelectorAll( '.acf-notice.-error' ).forEach( ( n ) => n.remove() );
+					document.querySelector( sel ).value = v;
+				},
+				[ input, value ]
+			);
+			await p.waitForSelector( '#publish:not(.disabled)' );
+			await Promise.all( [ p.waitForResponse( isValidation, { timeout: 60000 } ), p.click( '#publish' ) ] );
+			await p.waitForTimeout( 800 );
+			return p
+				.evaluate( ( k ) => document.querySelector( `.acf-field[data-key="${ k }"] .acf-notice.-error` )?.textContent.trim() ?? '', key )
+				.catch( () => '' );
+		};
+		const ready = async ( p, title ) => {
+			await p.waitForFunction( () => window.acf && document.readyState === 'complete' );
+			await p.fill( '#title', title );
+			await p.locator( '#title' ).blur();
+			await p.waitForSelector( '#edit-slug-box #sample-permalink', { timeout: 60000 } );
+		};
+		const refused = [ '/contact', '#pricing', '//x.example', 'javascript:alert(1)', 'ftp://files.example' ];
+
+		// A service's cta, made an external link. A new service never publishes here (it needs a benefit).
+		const svc = await open( '/wp-admin/post-new.php?post_type=service' );
+		await ready( svc.page, `Harness: url ${ Date.now() }` );
+		const cta = 'field_salt_collection_services_cta';
+		await svc.page.evaluate( ( k ) => {
+			document.querySelector( `.acf-field[data-key="${ k }_type"] input[value="external"]` ).click();
+			document.querySelector( `.acf-field[data-key="${ k }_label"] input` ).value = 'Ask us';
+		}, cta );
+		const ctaInput = `.acf-field[data-key="${ cta }_url"] input`;
+		const ctaSaw = [];
+		for ( const v of [ ...refused, 'https://hollinfarm.example/visit', 'mailto:hello@hollinfarm.example' ] ) {
+			ctaSaw.push( [ v, await tryUrl( svc.page, ctaInput, `${ cta }_url`, v ) ] );
+		}
+		const ctaOk = ctaSaw.every( ( [ v, m ] ) => ( refused.includes( v ) ? m === URL_MESSAGE : m === '' ) );
+		result(
+			ctaOk,
+			'an external link refuses a url that is not absolute http, https, mailto or tel',
+			`service cta: ${ ctaSaw.map( ( [ v, m ] ) => `${ v } ${ m === URL_MESSAGE ? 'refused' : m === '' ? 'taken' : `"${ m }"` }` ).join( '; ' ) }`
+		);
+		result( svc.errors.length === 0, 'no console errors while checking urls on a service', `${ svc.errors.length } errors` );
+		svc.errors.slice( 0, 10 ).forEach( info );
+		await close( svc.page );
+
+		// A case study's externalUrl: a path refused, https taken. A new case study never publishes
+		// here (it needs a gallery image and a result), so ACF's other messages stay.
+		const work = await open( '/wp-admin/post-new.php?post_type=work' );
+		const workTitle = `Harness: url case study ${ Date.now() }`;
+		await ready( work.page, workTitle );
+		const ext = 'field_salt_collection_case_studies_external_url';
+		const extInput = `.acf-field[data-key="${ ext }"] input`;
+		const pathSaid = await tryUrl( work.page, extInput, ext, '/contact' );
+		const httpsSaid = await tryUrl( work.page, extInput, ext, 'https://combefarm.example/orchard' );
+		const others = await work.page.evaluate( () => document.querySelectorAll( '.acf-field .acf-notice.-error' ).length );
+		result(
+			pathSaid === URL_MESSAGE && httpsSaid === '' && others > 0 && publishedWithTitle( workTitle, 'work' ) === 0,
+			'a case study\'s externalUrl refuses a path and takes https',
+			`/contact: ${ pathSaid === URL_MESSAGE ? 'refused' : `"${ pathSaid }"` }; https://combefarm.example/orchard: ${ httpsSaid === '' ? 'taken' : `"${ httpsSaid }"` } (ACF still asks for ${ others } other required fields)`
+		);
+		result( work.errors.length === 0, 'no console errors while checking urls on a case study', `${ work.errors.length } errors` );
+		work.errors.slice( 0, 10 ).forEach( info );
+		await close( work.page );
+	}
+	// ── 8. The title limit (admin/title-limit.js) ──────────────────────────────────────────────
+	{
+		const message = ( n ) => `The title is ${ n } characters long. Shorten it to 120 characters or fewer.`;
+		// A unique title of exactly n code points, the rest two-byte.
+		const titleOf = ( type, n ) => Array.from( `${ type } ${ Date.now() } ${ 'é'.repeat( n ) }` ).slice( 0, n ).join( '' );
+		const saidAfterPublish = async ( p ) => {
+			await p.waitForSelector( '#publish:not(.disabled)' );
+			await Promise.all( [ p.waitForURL( /message=\d+/, { timeout: 3000 } ).catch( () => null ), p.click( '#publish' ) ] );
+			await p.waitForTimeout( 800 );
+			return p.evaluate( () => document.querySelector( '#salt-title-limit' )?.textContent.trim() ?? '' ).catch( () => '' );
+		};
+		for ( const type of [ 'service', 'work', 'post', 'testimonial', 'team_member', 'faq', 'location' ] ) {
+			const { page, errors } = await open( `/wp-admin/post-new.php?post_type=${ type }` );
+			await page.waitForFunction( () => window.saltTitleLimit && document.readyState === 'complete' );
+			const long = titleOf( type, 121 );
+			// Leaving a new title starts WordPress's first autosave (Publish is disabled until it is
+			// done). Only viewable types then draw a permalink, so wait for autosave.js's own event.
+			await page.evaluate( () => {
+				window.saltHarnessAutosaved = false;
+				window.jQuery( document ).on( 'after-autosave', () => {
+					window.saltHarnessAutosaved = true;
+				} );
+			} );
+			await page.fill( '#title', long );
+			await page.locator( '#title' ).blur();
+			await page.waitForFunction( () => window.saltHarnessAutosaved, null, { timeout: 60000 } );
+			const refused = await saidAfterPublish( page );
+			const notPublished = publishedWithTitle( long, type ) === 0; // WordPress's autosave keeps a draft, as it does for the summary.
+			const fits = titleOf( type, 120 );
+			await page.fill( '#title', fits );
+			const accepted = await saidAfterPublish( page );
+			const published = publishedWithTitle( fits, type ) === 1;
+			result(
+				refused === message( 121 ) && notPublished && accepted === '' && ( type !== 'post' || published ),
+				`a ${ type } title of 121 characters is refused and 120 is not`,
+				`121 two-byte: "${ refused }", ${ notPublished ? 'not published' : 'PUBLISHED' }; 120 two-byte: ${ accepted === '' ? 'no title message' : `"${ accepted }"` }, ${ published ? 'published' : 'not published (other fields still required)' }`
+			);
+			result( errors.length === 0, `no console errors on the ${ type } title check`, `${ errors.length } errors` );
+			errors.slice( 0, 10 ).forEach( info );
+			await close( page );
+		}
 	}
 	const unloadTotal = [ ...unloadBy.values() ].reduce( ( a, b ) => a + b, 0 );
 	info(

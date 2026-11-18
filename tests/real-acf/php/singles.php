@@ -213,7 +213,8 @@ $expect = array(
 	'price'               => esc_html( $doc['priceFrom'] ),
 	'cta'                 => esc_html( $doc['cta']['label'] ),
 	'cta to its document' => 'href="' . esc_url( (string) get_permalink( $enquire ) ) . '"',
-	'intro paragraph'     => '<p>Every plan starts with a visit, a soil test and a long conversation about how you use the garden.</p>',
+	'intro paragraph 1'   => '<p>Every plan starts with a visit, a soil test and a long conversation about how you use the garden.</p>',
+	'intro paragraph 2'   => '<p>We draw two options, agree one, then plant it ourselves.</p>',
 );
 foreach ( $doc['benefits'] as $i => $benefit ) {
 	$expect[ "benefit {$i}" ] = esc_html( $benefit );
@@ -223,12 +224,24 @@ foreach ( $doc['related'] as $i => $item ) {
 	$expect[ "related {$i} summary" ] = esc_html( $item['text'] );
 	$expect[ "related {$i} image" ]   = 'alt="' . esc_attr( $media[ $item['image'] ]['alt'] ) . '"';
 }
-salt_harness_single_check(
+$body = salt_harness_single_check(
 	'single-service.php draws the contract\'s service/full',
 	$service,
-	$expect,
-	// The intro's list (services.json intro) has no heading, so the fixture's h3 is stored as text.
-	array( 'the fixture intro\'s h3, outside the intro\'s list' => '<h3>How it works</h3>' )
+	$expect
+);
+// KNOWN FIXTURE MISMATCH, pending the EP-70 correction of the contract's example: rc.7's
+// fixtures/service/full.json puts an <h3> in the intro, but the intro's own list (services.json
+// intro) has no heading, and the founder ruled the intro stays restricted. The theme strips the
+// heading to text; this checks the two paragraphs and that no h2 or h3 comes from the intro, and
+// deliberately does not check the heading's text.
+$intro      = (string) strstr( (string) substr( $body, (int) strpos( $body, '<div class="x-prose">' ) ), '</div>', true );
+$paragraphs = array( $expect['intro paragraph 1'], $expect['intro paragraph 2'] );
+$drawn      = count( array_filter( $paragraphs, static fn( string $p ): bool => str_contains( $intro, $p ) ) );
+$heading    = 1 === preg_match( '/<h[23][\s>]/i', $intro );
+salt_harness_result(
+	str_contains( $body, '<div class="x-prose">' ) && 2 === $drawn && ! $heading,
+	'the service intro draws its two paragraphs and no h2 or h3',
+	sprintf( '%d of the 2 paragraphs in the intro; h2 or h3 in the intro: %s', $drawn, $heading ? 'YES' : 'none' )
 );
 salt_harness_info( 'stored body: ' . wp_json_encode( get_post_field( 'post_content', $service, 'raw' ) ) );
 
@@ -383,9 +396,9 @@ salt_harness_single_check(
 	'a stored 4.5 draws four and a half stars',
 	$page,
 	array(
-		'the quote'                                     => 'Half a star short of perfect.',
-		'90% of five stars filled'                      => 'style="--salt-rating-fill: 90%"',
-		'the label (4.5 pending the founder\'s ruling)' => 'aria-label="Rated 4.5 out of 5 stars"',
+		'the quote'                              => 'Half a star short of perfect.',
+		'90% of five stars filled'               => 'style="--salt-rating-fill: 90%"',
+		'the label (4.5, the founder\'s ruling)' => 'aria-label="Rated 4.5 out of 5 stars"',
 	)
 );
 

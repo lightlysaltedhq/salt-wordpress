@@ -2,8 +2,8 @@
 
 Proves the Salt contract's field shape works natively on real ACF Pro. The field shape is the pinned
 `@lightlysaltedhq/salt-contract` emitter's `acfSnapshot` output. On ACF Pro 6.8.11 and WordPress
-6.8, the harness checks that it registers, saves, reads back, edits and re-saves. The theme's
-hand-written ACF stand-in (`tests/shims/acf.php`) can then be checked against real ACF behaviour.
+7.1.4 (the latest release), the harness checks that it registers, saves, reads back, edits and
+re-saves. The theme's hand-written ACF stand-in (`tests/shims/acf.php`) can then be checked against real ACF behaviour.
 Dev only: nothing here ships, and the theme's own `composer install` and `npm ci` do not touch it.
 
 ## Run it
@@ -14,7 +14,8 @@ tests/real-acf/run.sh --php 8.2          # or --php 8.5, or --php /path/to/php
 ```
 
 Options: `--no-browser` skips the editor checks, `--keep` keeps the site and database for
-inspection (it prints how to drop them), `--report <file>` copies the report. The script exits 0
+inspection (it prints how to drop them), `--offline` skips the latest-release check (below) and
+reports it as `STALENESS NOT CHECKED`, `--report <file>` copies the report. The script exits 0
 only when every check passes.
 
 It needs:
@@ -37,8 +38,17 @@ It needs:
 
   Never commit the zip, `auth.json` or the credentials. `.gitignore` here covers the first two.
 
-On first use it installs its own locked dependencies: WordPress 6.8.12 (`roots/wordpress-no-content`
-in `composer.json`) and Playwright 1.65.1 with its headless Chromium (`package.json`).
+On first use it installs its own locked dependencies: WordPress 7.1.4 (`roots/wordpress-no-content`
+in `composer.json`, pinned exactly) and Playwright 1.65.1 with its headless Chromium
+(`package.json`). It reinstalls WordPress when the installed copy differs from `composer.lock`.
+
+Clients run the latest WordPress, and the theme must raise no deprecation on it. So before it
+builds the site, each run asks `api.wordpress.org/core/version-check/1.7/` for the latest release
+(`php/latest.php`) and fails, naming both versions, when the pinned one is older, or when the API
+cannot be read. The pin keeps runs reproducible; this check keeps them from falling behind. To
+move up, pin the new release in `composer.json`, run `composer update --working-dir=tests/real-acf`
+and rerun on both PHP versions. Only `--offline` skips it, and the summary then says
+`STALENESS NOT CHECKED (--offline)`. CI never passes `--offline`.
 
 ## What one run does
 
@@ -93,10 +103,11 @@ in `composer.json`) and Playwright 1.65.1 with its headless Chromium (`package.j
    services become services. It requests `single-service.php`, `single-work.php` and
    `single-post.php` and checks each answers 200 and draws every seeded value the template draws.
    It also checks the service intro runs no shortcode or embed, and that a testimonial rated 4.5
-   draws 90% of five stars on a page. This is a smoke render, not conformance: the view cases'
-   markup is a later unit. WordPress 6.8 passes null as an array offset inside `wp-includes` when
-   it renders a front-end page, which PHP 8.5 deprecates; on PHP 8.5 that one deprecation from
-   core is reported and not counted (`php/notices.php`).
+   draws 90% of five stars on a page. Known fixture mismatch, pending the contract's EP-70
+   correction: rc.7's service intro holds an `<h3>` its own list does not allow, so the intro's
+   heading is stripped to text; the phase checks the intro's two paragraphs and that no `<h2>` or
+   `<h3>` comes from it, not the heading. This is a smoke render, not conformance: the view cases'
+   markup is a later unit.
 7. **The editor, in headless Chromium** against the same server (`browser.mjs`):
    - the fixtures page's classic edit screen renders every row and layout with no console errors;
    - the faq section's collection query mode shows categories or items, and order and count unless
@@ -109,7 +120,12 @@ in `composer.json`) and Playwright 1.65.1 with its headless Chromium (`package.j
    - the Topics box and the topic screens offer no parent; the service editor has no Add Media
      button and Text tab buttons for its list alone; a summary of 301 two-byte characters is
      refused with the editor message on a service and a post, and 300 is accepted; the hidden post
-     fields are not drawn.
+     fields are not drawn;
+   - a url that is not absolute http, https, mailto or tel is refused on save: a service's external
+     cta refuses `/contact`, `#pricing`, `//x.example`, `javascript:` and `ftp:` and takes https and
+     mailto, and a case study's `externalUrl` refuses a path and takes https;
+   - on each collection's edit screen, a title of 121 two-byte characters is refused with the
+     editor message and 120 is not.
 8. Prints a summary, drops the database and removes the temporary directory, whether the run
    passed, failed or was interrupted.
 
@@ -146,5 +162,5 @@ These changes are expected and reported, not failed:
   `salt.modeRequires` server validation are not built yet. They are only stored and read back.
 - **Licensing.** It does not cover ACF Pro licence activation or updates. Pro field types work on
   this unlicensed local site.
-- **Other environments.** It covers ACF Pro 6.8.11 and WordPress 6.8 only, and does not check
+- **Other environments.** It covers ACF Pro 6.8.11 and WordPress 7.1.4 only, and does not check
   the block editor (the theme turns it off) or browsers other than Chromium.

@@ -4,7 +4,7 @@
     "type": "project",
     "license": "proprietary",
     "require": {
-        "roots/wordpress-no-content": "6.8.12"
+        "roots/wordpress-no-content": "7.1.4"
     },
     "config": {
         "platform": {
