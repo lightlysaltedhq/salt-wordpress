@@ -32,9 +32,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   layout        string       Contract `layout` (this section uses grid |
  *                              list | featured; defaults to grid).
  *   columns       string       Contract `columns` ('2'|'3'|'4'; defaults to '3').
- *   items         array<int, array{title: string, url: string, summary: string, icon: string}>
+ *   items         array<int, array{title: string, url: string, summary: string, icon: string, image_id: int}>
  *                              WordPress-local (contract `cards`): the
  *                              service cards in query order; never empty.
+ *                              summary is the stored excerpt; image_id the
+ *                              featured image (0 for none), drawn in place
+ *                              of the icon when set.
  *   view_all_url  string|null  WordPress-local (contract `viewAll`, a link):
  *                              the /services/ archive URL when "view all" is
  *                              on and the archive exists; null otherwise.
@@ -80,14 +83,16 @@ function salt_resolve_section_services( array $context ): ?array {
 			continue;
 		}
 
-		$summary = get_field( 'summary', $post_item->ID );
-		$icon    = get_field( 'icon', $post_item->ID );
+		// The contract's card (collections/services.json, display): summary
+		// is the excerpt, featuredImage the featured image, icon a field.
+		$icon = get_field( 'icon', $post_item->ID );
 
 		$cards[] = array(
-			'title'   => $title,
-			'url'     => (string) get_the_permalink( $post_item->ID ),
-			'summary' => is_string( $summary ) ? $summary : '',
-			'icon'    => is_string( $icon ) ? $icon : '',
+			'title'    => $title,
+			'url'      => (string) get_the_permalink( $post_item->ID ),
+			'summary'  => salt_post_summary( $post_item ),
+			'icon'     => is_string( $icon ) ? $icon : '',
+			'image_id' => (int) get_post_thumbnail_id( $post_item ),
 		);
 	}
 

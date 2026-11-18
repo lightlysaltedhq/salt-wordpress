@@ -122,7 +122,7 @@ final class RichTextSectionTest extends SaltTestCase {
 	public function test_resolver_sanitises_the_body(): void {
 		$resolved = $this->resolve_rich_text(
 			array(
-				'body' => '<p class="evil">Text</p><script>alert(1)</script><h2>Smuggled</h2>',
+				'body' => '<p class="evil">Text</p><script>alert(1)</script><h1>Smuggled</h1>',
 			)
 		);
 
@@ -130,7 +130,7 @@ final class RichTextSectionTest extends SaltTestCase {
 		$this->assertIsString( $resolved['props']['body'] );
 		$this->assertStringNotContainsString( '<script', $resolved['props']['body'] );
 		$this->assertStringNotContainsString( 'class="evil"', $resolved['props']['body'] );
-		$this->assertStringNotContainsString( '<h2>', $resolved['props']['body'], 'h2 is forbidden in prose (§16a).' );
+		$this->assertStringNotContainsString( '<h1>', $resolved['props']['body'], 'h1 is forbidden in prose (§16a).' );
 	}
 
 	public function test_resolver_heading_only_has_a_null_body(): void {
@@ -208,5 +208,10 @@ final class RichTextSectionTest extends SaltTestCase {
 		$this->assertStringContainsString( 'From props', $html );
 		$this->assertStringContainsString( '<p>Already sanitised.</p>', $html );
 		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+	}
+	public function test_resolver_keeps_headings_two_to_six(): void {
+		$resolved = $this->resolve_rich_text( array( 'body' => '<h2>Two</h2><h5>Five</h5><h6>Six</h6>' ) );
+
+		$this->assertSame( '<h2>Two</h2><h5>Five</h5><h6>Six</h6>', $resolved['props']['body'], 'The rich-text body alone allows heading-2 to heading-6 (rc.7, ID-3950).' );
 	}
 }

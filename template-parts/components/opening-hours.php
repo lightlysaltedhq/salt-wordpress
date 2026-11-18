@@ -2,9 +2,9 @@
 /**
  * x-opening-hours — semantic <dl> rendering of structured opening hours.
  *
- * Consumes the FROZEN opening_hours storage contract (Appendix A.6, shared
+ * Consumes the stored hours rows (salt-contract collections/locations.json, shared
  * with salt_location_status()): day ('monday'..'sunday' lowercase English
- * keys), open/close ('HH:MM' 24h), appointment_only (bool). Split hours
+ * keys), open/close ('HH:MM' 24h), appointment (bool). Split hours
  * (multiple rows per day) group into one <dd> per day; every time renders
  * as <time datetime="HH:MM">. Appointment-only days render a "By
  * appointment" value. Days with no rows are omitted.
@@ -62,8 +62,8 @@ foreach ( $args['hours'] as $salt_row_index => $salt_row ) {
 		continue;
 	}
 
-	if ( ! empty( $salt_row['appointment_only'] ) ) {
-		// Contract: appointment_only claims the whole day; times are ignored.
+	if ( ! empty( $salt_row['appointment'] ) ) {
+		// Contract: appointment claims the whole day; times are ignored.
 		$salt_appointment_by_day[ $salt_day ] = true;
 		continue;
 	}

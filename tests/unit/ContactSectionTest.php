@@ -93,7 +93,7 @@ final class ContactSectionTest extends SaltTestCase {
 
 		$this->assertSame( 'layout_salt_contact', $layout['key'] );
 		$names = array_column( $layout['sub_fields'], 'name' );
-		$this->assertSame( array( 'heading', 'intro', 'showPhone', 'showEmail', 'showAddress', 'formIntro', 'settings' ), $names );
+		$this->assertSame( array( 'heading', 'intro', 'showPhone', 'showEmail', 'showAddress', 'formIntro', '', 'settings' ), $names );
 
 		// Maps are absent from this build — no map/geo fields of any kind.
 		foreach ( $names as $name ) {

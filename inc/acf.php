@@ -15,7 +15,10 @@
  * sections' Flexible Content layouts are generated from salt-contract
  * (inc/fields/generated/sections.json); the collection layouts not yet
  * folded into the contract's sections live in inc/fields/layouts/*.php
- * (see salt_section_layouts()).
+ * (see salt_section_layouts()). Each collection's group, located on its
+ * post type, is generated too (inc/fields/generated/collections.json, see
+ * salt_generated_collection_groups()); the options and user groups stay
+ * hand-written.
  *
  * @package Salt
  */
@@ -210,6 +213,144 @@ function salt_generated_sections_decode( ?string $json ): ?array {
 		return null;
 	}
 	return $found;
+}
+
+/**
+ * Path of the generated collection field groups (ACF JSON), relative to the
+ * theme root: one group per collection the contract defines (services, case
+ * studies, testimonials, posts, team, FAQs, locations), each located on the
+ * theme's post type. Written verbatim by the pinned salt-contract emitter
+ * (`emit/acf.mjs --write`, options in collections.options.json beside it,
+ * which ask for no page sections) and kept honest by
+ * bin/check-fields-from-contract.php. Never edit it by hand.
+ *
+ * A field WordPress keeps in its own place (title, body, excerpt, featured
+ * image, categories, date) has no ACF field: each group names those under
+ * `salt.native`, and the readers take them from WordPress.
+ */
+const SALT_GENERATED_COLLECTIONS_FILE = 'inc/fields/generated/collections.json';
+
+/**
+ * The generated collection field groups, decoded, in the contract's source
+ * order; none when the file is missing or is not the emitter's (logged once
+ * per request, never fatal: DEP01).
+ *
+ * @param bool $reset Forget the cached read (tests).
+ * @return array<int,array<string,mixed>>
+ */
+function salt_generated_collection_groups( bool $reset = false ): array {
+	static $groups = null;
+
+	if ( $reset ) {
+		$groups = null;
+	}
+	if ( null !== $groups ) {
+		return $groups;
+	}
+
+	$path  = get_template_directory() . '/' . SALT_GENERATED_COLLECTIONS_FILE;
+	$found = salt_generated_collections_decode( is_readable( $path ) ? (string) file_get_contents( $path ) : null ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- A local theme file.
+
+	if ( null === $found ) {
+		salt_log( sprintf( '%s is missing or is not the generated collection groups — no collection fields are registered. Regenerate it (bin/check-fields-from-contract.php).', SALT_GENERATED_COLLECTIONS_FILE ) );
+	}
+
+	$groups = $found ?? array();
+	return $groups;
+}
+
+/**
+ * The collection groups in the emitter's JSON, or null when the text is
+ * missing, not JSON, or not that output (pure — unit-tested).
+ *
+ * The emitter always writes the page-sections group first; asked for no
+ * sections, it is empty, and is left out here (the page group is
+ * sections.json's). Every other group must be a collection group: a
+ * group_salt_collection_* key, fields, a post-type location and the
+ * collection it was generated from under `salt`.
+ *
+ * @param string|null $json The file's text, or null when unreadable.
+ * @return array<int,array<string,mixed>>|null
+ */
+function salt_generated_collections_decode( ?string $json ): ?array {
+	$decoded = null === $json ? null : json_decode( $json, true );
+	if ( ! is_array( $decoded ) || ! array_is_list( $decoded ) || 'group_salt_sections' !== ( $decoded[0]['key'] ?? null ) || array() !== ( $decoded[0]['fields'][0]['layouts'] ?? null ) ) {
+		return null;
+	}
+
+	$groups = array_slice( $decoded, 1 );
+	if ( array() === $groups ) {
+		return null;
+	}
+	foreach ( $groups as $group ) {
+		if (
+			! is_array( $group )
+			|| ! str_starts_with( (string) ( $group['key'] ?? '' ), 'group_salt_collection_' )
+			|| ! is_array( $group['fields'] ?? null )
+			|| 'post_type' !== ( $group['location'][0][0]['param'] ?? null )
+			|| ! is_string( $group['salt']['collection'] ?? null )
+		) {
+			return null;
+		}
+	}
+	return $groups;
+}
+
+/**
+ * A generated rich-text field's contract element kinds (its `salt.allowed`
+ * in sections.json or collections.json), found by field key, for
+ * salt_sanitize_html(). The contract stays the source of each field's list.
+ *
+ * Fails closed: a key that is not a generated rich-text field (or a missing
+ * file) gives paragraphs alone, and is logged.
+ *
+ * @param string $key   Field key, e.g. 'field_salt_rich_text_body'.
+ * @param bool   $reset Forget the cached map (tests).
+ * @return string[] Element kinds.
+ */
+function salt_field_allowed( string $key, bool $reset = false ): array {
+	static $map = null;
+
+	if ( $reset ) {
+		$map = null;
+	}
+	if ( null === $map ) {
+		$map  = array();
+		$walk = static function ( array $fields ) use ( &$walk, &$map ): void {
+			foreach ( $fields as $field ) {
+				if ( ! is_array( $field ) ) {
+					continue;
+				}
+				if ( is_array( $field['salt']['allowed'] ?? null ) && isset( $field['key'] ) ) {
+					$map[ (string) $field['key'] ] = array_values( array_map( 'strval', $field['salt']['allowed'] ) );
+				}
+				$walk( is_array( $field['sub_fields'] ?? null ) ? $field['sub_fields'] : array() );
+				foreach ( is_array( $field['layouts'] ?? null ) ? $field['layouts'] : array() as $layout ) {
+					$walk( is_array( $layout['sub_fields'] ?? null ) ? $layout['sub_fields'] : array() );
+				}
+			}
+		};
+		$walk( salt_generated_sections_group()['fields'] ?? array() );
+		foreach ( salt_generated_collection_groups() as $group ) {
+			$walk( $group['fields'] );
+		}
+	}
+
+	if ( ! isset( $map[ $key ] ) ) {
+		salt_log( sprintf( 'salt_field_allowed: "%s" is not a generated rich-text field — sanitised as paragraphs alone.', $key ) );
+		return array( 'paragraph' );
+	}
+	return $map[ $key ];
+}
+
+/**
+ * The post type a generated collection group is located on.
+ *
+ * @param array<string,mixed> $group A generated collection group.
+ * @return string
+ */
+function salt_collection_group_post_type( array $group ): string {
+	return (string) ( $group['location'][0][0]['value'] ?? '' );
 }
 
 /**

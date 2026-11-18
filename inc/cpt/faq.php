@@ -2,8 +2,8 @@
 /**
  * CPT: FAQ (spec Appendix A.5) — display-only posture (SEC09).
  *
- * The question is the post title; the answer is an ACF WYSIWYG field
- * (inc/fields/cpt-faq.php). Display-only: no single view, no archive, no
+ * The question is the post title; the answer is the generated FAQ group's
+ * rich-text field (salt-contract collections/faqs.json). Display-only: no single view, no archive, no
  * REST surface — content exists solely to be composed into the FAQ
  * section (§10 #13) and its FAQPage JSON-LD (SEO03).
  *
@@ -57,21 +57,17 @@ function salt_register_cpt_faq(): void {
 		'faq_category',
 		'faq',
 		array(
-			'labels'            => array(
-				'name'          => __( 'FAQ categories', 'salt' ),
-				'singular_name' => __( 'FAQ category', 'salt' ),
-				'search_items'  => __( 'Search FAQ categories', 'salt' ),
-				'edit_item'     => __( 'Edit FAQ category', 'salt' ),
-				'add_new_item'  => __( 'Add new FAQ category', 'salt' ),
-				'menu_name'     => __( 'Categories', 'salt' ),
-			),
-			'hierarchical'      => true,
+			'labels'               => salt_topic_labels(), // Topics (inc/cpt/topics.php).
+			'meta_box_cb'          => 'salt_topic_meta_box',
+			'meta_box_sanitize_cb' => 'taxonomy_meta_box_sanitize_cb_checkboxes',
+			// Hierarchical only to keep the checkbox box; topics are flat (inc/cpt/topics.php).
+			'hierarchical'         => true,
 			// Same display-only posture as the CPT (SEC09).
-			'public'            => false,
-			'show_ui'           => true,
-			'show_in_rest'      => false,
-			'rewrite'           => false,
-			'show_admin_column' => true,
+			'public'               => false,
+			'show_ui'              => true,
+			'show_in_rest'         => false,
+			'rewrite'              => false,
+			'show_admin_column'    => true,
 		)
 	);
 }

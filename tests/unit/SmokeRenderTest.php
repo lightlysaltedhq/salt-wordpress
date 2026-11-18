@@ -95,7 +95,7 @@ final class SmokeRenderTest extends SaltTestCase {
 					'layout' => 'rich-text',
 					'fields' => array(
 						'heading' => 'Safe content',
-						'body'    => '<p style="color:red" class="evil">Text</p><script>alert(1)</script><h2>Smuggled</h2>',
+						'body'    => '<p style="color:red" class="evil">Text</p><script>alert(1)</script><h1>Smuggled</h1>',
 					),
 				),
 			)
@@ -106,7 +106,7 @@ final class SmokeRenderTest extends SaltTestCase {
 		$this->assertStringNotContainsString( '<script', $html );
 		$this->assertStringNotContainsString( 'style="color:red"', $html );
 		$this->assertStringNotContainsString( 'class="evil"', $html );
-		$this->assertStringNotContainsString( '<h2>Smuggled</h2>', $html, 'h2 is forbidden in prose (§16a).' );
+		$this->assertStringNotContainsString( '<h1>Smuggled</h1>', $html, 'h1 is forbidden in prose (§16a).' );
 	}
 
 	public function test_unknown_layout_degrades_to_fallback_not_blank_fatal(): void {

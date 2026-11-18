@@ -17,8 +17,8 @@
  *   props  array{ eyebrow: string|null, heading: string|null,
  *                 layout: 'grid'|'slider',
  *                 items: array<int, array{author: string, quote: string, role: string,
- *                          company: string, rating: int, logo_id: int}> }
- *          items is never empty; rating is 0..5; logo_id 0 = no logo.
+ *                          company: string, rating: float, photo_id: int}> }
+ *          items is never empty; rating is 0..5 in half stars; photo_id 0 = no photo.
  *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
  *
  * @package Salt
@@ -54,12 +54,13 @@ if ( null !== $salt_props['heading'] ) {
 // Render the cards (escaping happens inside the components).
 $salt_cards = array();
 foreach ( $salt_props['items'] as $salt_item ) {
-	$salt_logo_html = '';
-	if ( $salt_item['logo_id'] > 0 ) {
-		$salt_logo_html = salt_get_component(
+	// The photo only, never a logo (salt-contract collections/testimonials.json).
+	$salt_photo_html = '';
+	if ( $salt_item['photo_id'] > 0 ) {
+		$salt_photo_html = salt_get_component(
 			'image',
 			array(
-				'image_id'      => $salt_item['logo_id'],
+				'image_id'      => $salt_item['photo_id'],
 				'alt'           => '',
 				'sizes_context' => 'card',
 				'classes'       => 'h-10 w-auto',
@@ -75,7 +76,7 @@ foreach ( $salt_props['items'] as $salt_item ) {
 			'role'    => $salt_item['role'],
 			'company' => $salt_item['company'],
 			'rating'  => $salt_item['rating'],
-			'media'   => $salt_logo_html,
+			'media'   => $salt_photo_html,
 		)
 	);
 }

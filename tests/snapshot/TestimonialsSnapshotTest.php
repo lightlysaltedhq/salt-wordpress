@@ -1,7 +1,9 @@
 <?php
 /**
  * Testimonials section snapshots (FLEET01) — one per meaningful variant:
- * single static card, grid, and the no-JS scroll-snap slider base.
+ * single static card, grid, the no-JS scroll-snap slider base, and a card
+ * with the person's photo (salt-contract 1.0.0-rc.7: the photo, never a
+ * logo).
  *
  * @package Salt\Tests
  */
@@ -10,6 +12,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../shims/acf.php';
 require_once __DIR__ . '/../shims/testimonial.php';
+require_once __DIR__ . '/../shims/media.php';
 
 final class TestimonialsSnapshotTest extends SaltSnapshotTestCase {
 
@@ -119,6 +122,36 @@ final class TestimonialsSnapshotTest extends SaltSnapshotTestCase {
 			$this->render_testimonials(
 				array(
 					'layout'  => 'slider',
+					'heading' => 'What clients say',
+				)
+			)
+		);
+	}
+
+	public function test_testimonials_photo(): void {
+		$this->seed_testimonials( 1 );
+		$GLOBALS['salt_test_posts'][0]->salt_thumbnail_id = 61;
+		$GLOBALS['salt_test_fields']['101']['logo']       = 62;
+		$GLOBALS['salt_test_attachments'][61]             = array(
+			'src'    => 'https://example.test/uploads/alice.jpg',
+			'width'  => 160,
+			'height' => 160,
+			'srcset' => '',
+			'alt'    => 'Alice Example',
+		);
+		$GLOBALS['salt_test_attachments'][62]             = array(
+			'src'    => 'https://example.test/uploads/acme-logo.png',
+			'width'  => 200,
+			'height' => 80,
+			'srcset' => '',
+			'alt'    => 'Acme Ltd logo',
+		);
+
+		$this->assertMatchesHtmlSnapshot(
+			'testimonials-photo',
+			$this->render_testimonials(
+				array(
+					'layout'  => 'grid',
 					'heading' => 'What clients say',
 				)
 			)

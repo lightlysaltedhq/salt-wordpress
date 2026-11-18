@@ -77,7 +77,7 @@ function salt_resolve_section_features( array $context ): ?array {
 			'icon'  => salt_nullable_text( is_string( $row['icon'] ?? null ) ? trim( $row['icon'] ) : '' ),
 			'title' => $title,
 			// Rich text (contract `text`): sanitised HTML; null when blank.
-			'text'  => '' !== trim( $text ) ? salt_sanitize_html( $text ) : null,
+			'text'  => '' !== trim( $text ) ? salt_sanitize_html( $text, salt_field_allowed( 'field_salt_features_items_text' ) ) : null,
 			'href'  => '' !== $href ? $href : null,
 		);
 	}

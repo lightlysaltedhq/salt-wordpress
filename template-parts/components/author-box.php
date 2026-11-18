@@ -9,8 +9,8 @@
  *   bio     string ''        Plain-text bio (the WP user description; escaped here).
  *   url     string ''        Author archive URL — the name links when present.
  *   role    string ''        Role line under the name (escaped here).
- *   media   string ''        PRE-RENDERED HTML slot (avatar <img> — a
- *                            get_avatar()/x-image render). Printed raw —
+ *   media   string ''        PRE-RENDERED HTML slot (an x-image render
+ *                            of the avatar). Printed raw —
  *                            the producer escapes at print.
  *   classes string ''        Extra utility classes appended to the class list.
  *

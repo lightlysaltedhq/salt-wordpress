@@ -232,6 +232,11 @@ function salt_footer_copyright(): string {
 /**
  * The known social hosts map: host => label + candidate icon name.
  *
+ * salt-contract's table (contract/socials.json, 1.0.0-rc.7): which host
+ * means which network, in the contract's order; a host matches itself or a
+ * subdomain of it, never a substring (salt_social_link()). The footer's
+ * social row and the team card's socials both read it.
+ *
  * Labels are proper nouns (not translated). The icon is only USED when the
  * built-in set ships it (salt_chrome_icon_exists()) — otherwise the label
  * renders as text. The built-in set ships these social glyphs since 4.0.0
@@ -241,45 +246,93 @@ function salt_footer_copyright(): string {
  */
 function salt_chrome_social_hosts(): array {
 	return array(
-		'facebook.com'  => array(
-			'label' => 'Facebook',
-			'icon'  => 'facebook',
-		),
-		'instagram.com' => array(
-			'label' => 'Instagram',
-			'icon'  => 'instagram',
-		),
-		'linkedin.com'  => array(
-			'label' => 'LinkedIn',
-			'icon'  => 'linkedin',
-		),
-		'youtube.com'   => array(
-			'label' => 'YouTube',
-			'icon'  => 'youtube',
-		),
-		'tiktok.com'    => array(
-			'label' => 'TikTok',
-			'icon'  => 'tiktok',
-		),
-		'twitter.com'   => array(
-			'label' => 'X',
-			'icon'  => 'x',
-		),
-		'x.com'         => array(
-			'label' => 'X',
-			'icon'  => 'x',
-		),
-		'bsky.app'      => array(
+		'bsky.app'        => array(
 			'label' => 'Bluesky',
 			'icon'  => 'bluesky',
 		),
-		'github.com'    => array(
+		'bsky.social'     => array(
+			'label' => 'Bluesky',
+			'icon'  => 'bluesky',
+		),
+		'facebook.com'    => array(
+			'label' => 'Facebook',
+			'icon'  => 'facebook',
+		),
+		'fb.com'          => array(
+			'label' => 'Facebook',
+			'icon'  => 'facebook',
+		),
+		'fb.me'           => array(
+			'label' => 'Facebook',
+			'icon'  => 'facebook',
+		),
+		'github.com'      => array(
 			'label' => 'GitHub',
 			'icon'  => 'github',
 		),
-		'pinterest.com' => array(
+		'instagram.com'   => array(
+			'label' => 'Instagram',
+			'icon'  => 'instagram',
+		),
+		'linkedin.com'    => array(
+			'label' => 'LinkedIn',
+			'icon'  => 'linkedin',
+		),
+		'lnkd.in'         => array(
+			'label' => 'LinkedIn',
+			'icon'  => 'linkedin',
+		),
+		'pinterest.com'   => array(
 			'label' => 'Pinterest',
 			'icon'  => 'pinterest',
+		),
+		'pinterest.co.uk' => array(
+			'label' => 'Pinterest',
+			'icon'  => 'pinterest',
+		),
+		'pin.it'          => array(
+			'label' => 'Pinterest',
+			'icon'  => 'pinterest',
+		),
+		'reddit.com'      => array(
+			'label' => 'Reddit',
+			'icon'  => 'reddit',
+		),
+		'redd.it'         => array(
+			'label' => 'Reddit',
+			'icon'  => 'reddit',
+		),
+		'tiktok.com'      => array(
+			'label' => 'TikTok',
+			'icon'  => 'tiktok',
+		),
+		'whatsapp.com'    => array(
+			'label' => 'WhatsApp',
+			'icon'  => 'whatsapp',
+		),
+		'wa.me'           => array(
+			'label' => 'WhatsApp',
+			'icon'  => 'whatsapp',
+		),
+		'x.com'           => array(
+			'label' => 'X',
+			'icon'  => 'x',
+		),
+		'twitter.com'     => array(
+			'label' => 'X',
+			'icon'  => 'x',
+		),
+		't.co'            => array(
+			'label' => 'X',
+			'icon'  => 'x',
+		),
+		'youtube.com'     => array(
+			'label' => 'YouTube',
+			'icon'  => 'youtube',
+		),
+		'youtu.be'        => array(
+			'label' => 'YouTube',
+			'icon'  => 'youtube',
 		),
 	);
 }
@@ -304,7 +357,7 @@ function salt_chrome_icon_exists( string $name ): bool {
  * their bare domain (www. stripped). URLs without a usable host are
  * dropped LOUDLY.
  *
- * @param string $url Profile URL from the org_same_as repeater.
+ * @param string $url Profile URL (the org_same_as repeater, a team member's socials).
  * @return array{url:string,icon:string,label:string}|null Null when the URL is unusable.
  */
 function salt_social_link( string $url ): ?array {
@@ -312,7 +365,7 @@ function salt_social_link( string $url ): ?array {
 	$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
 
 	if ( '' === $host ) {
-		salt_log( sprintf( 'chrome: org_same_as URL "%s" has no host — skipped in the footer social row.', $url ) );
+		salt_log( sprintf( 'chrome: social URL "%s" has no host — skipped.', $url ) );
 		return null;
 	}
 

@@ -59,7 +59,7 @@ function salt_resolve_section_faq( array $context ): ?array {
 	foreach ( $faq_posts as $faq_post ) {
 		$question = trim( (string) $faq_post->post_title );
 		$answer   = get_field( 'answer', $faq_post->ID );
-		$answer   = is_string( $answer ) ? salt_sanitize_html( $answer ) : '';
+		$answer   = is_string( $answer ) ? salt_sanitize_html( $answer, salt_field_allowed( 'field_salt_collection_faqs_answer' ) ) : '';
 
 		if ( '' === $question || '' === trim( wp_strip_all_tags( $answer ) ) ) {
 			salt_log(

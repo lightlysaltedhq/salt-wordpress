@@ -359,42 +359,6 @@ return array(
 				'name' => 'E-commerce',
 			),
 		),
-		'industry'         => array(
-			array(
-				'slug' => 'saas',
-				'name' => 'SaaS',
-			),
-			array(
-				'slug' => 'retail',
-				'name' => 'Retail',
-			),
-			array(
-				'slug' => 'healthcare',
-				'name' => 'Healthcare',
-			),
-			array(
-				'slug' => 'hospitality',
-				'name' => 'Hospitality',
-			),
-		),
-		'department'       => array(
-			array(
-				'slug' => 'leadership',
-				'name' => 'Leadership',
-			),
-			array(
-				'slug' => 'design',
-				'name' => 'Design',
-			),
-			array(
-				'slug' => 'engineering',
-				'name' => 'Engineering',
-			),
-			array(
-				'slug' => 'growth',
-				'name' => 'Growth',
-			),
-		),
 		'faq_category'     => array(
 			array(
 				'slug' => 'general',

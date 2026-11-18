@@ -1,0 +1,2520 @@
+[
+  {
+    "key": "group_salt_sections",
+    "title": "Page sections",
+    "fields": [
+      {
+        "key": "field_salt_sections_container",
+        "label": "Sections",
+        "name": "sections",
+        "type": "flexible_content",
+        "button_label": "Add section",
+        "layouts": []
+      }
+    ],
+    "location": [
+      [
+        {
+          "param": "post_type",
+          "operator": "==",
+          "value": "page"
+        }
+      ]
+    ]
+  },
+  {
+    "key": "group_salt_collection_services",
+    "title": "Service",
+    "fields": [
+      {
+        "key": "field_salt_collection_services_icon",
+        "label": "Icon",
+        "name": "icon",
+        "type": "select",
+        "instructions": "Optional. Drawn on the service's card when it has no image.",
+        "choices": {
+          "arrow-right": "Arrow Right",
+          "bluesky": "Bluesky",
+          "check": "Check",
+          "chevron-down": "Chevron Down",
+          "clock": "Clock",
+          "close": "Close",
+          "facebook": "Facebook",
+          "github": "Github",
+          "globe": "Globe",
+          "instagram": "Instagram",
+          "link": "Link",
+          "linkedin": "Linkedin",
+          "mail": "Mail",
+          "map-pin": "Map Pin",
+          "menu": "Menu",
+          "phone": "Phone",
+          "pinterest": "Pinterest",
+          "reddit": "Reddit",
+          "star-filled": "Star Filled",
+          "star": "Star",
+          "tiktok": "Tiktok",
+          "whatsapp": "Whatsapp",
+          "x": "X",
+          "youtube": "Youtube"
+        },
+        "allow_null": 1,
+        "salt": {
+          "optionsFrom": "icons"
+        }
+      },
+      {
+        "key": "field_salt_collection_services_benefits",
+        "label": "Benefits",
+        "name": "benefits",
+        "type": "repeater",
+        "instructions": "Optional. When given, one to 12.",
+        "layout": "block",
+        "min": 1,
+        "max": 12,
+        "button_label": "Add benefit",
+        "collapsed": "field_salt_collection_services_benefits_text",
+        "sub_fields": [
+          {
+            "key": "field_salt_collection_services_benefits_text",
+            "label": "Benefit",
+            "name": "text",
+            "type": "text",
+            "required": 1
+          }
+        ],
+        "salt": {
+          "rowLabel": "text",
+          "itemLabel": "Benefit"
+        }
+      },
+      {
+        "key": "field_salt_collection_services_price_from",
+        "label": "Price from",
+        "name": "priceFrom",
+        "type": "text",
+        "instructions": "Optional. As it should read, such as £500 or POA."
+      },
+      {
+        "key": "field_salt_collection_services_related_services",
+        "label": "Related services",
+        "name": "relatedServices",
+        "type": "relationship",
+        "instructions": "Optional. Up to six other services, never this one.",
+        "post_type": [
+          "service"
+        ],
+        "return_format": "id",
+        "filters": [
+          "search"
+        ],
+        "max": 6,
+        "salt": {
+          "to": "services"
+        }
+      },
+      {
+        "key": "field_salt_collection_services_cta",
+        "label": "Call to action",
+        "name": "cta",
+        "type": "group",
+        "instructions": "Optional. The page's main button.",
+        "layout": "block",
+        "sub_fields": [
+          {
+            "key": "field_salt_collection_services_cta_label",
+            "label": "Label",
+            "name": "label",
+            "type": "text",
+            "instructions": "The visible text of the link."
+          },
+          {
+            "key": "field_salt_collection_services_cta_type",
+            "label": "Type",
+            "name": "type",
+            "type": "radio",
+            "choices": {
+              "internal": "A page on this site",
+              "external": "An external address"
+            },
+            "default_value": "internal"
+          },
+          {
+            "key": "field_salt_collection_services_cta_document",
+            "label": "Document",
+            "name": "document",
+            "type": "post_object",
+            "conditional_logic": [
+              [
+                {
+                  "field": "field_salt_collection_services_cta_type",
+                  "operator": "==",
+                  "value": "internal"
+                }
+              ]
+            ],
+            "post_type": [
+              "page"
+            ],
+            "return_format": "id",
+            "allow_null": 1
+          },
+          {
+            "key": "field_salt_collection_services_cta_url",
+            "label": "Address",
+            "name": "url",
+            "type": "text",
+            "conditional_logic": [
+              [
+                {
+                  "field": "field_salt_collection_services_cta_type",
+                  "operator": "==",
+                  "value": "external"
+                }
+              ]
+            ],
+            "salt": {
+              "format": "url"
+            }
+          },
+          {
+            "key": "field_salt_collection_services_cta_new_tab",
+            "label": "Open in a new tab",
+            "name": "newTab",
+            "type": "true_false",
+            "ui": 1
+          }
+        ],
+        "salt": {
+          "link": true
+        }
+      }
+    ],
+    "location": [
+      [
+        {
+          "param": "post_type",
+          "operator": "==",
+          "value": "service"
+        }
+      ]
+    ],
+    "salt": {
+      "collection": "services",
+      "native": {
+        "title": "title",
+        "topics": "categories",
+        "summary": "excerpt",
+        "intro": "body",
+        "featuredImage": "featured-image"
+      }
+    }
+  },
+  {
+    "key": "group_salt_collection_case_studies",
+    "title": "Case study",
+    "fields": [
+      {
+        "key": "field_salt_collection_case_studies_client",
+        "label": "Client",
+        "name": "client",
+        "type": "text",
+        "instructions": "Optional. Shown on the card and beneath the title."
+      },
+      {
+        "key": "field_salt_collection_case_studies_gallery",
+        "label": "Gallery",
+        "name": "gallery",
+        "type": "gallery",
+        "instructions": "Optional. When given, one to 24 images.",
+        "return_format": "id",
+        "min": 1,
+        "max": 24
+      },
+      {
+        "key": "field_salt_collection_case_studies_challenge",
+        "label": "The challenge",
+        "name": "challenge",
+        "type": "wysiwyg",
+        "tabs": "visual",
+        "toolbar": "full",
+        "media_upload": 0,
+        "salt": {
+          "allowed": [
+            "paragraph",
+            "bold",
+            "italic",
+            "link",
+            "unordered-list",
+            "ordered-list",
+            "heading-3",
+            "heading-4"
+          ]
+        }
+      },
+      {
+        "key": "field_salt_collection_case_studies_solution",
+        "label": "What we did",
+        "name": "solution",
+        "type": "wysiwyg",
+        "tabs": "visual",
+        "toolbar": "full",
+        "media_upload": 0,
+        "salt": {
+          "allowed": [
+            "paragraph",
+            "bold",
+            "italic",
+            "link",
+            "unordered-list",
+            "ordered-list",
+            "heading-3",
+            "heading-4"
+          ]
+        }
+      },
+      {
+        "key": "field_salt_collection_case_studies_results",
+        "label": "Results",
+        "name": "results",
+        "type": "repeater",
+        "instructions": "Optional. When given, one to six, each a figure and what it measures.",
+        "layout": "block",
+        "min": 1,
+        "max": 6,
+        "button_label": "Add result",
+        "collapsed": "field_salt_collection_case_studies_results_label",
+        "sub_fields": [
+          {
+            "key": "field_salt_collection_case_studies_results_stat",
+            "label": "Figure",
+            "name": "stat",
+            "type": "text",
+            "instructions": "Such as 40% or 3x.",
+            "required": 1
+          },
+          {
+            "key": "field_salt_collection_case_studies_results_label",
+            "label": "What it measures",
+            "name": "label",
+            "type": "text",
+            "required": 1
+          }
+        ],
+        "salt": {
+          "rowLabel": "label",
+          "itemLabel": "Result"
+        }
+      },
+      {
+        "key": "field_salt_collection_case_studies_details",
+        "label": "Project details",
+        "name": "details",
+        "type": "repeater",
+        "instructions": "Optional. Up to 12, such as Location: Cumbria.",
+        "layout": "block",
+        "max": 12,
+        "button_label": "Add detail",
+        "collapsed": "field_salt_collection_case_studies_details_label",
+        "sub_fields": [
+          {
+            "key": "field_salt_collection_case_studies_details_label",
+            "label": "Label",
+            "name": "label",
+            "type": "text",
+            "required": 1
+          },
+          {
+            "key": "field_salt_collection_case_studies_details_value",
+            "label": "Value",
+            "name": "value",
+            "type": "text",
+            "required": 1
+          }
+        ],
+        "salt": {
+          "rowLabel": "label",
+          "itemLabel": "Detail"
+        }
+      },
+      {
+        "key": "field_salt_collection_case_studies_external_url",
+        "label": "Live site",
+        "name": "externalUrl",
+        "type": "text",
+        "instructions": "Optional. The address of the finished site, opened in a new tab.",
+        "salt": {
+          "format": "url"
+        }
+      },
+      {
+        "key": "field_salt_collection_case_studies_services",
+        "label": "Services delivered",
+        "name": "services",
+        "type": "relationship",
+        "instructions": "Optional.",
+        "post_type": [
+          "service"
+        ],
+        "return_format": "id",
+        "filters": [
+          "search"
+        ],
+        "salt": {
+          "to": "services"
+        }
+      }
+    ],
+    "location": [
+      [
+        {
+          "param": "post_type",
+          "operator": "==",
+          "value": "work"
+        }
+      ]
+    ],
+    "salt": {
+      "collection": "case-studies",
+      "native": {
+        "title": "title",
+        "topics": "categories",
+        "summary": "excerpt",
+        "featuredImage": "featured-image"
+      }
+    }
+  },
+  {
+    "key": "group_salt_collection_testimonials",
+    "title": "Testimonial",
+    "fields": [
+      {
+        "key": "field_salt_collection_testimonials_quote",
+        "label": "Quote",
+        "name": "quote",
+        "type": "textarea",
+        "required": 1
+      },
+      {
+        "key": "field_salt_collection_testimonials_role",
+        "label": "Role",
+        "name": "role",
+        "type": "text",
+        "instructions": "Optional. Shown beside the company.",
+        "maxlength": 80
+      },
+      {
+        "key": "field_salt_collection_testimonials_company",
+        "label": "Company",
+        "name": "company",
+        "type": "text",
+        "instructions": "Optional."
+      },
+      {
+        "key": "field_salt_collection_testimonials_rating",
+        "label": "Rating",
+        "name": "rating",
+        "type": "number",
+        "instructions": "Optional. From 1 to 5 stars, in half stars.",
+        "min": 1,
+        "max": 5,
+        "step": 0.5
+      }
+    ],
+    "location": [
+      [
+        {
+          "param": "post_type",
+          "operator": "==",
+          "value": "testimonial"
+        }
+      ]
+    ],
+    "salt": {
+      "collection": "testimonials",
+      "native": {
+        "name": "title",
+        "photo": "featured-image"
+      }
+    }
+  },
+  {
+    "key": "group_salt_collection_posts",
+    "title": "Post",
+    "fields": [
+      {
+        "key": "field_salt_collection_posts_author",
+        "label": "Author",
+        "name": "author",
+        "type": "post_object",
+        "instructions": "Optional. The team member credited with the post, who needs no account.",
+        "post_type": [
+          "team_member"
+        ],
+        "return_format": "id",
+        "allow_null": 1,
+        "salt": {
+          "to": "team"
+        }
+      },
+      {
+        "key": "field_salt_collection_posts_primary_topic",
+        "label": "Primary topic",
+        "name": "primaryTopic",
+        "type": "taxonomy",
+        "instructions": "Optional. One of the post's topics, shown above its title.",
+        "taxonomy": "category",
+        "field_type": "select",
+        "return_format": "id",
+        "add_term": 0,
+        "save_terms": 0,
+        "load_terms": 0,
+        "allow_null": 1,
+        "salt": {
+          "topicsOf": "posts"
+        }
+      },
+      {
+        "key": "field_salt_collection_posts_layout",
+        "label": "Body",
+        "name": "layout",
+        "type": "flexible_content",
+        "instructions": "The post, section by section. A single image is a gallery of one.",
+        "button_label": "Add section",
+        "layouts": [
+          {
+            "key": "layout_salt_collection_posts_layout_rich_text",
+            "name": "rich-text",
+            "label": "Rich text",
+            "display": "block",
+            "sub_fields": [
+              {
+                "key": "field_salt_collection_posts_layout_rich_text_eyebrow",
+                "label": "Eyebrow",
+                "name": "eyebrow",
+                "type": "text",
+                "instructions": "A short label above the heading. Drawn as a paragraph, never a heading."
+              },
+              {
+                "key": "field_salt_collection_posts_layout_rich_text_heading",
+                "label": "Heading",
+                "name": "heading",
+                "type": "text",
+                "instructions": "Optional."
+              },
+              {
+                "key": "field_salt_collection_posts_layout_rich_text_body",
+                "label": "Text",
+                "name": "body",
+                "type": "wysiwyg",
+                "tabs": "visual",
+                "toolbar": "full",
+                "media_upload": 0,
+                "salt": {
+                  "allowed": [
+                    "paragraph",
+                    "bold",
+                    "italic",
+                    "code",
+                    "link",
+                    "unordered-list",
+                    "ordered-list",
+                    "blockquote",
+                    "heading-2",
+                    "heading-3",
+                    "heading-4",
+                    "heading-5",
+                    "heading-6"
+                  ]
+                }
+              },
+              {
+                "key": "field_salt_collection_posts_layout_rich_text_alignment",
+                "label": "Alignment",
+                "name": "alignment",
+                "type": "select",
+                "choices": {
+                  "left": "Left",
+                  "centre": "Centred"
+                },
+                "default_value": "left"
+              },
+              {
+                "key": "field_salt_collection_posts_layout_rich_text_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
+                "key": "field_salt_collection_posts_layout_rich_text_settings",
+                "label": "Section settings",
+                "name": "settings",
+                "type": "group",
+                "layout": "block",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_collection_posts_layout_rich_text_settings_spacing",
+                    "label": "Spacing",
+                    "name": "spacing",
+                    "type": "select",
+                    "instructions": "Space above and below the section.",
+                    "choices": {
+                      "none": "None (flush against its neighbours)",
+                      "sm": "Small",
+                      "md": "Medium",
+                      "lg": "Large"
+                    },
+                    "default_value": "md"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_rich_text_settings_tone",
+                    "label": "Tone",
+                    "name": "tone",
+                    "type": "select",
+                    "instructions": "The section's background and text colour roles.",
+                    "choices": {
+                      "surface": "Surface (the page background)",
+                      "surface-alt": "Surface, alternate (a subtle step away from it)",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse (light on dark)"
+                    },
+                    "default_value": "surface"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_rich_text_settings_tone_dark",
+                    "label": "Dark mode tone",
+                    "name": "toneDark",
+                    "type": "select",
+                    "instructions": "The tone in dark mode. Automatic keeps the tone above, and the dark palette draws it in its dark form.",
+                    "choices": {
+                      "auto": "Automatic (the tone above, in its dark form)",
+                      "surface": "Surface",
+                      "surface-alt": "Surface, alternate",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse"
+                    },
+                    "default_value": "auto"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_rich_text_settings_width",
+                    "label": "Width",
+                    "name": "width",
+                    "type": "select",
+                    "instructions": "How wide the section's content runs.",
+                    "choices": {
+                      "full": "Full (edge to edge)",
+                      "wide": "Wide",
+                      "default": "Default",
+                      "narrow": "Narrow (reading measure)"
+                    },
+                    "default_value": "default"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_rich_text_settings_background_image",
+                    "label": "Background image",
+                    "name": "backgroundImage",
+                    "type": "group",
+                    "layout": "block",
+                    "sub_fields": [
+                      {
+                        "key": "field_salt_collection_posts_layout_rich_text_settings_background_image_image",
+                        "label": "Image",
+                        "name": "image",
+                        "type": "image",
+                        "instructions": "Decorative: hidden from screen readers, with empty alternative text.",
+                        "return_format": "id"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_rich_text_settings_background_image_fit",
+                        "label": "Fit",
+                        "name": "fit",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_rich_text_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "cover": "Cover (fill the section, cropping as needed)",
+                          "contain": "Contain (fit the whole image in)"
+                        },
+                        "default_value": "cover"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_rich_text_settings_background_image_position",
+                        "label": "Position",
+                        "name": "position",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_rich_text_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "focal-point": "Focal point (from the image)",
+                          "top-left": "Top left",
+                          "top": "Top",
+                          "top-right": "Top right",
+                          "left": "Left",
+                          "centre": "Centre",
+                          "right": "Right",
+                          "bottom-left": "Bottom left",
+                          "bottom": "Bottom",
+                          "bottom-right": "Bottom right"
+                        },
+                        "default_value": "focal-point"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_rich_text_settings_background_image_scrim",
+                        "label": "Tint the image with the section's colour behind the text",
+                        "name": "scrim",
+                        "type": "true_false",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_rich_text_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "ui": 1,
+                        "default_value": 1
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_rich_text_settings_background_image_scrim_strength",
+                        "label": "Tint strength",
+                        "name": "scrimStrength",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_rich_text_settings_background_image_image",
+                              "operator": "!=empty"
+                            },
+                            {
+                              "field": "field_salt_collection_posts_layout_rich_text_settings_background_image_scrim",
+                              "operator": "==",
+                              "value": "1"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "subtle": "Subtle",
+                          "standard": "Standard",
+                          "strong": "Strong"
+                        },
+                        "default_value": "strong"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_rich_text_settings_anchor_id",
+                    "label": "Anchor",
+                    "name": "anchorId",
+                    "type": "text",
+                    "instructions": "Optional, for links to this section. Saved as a slug of lower-case letters, digits and single hyphens: accented letters become plain ones as the site's language writes them, punctuation is dropped, and spaces, underscores and encoded characters become hyphens. We're hiring gives were-hiring, Straße gives strase (strasse on a German site), contact__form gives contact-form. An anchor that leaves nothing (日本語) counts as none. On the page, an anchor that is one of the landmark ids main, content, header, footer, nav, site-navigation, search or skip-link becomes <anchor>-section, and one an earlier section has taken takes the next free -2, -3. Ids the page draws itself contain __, so they never meet yours. Nothing is added on save. The slug is applied again on the page, to whatever is stored.",
+                    "salt": {
+                      "format": "anchor"
+                    }
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_rich_text_settings_first_page_only",
+                    "label": "First page only",
+                    "name": "firstPageOnly",
+                    "type": "true_false",
+                    "instructions": "On a paginated index, hide this section after the first page.",
+                    "ui": 1,
+                    "default_value": 0
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_rich_text_settings_divider",
+                    "label": "Rule above this section",
+                    "name": "divider",
+                    "type": "true_false",
+                    "instructions": "A hairline rule between this section and the one before. It also stops two sections of the same tone running together.",
+                    "ui": 1,
+                    "default_value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "layout_salt_collection_posts_layout_media_text",
+            "name": "media-text",
+            "label": "Media and text",
+            "display": "block",
+            "sub_fields": [
+              {
+                "key": "field_salt_collection_posts_layout_media_text_mode",
+                "label": "Mode",
+                "name": "mode",
+                "type": "select",
+                "instructions": "Alternating flips the image side on every row and ignores each row's own setting.",
+                "choices": {
+                  "single": "One layout for every row",
+                  "alternating": "Alternate the sides automatically"
+                },
+                "default_value": "single"
+              },
+              {
+                "key": "field_salt_collection_posts_layout_media_text_rows",
+                "label": "Rows",
+                "name": "rows",
+                "type": "repeater",
+                "instructions": "The first row's heading is the section's heading.",
+                "layout": "block",
+                "button_label": "Add row",
+                "collapsed": "field_salt_collection_posts_layout_media_text_rows_heading",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_collection_posts_layout_media_text_rows_image",
+                    "label": "Image",
+                    "name": "image",
+                    "type": "image",
+                    "instructions": "Optional. A row with no image runs its text full width.",
+                    "return_format": "id"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_media_text_rows_heading",
+                    "label": "Heading",
+                    "name": "heading",
+                    "type": "text"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_media_text_rows_content",
+                    "label": "Text",
+                    "name": "content",
+                    "type": "wysiwyg",
+                    "tabs": "visual",
+                    "toolbar": "full",
+                    "media_upload": 0,
+                    "salt": {
+                      "allowed": [
+                        "paragraph",
+                        "bold",
+                        "italic",
+                        "code",
+                        "link",
+                        "unordered-list",
+                        "ordered-list",
+                        "blockquote",
+                        "heading-3",
+                        "heading-4"
+                      ]
+                    }
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_media_text_rows_media_side",
+                    "label": "Image side",
+                    "name": "mediaSide",
+                    "type": "select",
+                    "instructions": "Ignored when the mode is alternating.",
+                    "choices": {
+                      "left": "Image on the left",
+                      "right": "Image on the right"
+                    },
+                    "default_value": "left"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_media_text_rows_buttons",
+                    "label": "Buttons",
+                    "name": "buttons",
+                    "type": "repeater",
+                    "instructions": "Up to two.",
+                    "layout": "block",
+                    "max": 2,
+                    "button_label": "Add button",
+                    "collapsed": "field_salt_collection_posts_layout_media_text_rows_buttons_link_label",
+                    "sub_fields": [
+                      {
+                        "key": "field_salt_collection_posts_layout_media_text_rows_buttons_link",
+                        "label": "Link",
+                        "name": "link",
+                        "type": "group",
+                        "layout": "block",
+                        "sub_fields": [
+                          {
+                            "key": "field_salt_collection_posts_layout_media_text_rows_buttons_link_label",
+                            "label": "Label",
+                            "name": "label",
+                            "type": "text",
+                            "instructions": "The visible text of the link.",
+                            "required": 1
+                          },
+                          {
+                            "key": "field_salt_collection_posts_layout_media_text_rows_buttons_link_type",
+                            "label": "Type",
+                            "name": "type",
+                            "type": "radio",
+                            "choices": {
+                              "internal": "A page on this site",
+                              "external": "An external address"
+                            },
+                            "default_value": "internal"
+                          },
+                          {
+                            "key": "field_salt_collection_posts_layout_media_text_rows_buttons_link_document",
+                            "label": "Document",
+                            "name": "document",
+                            "type": "post_object",
+                            "required": 1,
+                            "conditional_logic": [
+                              [
+                                {
+                                  "field": "field_salt_collection_posts_layout_media_text_rows_buttons_link_type",
+                                  "operator": "==",
+                                  "value": "internal"
+                                }
+                              ]
+                            ],
+                            "post_type": [
+                              "page"
+                            ],
+                            "return_format": "id"
+                          },
+                          {
+                            "key": "field_salt_collection_posts_layout_media_text_rows_buttons_link_url",
+                            "label": "Address",
+                            "name": "url",
+                            "type": "text",
+                            "required": 1,
+                            "conditional_logic": [
+                              [
+                                {
+                                  "field": "field_salt_collection_posts_layout_media_text_rows_buttons_link_type",
+                                  "operator": "==",
+                                  "value": "external"
+                                }
+                              ]
+                            ],
+                            "salt": {
+                              "format": "url"
+                            }
+                          },
+                          {
+                            "key": "field_salt_collection_posts_layout_media_text_rows_buttons_link_new_tab",
+                            "label": "Open in a new tab",
+                            "name": "newTab",
+                            "type": "true_false",
+                            "ui": 1
+                          }
+                        ],
+                        "salt": {
+                          "link": true
+                        }
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_media_text_rows_buttons_style",
+                        "label": "Style",
+                        "name": "style",
+                        "type": "select",
+                        "choices": {
+                          "primary": "Primary",
+                          "secondary": "Secondary",
+                          "ghost": "Ghost"
+                        },
+                        "default_value": "secondary"
+                      }
+                    ],
+                    "salt": {
+                      "rowLabel": "link.label",
+                      "itemLabel": "Button"
+                    }
+                  }
+                ],
+                "salt": {
+                  "rowLabel": "heading",
+                  "itemLabel": "Row"
+                }
+              },
+              {
+                "key": "field_salt_collection_posts_layout_media_text_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
+                "key": "field_salt_collection_posts_layout_media_text_settings",
+                "label": "Section settings",
+                "name": "settings",
+                "type": "group",
+                "layout": "block",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_collection_posts_layout_media_text_settings_spacing",
+                    "label": "Spacing",
+                    "name": "spacing",
+                    "type": "select",
+                    "instructions": "Space above and below the section.",
+                    "choices": {
+                      "none": "None (flush against its neighbours)",
+                      "sm": "Small",
+                      "md": "Medium",
+                      "lg": "Large"
+                    },
+                    "default_value": "md"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_media_text_settings_tone",
+                    "label": "Tone",
+                    "name": "tone",
+                    "type": "select",
+                    "instructions": "The section's background and text colour roles.",
+                    "choices": {
+                      "surface": "Surface (the page background)",
+                      "surface-alt": "Surface, alternate (a subtle step away from it)",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse (light on dark)"
+                    },
+                    "default_value": "surface"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_media_text_settings_tone_dark",
+                    "label": "Dark mode tone",
+                    "name": "toneDark",
+                    "type": "select",
+                    "instructions": "The tone in dark mode. Automatic keeps the tone above, and the dark palette draws it in its dark form.",
+                    "choices": {
+                      "auto": "Automatic (the tone above, in its dark form)",
+                      "surface": "Surface",
+                      "surface-alt": "Surface, alternate",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse"
+                    },
+                    "default_value": "auto"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_media_text_settings_width",
+                    "label": "Width",
+                    "name": "width",
+                    "type": "select",
+                    "instructions": "How wide the section's content runs.",
+                    "choices": {
+                      "full": "Full (edge to edge)",
+                      "wide": "Wide",
+                      "default": "Default",
+                      "narrow": "Narrow (reading measure)"
+                    },
+                    "default_value": "default"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_media_text_settings_background_image",
+                    "label": "Background image",
+                    "name": "backgroundImage",
+                    "type": "group",
+                    "layout": "block",
+                    "sub_fields": [
+                      {
+                        "key": "field_salt_collection_posts_layout_media_text_settings_background_image_image",
+                        "label": "Image",
+                        "name": "image",
+                        "type": "image",
+                        "instructions": "Decorative: hidden from screen readers, with empty alternative text.",
+                        "return_format": "id"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_media_text_settings_background_image_fit",
+                        "label": "Fit",
+                        "name": "fit",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_media_text_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "cover": "Cover (fill the section, cropping as needed)",
+                          "contain": "Contain (fit the whole image in)"
+                        },
+                        "default_value": "cover"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_media_text_settings_background_image_position",
+                        "label": "Position",
+                        "name": "position",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_media_text_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "focal-point": "Focal point (from the image)",
+                          "top-left": "Top left",
+                          "top": "Top",
+                          "top-right": "Top right",
+                          "left": "Left",
+                          "centre": "Centre",
+                          "right": "Right",
+                          "bottom-left": "Bottom left",
+                          "bottom": "Bottom",
+                          "bottom-right": "Bottom right"
+                        },
+                        "default_value": "focal-point"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_media_text_settings_background_image_scrim",
+                        "label": "Tint the image with the section's colour behind the text",
+                        "name": "scrim",
+                        "type": "true_false",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_media_text_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "ui": 1,
+                        "default_value": 1
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_media_text_settings_background_image_scrim_strength",
+                        "label": "Tint strength",
+                        "name": "scrimStrength",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_media_text_settings_background_image_image",
+                              "operator": "!=empty"
+                            },
+                            {
+                              "field": "field_salt_collection_posts_layout_media_text_settings_background_image_scrim",
+                              "operator": "==",
+                              "value": "1"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "subtle": "Subtle",
+                          "standard": "Standard",
+                          "strong": "Strong"
+                        },
+                        "default_value": "strong"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_media_text_settings_anchor_id",
+                    "label": "Anchor",
+                    "name": "anchorId",
+                    "type": "text",
+                    "instructions": "Optional, for links to this section. Saved as a slug of lower-case letters, digits and single hyphens: accented letters become plain ones as the site's language writes them, punctuation is dropped, and spaces, underscores and encoded characters become hyphens. We're hiring gives were-hiring, Straße gives strase (strasse on a German site), contact__form gives contact-form. An anchor that leaves nothing (日本語) counts as none. On the page, an anchor that is one of the landmark ids main, content, header, footer, nav, site-navigation, search or skip-link becomes <anchor>-section, and one an earlier section has taken takes the next free -2, -3. Ids the page draws itself contain __, so they never meet yours. Nothing is added on save. The slug is applied again on the page, to whatever is stored.",
+                    "salt": {
+                      "format": "anchor"
+                    }
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_media_text_settings_first_page_only",
+                    "label": "First page only",
+                    "name": "firstPageOnly",
+                    "type": "true_false",
+                    "instructions": "On a paginated index, hide this section after the first page.",
+                    "ui": 1,
+                    "default_value": 0
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_media_text_settings_divider",
+                    "label": "Rule above this section",
+                    "name": "divider",
+                    "type": "true_false",
+                    "instructions": "A hairline rule between this section and the one before. It also stops two sections of the same tone running together.",
+                    "ui": 1,
+                    "default_value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "layout_salt_collection_posts_layout_gallery",
+            "name": "gallery",
+            "label": "Gallery",
+            "display": "block",
+            "sub_fields": [
+              {
+                "key": "field_salt_collection_posts_layout_gallery_heading",
+                "label": "Heading",
+                "name": "heading",
+                "type": "text",
+                "instructions": "Optional."
+              },
+              {
+                "key": "field_salt_collection_posts_layout_gallery_intro",
+                "label": "Intro",
+                "name": "intro",
+                "type": "textarea",
+                "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
+                "maxlength": 300
+              },
+              {
+                "key": "field_salt_collection_posts_layout_gallery_layout",
+                "label": "Layout",
+                "name": "layout",
+                "type": "select",
+                "choices": {
+                  "grid": "Grid",
+                  "masonry": "Masonry",
+                  "carousel": "Carousel"
+                },
+                "default_value": "grid"
+              },
+              {
+                "key": "field_salt_collection_posts_layout_gallery_columns",
+                "label": "Columns",
+                "name": "columns",
+                "type": "select",
+                "instructions": "The most items across. Fewer fit on narrow screens.",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_collection_posts_layout_gallery_layout",
+                      "operator": "==",
+                      "value": "grid"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_posts_layout_gallery_layout",
+                      "operator": "==",
+                      "value": "masonry"
+                    }
+                  ]
+                ],
+                "choices": {
+                  "2": "2 across",
+                  "3": "3 across",
+                  "4": "4 across"
+                },
+                "default_value": "3"
+              },
+              {
+                "key": "field_salt_collection_posts_layout_gallery_label",
+                "label": "Carousel name",
+                "name": "label",
+                "type": "text",
+                "instructions": "Names the carousel for screen readers when there is no heading. Never shown.",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_collection_posts_layout_gallery_layout",
+                      "operator": "==",
+                      "value": "carousel"
+                    }
+                  ]
+                ]
+              },
+              {
+                "key": "field_salt_collection_posts_layout_gallery_captions",
+                "label": "Show captions",
+                "name": "captions",
+                "type": "true_false",
+                "instructions": "Captions come from the media library, so an image is described once for every place it appears.",
+                "ui": 1,
+                "default_value": 1
+              },
+              {
+                "key": "field_salt_collection_posts_layout_gallery_images",
+                "label": "Images",
+                "name": "images",
+                "type": "gallery",
+                "instructions": "Shown in this order. Alternative text and captions come from the media library.",
+                "return_format": "id"
+              },
+              {
+                "key": "field_salt_collection_posts_layout_gallery_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
+                "key": "field_salt_collection_posts_layout_gallery_settings",
+                "label": "Section settings",
+                "name": "settings",
+                "type": "group",
+                "layout": "block",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_collection_posts_layout_gallery_settings_spacing",
+                    "label": "Spacing",
+                    "name": "spacing",
+                    "type": "select",
+                    "instructions": "Space above and below the section.",
+                    "choices": {
+                      "none": "None (flush against its neighbours)",
+                      "sm": "Small",
+                      "md": "Medium",
+                      "lg": "Large"
+                    },
+                    "default_value": "md"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_gallery_settings_tone",
+                    "label": "Tone",
+                    "name": "tone",
+                    "type": "select",
+                    "instructions": "The section's background and text colour roles.",
+                    "choices": {
+                      "surface": "Surface (the page background)",
+                      "surface-alt": "Surface, alternate (a subtle step away from it)",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse (light on dark)"
+                    },
+                    "default_value": "surface"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_gallery_settings_tone_dark",
+                    "label": "Dark mode tone",
+                    "name": "toneDark",
+                    "type": "select",
+                    "instructions": "The tone in dark mode. Automatic keeps the tone above, and the dark palette draws it in its dark form.",
+                    "choices": {
+                      "auto": "Automatic (the tone above, in its dark form)",
+                      "surface": "Surface",
+                      "surface-alt": "Surface, alternate",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse"
+                    },
+                    "default_value": "auto"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_gallery_settings_width",
+                    "label": "Width",
+                    "name": "width",
+                    "type": "select",
+                    "instructions": "How wide the section's content runs.",
+                    "choices": {
+                      "full": "Full (edge to edge)",
+                      "wide": "Wide",
+                      "default": "Default",
+                      "narrow": "Narrow (reading measure)"
+                    },
+                    "default_value": "default"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_gallery_settings_background_image",
+                    "label": "Background image",
+                    "name": "backgroundImage",
+                    "type": "group",
+                    "layout": "block",
+                    "sub_fields": [
+                      {
+                        "key": "field_salt_collection_posts_layout_gallery_settings_background_image_image",
+                        "label": "Image",
+                        "name": "image",
+                        "type": "image",
+                        "instructions": "Decorative: hidden from screen readers, with empty alternative text.",
+                        "return_format": "id"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_gallery_settings_background_image_fit",
+                        "label": "Fit",
+                        "name": "fit",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_gallery_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "cover": "Cover (fill the section, cropping as needed)",
+                          "contain": "Contain (fit the whole image in)"
+                        },
+                        "default_value": "cover"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_gallery_settings_background_image_position",
+                        "label": "Position",
+                        "name": "position",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_gallery_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "focal-point": "Focal point (from the image)",
+                          "top-left": "Top left",
+                          "top": "Top",
+                          "top-right": "Top right",
+                          "left": "Left",
+                          "centre": "Centre",
+                          "right": "Right",
+                          "bottom-left": "Bottom left",
+                          "bottom": "Bottom",
+                          "bottom-right": "Bottom right"
+                        },
+                        "default_value": "focal-point"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_gallery_settings_background_image_scrim",
+                        "label": "Tint the image with the section's colour behind the text",
+                        "name": "scrim",
+                        "type": "true_false",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_gallery_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "ui": 1,
+                        "default_value": 1
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_gallery_settings_background_image_scrim_strength",
+                        "label": "Tint strength",
+                        "name": "scrimStrength",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_gallery_settings_background_image_image",
+                              "operator": "!=empty"
+                            },
+                            {
+                              "field": "field_salt_collection_posts_layout_gallery_settings_background_image_scrim",
+                              "operator": "==",
+                              "value": "1"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "subtle": "Subtle",
+                          "standard": "Standard",
+                          "strong": "Strong"
+                        },
+                        "default_value": "strong"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_gallery_settings_anchor_id",
+                    "label": "Anchor",
+                    "name": "anchorId",
+                    "type": "text",
+                    "instructions": "Optional, for links to this section. Saved as a slug of lower-case letters, digits and single hyphens: accented letters become plain ones as the site's language writes them, punctuation is dropped, and spaces, underscores and encoded characters become hyphens. We're hiring gives were-hiring, Straße gives strase (strasse on a German site), contact__form gives contact-form. An anchor that leaves nothing (日本語) counts as none. On the page, an anchor that is one of the landmark ids main, content, header, footer, nav, site-navigation, search or skip-link becomes <anchor>-section, and one an earlier section has taken takes the next free -2, -3. Ids the page draws itself contain __, so they never meet yours. Nothing is added on save. The slug is applied again on the page, to whatever is stored.",
+                    "salt": {
+                      "format": "anchor"
+                    }
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_gallery_settings_first_page_only",
+                    "label": "First page only",
+                    "name": "firstPageOnly",
+                    "type": "true_false",
+                    "instructions": "On a paginated index, hide this section after the first page.",
+                    "ui": 1,
+                    "default_value": 0
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_gallery_settings_divider",
+                    "label": "Rule above this section",
+                    "name": "divider",
+                    "type": "true_false",
+                    "instructions": "A hairline rule between this section and the one before. It also stops two sections of the same tone running together.",
+                    "ui": 1,
+                    "default_value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "layout_salt_collection_posts_layout_call_to_action",
+            "name": "call-to-action",
+            "label": "Call to action",
+            "display": "block",
+            "sub_fields": [
+              {
+                "key": "field_salt_collection_posts_layout_call_to_action_heading",
+                "label": "Heading",
+                "name": "heading",
+                "type": "text"
+              },
+              {
+                "key": "field_salt_collection_posts_layout_call_to_action_body",
+                "label": "Text",
+                "name": "body",
+                "type": "wysiwyg",
+                "tabs": "visual",
+                "toolbar": "full",
+                "media_upload": 0,
+                "salt": {
+                  "allowed": [
+                    "paragraph",
+                    "bold",
+                    "italic",
+                    "code",
+                    "link",
+                    "unordered-list",
+                    "ordered-list",
+                    "blockquote",
+                    "heading-3",
+                    "heading-4"
+                  ]
+                }
+              },
+              {
+                "key": "field_salt_collection_posts_layout_call_to_action_buttons",
+                "label": "Buttons",
+                "name": "buttons",
+                "type": "repeater",
+                "instructions": "Up to two.",
+                "layout": "block",
+                "max": 2,
+                "button_label": "Add button",
+                "collapsed": "field_salt_collection_posts_layout_call_to_action_buttons_link_label",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_collection_posts_layout_call_to_action_buttons_link",
+                    "label": "Link",
+                    "name": "link",
+                    "type": "group",
+                    "layout": "block",
+                    "sub_fields": [
+                      {
+                        "key": "field_salt_collection_posts_layout_call_to_action_buttons_link_label",
+                        "label": "Label",
+                        "name": "label",
+                        "type": "text",
+                        "instructions": "The visible text of the link.",
+                        "required": 1
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_call_to_action_buttons_link_type",
+                        "label": "Type",
+                        "name": "type",
+                        "type": "radio",
+                        "choices": {
+                          "internal": "A page on this site",
+                          "external": "An external address"
+                        },
+                        "default_value": "internal"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_call_to_action_buttons_link_document",
+                        "label": "Document",
+                        "name": "document",
+                        "type": "post_object",
+                        "required": 1,
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_call_to_action_buttons_link_type",
+                              "operator": "==",
+                              "value": "internal"
+                            }
+                          ]
+                        ],
+                        "post_type": [
+                          "page"
+                        ],
+                        "return_format": "id"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_call_to_action_buttons_link_url",
+                        "label": "Address",
+                        "name": "url",
+                        "type": "text",
+                        "required": 1,
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_call_to_action_buttons_link_type",
+                              "operator": "==",
+                              "value": "external"
+                            }
+                          ]
+                        ],
+                        "salt": {
+                          "format": "url"
+                        }
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_call_to_action_buttons_link_new_tab",
+                        "label": "Open in a new tab",
+                        "name": "newTab",
+                        "type": "true_false",
+                        "ui": 1
+                      }
+                    ],
+                    "salt": {
+                      "link": true
+                    }
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_call_to_action_buttons_style",
+                    "label": "Style",
+                    "name": "style",
+                    "type": "select",
+                    "choices": {
+                      "primary": "Primary",
+                      "secondary": "Secondary",
+                      "ghost": "Ghost"
+                    },
+                    "default_value": "primary"
+                  }
+                ],
+                "salt": {
+                  "rowLabel": "link.label",
+                  "itemLabel": "Button"
+                }
+              },
+              {
+                "key": "field_salt_collection_posts_layout_call_to_action_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
+                "key": "field_salt_collection_posts_layout_call_to_action_settings",
+                "label": "Section settings",
+                "name": "settings",
+                "type": "group",
+                "layout": "block",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_collection_posts_layout_call_to_action_settings_spacing",
+                    "label": "Spacing",
+                    "name": "spacing",
+                    "type": "select",
+                    "instructions": "Space above and below the section.",
+                    "choices": {
+                      "none": "None (flush against its neighbours)",
+                      "sm": "Small",
+                      "md": "Medium",
+                      "lg": "Large"
+                    },
+                    "default_value": "md"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_call_to_action_settings_tone",
+                    "label": "Tone",
+                    "name": "tone",
+                    "type": "select",
+                    "instructions": "The section's background and text colour roles.",
+                    "choices": {
+                      "surface": "Surface (the page background)",
+                      "surface-alt": "Surface, alternate (a subtle step away from it)",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse (light on dark)"
+                    },
+                    "default_value": "brand-tint"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_call_to_action_settings_tone_dark",
+                    "label": "Dark mode tone",
+                    "name": "toneDark",
+                    "type": "select",
+                    "instructions": "The tone in dark mode. Automatic keeps the tone above, and the dark palette draws it in its dark form.",
+                    "choices": {
+                      "auto": "Automatic (the tone above, in its dark form)",
+                      "surface": "Surface",
+                      "surface-alt": "Surface, alternate",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse"
+                    },
+                    "default_value": "auto"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_call_to_action_settings_width",
+                    "label": "Width",
+                    "name": "width",
+                    "type": "select",
+                    "instructions": "How wide the section's content runs.",
+                    "choices": {
+                      "full": "Full (edge to edge)",
+                      "wide": "Wide",
+                      "default": "Default",
+                      "narrow": "Narrow (reading measure)"
+                    },
+                    "default_value": "default"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_call_to_action_settings_background_image",
+                    "label": "Background image",
+                    "name": "backgroundImage",
+                    "type": "group",
+                    "layout": "block",
+                    "sub_fields": [
+                      {
+                        "key": "field_salt_collection_posts_layout_call_to_action_settings_background_image_image",
+                        "label": "Image",
+                        "name": "image",
+                        "type": "image",
+                        "instructions": "Decorative: hidden from screen readers, with empty alternative text.",
+                        "return_format": "id"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_call_to_action_settings_background_image_fit",
+                        "label": "Fit",
+                        "name": "fit",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_call_to_action_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "cover": "Cover (fill the section, cropping as needed)",
+                          "contain": "Contain (fit the whole image in)"
+                        },
+                        "default_value": "cover"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_call_to_action_settings_background_image_position",
+                        "label": "Position",
+                        "name": "position",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_call_to_action_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "focal-point": "Focal point (from the image)",
+                          "top-left": "Top left",
+                          "top": "Top",
+                          "top-right": "Top right",
+                          "left": "Left",
+                          "centre": "Centre",
+                          "right": "Right",
+                          "bottom-left": "Bottom left",
+                          "bottom": "Bottom",
+                          "bottom-right": "Bottom right"
+                        },
+                        "default_value": "focal-point"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_call_to_action_settings_background_image_scrim",
+                        "label": "Tint the image with the section's colour behind the text",
+                        "name": "scrim",
+                        "type": "true_false",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_call_to_action_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "ui": 1,
+                        "default_value": 1
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_call_to_action_settings_background_image_scrim_strength",
+                        "label": "Tint strength",
+                        "name": "scrimStrength",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_call_to_action_settings_background_image_image",
+                              "operator": "!=empty"
+                            },
+                            {
+                              "field": "field_salt_collection_posts_layout_call_to_action_settings_background_image_scrim",
+                              "operator": "==",
+                              "value": "1"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "subtle": "Subtle",
+                          "standard": "Standard",
+                          "strong": "Strong"
+                        },
+                        "default_value": "strong"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_call_to_action_settings_anchor_id",
+                    "label": "Anchor",
+                    "name": "anchorId",
+                    "type": "text",
+                    "instructions": "Optional, for links to this section. Saved as a slug of lower-case letters, digits and single hyphens: accented letters become plain ones as the site's language writes them, punctuation is dropped, and spaces, underscores and encoded characters become hyphens. We're hiring gives were-hiring, Straße gives strase (strasse on a German site), contact__form gives contact-form. An anchor that leaves nothing (日本語) counts as none. On the page, an anchor that is one of the landmark ids main, content, header, footer, nav, site-navigation, search or skip-link becomes <anchor>-section, and one an earlier section has taken takes the next free -2, -3. Ids the page draws itself contain __, so they never meet yours. Nothing is added on save. The slug is applied again on the page, to whatever is stored.",
+                    "salt": {
+                      "format": "anchor"
+                    }
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_call_to_action_settings_first_page_only",
+                    "label": "First page only",
+                    "name": "firstPageOnly",
+                    "type": "true_false",
+                    "instructions": "On a paginated index, hide this section after the first page.",
+                    "ui": 1,
+                    "default_value": 0
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_call_to_action_settings_divider",
+                    "label": "Rule above this section",
+                    "name": "divider",
+                    "type": "true_false",
+                    "instructions": "A hairline rule between this section and the one before. It also stops two sections of the same tone running together.",
+                    "ui": 1,
+                    "default_value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "layout_salt_collection_posts_layout_faq",
+            "name": "faq",
+            "label": "Frequently asked questions",
+            "display": "block",
+            "sub_fields": [
+              {
+                "key": "field_salt_collection_posts_layout_faq_eyebrow",
+                "label": "Eyebrow",
+                "name": "eyebrow",
+                "type": "text",
+                "instructions": "A short label above the heading. Drawn as a paragraph, never a heading."
+              },
+              {
+                "key": "field_salt_collection_posts_layout_faq_heading",
+                "label": "Heading",
+                "name": "heading",
+                "type": "text",
+                "instructions": "Optional. The questions come from the FAQs collection."
+              },
+              {
+                "key": "field_salt_collection_posts_layout_faq_intro",
+                "label": "Intro",
+                "name": "intro",
+                "type": "textarea",
+                "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
+                "maxlength": 300
+              },
+              {
+                "key": "field_salt_collection_posts_layout_faq_query",
+                "label": "Which questions to show",
+                "name": "query",
+                "type": "group",
+                "layout": "block",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_collection_posts_layout_faq_query_mode",
+                    "label": "Mode",
+                    "name": "mode",
+                    "type": "select",
+                    "choices": {
+                      "automatic": "Automatic (the collection’s usual order)",
+                      "by-category": "By category",
+                      "manual": "Chosen by hand"
+                    },
+                    "default_value": "automatic"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_faq_query_categories",
+                    "label": "Categories",
+                    "name": "categories",
+                    "type": "taxonomy",
+                    "conditional_logic": [
+                      [
+                        {
+                          "field": "field_salt_collection_posts_layout_faq_query_mode",
+                          "operator": "==",
+                          "value": "by-category"
+                        }
+                      ]
+                    ],
+                    "return_format": "id",
+                    "filters": [
+                      "search"
+                    ],
+                    "taxonomy": "faq_category",
+                    "field_type": "multi_select",
+                    "add_term": 0,
+                    "save_terms": 0,
+                    "load_terms": 0
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_faq_query_items",
+                    "label": "Items",
+                    "name": "items",
+                    "type": "relationship",
+                    "conditional_logic": [
+                      [
+                        {
+                          "field": "field_salt_collection_posts_layout_faq_query_mode",
+                          "operator": "==",
+                          "value": "manual"
+                        }
+                      ]
+                    ],
+                    "return_format": "id",
+                    "filters": [
+                      "search"
+                    ],
+                    "post_type": [
+                      "faq"
+                    ]
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_faq_query_order",
+                    "label": "Order",
+                    "name": "order",
+                    "type": "select",
+                    "conditional_logic": [
+                      [
+                        {
+                          "field": "field_salt_collection_posts_layout_faq_query_mode",
+                          "operator": "==",
+                          "value": "automatic"
+                        }
+                      ],
+                      [
+                        {
+                          "field": "field_salt_collection_posts_layout_faq_query_mode",
+                          "operator": "==",
+                          "value": "by-category"
+                        }
+                      ]
+                    ],
+                    "choices": {
+                      "default": "The collection’s usual order",
+                      "newest": "Newest first",
+                      "title": "Title (A to Z)"
+                    },
+                    "default_value": "default"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_faq_query_count",
+                    "label": "How many",
+                    "name": "count",
+                    "type": "number",
+                    "instructions": "0 uses the section’s default. At most 24.",
+                    "conditional_logic": [
+                      [
+                        {
+                          "field": "field_salt_collection_posts_layout_faq_query_mode",
+                          "operator": "==",
+                          "value": "automatic"
+                        }
+                      ],
+                      [
+                        {
+                          "field": "field_salt_collection_posts_layout_faq_query_mode",
+                          "operator": "==",
+                          "value": "by-category"
+                        }
+                      ]
+                    ],
+                    "default_value": 0,
+                    "min": 0,
+                    "max": 24,
+                    "step": 1
+                  }
+                ],
+                "salt": {
+                  "source": "faqs"
+                }
+              },
+              {
+                "key": "field_salt_collection_posts_layout_faq_structured_data",
+                "label": "Describe these as FAQs for search engines",
+                "name": "structuredData",
+                "type": "true_false",
+                "ui": 1,
+                "default_value": 1
+              },
+              {
+                "key": "field_salt_collection_posts_layout_faq_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
+                "key": "field_salt_collection_posts_layout_faq_settings",
+                "label": "Section settings",
+                "name": "settings",
+                "type": "group",
+                "layout": "block",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_collection_posts_layout_faq_settings_spacing",
+                    "label": "Spacing",
+                    "name": "spacing",
+                    "type": "select",
+                    "instructions": "Space above and below the section.",
+                    "choices": {
+                      "none": "None (flush against its neighbours)",
+                      "sm": "Small",
+                      "md": "Medium",
+                      "lg": "Large"
+                    },
+                    "default_value": "md"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_faq_settings_tone",
+                    "label": "Tone",
+                    "name": "tone",
+                    "type": "select",
+                    "instructions": "The section's background and text colour roles.",
+                    "choices": {
+                      "surface": "Surface (the page background)",
+                      "surface-alt": "Surface, alternate (a subtle step away from it)",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse (light on dark)"
+                    },
+                    "default_value": "surface"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_faq_settings_tone_dark",
+                    "label": "Dark mode tone",
+                    "name": "toneDark",
+                    "type": "select",
+                    "instructions": "The tone in dark mode. Automatic keeps the tone above, and the dark palette draws it in its dark form.",
+                    "choices": {
+                      "auto": "Automatic (the tone above, in its dark form)",
+                      "surface": "Surface",
+                      "surface-alt": "Surface, alternate",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse"
+                    },
+                    "default_value": "auto"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_faq_settings_width",
+                    "label": "Width",
+                    "name": "width",
+                    "type": "select",
+                    "instructions": "How wide the section's content runs.",
+                    "choices": {
+                      "full": "Full (edge to edge)",
+                      "wide": "Wide",
+                      "default": "Default",
+                      "narrow": "Narrow (reading measure)"
+                    },
+                    "default_value": "default"
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_faq_settings_background_image",
+                    "label": "Background image",
+                    "name": "backgroundImage",
+                    "type": "group",
+                    "layout": "block",
+                    "sub_fields": [
+                      {
+                        "key": "field_salt_collection_posts_layout_faq_settings_background_image_image",
+                        "label": "Image",
+                        "name": "image",
+                        "type": "image",
+                        "instructions": "Decorative: hidden from screen readers, with empty alternative text.",
+                        "return_format": "id"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_faq_settings_background_image_fit",
+                        "label": "Fit",
+                        "name": "fit",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_faq_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "cover": "Cover (fill the section, cropping as needed)",
+                          "contain": "Contain (fit the whole image in)"
+                        },
+                        "default_value": "cover"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_faq_settings_background_image_position",
+                        "label": "Position",
+                        "name": "position",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_faq_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "focal-point": "Focal point (from the image)",
+                          "top-left": "Top left",
+                          "top": "Top",
+                          "top-right": "Top right",
+                          "left": "Left",
+                          "centre": "Centre",
+                          "right": "Right",
+                          "bottom-left": "Bottom left",
+                          "bottom": "Bottom",
+                          "bottom-right": "Bottom right"
+                        },
+                        "default_value": "focal-point"
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_faq_settings_background_image_scrim",
+                        "label": "Tint the image with the section's colour behind the text",
+                        "name": "scrim",
+                        "type": "true_false",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_faq_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "ui": 1,
+                        "default_value": 1
+                      },
+                      {
+                        "key": "field_salt_collection_posts_layout_faq_settings_background_image_scrim_strength",
+                        "label": "Tint strength",
+                        "name": "scrimStrength",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_posts_layout_faq_settings_background_image_image",
+                              "operator": "!=empty"
+                            },
+                            {
+                              "field": "field_salt_collection_posts_layout_faq_settings_background_image_scrim",
+                              "operator": "==",
+                              "value": "1"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "subtle": "Subtle",
+                          "standard": "Standard",
+                          "strong": "Strong"
+                        },
+                        "default_value": "strong"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_faq_settings_anchor_id",
+                    "label": "Anchor",
+                    "name": "anchorId",
+                    "type": "text",
+                    "instructions": "Optional, for links to this section. Saved as a slug of lower-case letters, digits and single hyphens: accented letters become plain ones as the site's language writes them, punctuation is dropped, and spaces, underscores and encoded characters become hyphens. We're hiring gives were-hiring, Straße gives strase (strasse on a German site), contact__form gives contact-form. An anchor that leaves nothing (日本語) counts as none. On the page, an anchor that is one of the landmark ids main, content, header, footer, nav, site-navigation, search or skip-link becomes <anchor>-section, and one an earlier section has taken takes the next free -2, -3. Ids the page draws itself contain __, so they never meet yours. Nothing is added on save. The slug is applied again on the page, to whatever is stored.",
+                    "salt": {
+                      "format": "anchor"
+                    }
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_faq_settings_first_page_only",
+                    "label": "First page only",
+                    "name": "firstPageOnly",
+                    "type": "true_false",
+                    "instructions": "On a paginated index, hide this section after the first page.",
+                    "ui": 1,
+                    "default_value": 0
+                  },
+                  {
+                    "key": "field_salt_collection_posts_layout_faq_settings_divider",
+                    "label": "Rule above this section",
+                    "name": "divider",
+                    "type": "true_false",
+                    "instructions": "A hairline rule between this section and the one before. It also stops two sections of the same tone running together.",
+                    "ui": 1,
+                    "default_value": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "salt": {
+          "sections": [
+            "rich-text",
+            "media-text",
+            "gallery",
+            "call-to-action",
+            "faq"
+          ]
+        }
+      }
+    ],
+    "location": [
+      [
+        {
+          "param": "post_type",
+          "operator": "==",
+          "value": "post"
+        }
+      ]
+    ],
+    "salt": {
+      "collection": "posts",
+      "native": {
+        "title": "title",
+        "topics": "categories",
+        "summary": "excerpt",
+        "featuredImage": "featured-image",
+        "publishedAt": "date"
+      }
+    }
+  },
+  {
+    "key": "group_salt_collection_team",
+    "title": "Team member",
+    "fields": [
+      {
+        "key": "field_salt_collection_team_role",
+        "label": "Job title",
+        "name": "role",
+        "type": "text",
+        "instructions": "Shown beneath the name.",
+        "maxlength": 80
+      },
+      {
+        "key": "field_salt_collection_team_bio",
+        "label": "Short biography",
+        "name": "bio",
+        "type": "textarea",
+        "instructions": "A few sentences, shown on the team card and in the author box.",
+        "maxlength": 600
+      },
+      {
+        "key": "field_salt_collection_team_email",
+        "label": "Public email",
+        "name": "email",
+        "type": "text",
+        "instructions": "Optional. Shown on the team card. Leave it empty to keep the address off the site.",
+        "salt": {
+          "format": "email"
+        }
+      },
+      {
+        "key": "field_salt_collection_team_phone",
+        "label": "Phone",
+        "name": "phone",
+        "type": "text",
+        "instructions": "Optional. Shown on the team card as a link when it reads as a phone number."
+      },
+      {
+        "key": "field_salt_collection_team_socials",
+        "label": "Social profiles",
+        "name": "socials",
+        "type": "repeater",
+        "instructions": "Up to 10. The network is worked out from the address, so a known one draws its own icon.",
+        "layout": "block",
+        "max": 10,
+        "button_label": "Add profile",
+        "collapsed": "field_salt_collection_team_socials_name",
+        "sub_fields": [
+          {
+            "key": "field_salt_collection_team_socials_name",
+            "label": "Name",
+            "name": "name",
+            "type": "text",
+            "instructions": "What the link is called, such as LinkedIn.",
+            "required": 1
+          },
+          {
+            "key": "field_salt_collection_team_socials_url",
+            "label": "Address",
+            "name": "url",
+            "type": "text",
+            "required": 1,
+            "salt": {
+              "format": "url"
+            }
+          }
+        ],
+        "salt": {
+          "rowLabel": "name",
+          "itemLabel": "Profile"
+        }
+      }
+    ],
+    "location": [
+      [
+        {
+          "param": "post_type",
+          "operator": "==",
+          "value": "team_member"
+        }
+      ]
+    ],
+    "salt": {
+      "collection": "team",
+      "native": {
+        "name": "title",
+        "photo": "featured-image"
+      }
+    }
+  },
+  {
+    "key": "group_salt_collection_faqs",
+    "title": "FAQ",
+    "fields": [
+      {
+        "key": "field_salt_collection_faqs_answer",
+        "label": "Answer",
+        "name": "answer",
+        "type": "wysiwyg",
+        "required": 1,
+        "tabs": "visual",
+        "toolbar": "full",
+        "media_upload": 0,
+        "salt": {
+          "allowed": [
+            "paragraph",
+            "bold",
+            "italic",
+            "link",
+            "unordered-list",
+            "ordered-list"
+          ]
+        }
+      }
+    ],
+    "location": [
+      [
+        {
+          "param": "post_type",
+          "operator": "==",
+          "value": "faq"
+        }
+      ]
+    ],
+    "salt": {
+      "collection": "faqs",
+      "native": {
+        "question": "title",
+        "topics": "categories"
+      }
+    }
+  },
+  {
+    "key": "group_salt_collection_locations",
+    "title": "Location",
+    "fields": [
+      {
+        "key": "field_salt_collection_locations_address",
+        "label": "Address",
+        "name": "address",
+        "type": "group",
+        "layout": "block",
+        "sub_fields": [
+          {
+            "key": "field_salt_collection_locations_address_street",
+            "label": "Street address",
+            "name": "street",
+            "type": "textarea",
+            "instructions": "Up to two lines: the building and the street.",
+            "rows": 2,
+            "salt": {
+              "maxLines": 2
+            }
+          },
+          {
+            "key": "field_salt_collection_locations_address_locality",
+            "label": "Town or city",
+            "name": "locality",
+            "type": "text"
+          },
+          {
+            "key": "field_salt_collection_locations_address_region",
+            "label": "County or region",
+            "name": "region",
+            "type": "text"
+          },
+          {
+            "key": "field_salt_collection_locations_address_postal_code",
+            "label": "Postcode",
+            "name": "postalCode",
+            "type": "text"
+          },
+          {
+            "key": "field_salt_collection_locations_address_country",
+            "label": "Country",
+            "name": "country",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "key": "field_salt_collection_locations_lat",
+        "label": "Latitude",
+        "name": "lat",
+        "type": "number",
+        "instructions": "Optional, with the longitude. Where the map's pin sits.",
+        "min": -90,
+        "max": 90
+      },
+      {
+        "key": "field_salt_collection_locations_lng",
+        "label": "Longitude",
+        "name": "lng",
+        "type": "number",
+        "instructions": "Optional, with the latitude.",
+        "min": -180,
+        "max": 180
+      },
+      {
+        "key": "field_salt_collection_locations_zoom",
+        "label": "Map zoom",
+        "name": "zoom",
+        "type": "number",
+        "instructions": "How close the map starts, from 1 (the world) to 20 (a building).",
+        "default_value": 14,
+        "min": 1,
+        "max": 20,
+        "step": 1
+      },
+      {
+        "key": "field_salt_collection_locations_phone",
+        "label": "Phone",
+        "name": "phone",
+        "type": "text",
+        "instructions": "Optional."
+      },
+      {
+        "key": "field_salt_collection_locations_email",
+        "label": "Email",
+        "name": "email",
+        "type": "text",
+        "instructions": "Optional.",
+        "salt": {
+          "format": "email"
+        }
+      },
+      {
+        "key": "field_salt_collection_locations_hours",
+        "label": "Opening hours",
+        "name": "hours",
+        "type": "repeater",
+        "instructions": "Optional. Up to 14 rows; give a day two rows for a break at lunch.",
+        "layout": "block",
+        "max": 14,
+        "button_label": "Add row",
+        "collapsed": "field_salt_collection_locations_hours_day",
+        "sub_fields": [
+          {
+            "key": "field_salt_collection_locations_hours_day",
+            "label": "Day",
+            "name": "day",
+            "type": "select",
+            "required": 1,
+            "choices": {
+              "monday": "Monday",
+              "tuesday": "Tuesday",
+              "wednesday": "Wednesday",
+              "thursday": "Thursday",
+              "friday": "Friday",
+              "saturday": "Saturday",
+              "sunday": "Sunday"
+            },
+            "default_value": "monday"
+          },
+          {
+            "key": "field_salt_collection_locations_hours_open",
+            "label": "Opens",
+            "name": "open",
+            "type": "time_picker",
+            "conditional_logic": [
+              [
+                {
+                  "field": "field_salt_collection_locations_hours_appointment",
+                  "operator": "!=",
+                  "value": "1"
+                }
+              ]
+            ],
+            "display_format": "H:i",
+            "return_format": "H:i"
+          },
+          {
+            "key": "field_salt_collection_locations_hours_close",
+            "label": "Closes",
+            "name": "close",
+            "type": "time_picker",
+            "conditional_logic": [
+              [
+                {
+                  "field": "field_salt_collection_locations_hours_appointment",
+                  "operator": "!=",
+                  "value": "1"
+                }
+              ]
+            ],
+            "display_format": "H:i",
+            "return_format": "H:i"
+          },
+          {
+            "key": "field_salt_collection_locations_hours_appointment",
+            "label": "By appointment only",
+            "name": "appointment",
+            "type": "true_false",
+            "ui": 1,
+            "default_value": 0
+          }
+        ],
+        "salt": {
+          "rowLabel": "day",
+          "itemLabel": "Row"
+        }
+      }
+    ],
+    "location": [
+      [
+        {
+          "param": "post_type",
+          "operator": "==",
+          "value": "location"
+        }
+      ]
+    ],
+    "salt": {
+      "collection": "locations",
+      "native": {
+        "title": "title",
+        "topics": "categories"
+      }
+    }
+  }
+]

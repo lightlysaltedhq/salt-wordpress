@@ -40,10 +40,10 @@ final class OpeningHoursComponentTest extends SaltTestCase {
 	 */
 	private static function row( string $day, string $open = '', string $close = '', bool $appointment = false ): array {
 		return array(
-			'day'              => $day,
-			'open'             => $open,
-			'close'            => $close,
-			'appointment_only' => $appointment,
+			'day'         => $day,
+			'open'        => $open,
+			'close'       => $close,
+			'appointment' => $appointment,
 		);
 	}
 
@@ -96,7 +96,7 @@ final class OpeningHoursComponentTest extends SaltTestCase {
 		$this->assertStringContainsString( '<time datetime="14:00">', $html );
 	}
 
-	public function test_appointment_only_day_renders_the_label_not_times(): void {
+	public function test_appointment_day_renders_the_label_not_times(): void {
 		$html = $this->render_hours( array( self::row( 'saturday', '', '', true ) ) );
 
 		$this->assertStringContainsString( 'By appointment', $html );

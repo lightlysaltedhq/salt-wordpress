@@ -14,15 +14,14 @@
  * attribute); N => grid or snap track. Rows with an empty quote are
  * skipped + logged.
  *
- * Schema (SEO02 — the high-value path): each rendered testimonial WITH a
- * valid related service queues ONE Review node via salt_schema_add():
- * itemReviewed Service ({permalink}#service), author Person (post title),
- * reviewBody, and reviewRating (1–5, clamped) when a rating is set.
- * Testimonials WITHOUT a related service queue NO node — a Review must
- * never attach to the Organization. NO AggregateRating is emitted in v1:
- * scoping a computed rating (per service, across the whole corpus rather
- * than the rows this section happens to show) is deferred, and the graph
- * builder would strip an org-level aggregateRating as self-serving anyway.
+ * Schema: none. A Review node needs the service it reviews (SEO02: never
+ * attached to the Organization), and salt-contract 1.0.0-rc.7 dropped the
+ * testimonial's service (collections/testimonials.json, dropped), so no
+ * testimonial queues a node until something records what it reviews.
+ *
+ * Fields (collections/testimonials.json): name is the title, photo the
+ * featured image; quote, role, company and rating are the generated
+ * group's. The quote card draws the photo only, never a logo.
  *
  * Teaser rule (§6): the testimonial CPT is display-only (not public), so
  * there is no archive to link to — the section stays bounded by the
@@ -47,13 +46,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   layout   string       WordPress-local: 'grid' | 'slider' (invalid =>
  *                         'grid'). The contract splits this across two
  *                         sections, so it is not its `layout`.
- *   items    array<int, array{author: string, quote: string, role: string, company: string, rating: int, logo_id: int}>
+ *   items    array<int, array{author: string, quote: string, role: string, company: string, rating: float, photo_id: int}>
  *                         WordPress-local (contract `cards`): the
- *                         testimonials in query order; never empty. rating
- *                         is already clamped to 0..5; logo_id is the
- *                         company logo's attachment ID, 0 for none. The
- *                         view renders the card components itself (rule 3).
- *                         The Review nodes are already queued.
+ *                         testimonials in query order; never empty. author
+ *                         is the contract's name (the title). rating is
+ *                         clamped to 0..5 and kept in half stars (the
+ *                         card draws 4.5 as 90% of five stars);
+ *                         photo_id is the photo's (featured image's)
+ *                         attachment ID, 0 for none. The view renders the
+ *                         card components itself (rule 3).
  *
  * @param array<string,mixed> $context Loop context: index, is_primary.
  * @return array{section: array<string,mixed>, props: array<string,mixed>}|null Null = 0-state.
@@ -80,71 +81,26 @@ function salt_resolve_section_testimonials( array $context ): ?array {
 		}
 
 		$rating_raw = get_field( 'rating', $post_item->ID );
-		$rating     = is_numeric( $rating_raw ) ? (int) $rating_raw : 0;
+		// Half stars (rc.7 testimonials.json rating: 1 to 5, step 0.5): the
+		// stored value is kept as stored, only clamped to 0..5.
+		$rating = is_numeric( $rating_raw ) ? (float) $rating_raw : 0.0;
 		if ( $rating < 0 || $rating > 5 ) {
-			salt_log( sprintf( 'testimonials: rating %d on testimonial %d out of range — clamped to 0..5.', $rating, (int) $post_item->ID ) );
-			$rating = max( 0, min( 5, $rating ) );
-		}
-
-		$service_raw = get_field( 'service', $post_item->ID );
-		if ( is_array( $service_raw ) ) {
-			$service_raw = $service_raw[0] ?? 0;
-		}
-		if ( $service_raw instanceof WP_Post ) {
-			$service_raw = $service_raw->ID;
+			salt_log( sprintf( 'testimonials: rating %s on testimonial %d out of range — clamped to 0..5.', (string) $rating, (int) $post_item->ID ) );
+			$rating = max( 0.0, min( 5.0, $rating ) );
 		}
 
 		$items[] = array(
-			'author'     => (string) $post_item->post_title,
-			'quote'      => $quote,
-			'role'       => (string) get_field( 'role', $post_item->ID ),
-			'company'    => (string) get_field( 'company', $post_item->ID ),
-			'rating'     => $rating,
-			'logo_id'    => (int) get_field( 'logo', $post_item->ID ),
-			'service_id' => (int) $service_raw,
+			'author'   => (string) $post_item->post_title,
+			'quote'    => $quote,
+			'role'     => (string) get_field( 'role', $post_item->ID ),
+			'company'  => (string) get_field( 'company', $post_item->ID ),
+			'rating'   => $rating,
+			'photo_id' => (int) get_post_thumbnail_id( $post_item ),
 		);
 	}
 
 	if ( array() === $items ) {
 		return null; // 0-state: skip the section entirely (COMPL02).
-	}
-
-	// Queue Review nodes for testimonials with a VALID related service (SEO02).
-	foreach ( $items as $item ) {
-		if ( $item['service_id'] <= 0 ) {
-			continue; // No related service => no Review node (never org-attached).
-		}
-
-		$service = get_post( $item['service_id'] );
-		if ( null === $service || 'service' !== $service->post_type || 'publish' !== $service->post_status ) {
-			salt_log( sprintf( 'testimonials: related service %d is missing or unpublished — Review node skipped (broken relationship).', $item['service_id'] ) );
-			continue;
-		}
-
-		$node = array(
-			'@type'        => 'Review',
-			'itemReviewed' => array(
-				'@type' => 'Service',
-				'name'  => (string) $service->post_title,
-				'@id'   => (string) get_permalink( (int) $service->ID ) . '#service',
-			),
-			'author'       => array(
-				'@type' => 'Person',
-				'name'  => $item['author'],
-			),
-			'reviewBody'   => $item['quote'],
-		);
-
-		if ( $item['rating'] >= 1 ) {
-			$node['reviewRating'] = array(
-				'@type'       => 'Rating',
-				'ratingValue' => $item['rating'],
-				'bestRating'  => 5,
-				'worstRating' => 1,
-			);
-		}
-
-		salt_schema_add( $node );
 	}
 
 	return array(
@@ -157,18 +113,7 @@ function salt_resolve_section_testimonials( array $context ): ?array {
 			'eyebrow' => salt_nullable_text( $eyebrow ),
 			'heading' => salt_nullable_text( $heading ),
 			'layout'  => $layout,
-			'items'   => array_map(
-				// The related service only fed the schema above: the view never needs it.
-				static fn( array $item ): array => array(
-					'author'  => $item['author'],
-					'quote'   => $item['quote'],
-					'role'    => $item['role'],
-					'company' => $item['company'],
-					'rating'  => $item['rating'],
-					'logo_id' => $item['logo_id'],
-				),
-				$items
-			),
+			'items'   => $items,
 		),
 	);
 }

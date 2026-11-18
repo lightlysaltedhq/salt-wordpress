@@ -73,7 +73,7 @@ final class LogosSectionTest extends SaltTestCase {
 		$layout = salt_test_layout( 'logos' );
 
 		$this->assertSame( 'layout_salt_logos', $layout['key'] );
-		$this->assertSame( array( 'heading', 'intro', 'columns', 'greyscale', 'items', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
+		$this->assertSame( array( 'heading', 'intro', 'columns', 'greyscale', 'items', '', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
 		$fields = array_column( $layout['sub_fields'], null, 'name' );
 		$this->assertSame( 'field_salt_logos_greyscale', $fields['greyscale']['key'] );

@@ -98,7 +98,7 @@ function salt_resolve_section_media_text( array $context ): ?array {
 		$rows[] = array(
 			'image_id'  => $image_id,
 			'heading'   => '' !== $heading ? $heading : null,
-			'content'   => '' !== $content ? salt_sanitize_html( $content ) : null,
+			'content'   => '' !== $content ? salt_sanitize_html( $content, salt_field_allowed( 'field_salt_media_text_rows_content' ) ) : null,
 			// Stored side, until the MODE RULE below settles the effective one.
 			'mediaSide' => 'right' === ( $row['mediaSide'] ?? '' ) ? 'right' : 'left',
 			'buttons'   => salt_contract_buttons( $row['buttons'] ?? null, sprintf( 'section media-text: row %d', (int) $i ), 2, 'secondary' ),

@@ -46,9 +46,11 @@ in `composer.json`) and Playwright 1.65.1 with its headless Chromium (`package.j
    has the salt theme active (symlinked to this checkout), ACF Pro activated, `WP_DEBUG_LOG` on
    and outbound HTTP blocked.
 2. **The theme's own groups.** It loads every field group the theme registers through ACF. That
-   is 23 groups; the page sections group holds the 12 layouts generated from the contract
-   (`inc/fields/generated/sections.json`) and the 6 hand-written collection layouts. Any PHP notice, warning, deprecation or `salt_log` line in `debug.log` fails the
-   phase. This applies to every phase.
+   is 24 groups. The page sections group holds the 12 layouts generated from the contract
+   (`inc/fields/generated/sections.json`) and the 6 hand-written collection layouts. The 7
+   collection groups, one per post type, are generated too (`inc/fields/generated/collections.json`).
+   Any PHP notice, warning, deprecation or `salt_log` line in `debug.log` fails the phase. This
+   applies to every phase.
 3. **The contract's field shape.** `emit.mjs` writes `acfSnapshot()` from the theme's pinned
    contract with the theme's own options (`inc/fields/generated/sections.options.json`) and
    reports whether it is identical to the committed JSON. The theme registers that JSON through
@@ -72,15 +74,43 @@ in `composer.json`) and Playwright 1.65.1 with its headless Chromium (`package.j
    content must draw a band (faq and locations have no posts to query there), button links must
    resolve (external with a new tab, internal to its document), `settings.anchorId` must reach the
    band, and the page must have one H1.
-5. **The editor, in headless Chromium** against PHP's built-in server (`browser.mjs`):
+5. **The collection fields.** `php/collections.php` checks that the theme registers the 7
+   collection groups verbatim from `inc/fields/generated/collections.json`, each located on its
+   post type (services on `service`, case studies on `work`, testimonials, posts, team on
+   `team_member`, faqs and locations). It makes a post of each type and seeds a value for every
+   generated field through `update_field()`, including a post's layout with a row of every section
+   it offers. Each value is read back with `get_field()` and compared, and every meta path must
+   carry its field key. The places WordPress keeps natively (`salt.native`: the title, the
+   excerpt, the body and the featured image) are set the WordPress way and read back through the
+   theme's own readers. The post fields unit 10 wires (`author`, `primaryTopic`, `layout`) must be
+   hidden from the editor by `acf/prepare_field` and still store, and every topic must be stored
+   flat, whatever parent is asked for on insert or update.
+6. **The single templates over HTTP.** PHP's built-in server starts here (with or without
+   `--no-browser`). `php/singles.php` seeds one document each from the pinned contract's
+   `fixtures/service/full.json`, `fixtures/case-study/full.json` and `fixtures/post/full.json`:
+   each `document` value goes to its native place or, through `update_field()`, to its generated
+   field; named media become attachments with the fixture's alt text, and related or listed
+   services become services. It requests `single-service.php`, `single-work.php` and
+   `single-post.php` and checks each answers 200 and draws every seeded value the template draws.
+   It also checks the service intro runs no shortcode or embed, and that a testimonial rated 4.5
+   draws 90% of five stars on a page. This is a smoke render, not conformance: the view cases'
+   markup is a later unit. WordPress 6.8 passes null as an array offset inside `wp-includes` when
+   it renders a front-end page, which PHP 8.5 deprecates; on PHP 8.5 that one deprecation from
+   core is reported and not counted (`php/notices.php`).
+7. **The editor, in headless Chromium** against the same server (`browser.mjs`):
    - the fixtures page's classic edit screen renders every row and layout with no console errors;
    - the faq section's collection query mode shows categories or items, and order and count unless
      the mode is manual;
    - an empty required field (a features item's title) blocks publishing, and filling it lets the
      page publish;
    - re-saving the fixtures page from the browser changes nothing unexplained. Every meta row is
-     diffed before and after, and each change is put in a named class or failed.
-6. Prints a summary, drops the database and removes the temporary directory, whether the run
+     diffed before and after, and each change is put in a named class or failed;
+   - each rich-text editor offers only its field's contract list;
+   - the Topics box and the topic screens offer no parent; the service editor has no Add Media
+     button and Text tab buttons for its list alone; a summary of 301 two-byte characters is
+     refused with the editor message on a service and a post, and 300 is accepted; the hidden post
+     fields are not drawn.
+8. Prints a summary, drops the database and removes the temporary directory, whether the run
    passed, failed or was interrupted.
 
 ## Reading the re-save diff

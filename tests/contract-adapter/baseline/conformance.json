@@ -2,7 +2,7 @@
   "format": "salt-conformance/1",
   "contract": {
     "package": "@lightlysaltedhq/salt-contract",
-    "version": "1.0.0-rc.6"
+    "version": "1.0.0-rc.7"
   },
   "platform": "wordpress",
   "implementation": {
@@ -35,7 +35,7 @@
   "stylesheets": {
     "served": "assets/dist/salt.4f3bca2639/salt.css",
     "bundle": "styles/salt.css",
-    "contract": "1.0.0-rc.6",
+    "contract": "1.0.0-rc.7",
     "ok": true,
     "status": "identical"
   },
@@ -146,10 +146,18 @@
       "id": "rich-text",
       "status": "fail",
       "fixtures": {
-        "total": 5,
+        "total": 7,
         "passed": 1,
-        "failed": 4,
+        "failed": 6,
         "failures": [
+          {
+            "case": "body-headings-two-to-six",
+            "kind": "mismatch",
+            "difference": "element",
+            "path": "div.salt-section",
+            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"rich-text-1\" data-width=\"default\" id=\"border\" style=\"--salt-section-space:var(--space-section-md)\">",
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-rich-text text-ink x-section\" data-section=\"rich-text\" id=\"border\">"
+          },
           {
             "case": "body-only-first-on-page",
             "kind": "mismatch",
@@ -173,6 +181,15 @@
             "path": "section.salt-section",
             "name": "aria-labelledby",
             "expected": "small-team__heading",
+            "found": null
+          },
+          {
+            "case": "heading-headings-shift-down",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "planting-notes__heading",
             "found": null
           },
           {
@@ -547,17 +564,19 @@
           {
             "case": "many",
             "kind": "mismatch",
-            "difference": "missing",
+            "difference": "attribute",
             "path": "section.salt-section",
-            "expected": "<section aria-labelledby=\"faq-help__heading\" class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"faq-1\" data-width=\"default\" id=\"faq-help\" style=\"--salt-sec…",
+            "name": "aria-labelledby",
+            "expected": "faq-help__heading",
             "found": null
           },
           {
             "case": "one-inverse",
             "kind": "mismatch",
-            "difference": "missing",
+            "difference": "attribute",
             "path": "section.salt-section",
-            "expected": "<section aria-labelledby=\"faq-one__heading\" class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"faq-1\" data-width=\"default\" id=\"faq-one\" sty…",
+            "name": "aria-labelledby",
+            "expected": "faq-one__heading",
             "found": null
           }
         ]
@@ -1022,10 +1041,34 @@
       "kind": "view",
       "status": "fail",
       "fixtures": {
-        "total": 2,
+        "total": 6,
         "passed": 0,
-        "failed": 2,
+        "failed": 6,
         "failures": [
+          {
+            "case": "band-call-to-action",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "band-faq",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "band-gallery-one-image",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "band-media-text",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
           {
             "case": "full",
             "kind": "adapter",

@@ -83,7 +83,7 @@ function salt_resolve_section_call_to_action( array $context ): ?array {
 		),
 		'props'   => array(
 			'heading' => salt_nullable_text( $heading ),
-			'body'    => '' !== trim( $body ) ? salt_sanitize_html( $body ) : null,
+			'body'    => '' !== trim( $body ) ? salt_sanitize_html( $body, salt_field_allowed( 'field_salt_call_to_action_body' ) ) : null,
 			'buttons' => $buttons,
 		),
 	);

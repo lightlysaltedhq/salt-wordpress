@@ -58,6 +58,7 @@ $salt_modules = array(
 	'/inc/render.php',
 	'/inc/overrides.php',
 	'/inc/acf.php',
+	'/inc/cpt/topics.php',
 	'/inc/security.php',
 );
 foreach ( $salt_modules as $salt_module ) {

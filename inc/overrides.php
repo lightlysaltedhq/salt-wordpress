@@ -38,7 +38,7 @@ const SALT_OVERRIDES_MAX_BYTES = 65536;
  * layout slugs (hyphenated, as the section loop passes them) that are that
  * section on WordPress today.
  *
- * Drawn from salt-contract/contract/sections.json (1.0.0-rc.6), the
+ * Drawn from salt-contract/contract/sections.json (1.0.0-rc.7), the
  * WordPress platform's `formerly` names. Since 6.0.0 (ID-3599) a section
  * WordPress builds as one layout has the contract id as its layout slug
  * (call-to-action, media-text, rich-text); the folded sections keep their

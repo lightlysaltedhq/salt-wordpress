@@ -12,7 +12,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../shims/acf.php';
 require_once __DIR__ . '/../shims/faq.php';
 require_once dirname( __DIR__, 2 ) . '/inc/cpt/faq.php';
-require_once dirname( __DIR__, 2 ) . '/inc/fields/cpt-faq.php';
+require_once dirname( __DIR__, 2 ) . '/inc/fields/collections.php';
 
 final class FaqSectionTest extends SaltTestCase {
 
@@ -131,23 +131,31 @@ final class FaqSectionTest extends SaltTestCase {
 	// Field group + layout shape (DATA02).
 	// -----------------------------------------------------------------
 
-	public function test_faq_field_group_registers_the_answer_wysiwyg(): void {
-		salt_register_faq_fields();
+	public function test_faq_field_group_is_the_contracts_faq(): void {
+		$group = salt_test_collection_group( 'faqs' );
 
-		$groups = array_column( $GLOBALS['salt_test_acf_groups'], null, 'key' );
-		$this->assertArrayHasKey( 'group_salt_faq', $groups );
+		$this->assertSame( 'group_salt_collection_faqs', $group['key'] );
+		$this->assertSame( 'faq', $group['location'][0][0]['value'] );
+		$this->assertSame(
+			array(
+				'question' => 'title',
+				'topics'   => 'categories',
+			),
+			$group['salt']['native']
+		);
 
-		$fields = array_column( $groups['group_salt_faq']['fields'], null, 'name' );
-		$this->assertArrayHasKey( 'answer', $fields );
-		$this->assertSame( 'field_salt_faq_answer', $fields['answer']['key'] );
+		$fields = array_column( $group['fields'], null, 'name' );
+		$this->assertSame( array( 'answer' ), array_keys( $fields ) );
+		$this->assertSame( 'field_salt_collection_faqs_answer', $fields['answer']['key'] );
 		$this->assertSame( 'wysiwyg', $fields['answer']['type'] );
+		$this->assertSame( array( 'paragraph', 'bold', 'italic', 'link', 'unordered-list', 'ordered-list' ), $fields['answer']['salt']['allowed'] );
 	}
 
 	public function test_layout_is_generated_from_the_contract(): void {
 		$layout = salt_test_layout( 'faq' );
 
 		$this->assertSame( 'layout_salt_faq', $layout['key'] );
-		$this->assertSame( array( 'eyebrow', 'heading', 'intro', 'query', 'structuredData', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
+		$this->assertSame( array( 'eyebrow', 'heading', 'intro', 'query', 'structuredData', '', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
 		$fields = array_column( $layout['sub_fields'], null, 'name' );
 		$this->assertSame( array( 'mode', 'categories', 'items', 'order', 'count' ), array_column( $fields['query']['sub_fields'], 'name' ), 'The contract\'s collection query.' );
@@ -550,5 +558,24 @@ final class FaqSectionTest extends SaltTestCase {
 		$this->assertFalse( $resolved['props']['structuredData'] );
 		$this->assertFalse( $resolved['section']['has_heading'] );
 		$this->assertSame( array(), $this->faq_nodes() );
+	}
+	public function test_answer_keeps_only_its_contract_list(): void {
+		$this->seed_faqs(
+			array(
+				array(
+					'id'     => 1,
+					'title'  => 'What is salt?',
+					'answer' => '<h2>Two</h2><h3>Three</h3><blockquote><p>Quote</p></blockquote><p><code>x()</code> <a href="https://e.test/">link</a></p>',
+				),
+			)
+		);
+
+		$html = $this->render_faq_section( array( 'heading' => 'FAQs' ) );
+
+		foreach ( array( '<h2', '<h3', '<blockquote', '<code' ) as $tag ) {
+			$this->assertStringNotContainsString( $tag, $html, "{$tag} is not in the FAQ answer's list." );
+		}
+		$this->assertStringContainsString( 'Three', $html, 'Stripped to its text.' );
+		$this->assertStringContainsString( '<a href="https://e.test/">link</a>', $html );
 	}
 }

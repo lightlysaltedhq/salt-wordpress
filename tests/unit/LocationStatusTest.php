@@ -30,10 +30,10 @@ final class LocationStatusTest extends SaltTestCase {
 	 */
 	private static function row( string $day, string $open, string $close, bool $appointment = false ): array {
 		return array(
-			'day'              => $day,
-			'open'             => $open,
-			'close'            => $close,
-			'appointment_only' => $appointment,
+			'day'         => $day,
+			'open'        => $open,
+			'close'       => $close,
+			'appointment' => $appointment,
 		);
 	}
 

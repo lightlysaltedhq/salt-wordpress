@@ -165,3 +165,22 @@ function salt_test_layout( string $name ): array {
 	}
 	throw new RuntimeException( esc_html( "layout {$name} is not registered" ) );
 }
+
+/**
+ * The generated collection group the theme registers on acf/init for one
+ * contract collection (services, case-studies, …), or null when none is
+ * registered (its module is off).
+ *
+ * @param string $collection Contract collection id.
+ * @return array<string,mixed>|null
+ */
+function salt_test_collection_group( string $collection ): ?array {
+	$GLOBALS['salt_test_acf_groups'] = array();
+	salt_register_collection_fields();
+	foreach ( $GLOBALS['salt_test_acf_groups'] as $group ) {
+		if ( ( $group['salt']['collection'] ?? null ) === $collection ) {
+			return $group;
+		}
+	}
+	return null;
+}

@@ -111,6 +111,28 @@ markup granularity (cross-reference your site's override manifest).
   It is `export-ignore`d. A CI job for it is proposed in
   `docs/ci/real-acf-harness.patch` and needs the `ACF_PRO_KEY` and
   `ACF_PRO_SITE_URL` secrets. See `tests/real-acf/README.md`.
+- **Every collection's fields generated from the contract (ID-3610 part
+  B, EP-72 M3 unit 7).** `inc/fields/generated/collections.json` is
+  salt-contract 1.0.0-rc.7's ACF emitter output (`emit/acf.mjs` with
+  `inc/fields/generated/collections.options.json`): one group per
+  collection the theme installs, `group_salt_collection_{collection}`,
+  located on its post type (services on `service`, case studies on
+  `work`, testimonials on `testimonial`, posts on `post`, team on
+  `team_member`, faqs on `faq`, locations on `location`). The loader
+  (`salt_generated_collection_groups()` in `inc/acf.php`) registers it
+  through `inc/fields/collections.php`, each group behind its module gate;
+  posts always register. What the contract names under `salt.native` is
+  read from WordPress, not ACF: the title, the body, the excerpt (the
+  summary, through the new `salt_post_summary()`), the featured image,
+  categories and the post date. `bin/check-fields-from-contract.php` now
+  also fails when the collections JSON is not the pinned emitter's
+  output, when a registered collection group differs from it, when another
+  group sits on a collection's post type, or when an
+  `inc/fields/cpt-*.php` file exists. The options and user groups stay
+  hand-written. `docs/ci/fields-from-contract.patch` names the wider check.
+  The real ACF harness has a new phase (`tests/real-acf/php/collections.php`)
+  that seeds every generated collection field through `update_field()`
+  on all seven post types, reads it back and checks its storage.
 - **salt-contract pinned exactly (ID-3627).** `@lightlysaltedhq/salt-contract`
   1.0.0-rc.6 is a devDependency on a committed `npm pack` tarball,
   `vendor-contract/lightlysaltedhq-salt-contract-1.0.0-rc.6.tgz`, packed
@@ -172,6 +194,19 @@ markup granularity (cross-reference your site's override manifest).
   harness-only mu-plugin is gone; the harness checks that the theme's
   generated layouts are the emitter's output, and a new phase renders the
   fixture page through the theme's section loop on real ACF values.
+- **salt-contract 1.0.0-rc.7 (ID-3944, ID-3949, ID-3950).** The pin moves
+  to `vendor-contract/lightlysaltedhq-salt-contract-1.0.0-rc.7.tgz`, packed
+  from lightlysaltedhq/contracts at `d292ecc`; the rc.6 tarball is gone.
+  `inc/fields/generated/sections.json` is regenerated: every layout gains a
+  Settings tab (it stores nothing) before its `settings` group. The
+  conformance baseline in `tests/contract-adapter/baseline/` is
+  regenerated against rc.7, and the adapter seeds a collection's native
+  places from `salt.native`.
+- **The rich-text section's body stores headings 2 to 6 (ID-3950).**
+  Before, an editor re-save turned a stored h2, h5 or h6 into a paragraph.
+  Stored levels are drawn as stored; the contract's re-ranking from the
+  section's heading base is M4. Every other rich-text field keeps its own,
+  narrower list (see BREAKING).
 - **Slugs (FLEET07).** `docs/contracts/slug-registry.json` regenerated.
   The 6.0.0 entries in `docs/contracts/slug-migrations.json` are retired:
   they only described stored content from before 6.0.0, and no site holds
@@ -211,6 +246,121 @@ markup granularity (cross-reference your site's override manifest).
   contract has no rule for, in every display mode.
 
 ### BREAKING
+- **Rich-text allow-list widened, and narrowed per field (salt-contract
+  1.0.0-rc.7, ID-3950; security-reviewed on PR #26).** `salt_allowed_html()`
+  is the superset and now holds h2 to h6 (still no attribute on any of them;
+  h1 stays forbidden). Each rich-text field is sanitised and edited to its
+  own contract list only: `salt_sanitize_html( $html, $allowed )` takes the
+  field's element kinds, which `salt_field_allowed( $key )` reads from its
+  `salt.allowed` in the generated JSON (failing closed to paragraphs for an
+  unknown key), and `salt_allowed_html_for()` intersects them with the
+  superset, so no list can widen it. The service intro, kept in the post
+  body, uses `SALT_SERVICE_INTRO_ALLOWED`, held to the pinned contract by a
+  test. In the editor, `acf/prepare_field/type=wysiwyg` puts each field's
+  list on its wrapper and `assets/src/js/admin/rich-text-editor.js` narrows
+  its TinyMCE format menu, `valid_elements` and toolbar; the service's own
+  editor is narrowed in `salt_tinymce_config()`. Per field, h2 to h6 are
+  allowed only in the rich-text body:
+  - call-to-action `body` and media-text `content`: h3 and h4, plus
+    paragraph, bold, italic, code, link, lists and blockquote;
+  - a features item's `text`: no heading (it was h3 and h4);
+  - a case study's `challenge` and `solution`: h3 and h4, no code and no
+    blockquote (they were drawn through `wp_kses_post()`);
+  - an FAQ `answer`: paragraph, bold, italic, link and lists only (it was
+    also h3, h4, blockquote and code);
+  - the service intro: paragraph, bold, italic, link and lists only (it was
+    drawn unfiltered by `the_content()`).
+
+  Anything else is stripped to its text. `salt_sanitize_html()` with no
+  list, as a child theme calls it, keeps the whole superset. The accordion
+  component takes an optional `allowed` list for its re-run sanitiser.
+- **Collections read the contract's own field shape (ID-3610 part B,
+  EP-72 M3 unit 7; FLEET07: MAJOR, 6.0.0).** As with the sections, no site
+  holds Salt for WordPress content, so there is no dual reader and no
+  migration. Generated keys are `group_salt_collection_{collection}` and
+  `field_salt_collection_{collection}_{path}`.
+  - **Removed files:** `inc/fields/cpt-{service,work,testimonial,
+    team-member,faq,location}.php` and their groups (`group_salt_service`
+    and the rest); the six legacy collection layouts and their resolvers
+    stay until unit 8.
+  - **Dropped fields:** testimonial `logo` (`companyLogo`; the card draws
+    the author's photo, the featured image, instead) and `service`; service
+    `headline` (the H1 is the title); the `summary` fields on services and
+    case studies (the summary is the excerpt); team socials `platform` (the
+    network is worked out from the address, `socials.json`); location
+    `geo` (now `lat`, `lng` and `zoom`).
+  - **Dropped from WordPress:** the `industry` taxonomy on work and the
+    `department` taxonomy on team members; the body (editor) of work and
+    team members; the location's featured image; the Gravatar fallback for
+    a post author (the avatar is the user's `profile_photo` or nothing).
+  - **Renamed fields:** work `live_url` → `externalUrl`; service
+    `price_from` (a number) → `priceFrom` (text, drawn as written),
+    `related_services` → `relatedServices`, benefit row `benefit` → `text`,
+    `cta` (an ACF link) → a contract link `{label, type, document, url,
+    newTab}`; team `short_bio` → `bio`; location address `line1` and
+    `line2` → `street` (a line each), `city` → `locality`, `postcode` →
+    `postalCode`, `opening_hours` → `hours`, row `appointment_only` →
+    `appointment`.
+  - **New, stored but not drawn until M4:** case study `details`;
+    location `lat`, `lng` and `zoom`; post `author`, `primaryTopic` and
+    `layout`.
+  - **Removed schema:** the testimonial `Review` nodes. A Review needs the
+    service it reviews, and the contract stores none.
+  - **Half stars (testimonials.json rating, step 0.5).** The resolver keeps
+    a stored rating as stored (clamped to 0..5), and `card-testimonial`'s
+    `rating` arg is a float. The stars are drawn as the contract's card draws
+    them (`markup/card.json`, rating): five empty stars with five filled ones
+    clipped to `--salt-rating-fill`, the rating as a percentage of 5, so 4.5
+    fills 90%. The label reads "Rated 4.5 out of 5 stars"; how a half value
+    is written in it is pending the founder's ruling. The rest of the card's
+    markup is unchanged until M4.
+  - **Topics (`_topic.json`; the topics owes of services, case studies, FAQs
+    and locations).** `service_category`, `work_type`, `faq_category` and
+    `location_area` are labelled Topics (a Topic) in place of "Service
+    categories", "Work types", "FAQ categories" and "Areas", keep their
+    checkbox box, and offer no parent anywhere: not in the box's "add new"
+    form (`salt_topic_meta_box()`) and not on the term add or edit screens.
+    Every term is stored at the top level, whatever parent is sent
+    (`inc/cpt/topics.php`). Posts' categories are ID-3952's.
+  - **The summary is checked on save (services, case studies, posts).** An
+    excerpt over 300 characters is refused by ACF's validation with "The
+    summary (the Excerpt box) is N characters long. Shorten it to 300
+    characters or fewer". Characters are counted as ACF counts its own
+    limits (`mb_strlen`, a CRLF as one), pending the founder's ruling.
+  - **Other checks on save the contract asks for** (`inc/fields/checks.php`):
+    a field with the email format (a team member's and a location's
+    `email`) must be one @, a domain with a dot and no spaces; a location's
+    `street` holds at most two lines (`maxLines`); a service cannot be among
+    its own `relatedServices`.
+  - **Post fields hidden until unit 10.** `author`, `primaryTopic` and
+    `layout` stay in the generated posts group (so the drift check holds and
+    they store and read), but `acf/prepare_field` keeps them out of the
+    editor until ID-3952 wires them.
+  - **The service intro (the founder's ruling).** `single-service.php` draws
+    the stored body with paragraphs added (`wpautop()`) and sanitised to the
+    intro's list, with no shortcode, oEmbed or other `the_content` filter
+    (`salt_service_intro_html()`). A service's body is stored sanitised to
+    the same list (`wp_insert_post_data`), so what is stored is what shows.
+    The service editor has no Add Media button, and its Visual and Text
+    toolbars offer only the list.
+  - **Visible changes:** the service card draws its featured image, and its
+    icon only when it has none (rc.7 card mapping); the testimonial card
+    draws the author's photo, not the company logo; a team member's social
+    link is labelled by the network its address belongs to; the service
+    single's H1 is the title, its price reads "Projects from" and the text
+    as written (no £ added), and a service is never related to itself; the
+    case study single no longer draws its industry fact or its body; a post
+    author with no profile photo has no avatar; a testimonial rated 4.5
+    draws four and a half stars (the star markup is now an empty row with a
+    clipped filled row over it); the topics taxonomies are labelled Topics
+    with no parent; the service intro draws no shortcode, embed or media;
+    an FAQ answer loses h3, h4, blockquote and code, a features item's text
+    loses its headings, and a case study's challenge and solution narrow
+    from `wp_kses_post()` to their lists (see the rich-text entry above).
+  - **Removed field slugs in the registry:** `appointment_only`, `benefit`,
+    `city`, `geo`, `headline`, `line1`, `line2`, `live_url`, `logo`,
+    `opening_hours`, `platform`, `postcode`, `price_from`,
+    `related_services`, `service`, `short_bio`, `summary`.
 - **Sections read the contract's own field shape (ID-3610 part A, EP-72 M3
   unit 3; FLEET07: MAJOR, 6.0.0).** Nothing stored before this change is
   read: no site holds Salt for WordPress content, so there is no dual

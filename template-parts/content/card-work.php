@@ -15,8 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $salt_work_id = (int) get_the_ID();
 
-$salt_client  = get_field( 'client', $salt_work_id );
-$salt_summary = get_field( 'summary', $salt_work_id );
+$salt_client = get_field( 'client', $salt_work_id );
 
 salt_component(
 	'card-work',
@@ -24,7 +23,7 @@ salt_component(
 		'title'    => (string) get_the_title(),
 		'url'      => (string) get_the_permalink( $salt_work_id ),
 		'client'   => is_string( $salt_client ) ? $salt_client : '',
-		'summary'  => is_string( $salt_summary ) ? $salt_summary : '',
+		'summary'  => salt_post_summary( $salt_work_id ),
 		'image_id' => (int) get_post_thumbnail_id( $salt_work_id ),
 		'level'    => 2,
 	)

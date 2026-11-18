@@ -11,7 +11,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../shims/acf.php';
 require_once __DIR__ . '/../shims/location.php';
 require_once dirname( __DIR__, 2 ) . '/inc/cpt/location.php';
-require_once dirname( __DIR__, 2 ) . '/inc/fields/cpt-location.php';
+require_once dirname( __DIR__, 2 ) . '/inc/fields/collections.php';
 
 final class LocationCptTest extends SaltTestCase {
 
@@ -39,6 +39,7 @@ final class LocationCptTest extends SaltTestCase {
 		// menu_order drag-sort is the frozen default order (AMBIG07).
 		$this->assertContains( 'page-attributes', $args['supports'] );
 		$this->assertContains( 'title', $args['supports'] );
+		$this->assertNotContains( 'thumbnail', $args['supports'], 'A location has no featured image (the contract dropped it).' );
 	}
 
 	public function test_location_area_taxonomy_attaches_to_the_cpt(): void {
@@ -64,41 +65,44 @@ final class LocationCptTest extends SaltTestCase {
 	public function test_module_flag_gates_the_field_group(): void {
 		$GLOBALS['salt_test_fields']['option']['module_location'] = false;
 
-		salt_register_location_fields();
-
-		$this->assertSame( array(), $GLOBALS['salt_test_acf_groups'] );
+		$this->assertNull( salt_test_collection_group( 'locations' ) );
 	}
 
-	public function test_field_group_follows_the_appendix_a6_table(): void {
-		salt_register_location_fields();
+	public function test_field_group_is_the_contracts_location(): void {
+		$group = salt_test_collection_group( 'locations' );
 
-		$this->assertCount( 1, $GLOBALS['salt_test_acf_groups'] );
-		$group = $GLOBALS['salt_test_acf_groups'][0];
-
-		$this->assertSame( 'group_salt_location', $group['key'] );
+		$this->assertSame( 'group_salt_collection_locations', $group['key'] );
 		$this->assertSame( 'location', $group['location'][0][0]['value'] );
+		$this->assertSame(
+			array(
+				'title'  => 'title',
+				'topics' => 'categories',
+			),
+			$group['salt']['native']
+		);
 
 		$fields = array_column( $group['fields'], null, 'name' );
 		$this->assertSame(
-			array( 'address', 'geo', 'phone', 'email', 'opening_hours' ),
+			array( 'address', 'lat', 'lng', 'zoom', 'phone', 'email', 'hours' ),
 			array_keys( $fields )
 		);
 
-		// Address group parts.
+		// The contract's address shape (collections/_address.json).
 		$this->assertSame( 'group', $fields['address']['type'] );
 		$this->assertSame(
-			array( 'line1', 'line2', 'city', 'region', 'postcode', 'country' ),
+			array( 'street', 'locality', 'region', 'postalCode', 'country' ),
 			array_column( $fields['address']['sub_fields'], 'name' )
 		);
+		$this->assertSame( 14, $fields['zoom']['default_value'] );
+		$this->assertSame( 'email', $fields['email']['salt']['format'] );
 
-		$this->assertSame( 'email', $fields['email']['type'] );
-
-		// Opening hours: the frozen storage contract behind the status pill.
-		$hours = $fields['opening_hours'];
+		// Opening hours: the storage behind the status pill.
+		$hours = $fields['hours'];
 		$this->assertSame( 'repeater', $hours['type'] );
+		$this->assertSame( 14, $hours['max'] );
 
 		$sub = array_column( $hours['sub_fields'], null, 'name' );
-		$this->assertSame( array( 'day', 'open', 'close', 'appointment_only' ), array_keys( $sub ) );
+		$this->assertSame( array( 'day', 'open', 'close', 'appointment' ), array_keys( $sub ) );
 		$this->assertSame(
 			array( 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ),
 			array_keys( $sub['day']['choices'] )
@@ -106,17 +110,14 @@ final class LocationCptTest extends SaltTestCase {
 		$this->assertSame( 'time_picker', $sub['open']['type'] );
 		$this->assertSame( 'H:i', $sub['open']['return_format'] );
 		$this->assertSame( 'H:i', $sub['close']['return_format'] );
-		$this->assertSame( 'true_false', $sub['appointment_only']['type'] );
-
-		// DATA02: no key-convention drift was logged by salt_register_field_group.
-		$this->assertSame( array(), $this->logs() );
+		$this->assertSame( 'true_false', $sub['appointment']['type'] );
 	}
 
 	public function test_layout_is_generated_from_the_contract(): void {
 		$layout = salt_test_layout( 'locations' );
 
 		$this->assertSame( 'layout_salt_locations', $layout['key'] );
-		$this->assertSame( array( 'eyebrow', 'heading', 'query', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
+		$this->assertSame( array( 'eyebrow', 'heading', 'query', '', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
 		// The contract's collection query for the location CPT, incl. its taxonomy.
 		$query = array_column( $layout['sub_fields'], null, 'name' )['query'];

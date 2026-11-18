@@ -261,31 +261,49 @@ function salt_adapter_seed_documents( array $documents ): array {
 }
 
 /**
+ * Where WordPress keeps each collection field it stores natively, per
+ * contract collection: the generated groups' `salt.native`
+ * (inc/fields/generated/collections.json), so the adapter stores an item
+ * exactly where the theme's readers look for it.
+ *
+ * @return array<string,array<string,string>> Collection => field => place.
+ */
+function salt_adapter_native_places(): array {
+	$places = array();
+	foreach ( salt_generated_collections_decode( (string) file_get_contents( SALT_ADAPTER_THEME . '/inc/fields/generated/collections.json' ) ) ?? array() as $group ) {
+		$places[ (string) $group['salt']['collection'] ] = (array) ( $group['salt']['native'] ?? array() );
+	}
+	return $places;
+}
+
+/**
  * Seed the case's collections as posts of the theme's post types, in the
- * order given (menu_order and post_date both keep it). title and text are
- * the post's title and content; every other key is an ACF field on the post
- * under the contract's name.
+ * order given (menu_order and post_date both keep it). A field WordPress
+ * keeps natively goes to its place (the title, the body, the excerpt, the
+ * featured image); the fixtures' resolved card keys keep their meaning
+ * (`text` is the body and the excerpt, `image` the featured image); every
+ * other key is an ACF field on the post under the contract's name.
  *
  * @param array<string,mixed> $collections The case's `collections`.
  * @param array<string,int>   $media       Media id => attachment ID.
  * @return array<string,array<string,int>> Collection => item id => post ID.
  */
 function salt_adapter_seed_collections( array $collections, array $media ): array {
-	$ids   = array();
-	$next  = 1001;
-	$types = salt_adapter_post_types();
+	$ids    = array();
+	$next   = 1001;
+	$types  = salt_adapter_post_types();
+	$places = salt_adapter_native_places();
 	foreach ( $collections as $collection => $items ) {
+		$native = $places[ (string) $collection ] ?? array();
 		foreach ( array_values( (array) $items ) as $order => $item ) {
-			$title = (string) ( $item['title'] ?? $item['question'] ?? '' );
-			$text  = (string) ( $item['text'] ?? $item['answer'] ?? '' );
-			$post  = new WP_Post(
+			$post = new WP_Post(
 				array(
 					'ID'           => $next,
 					'post_type'    => $types[ $collection ] ?? (string) $collection,
-					'post_title'   => $title,
+					'post_title'   => (string) ( $item['title'] ?? '' ),
 					'post_name'    => (string) ( $item['id'] ?? '' ),
-					'post_content' => $text,
-					'post_excerpt' => $text,
+					'post_content' => (string) ( $item['text'] ?? '' ),
+					'post_excerpt' => (string) ( $item['text'] ?? '' ),
 					'menu_order'   => $order,
 					'post_date'    => isset( $item['date'] ) ? gmdate( 'Y-m-d H:i:s', (int) strtotime( (string) $item['date'] ) ) : sprintf( '2026-01-01 00:%02d:00', 59 - min( 59, $order ) ),
 				)
@@ -293,14 +311,33 @@ function salt_adapter_seed_collections( array $collections, array $media ): arra
 			if ( isset( $item['image'] ) && isset( $media[ (string) $item['image'] ] ) ) {
 				$post->salt_thumbnail_id = $media[ (string) $item['image'] ];
 			}
+			foreach ( $item as $key => $value ) {
+				if ( in_array( $key, array( 'id', 'title', 'text', 'href', 'image', 'date' ), true ) ) {
+					continue;
+				}
+				switch ( $native[ $key ] ?? null ) {
+					case 'title':
+						$post->post_title = (string) $value;
+						break;
+					case 'body':
+						$post->post_content = (string) $value;
+						break;
+					case 'excerpt':
+						$post->post_excerpt = (string) $value;
+						break;
+					case 'featured-image':
+						$post->salt_thumbnail_id = (int) ( $media[ (string) $value ] ?? 0 );
+						break;
+					case null:
+						$GLOBALS['salt_test_fields'][ (string) $next ][ $key ] = $value;
+						break;
+					default:
+						break; // Topics and the date are not seeded from a collection item.
+				}
+			}
 			$GLOBALS['salt_test_posts'][] = $post;
 			if ( isset( $item['href'] ) ) {
 				$GLOBALS['salt_test_permalinks'][ $next ] = (string) $item['href'];
-			}
-			foreach ( $item as $key => $value ) {
-				if ( ! in_array( $key, array( 'id', 'title', 'question', 'text', 'answer', 'href', 'image', 'date' ), true ) ) {
-					$GLOBALS['salt_test_fields'][ (string) $next ][ $key ] = $value;
-				}
 			}
 			$ids[ (string) $collection ][ (string) ( $item['id'] ?? '' ) ] = $next++;
 		}

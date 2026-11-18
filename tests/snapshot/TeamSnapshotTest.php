@@ -12,6 +12,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../shims/acf.php';
 require_once __DIR__ . '/../shims/media.php';
 require_once __DIR__ . '/../shims/team.php';
+require_once dirname( __DIR__, 2 ) . '/inc/services/chrome.php';
 
 final class TeamSnapshotTest extends SaltSnapshotTestCase {
 
@@ -72,8 +73,8 @@ final class TeamSnapshotTest extends SaltSnapshotTestCase {
 						'post_title' => 'Jane Doe',
 						'menu_order' => 1,
 						'fields'     => array(
-							'role'      => 'Founder',
-							'short_bio' => 'Leads the studio.',
+							'role' => 'Founder',
+							'bio'  => 'Leads the studio.',
 						),
 					),
 				),
@@ -101,18 +102,18 @@ final class TeamSnapshotTest extends SaltSnapshotTestCase {
 						'menu_order'        => 1,
 						'salt_thumbnail_id' => 77,
 						'fields'            => array(
-							'role'      => 'Founder',
-							'short_bio' => 'Leads the studio.',
-							'email'     => 'jane@example.test',
-							'phone'     => '01905 123456',
-							'socials'   => array(
+							'role'    => 'Founder',
+							'bio'     => 'Leads the studio.',
+							'email'   => 'jane@example.test',
+							'phone'   => '01905 123456',
+							'socials' => array(
 								array(
-									'platform' => 'linkedin',
-									'url'      => 'https://example.test/in/jane',
+									'name' => 'LinkedIn',
+									'url'  => 'https://www.linkedin.com/in/jane',
 								),
 								array(
-									'platform' => 'x',
-									'url'      => 'https://example.test/x/jane',
+									'name' => 'X',
+									'url'  => 'https://x.com/jane',
 								),
 							),
 						),

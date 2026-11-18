@@ -1,0 +1,1 @@
+(()=>{var a=window.acf;a&&typeof a.addFilter=="function"&&a.addFilter("wysiwyg_tinymce_settings",(e,s,l)=>{let o=l&&l.$el?l.$el[0]:null,t=o?o.dataset:null;return!t||typeof t.saltValidElements!="string"?e:{...e,block_formats:t.saltBlockFormats,valid_elements:t.saltValidElements,toolbar1:t.saltToolbar,toolbar2:""}});})();

@@ -74,8 +74,10 @@ bootstrap and shims as the unit and snapshot suites (`tests/bootstrap.php`, `tes
     since the theme registers no sizes of its own. Each URL comes from the record's `{width}`
     template, as an upload URL filter would give it.
   - `documents` become pages whose permalink is the case's `href`.
-  - `collections` become posts of the theme's post types, in the order given. `title` and `text`
-    become the post's title and content, and every other key becomes an ACF field on the post.
+  - `collections` become posts of the theme's post types, in the order given. A field WordPress
+    keeps natively (named under `salt.native` in `inc/fields/generated/collections.json`) goes to
+    its place: `title` is the post's title, `text` its body and excerpt, and `image` its featured
+    image. Every other key becomes an ACF field on the post under the contract's name.
   - `context` gives the band's place on the page: its index, whether it is the primary heading,
     a heading claimed earlier, and the collapse with the band above.
 - **A chrome case** (`site-header`, `site-footer`). The case's `site` goes into the theme's
@@ -122,7 +124,7 @@ are missing today, so the script passes `--partial` and the report says "Partial
 ## The report
 
 The Markdown report's first line names the contract release it ran against, for example
-`… against @lightlysaltedhq/salt-contract 1.0.0-rc.6`. `conformance.json` records it under
+`… against @lightlysaltedhq/salt-contract 1.0.0-rc.7`. `conformance.json` records it under
 `contract` (RELEASE-POLICY §5: a conformance claim without that version is not a claim). The
 implementation version is the theme's `style.css` `Version:`.
 

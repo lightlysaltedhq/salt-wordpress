@@ -2,9 +2,8 @@
 /**
  * ACF user-profile fields (blog single build-out).
  *
- * profile_photo backs the x-author-box avatar on single posts — client
- * authors rarely have Gravatars, so the photo is set on the WP user
- * profile and get_avatar() is only the fallback.
+ * profile_photo backs the x-author-box avatar on single posts. There is
+ * no Gravatar fallback (salt-contract 1.0.0-rc.7, collections/team.json).
  *
  * Keys follow field_salt_user_{name} (DATA02).
  *
@@ -30,7 +29,7 @@ function salt_register_user_fields(): void {
 					'key'           => 'field_salt_user_profile_photo',
 					'name'          => 'profile_photo',
 					'label'         => __( 'Profile photo', 'salt' ),
-					'instructions'  => __( 'Shown in the post author box and byline (falls back to Gravatar). Square crop works best.', 'salt' ),
+					'instructions'  => __( 'Shown in the post author box and byline; without one, no picture is shown. Square crop works best.', 'salt' ),
 					'type'          => 'image',
 					'return_format' => 'id',
 					'library'       => 'all',

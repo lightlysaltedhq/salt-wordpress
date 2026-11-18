@@ -91,7 +91,8 @@ if ( ! function_exists( 'salt_query_default_args' ) ) {
 
 /**
  * The taxonomy a CPT's query controls filter by, or null when the CPT has
- * no filterable taxonomy (testimonial). Final — not pluggable.
+ * no filterable taxonomy (testimonial; team, which has no topics: SC-027).
+ * Final — not pluggable.
  *
  * @param string $cpt Post type.
  * @return string|null Taxonomy slug or null.
@@ -99,7 +100,6 @@ if ( ! function_exists( 'salt_query_default_args' ) ) {
 function salt_query_taxonomy( string $cpt ): ?string {
 	return match ( $cpt ) {
 		'service'     => 'service_category',
-		'team_member' => 'department',
 		'work'        => 'work_type',
 		'faq'         => 'faq_category',
 		'post'        => 'category',

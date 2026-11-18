@@ -4,7 +4,11 @@
  * section; the view is template-parts/sections/locations.php.
  *
  * Offices come from the location CPT via the Principle-7 query funnel.
- * Per office: address, phone, email and opening hours from its fields;
+ * Per office: address, phone, email and opening hours from its fields
+ * (salt-contract collections/locations.json: the address shape street, up
+ * to two lines, locality, region, postalCode, country; hours rows of day,
+ * open, close and appointment). lat, lng and zoom are stored but not drawn
+ * yet: this build has no office map (M4);
  * the server-side status from salt_location_status() (no $now passed —
  * live "now" in the venue/site timezone; called once per office, here,
  * never in the view); a "Get directions" link to openstreetmap.org built
@@ -43,14 +47,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  *                               Contract `offices` (office), in query order;
  *                               never empty. Per office:
  *                                 id, title (trimmed), address (the non-empty
- *                                 trimmed lines line1, line2, city, region,
- *                                 postcode, country), phone, phoneHref
+ *                                 trimmed lines: street's one or two lines,
+ *                                 locality, region, postalCode, country),
+ *                                 phone, phoneHref
  *                                 ('tel:' + dialable digits, null when none
  *                                 survive: the number is drawn as text),
  *                                 email, status, directionsHref: contract
  *                                 names; phone/email trimmed, null when blank.
  *                                 opening_hours: WordPress-local — the stored
- *                                 rows as they are, for x-opening-hours (the
+ *                                 hours rows as they are, for x-opening-hours (the
  *                                 contract's `hours` is the normalised
  *                                 data-hours rows).
  *                                 status_label: WordPress-local — the pill text
@@ -116,14 +121,20 @@ function salt_resolve_section_locations( array $context ): ?array {
 		$address = is_array( $address ) ? $address : array();
 		$phone   = trim( (string) get_field( 'phone', $office_id ) );
 		$email   = trim( (string) get_field( 'email', $office_id ) );
-		$hours   = get_field( 'opening_hours', $office_id );
+		$hours   = get_field( 'hours', $office_id );
 		$hours   = is_array( $hours ) ? $hours : array();
 
 		// The single status seam (no $now: live time). Once per office.
 		$status = salt_location_status( $hours );
 
+		// The street holds up to two lines, one each; then the other parts.
+		$street_lines  = preg_split( '/\R/', (string) ( $address['street'] ?? '' ) );
+		$street_lines  = array_values( array_filter( array_map( 'trim', false === $street_lines ? array() : $street_lines ), static fn( string $line ): bool => '' !== $line ) );
 		$address_lines = array();
-		foreach ( array( 'line1', 'line2', 'city', 'region', 'postcode', 'country' ) as $part ) {
+		foreach ( array_slice( $street_lines, 0, 2 ) as $index => $line ) {
+			$address_lines[ 'street' . $index ] = $line;
+		}
+		foreach ( array( 'locality', 'region', 'postalCode', 'country' ) as $part ) {
 			$value = trim( (string) ( $address[ $part ] ?? '' ) );
 			if ( '' !== $value ) {
 				$address_lines[ $part ] = $value;
@@ -145,15 +156,15 @@ function salt_resolve_section_locations( array $context ): ?array {
 
 		if ( array() !== $address_lines ) {
 			$postal = array( '@type' => 'PostalAddress' );
-			$street = implode( ', ', array_filter( array( $address_lines['line1'] ?? '', $address_lines['line2'] ?? '' ) ) );
+			$street = implode( ', ', array_filter( array( $address_lines['street0'] ?? '', $address_lines['street1'] ?? '' ) ) );
 			if ( '' !== $street ) {
 				$postal['streetAddress'] = $street;
 			}
 			foreach ( array(
-				'city'     => 'addressLocality',
-				'region'   => 'addressRegion',
-				'postcode' => 'postalCode',
-				'country'  => 'addressCountry',
+				'locality'   => 'addressLocality',
+				'region'     => 'addressRegion',
+				'postalCode' => 'postalCode',
+				'country'    => 'addressCountry',
 			) as $part => $schema_key ) {
 				if ( isset( $address_lines[ $part ] ) ) {
 					$postal[ $schema_key ] = $address_lines[ $part ];
@@ -175,7 +186,7 @@ function salt_resolve_section_locations( array $context ): ?array {
 		// publish hours the page contradicts (pill/schema agreement).
 		$appointment_days = array();
 		foreach ( $hours as $row ) {
-			if ( is_array( $row ) && ! empty( $row['appointment_only'] ) && is_string( $row['day'] ?? null ) ) {
+			if ( is_array( $row ) && ! empty( $row['appointment'] ) && is_string( $row['day'] ?? null ) ) {
 				$appointment_days[ strtolower( $row['day'] ) ] = true;
 			}
 		}

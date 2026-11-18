@@ -157,7 +157,7 @@ final class ProcessSectionTest extends SaltTestCase {
 
 		$this->assertSame( 'layout_salt_process', $layout['key'] );
 		$this->assertSame(
-			array( 'eyebrow', 'heading', 'intro', 'layout', 'steps', 'structuredData', 'settings' ),
+			array( 'eyebrow', 'heading', 'intro', 'layout', 'steps', 'structuredData', '', 'settings' ),
 			array_column( $layout['sub_fields'], 'name' )
 		);
 

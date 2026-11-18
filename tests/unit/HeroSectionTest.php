@@ -340,7 +340,7 @@ final class HeroSectionTest extends SaltTestCase {
 
 		$this->assertSame( 'layout_salt_hero', $layout['key'] );
 		$this->assertSame(
-			array( 'variant', 'eyebrow', 'heading', 'subheading', 'image', 'mediaSide', 'alignment', 'buttons', 'settings' ),
+			array( 'variant', 'eyebrow', 'heading', 'subheading', 'image', 'mediaSide', 'alignment', 'buttons', '', 'settings' ),
 			array_column( $layout['sub_fields'], 'name' )
 		);
 

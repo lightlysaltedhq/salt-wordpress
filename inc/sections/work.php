@@ -118,7 +118,7 @@ function salt_resolve_section_work( array $context ): ?array {
 			'title'    => (string) $post_item->post_title,
 			'url'      => $item_url,
 			'client'   => $client,
-			'summary'  => (string) get_field( 'summary', $post_item->ID ),
+			'summary'  => salt_post_summary( $post_item ),
 			'image_id' => (int) get_post_thumbnail_id( $post_item ),
 		);
 	}

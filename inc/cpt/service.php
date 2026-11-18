@@ -57,22 +57,15 @@ function salt_register_cpt_service(): void {
 		'service_category',
 		array( 'service' ),
 		array(
-			'labels'            => array(
-				'name'          => __( 'Service categories', 'salt' ),
-				'singular_name' => __( 'Service category', 'salt' ),
-				'search_items'  => __( 'Search service categories', 'salt' ),
-				'all_items'     => __( 'All service categories', 'salt' ),
-				'edit_item'     => __( 'Edit service category', 'salt' ),
-				'update_item'   => __( 'Update service category', 'salt' ),
-				'add_new_item'  => __( 'Add new service category', 'salt' ),
-				'new_item_name' => __( 'New service category name', 'salt' ),
-				'menu_name'     => __( 'Service categories', 'salt' ),
-			),
-			'hierarchical'      => true,
-			'public'            => true,
-			'show_admin_column' => true,
-			'show_in_rest'      => false,
-			'rewrite'           => array(
+			'labels'               => salt_topic_labels(), // Topics (inc/cpt/topics.php).
+			'meta_box_cb'          => 'salt_topic_meta_box',
+			'meta_box_sanitize_cb' => 'taxonomy_meta_box_sanitize_cb_checkboxes',
+			// Hierarchical only to keep the checkbox box; topics are flat (inc/cpt/topics.php).
+			'hierarchical'         => true,
+			'public'               => true,
+			'show_admin_column'    => true,
+			'show_in_rest'         => false,
+			'rewrite'              => array(
 				'slug'       => 'service-category',
 				'with_front' => false,
 			),

@@ -17,7 +17,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../shims/acf.php';
 
 require_once dirname( __DIR__, 2 ) . '/inc/fields/options.php';
-$salt_demo_field_files = glob( dirname( __DIR__, 2 ) . '/inc/fields/{options-,cpt-}*.php', GLOB_BRACE );
+$salt_demo_field_files = glob( dirname( __DIR__, 2 ) . '/inc/fields/{options-,collections}*.php', GLOB_BRACE );
 foreach ( false === $salt_demo_field_files ? array() : $salt_demo_field_files as $salt_demo_field_file ) {
 	require_once $salt_demo_field_file;
 }
@@ -116,12 +116,12 @@ final class DemoContentTest extends SaltTestCase {
 
 	public function test_every_cpt_field_is_registered_for_that_cpt(): void {
 		$group_key = array(
-			'service'     => 'group_salt_service',
-			'testimonial' => 'group_salt_testimonial',
-			'team_member' => 'group_salt_team_member',
-			'work'        => 'group_salt_work',
-			'faq'         => 'group_salt_faq',
-			'location'    => 'group_salt_location',
+			'service'     => 'group_salt_collection_services',
+			'testimonial' => 'group_salt_collection_testimonials',
+			'team_member' => 'group_salt_collection_team',
+			'work'        => 'group_salt_collection_case_studies',
+			'faq'         => 'group_salt_collection_faqs',
+			'location'    => 'group_salt_collection_locations',
 		);
 
 		foreach ( self::$data['cpts'] as $cpt => $items ) {

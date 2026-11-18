@@ -98,7 +98,7 @@ final class StatsSectionTest extends SaltTestCase {
 		$layout = salt_test_layout( 'stats' );
 
 		$this->assertSame( 'layout_salt_stats', $layout['key'] );
-		$this->assertSame( array( 'heading', 'intro', 'columns', 'items', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
+		$this->assertSame( array( 'heading', 'intro', 'columns', 'items', '', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
 		$items = array_column( $layout['sub_fields'], null, 'name' )['items'];
 		$this->assertSame( 'repeater', $items['type'] );

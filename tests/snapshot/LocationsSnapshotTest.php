@@ -4,7 +4,7 @@
  *
  * Fixture statuses are chosen to be time-invariant so the snapshots never
  * flap: all-week 00:00–00:00 overnight spans => always "Open now";
- * all-week appointment_only => always "By appointment"; no hours =>
+ * all-week appointment => always "By appointment"; no hours =>
  * unknown (no pill).
  *
  * @package Salt\Tests
@@ -74,19 +74,19 @@ final class LocationsSnapshotTest extends SaltSnapshotTestCase {
 					101,
 					'Bath office',
 					array(
-						'address'       => array(
-							'line1'    => '1 High Street',
-							'city'     => 'Bath',
-							'postcode' => 'BA1 1AA',
+						'address' => array(
+							'street'     => '1 High Street',
+							'locality'   => 'Bath',
+							'postalCode' => 'BA1 1AA',
 						),
-						'phone'         => '+44 1225 000000',
-						'email'         => 'bath@example.test',
-						'opening_hours' => array_map(
+						'phone'   => '+44 1225 000000',
+						'email'   => 'bath@example.test',
+						'hours'   => array_map(
 							static fn( string $day ): array => array(
-								'day'              => $day,
-								'open'             => '',
-								'close'            => '',
-								'appointment_only' => true,
+								'day'         => $day,
+								'open'        => '',
+								'close'       => '',
+								'appointment' => true,
 							),
 							self::WEEK
 						),
@@ -113,17 +113,17 @@ final class LocationsSnapshotTest extends SaltSnapshotTestCase {
 					101,
 					'Bath office',
 					array(
-						'address'       => array(
-							'line1' => '1 High Street',
-							'city'  => 'Bath',
+						'address' => array(
+							'street'   => '1 High Street',
+							'locality' => 'Bath',
 						),
-						'phone'         => '+44 1225 000000',
-						'opening_hours' => array_map(
+						'phone'   => '+44 1225 000000',
+						'hours'   => array_map(
 							static fn( string $day ): array => array(
-								'day'              => $day,
-								'open'             => '00:00',
-								'close'            => '00:00',
-								'appointment_only' => false,
+								'day'         => $day,
+								'open'        => '00:00',
+								'close'       => '00:00',
+								'appointment' => false,
 							),
 							self::WEEK
 						),

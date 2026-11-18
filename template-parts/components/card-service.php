@@ -9,6 +9,10 @@
  *   summary string  ''        Plain-text one-liner (escaped by x-card).
  *   icon    string  ''        Bundled icon name rendered via x-icon; unknown
  *                             or empty names render no icon (x-icon logs).
+ *                             Drawn only when the card has no image.
+ *   image_id int    0         The service's featured image, rendered ONLY via
+ *                             x-image (salt-contract collections/services.json,
+ *                             display: image from featuredImage).
  *   level   int     3         Card title heading level (sections pass the
  *                             derived section level + 1).
  *   classes string  ''        Extra utility classes forwarded to x-card.
@@ -26,27 +30,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 $args = salt_require_args( // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- $args is WordPress's load_template() template variable.
 	$args ?? array(),
 	array(
-		'title'   => array(
+		'title'    => array(
 			'type'     => 'string',
 			'required' => true,
 		),
-		'url'     => array(
+		'url'      => array(
 			'type'    => 'string',
 			'default' => '',
 		),
-		'summary' => array(
+		'summary'  => array(
 			'type'    => 'string',
 			'default' => '',
 		),
-		'icon'    => array(
+		'icon'     => array(
 			'type'    => 'string',
 			'default' => '',
 		),
-		'level'   => array(
+		'image_id' => array(
+			'type'    => 'int',
+			'default' => 0,
+		),
+		'level'    => array(
 			'type'    => 'int',
 			'default' => 3,
 		),
-		'classes' => array(
+		'classes'  => array(
 			'type'    => 'string',
 			'default' => '',
 		),
@@ -54,8 +62,23 @@ $args = salt_require_args( // phpcs:ignore WordPress.NamingConventions.PrefixAll
 	'card-service'
 );
 
+$salt_media = '';
+if ( $args['image_id'] > 0 ) {
+	// Images ONLY via x-image (§8): '' alt falls back to the stored
+	// attachment alt, else decorative — the linked title carries the name.
+	$salt_media = salt_get_component(
+		'image',
+		array(
+			'image_id'      => $args['image_id'],
+			'alt'           => '',
+			'sizes_context' => 'card',
+			'classes'       => 'aspect-[4/3] w-full object-cover',
+		)
+	);
+}
+
 $salt_icon_html = '';
-if ( '' !== $args['icon'] ) {
+if ( '' === $salt_media && '' !== $args['icon'] ) {
 	$salt_icon_html = salt_get_component(
 		'icon',
 		array(
@@ -74,7 +97,7 @@ salt_component(
 		'body'    => $args['summary'],
 		'media'   => '' !== $salt_icon_html
 			? '<div class="x-card-service-icon px-6 pt-6 text-brand">' . $salt_icon_html . '</div>'
-			: '',
+			: $salt_media,
 		'classes' => salt_classnames( array( 'x-card-service', $args['classes'] ) ),
 	)
 );
