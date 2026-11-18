@@ -1,7 +1,8 @@
 /**
  * Salt asset build — runs ONCE in core CI (spec §7); client sites never build.
  *
- * Outputs minified, content-hashed CSS/JS into assets/dist/ plus a
+ * Outputs minified, content-hashed CSS/JS into assets/dist/, and a verbatim
+ * copy of the pinned salt-contract stylesheet (styles/salt.css), plus a
  * manifest.json mapping logical names → hashed filenames (ARCH03).
  * The build must be deterministic: the same commit rebuilt anywhere must
  * produce byte-identical output, because CI byte-compares the committed
@@ -97,6 +98,17 @@ try {
 		fs.writeFileSync(path.join(dist, outName), contents);
 		manifest[logical] = outName;
 	}
+
+	// 4. The contract's stylesheet, copied byte for byte: never through
+	// Tailwind or esbuild, which would rewrite it, since the contract's
+	// conformance runner pins the served file to the package's. The hash
+	// names a directory rather than the file, because the contract finds its
+	// stylesheet in a page by the file name salt.css (normalise.mjs pageOf).
+	const saltCss = fs.readFileSync(path.join(root, 'node_modules/@lightlysaltedhq/salt-contract/styles/salt.css'));
+	const saltDir = `salt.${createHash('sha256').update(saltCss).digest('hex').slice(0, 10)}`;
+	fs.mkdirSync(path.join(dist, saltDir));
+	fs.writeFileSync(path.join(dist, saltDir, 'salt.css'), saltCss);
+	manifest['salt.css'] = `${saltDir}/salt.css`;
 
 	// Stable key order + trailing newline so the file is byte-reproducible.
 	const ordered = Object.fromEntries(Object.entries(manifest).sort(([ a ], [ b ]) => a.localeCompare(b)));

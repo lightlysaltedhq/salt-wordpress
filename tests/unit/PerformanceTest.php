@@ -241,4 +241,25 @@ final class PerformanceTest extends SaltTestCase {
 
 		$this->assertSame( array(), $this->logs() );
 	}
+
+	/**
+	 * The contract's salt.css is its own stylesheet, printed after
+	 * Tailwind's (salt-contract README, Stylesheets): WordPress prints a
+	 * handle after the handles it depends on.
+	 */
+	public function test_enqueue_assets_serves_the_contract_stylesheet_after_tailwind(): void {
+		$manifest = $this->real_manifest();
+
+		salt_enqueue_assets();
+
+		$styles = $GLOBALS['salt_test_enqueued']['styles'];
+
+		$this->assertArrayHasKey( 'salt-contract', $styles );
+		$this->assertSame( array( 'salt-app' ), $styles['salt-contract']['deps'] );
+		$this->assertNull( $styles['salt-contract']['ver'] );
+		$this->assertSame( 'all', $styles['salt-contract']['media'] );
+		$this->assertStringEndsWith( '/assets/dist/' . $manifest['salt.css'], $styles['salt-contract']['src'] );
+		$this->assertStringEndsWith( '/salt.css', $styles['salt-contract']['src'] );
+		$this->assertSame( array(), $this->logs() );
+	}
 }
