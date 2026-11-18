@@ -40,7 +40,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Resolve the current media-text Flexible Content row to its view props.
  *
  * Props (contract view-props/media-text.json):
- *   rows  array<int, array{image_id: int, heading: string|null, content: string|null, mediaSide: string, cta: array{url: string, title: string, target: string}|null}>
+ *   rows  array<int, array{image_id: int, heading: string|null, content: string|null, mediaSide: string, buttons: array<int, array{label: string, url: string, style: string, target: string}>}>
  *         Contract `rows` (row), in rendered order, never empty:
  *           image_id   WordPress-local (the contract's `image` is an
  *                      object): a resolvable attachment ID, 0 for none.
@@ -49,9 +49,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  *                      (salt_sanitize_html()); null when blank.
  *           mediaSide  Contract `mediaSide`: 'left'|'right'. The EFFECTIVE
  *                      side: the MODE RULE is already applied.
- *           cta        WordPress-local (the contract has `buttons`, a list
- *                      of button): url/title/target of the row's one link,
- *                      or null (absent or malformed).
+ *           buttons    Contract `buttons` (button), up to two, from the
+ *                      row's buttons list (salt_contract_buttons()):
+ *                      x-button label/url/style/target. May be empty. The
+ *                      view draws each as a link-arrow button (style is
+ *                      not drawn yet, M4).
  *   The contract's `mode` is not a prop: it only decides `mediaSide`.
  *
  * @param array<string,mixed> $context Loop context: index, is_primary.
@@ -93,29 +95,13 @@ function salt_resolve_section_media_text( array $context ): ?array {
 			continue;
 		}
 
-		$cta       = null;
-		$cta_raw   = $row['cta'] ?? null;
-		$cta_url   = is_array( $cta_raw ) ? trim( (string) ( $cta_raw['url'] ?? '' ) ) : '';
-		$cta_title = is_array( $cta_raw ) ? trim( (string) ( $cta_raw['title'] ?? '' ) ) : '';
-		if ( is_array( $cta_raw ) && array() !== $cta_raw ) {
-			if ( '' !== $cta_url && '' !== $cta_title ) {
-				$cta = array(
-					'url'    => $cta_url,
-					'title'  => $cta_title,
-					'target' => '_blank' === ( $cta_raw['target'] ?? '' ) ? '_blank' : '',
-				);
-			} else {
-				salt_log( sprintf( 'section media-text: row %d has a malformed CTA link (url and title required) — CTA skipped.', (int) $i ) );
-			}
-		}
-
 		$rows[] = array(
 			'image_id'  => $image_id,
 			'heading'   => '' !== $heading ? $heading : null,
 			'content'   => '' !== $content ? salt_sanitize_html( $content ) : null,
 			// Stored side, until the MODE RULE below settles the effective one.
 			'mediaSide' => 'right' === ( $row['mediaSide'] ?? '' ) ? 'right' : 'left',
-			'cta'       => $cta,
+			'buttons'   => salt_contract_buttons( $row['buttons'] ?? null, sprintf( 'section media-text: row %d', (int) $i ), 2, 'secondary' ),
 		);
 	}
 

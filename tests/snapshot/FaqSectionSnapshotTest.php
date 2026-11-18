@@ -110,10 +110,12 @@ final class FaqSectionSnapshotTest extends SaltSnapshotTestCase {
 			'faq-multiple-items',
 			$this->render_faq_section(
 				array(
-					'eyebrow' => 'Support',
-					'heading' => 'Frequently asked questions',
-					'tone'    => 'surface-alt',
-					'width'   => 'narrow',
+					'eyebrow'  => 'Support',
+					'heading'  => 'Frequently asked questions',
+					'settings' => array(
+						'tone'  => 'surface-alt',
+						'width' => 'narrow',
+					),
 				)
 			)
 		);

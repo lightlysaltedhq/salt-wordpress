@@ -4,7 +4,7 @@
  *
  * Content fields first, then the shared query controls
  * (salt_query_control_fields('post') — §10a: latest / by category /
- * hand-pick), then the shared §11 wrapper Advanced tab. Layout slug
+ * hand-pick), then the contract's section settings group. Layout slug
  * 'blog_teaser' is a stability contract (FLEET07) — renaming it is a
  * MAJOR bump + slug-migrations.json entry.
  *
@@ -56,6 +56,6 @@ return array(
 			),
 		),
 		salt_query_control_fields( 'post' ),
-		salt_section_wrapper_fields( 'blog_teaser' )
+		salt_section_settings_fields( 'blog_teaser' )
 	),
 );

@@ -4,7 +4,7 @@
  *
  * Layout slug 'team' is a stability contract (FLEET07) — renaming it is a
  * MAJOR bump + slug-migrations.json entry. Content fields first, then the
- * shared query controls (§10a), then the §11 wrapper Advanced tab.
+ * shared query controls (§10a), then the contract's section settings group.
  *
  * @package Salt
  */
@@ -46,6 +46,6 @@ return array(
 			),
 		),
 		salt_query_control_fields( 'team_member' ),
-		salt_section_wrapper_fields( 'team' )
+		salt_section_settings_fields( 'team' )
 	),
 );

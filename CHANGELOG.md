@@ -10,6 +10,42 @@ markup granularity (cross-reference your site's override manifest).
 
 ### Added
 
+- **Every section's fields generated from the contract (ID-3610 part A,
+  EP-72 M3 unit 3).** `inc/fields/generated/sections.json` is the pinned
+  salt-contract 1.0.0-rc.6 emitter's `acfSnapshot` output, committed
+  verbatim, for the twelve sections the theme renders (hero, rich-text,
+  call-to-action, media-text, features, stats, logos, gallery, process,
+  faq, contact, locations), with its options in
+  `sections.options.json` (the section list and the theme's 24 icons).
+  `salt_section_layouts()` loads it on `acf/init`; a missing or invalid
+  file is logged and the theme falls back to the hand-written layouts
+  (DEP01 still holds). The six collection layouts (blog_teaser,
+  scroll_carousel, services, team, testimonials, work) stay hand-written
+  until unit 8, and a hand-written layout named after a generated section
+  is refused and logged. tabs, listing, collection-showcase and carousel
+  are not registered: nothing renders them yet.
+- **`bin/check-fields-from-contract.php`** (drift check): fails when the
+  committed JSON differs from the pinned emitter's output (it runs the
+  emitter with `node`) or when the registered layouts differ from the
+  JSON. `--write` regenerates; `--contract <dir>` points at another copy
+  of the package. Its CI step is proposed in
+  `docs/ci/fields-from-contract.patch`.
+- **Shared collection-query reader** `salt_query_controls_from_query()`:
+  turns the contract's `query` group (`mode` automatic, by-category or
+  manual; `categories`; `items`; `order` default, newest or title;
+  `count`, capped at 24) into the query controls `salt_resolve_query()`
+  runs. faq and locations use it.
+- **`tests/unit/StoragePathCaseTest.php`** walks every registered field
+  group and fails when two storage paths in one layout differ only in case
+  (MariaDB matches `meta_key` case-insensitively).
+- **The section settings group.** Every section, generated or
+  hand-written, has the contract's `settings` group: `spacing`, `tone`,
+  `toneDark`, `width`, `backgroundImage`, `anchorId`, `firstPageOnly`,
+  `divider`. The wrapper reads only this group. `firstPageOnly` hides the
+  section on page 2 and later of a paginated page. `toneDark` and
+  `backgroundImage` are stored but not drawn until the contract
+  stylesheet lands (unit 9), except that a full-bleed hero takes its image
+  from `backgroundImage`.
 - **Real ACF Pro harness for the contract's field shape (ID-3610, EP-72
   M3 unit 2).** `tests/real-acf/run.sh --php 8.2|8.5` builds a throwaway
   WordPress 6.8 with the theme and ACF Pro 6.8.11 (the hash-checked zip,
@@ -77,6 +113,19 @@ markup granularity (cross-reference your site's override manifest).
 
 ### Changed
 
+- **Version `6.0.0-dev`** in `style.css` and `SALT_VERSION` (founder
+  decision D11). No tag and no release.
+- **Resolvers read the contract's field names and shapes.** View props and
+  view markup are unchanged (that is M4) except where the new shape
+  forces it; see BREAKING for the visible changes.
+- **The real ACF harness registers through the theme's own loader.** The
+  harness-only mu-plugin is gone; the harness checks that the theme's
+  generated layouts are the emitter's output, and a new phase renders the
+  fixture page through the theme's section loop on real ACF values.
+- **Slugs (FLEET07).** `docs/contracts/slug-registry.json` regenerated.
+  The 6.0.0 entries in `docs/contracts/slug-migrations.json` are retired:
+  they only described stored content from before 6.0.0, and no site holds
+  any.
 - The design contract pin moves to `@lightlysaltedhq/design-foundations` 3.0.1, the
   first release from the public `lightlysaltedhq/contracts` repository, with an npm
   provenance attestation. The contract itself is unchanged from 3.0.0, and the
@@ -112,6 +161,70 @@ markup granularity (cross-reference your site's override manifest).
   contract has no rule for, in every display mode.
 
 ### BREAKING
+- **Sections read the contract's own field shape (ID-3610 part A, EP-72 M3
+  unit 3; FLEET07: MAJOR, 6.0.0).** Nothing stored before this change is
+  read: no site holds Salt for WordPress content, so there is no dual
+  reader and no migration. Generated field keys are the emitter's
+  (`field_salt_{section}_{path}`); generated layout keys are
+  `layout_salt_{section}`.
+  - **Removed layouts:** `intro` (use `rich-text`; this completes
+    ID-3599's fold) and `pricing` (SC-006: pricing becomes a Grain for
+    WordPress recipe, ID-3955), with their resolvers
+    (`salt_resolve_section_intro()`, `salt_resolve_section_pricing()`),
+    views, `template-parts/components/card-pricing.php` and their fields
+    (`featured`, `features`, `period`, `plans`, `price`). Removed layout
+    slugs in the registry: `cta`, `intro`, `media_text`, `pricing`,
+    `rich_text`.
+  - **Removed files and functions:** `inc/fields/layouts/{hero,rich-text,
+    call-to-action,media-text,features,stats,logos,gallery,process,faq,
+    contact,locations}.php` (generated now) and
+    `salt_section_wrapper_fields()` (the hand-written Advanced tab).
+  - **Section settings move into one `settings` group** on every layout:
+    `spacing`, `tone`, `width`, `anchorId` and `divider` are now
+    `settings.spacing` … `settings.divider` (same values), joined by
+    `settings.toneDark`, `settings.backgroundImage` and
+    `settings.firstPageOnly`. Top-level settings fields are ignored.
+  - **hero:** `cta_primary` and `cta_secondary` → the `buttons` list (at
+    most two; each a contract link `{label, type, document, url, newTab}`
+    and a `style`). New variant `stacked` (drawn as split until M4).
+    full-bleed takes its image from `settings.backgroundImage.image`, not
+    `image`. `mediaSide` and `alignment` are stored but not drawn yet.
+  - **call-to-action:** `body` is rich text (was a textarea); each
+    `buttons` row is `{link, style}` (was `label`, `url`, `style`), and
+    `link.newTab` opens a new tab. View prop `body_text` → `body` (HTML).
+  - **media-text:** each row's `cta` link → a `buttons` list (at most
+    two).
+  - **features:** item `text` is rich text (was a textarea); item `url`
+    is a plain address (was an ACF link); item `icon` is a select of the
+    theme's icons (was free text); new `intro`. View prop `body_text` →
+    `text` (HTML).
+  - **faq, locations:** a `query` group (`mode`, `categories`, `items`,
+    `order`, `count`) replaces the hand-written query controls
+    (`source`, `taxonomy_terms`, `manual`, `orderby`, `order`, `count`).
+  - **contact:** no shape change (its names moved in ID-3599); only its
+    pre-6.0.0 names leave the registry.
+  - **Fields new in the contract, stored but not drawn until M4:**
+    rich-text `eyebrow` and `alignment`; stats `intro` and item `icon`;
+    logos `intro` and item `name`; gallery `heading`, `intro` and
+    `label`; process `intro`, step `image` and step `cta`.
+  - **Removed field slugs in the registry:** `align`, `cta_primary`,
+    `cta_secondary`, `featured`, `features`, `form_intro`, `logos`,
+    `media_side`, `number`, `period`, `plans`, `price`, `schema_toggle`,
+    `section_anchor`, `section_background`, `section_container`,
+    `section_divider`, `section_spacing`, `show_address`, `show_email`,
+    `show_phone`.
+  - **Visible changes:** the call-to-action body is drawn as
+    `<div class="x-prose text-ink-muted">` around its paragraphs (was one
+    `<p class="text-ink-muted">`); a features card body is
+    `<div class="x-card-body x-prose text-ink-muted">` around its
+    paragraphs (was `<p class="x-card-body …">`); call-to-action buttons
+    can open in a new tab; media-text rows can show two buttons; links to
+    a page resolve through its permalink; a section with `firstPageOnly`
+    is hidden after page 1; intro and pricing rows no longer render.
+  - **Child themes:** a view override of `intro.php` or `pricing.php` is
+    never loaded; a view override of call-to-action or features must read
+    `body` / `text` as HTML; code reading these fields with
+    `get_sub_field()` must use the new names and shapes.
 - **Child overrides of any `template-parts/sections/{slug}.php`** (all 20
   sections listed above) are now overrides of the VIEW. They receive
   `$args = { props, plan }`, not the loop context, and must draw from the
@@ -140,10 +253,10 @@ markup granularity (cross-reference your site's override manifest).
   section's logic, declare it `logic` in `salt-overrides.json` (Added,
   above).
 - **Layouts and fields renamed to the salt-contract's section vocabulary
-  (ID-3599; SC-001; FLEET07: MAJOR, next release 6.0.0).** Every removed
-  slug and field name has an entry in `docs/contracts/slug-migrations.json`
-  (version 6.0.0) saying how stored content maps; no WordPress client site
-  is live, so no database migration ships. Field keys move with the names
+  (ID-3599; SC-001; FLEET07: MAJOR, next release 6.0.0).** No WordPress client site
+  is live, so no database migration ships (the
+  `docs/contracts/slug-migrations.json` entries first written for these
+  renames are retired; see Changed). Field keys move with the names
   (keys stay snake_case, `field_salt_{scope}_{name}`).
   - Layout slugs are the contract ids: `cta` → `call-to-action` (layout key
     `layout_salt_call_to_action`, field keys `field_salt_call_to_action_*`,

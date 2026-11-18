@@ -11,6 +11,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../shims/acf.php';
+
 final class ResolverTest extends SaltTestCase {
 
 	/**
@@ -309,5 +311,120 @@ final class ResolverTest extends SaltTestCase {
 		$this->assertSame( 'category', salt_query_taxonomy( 'post' ) );
 		$this->assertSame( 'location_area', salt_query_taxonomy( 'location' ) );
 		$this->assertNull( salt_query_taxonomy( 'testimonial' ) );
+	}
+
+	// -----------------------------------------------------------------
+	// The contract's collection query (salt_query_controls_from_query()).
+	// -----------------------------------------------------------------
+
+	/**
+	 * Seed one row holding a contract `query` group and read it.
+	 *
+	 * @param array<string,mixed>|null $query The stored group.
+	 * @return array<string,mixed>
+	 */
+	private function controls_from( ?array $query ): array {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'faq',
+					'fields' => null === $query ? array() : array( 'query' => $query ),
+				),
+			)
+		);
+		the_row();
+		return salt_query_controls_from_query();
+	}
+
+	public function test_query_automatic_is_the_sources_defaults(): void {
+		$expected = array(
+			'source'         => 'default',
+			'taxonomy_terms' => array(),
+			'orderby'        => '',
+			'order'          => '',
+			'count'          => 0,
+		);
+		$this->assertSame( $expected, $this->controls_from( null ), 'A row with no query group reads as automatic.' );
+		$this->assertSame(
+			$expected,
+			$this->controls_from(
+				array(
+					'mode'       => 'automatic',
+					'categories' => array( 9 ),
+					'order'      => 'default',
+					'count'      => 0,
+				)
+			),
+			'Categories are read only in by-category mode.'
+		);
+	}
+
+	public function test_query_by_category_filters_by_its_terms_with_order_and_count(): void {
+		$this->assertSame(
+			array(
+				'source'         => 'taxonomy',
+				'taxonomy_terms' => array( 7, 9 ),
+				'orderby'        => 'date',
+				'order'          => 'DESC',
+				'count'          => 4,
+			),
+			$this->controls_from(
+				array(
+					'mode'       => 'by-category',
+					'categories' => array( '7', 9 ),
+					'order'      => 'newest',
+					'count'      => '4',
+				)
+			)
+		);
+	}
+
+	public function test_query_manual_keeps_the_picked_order_and_ignores_order_and_count(): void {
+		$this->assertSame(
+			array(
+				'source' => 'manual',
+				'manual' => array( 3, 1 ),
+			),
+			$this->controls_from(
+				array(
+					'mode'  => 'manual',
+					'items' => array( 3, '1' ),
+					'order' => 'title',
+					'count' => 1,
+				)
+			)
+		);
+	}
+
+	public function test_query_title_order_caps_count_and_unknown_values_fall_back(): void {
+		$controls = $this->controls_from(
+			array(
+				'mode'  => 'sideways',
+				'order' => 'title',
+				'count' => 99,
+			)
+		);
+		$this->assertSame( 'default', $controls['source'] );
+		$this->assertSame( array( 'title', 'ASC' ), array( $controls['orderby'], $controls['order'] ) );
+		$this->assertSame( 24, $controls['count'], 'The contract caps count at 24.' );
+		$this->assertStringContainsString( 'unknown mode "sideways"', implode( ' ', $this->logs() ) );
+
+		$controls = $this->controls_from( array( 'order' => 'random' ) );
+		$this->assertSame( array( '', '' ), array( $controls['orderby'], $controls['order'] ) );
+		$this->assertStringContainsString( 'unknown order "random"', implode( ' ', $this->logs() ) );
+	}
+
+	public function test_query_controls_feed_the_resolver(): void {
+		$this->seed_services();
+		$posts = salt_resolve_query(
+			$this->controls_from(
+				array(
+					'mode'  => 'manual',
+					'items' => array( 2, 1 ),
+				)
+			),
+			'service'
+		);
+		$this->assertSame( array( 2, 1 ), array_map( static fn( WP_Post $p ): int => (int) $p->ID, $posts ) );
 	}
 }

@@ -45,11 +45,11 @@ const SALT_OVERRIDES_MAX_BYTES = 65536;
  * former layouts, hyphenated — the same mapping as the slug table in
  * docs/contracts/CONVENTIONS.md.
  * Where the contract folds several layouts into one section
- * (collection-showcase, carousel, rich-text) every one of them is listed,
+ * (collection-showcase, carousel) every one of them is listed,
  * and `testimonials` is under both collection-showcase (its grid rows) and
  * carousel (its slider rows); which one a row is comes from its layout
- * field (salt_contract_section_conditions()). A section WordPress does not ship yet (tabs,
- * listing) maps to no layout. salt-wordpress takes no dependency on the
+ * field (salt_contract_section_conditions()). A section WordPress does not ship (tabs,
+ * listing, and pricing, a Grain for WordPress recipe since 6.0.0, SC-006) maps to no layout. salt-wordpress takes no dependency on the
  * contract package, so this list is kept by hand: a new contract section
  * or a new layout adds a row here.
  *
@@ -58,7 +58,7 @@ const SALT_OVERRIDES_MAX_BYTES = 65536;
 function salt_contract_section_layouts(): array {
 	return array(
 		'hero'                => array( 'hero' ),
-		'rich-text'           => array( 'rich-text', 'intro' ),
+		'rich-text'           => array( 'rich-text' ),
 		'call-to-action'      => array( 'call-to-action' ),
 		'media-text'          => array( 'media-text' ),
 		'features'            => array( 'features' ),
@@ -73,7 +73,7 @@ function salt_contract_section_layouts(): array {
 		'listing'             => array(),
 		'contact'             => array( 'contact' ),
 		'locations'           => array( 'locations' ),
-		'pricing'             => array( 'pricing' ),
+		'pricing'             => array(),
 	);
 }
 

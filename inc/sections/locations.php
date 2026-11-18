@@ -76,7 +76,7 @@ function salt_resolve_section_locations( array $context ): ?array {
 	$eyebrow = function_exists( 'get_sub_field' ) ? (string) get_sub_field( 'eyebrow' ) : '';
 
 	$office_posts = array();
-	foreach ( salt_resolve_query( salt_query_controls_from_row(), 'location' ) as $office_post ) {
+	foreach ( salt_resolve_query( salt_query_controls_from_query(), 'location' ) as $office_post ) {
 		if ( '' === trim( (string) $office_post->post_title ) ) {
 			salt_log( sprintf( 'locations: office %d has no title — skipped (broken row).', (int) $office_post->ID ) );
 			continue;

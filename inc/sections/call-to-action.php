@@ -3,9 +3,10 @@
  * Resolver: Call to Action (spec §10 #10) — the logic half of the section;
  * the view is template-parts/sections/call-to-action.php.
  *
- * Fields: heading (text), body (textarea), buttons (repeater, max 2:
- * label, url, style primary|secondary|ghost). Background defaults to
- * 'brand-tint' when the editor leaves the shared wrapper control unset.
+ * Fields (contract/fields/call-to-action.json): heading (text), body
+ * (rich text), buttons (a list of up to two { link, style }). The tone
+ * defaults to brand-tint (the contract's default for this section), also
+ * when a row has no stored tone.
  *
  * States (COMPL02): heading, body AND valid buttons all empty => null
  * (renders NOTHING). Malformed button rows are skipped and logged;
@@ -14,7 +15,7 @@
  *
  * DEFERRED (compliance phase): the spec's 'newsletter' variant — no email
  * input may ship while nothing can process the submission (PRIV01
- * posture). See inc/fields/layouts/call-to-action.php.
+ * posture).
  *
  * @package Salt
  */
@@ -28,15 +29,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Props (contract view-props/call-to-action.json):
  *   heading  string|null  Contract `heading`. Null when blank; trimmed.
- *   body_text string|null WordPress-local. The contract's `body` is rich
- *                         text; this field is a plain textarea that x-cta
- *                         escapes, so the name is not shared. Null when
- *                         blank; trimmed.
- *   buttons  array<int, array{label: string, href: string, style: string}>
+ *   body     string|null  Contract `body` (rich text). Sanitised HTML
+ *                         (salt_sanitize_html()); null when the stored
+ *                         body is blank.
+ *   buttons  array<int, array{label: string, href: string, style: string, newTab: bool}>
  *                         Contract `buttons` (button): `label`, `href`,
- *                         `style` as in the contract. The contract's
- *                         `newTab` is not supplied (the field has none).
- *                         At most two, in row order; may be empty.
+ *                         `style`, `newTab` as in the contract. At most
+ *                         two, in row order; may be empty.
  *
  * @param array<string,mixed> $context Loop context: index, is_primary.
  * @return array{section: array<string,mixed>, props: array<string,mixed>}|null Null = 0-state.
@@ -51,55 +50,28 @@ function salt_resolve_section_call_to_action( array $context ): ?array {
 	};
 
 	$heading = trim( $sub( 'heading' ) );
-	$text    = trim( $sub( 'body' ) );
+	$body    = $sub( 'body' );
 
-	$rows = function_exists( 'get_sub_field' ) ? get_sub_field( 'buttons' ) : array();
-	if ( ! is_array( $rows ) ) {
-		$rows = array();
-	}
+	$buttons = array_map(
+		static fn( array $button ): array => array(
+			'label'  => $button['label'],
+			'href'   => $button['url'],
+			'style'  => $button['style'],
+			'newTab' => '_blank' === $button['target'],
+		),
+		salt_contract_buttons( function_exists( 'get_sub_field' ) ? get_sub_field( 'buttons' ) : array(), 'call-to-action section', 2 )
+	);
 
-	// Normalise button rows, skipping malformed entries (logged — COMPL02).
-	$buttons = array();
-	foreach ( $rows as $i => $row ) {
-		if ( ! is_array( $row ) ) {
-			salt_log( sprintf( 'call-to-action section: button %d is not a row array — skipped (broken row).', (int) $i ) );
-			continue;
-		}
-
-		$label = is_string( $row['label'] ?? null ) ? trim( $row['label'] ) : '';
-		$url   = is_string( $row['url'] ?? null ) ? trim( $row['url'] ) : '';
-		if ( '' === $label || '' === $url ) {
-			salt_log( sprintf( 'call-to-action section: button %d is missing a label or URL — skipped (broken row).', (int) $i ) );
-			continue;
-		}
-
-		$style = is_string( $row['style'] ?? null ) ? $row['style'] : 'primary';
-		if ( ! in_array( $style, array( 'primary', 'secondary', 'ghost' ), true ) ) {
-			salt_log( sprintf( 'call-to-action section: button %d has unknown style "%s" — using primary.', (int) $i, $style ) );
-			$style = 'primary';
-		}
-
-		$buttons[] = array(
-			'label' => $label,
-			'href'  => $url,
-			'style' => $style,
-		);
-	}
-
-	if ( count( $buttons ) > 2 ) {
-		salt_log( sprintf( 'call-to-action section: %d buttons given — only the first 2 render.', count( $buttons ) ) );
-		$buttons = array_slice( $buttons, 0, 2 );
-	}
-
-	if ( '' === $heading && '' === $text && array() === $buttons ) {
+	if ( '' === $heading && '' === trim( $body ) && array() === $buttons ) {
 		return null; // 0-state: skip the section entirely (COMPL02).
 	}
 
 	$wrapper = salt_section_wrapper_args( 'call-to-action', $context );
 
-	// The CTA band defaults to the brand tint when the editor left the shared
-	// wrapper control unset (salt_section_wrapper_args falls back to 'surface').
-	if ( '' === trim( $sub( 'tone' ) ) ) {
+	// The contract's default tone for this section, also for a row with none
+	// stored (salt_section_wrapper_args() falls back to 'surface').
+	$tone = salt_section_settings()['tone'] ?? '';
+	if ( ! is_string( $tone ) || '' === trim( $tone ) ) {
 		$wrapper['background'] = 'brand-tint';
 	}
 
@@ -110,9 +82,9 @@ function salt_resolve_section_call_to_action( array $context ): ?array {
 			array( 'has_heading' => '' !== $heading )
 		),
 		'props'   => array(
-			'heading'   => salt_nullable_text( $heading ),
-			'body_text' => salt_nullable_text( $text ),
-			'buttons'   => $buttons,
+			'heading' => salt_nullable_text( $heading ),
+			'body'    => '' !== trim( $body ) ? salt_sanitize_html( $body ) : null,
+			'buttons' => $buttons,
 		),
 	);
 }

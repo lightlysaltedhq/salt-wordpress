@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The real-ACF harness: builds a throwaway WordPress with the salt theme and real ACF Pro,
-# registers the pinned salt-contract emitter's field groups, seeds and reads back every
+# checks the theme registers the pinned salt-contract emitter's field groups, seeds and reads back every
 # contract fixture, checks storage paths, drives the classic editor in a real browser, prints
 # a pass/fail report and removes everything it made. See tests/real-acf/README.md.
 #
@@ -206,13 +206,11 @@ phase() {
 DB_CREATED=1
 
 phase "install" "$PHP" "$HERE/php/install.php"
-phase "theme's hand-written groups (no harness mu-plugin)" "$PHP" "$HERE/php/theme-groups.php"
+phase "theme's field groups" "$PHP" "$HERE/php/theme-groups.php"
 
-# The harness mu-plugins/ register the emitted JSON until the theme does (unit 3 deletes it).
-shopt -s nullglob
-for mu in "$HERE"/mu-plugins/*.php; do cp "$mu" "$WP/wp-content/mu-plugins/"; done
-shopt -u nullglob
+# The theme registers the generated JSON itself (inc/acf.php); the contract phase checks it.
 phase "contract field shape: register, seed, read back, storage" "$PHP" "$HERE/php/contract.php"
+phase "the theme renders it (resolvers on real ACF values)" "$PHP" "$HERE/php/render.php"
 
 if [ "$BROWSER" = 1 ]; then
 	# PHP's default max_input_vars (1000) truncates the re-save of a page holding every fixture

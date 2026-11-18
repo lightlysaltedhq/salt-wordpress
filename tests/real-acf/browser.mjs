@@ -4,9 +4,9 @@
  *
  * 1. The fixtures page's edit screen loads every row and every layout, with
  *    no console errors or uncaught page errors.
- * 2. Conditional logic: on the probe page, a collection-query's mode shows
- *    categories or items, and a source without categories hides them.
- * 3. A required field blocks a save (an empty collection-showcase source);
+ * 2. Conditional logic: on the probe page, the faq section's collection
+ *    query mode shows categories or items, and order and count unless manual.
+ * 3. A required field blocks a save (a features item with no title);
  *    filling it lets the same page publish.
  * 4. A browser re-save of the fixtures page: every meta row before and after,
  *    straight from the database, each change explained or reported.
@@ -176,8 +176,8 @@ try {
 		const { page, errors } = await open( editUrl( state.probePage ) );
 		await page.waitForSelector( rowsSel );
 		await page.waitForFunction( () => window.acf && document.readyState === 'complete' );
-		const row = page.locator( `${ rowsSel }[data-layout="collection-showcase"]` ).first();
-		const field = ( name ) => row.locator( `.acf-field[data-key="field_salt_collection_showcase_${ name }"]` );
+		const row = page.locator( `${ rowsSel }[data-layout="faq"]` ).first();
+		const field = ( name ) => row.locator( `.acf-field[data-key="field_salt_faq_${ name }"]` );
 		const visible = async () => {
 			const out = {};
 			for ( const n of [ 'categories', 'items', 'order', 'count' ] ) {
@@ -186,21 +186,18 @@ try {
 			return out;
 		};
 		const steps = [
-			[ 'posts', 'by-category', { categories: true, items: false, order: true, count: true } ],
-			[ 'posts', 'manual', { categories: false, items: true, order: false, count: false } ],
-			[ 'posts', 'automatic', { categories: false, items: false, order: true, count: true } ],
-			[ 'testimonials', 'by-category', { categories: false, items: false, order: true, count: true } ],
-			[ 'services', 'by-category', { categories: true, items: false, order: true, count: true } ],
+			[ 'by-category', { categories: true, items: false, order: true, count: true } ],
+			[ 'manual', { categories: false, items: true, order: false, count: false } ],
+			[ 'automatic', { categories: false, items: false, order: true, count: true } ],
 		];
-		for ( const [ source, mode, want ] of steps ) {
-			await field( 'source' ).locator( 'select' ).selectOption( source );
+		for ( const [ mode, want ] of steps ) {
 			await field( 'query_mode' ).locator( 'select' ).selectOption( mode );
 			await page.waitForTimeout( 300 );
 			const got = await visible();
 			const shown = Object.keys( got ).filter( ( k ) => got[ k ] );
 			result(
 				JSON.stringify( got ) === JSON.stringify( want ),
-				`conditional logic: source ${ source }, mode ${ mode }`,
+				`conditional logic: faq query, mode ${ mode }`,
 				`shows ${ shown.length ? shown.join( ', ' ) : 'none of categories, items, order, count' }`
 			);
 		}
@@ -221,9 +218,14 @@ try {
 			.filter( { visible: true } )
 			.first()
 			.click();
-		await page.click( '.acf-fc-popup a[data-layout="collection-showcase"]' );
-		const row = page.locator( `${ rowsSel }[data-layout="collection-showcase"]` ).first();
+		await page.click( '.acf-fc-popup a[data-layout="features"]' );
+		const row = page.locator( `${ rowsSel }[data-layout="features"]` ).first();
 		await row.waitFor();
+		// One feature item, its required title left empty.
+		const items = row.locator( '.acf-field[data-key="field_salt_features_items"]' );
+		await items.locator( 'a[data-event="add-row"]' ).filter( { visible: true } ).first().click();
+		const itemTitle = items.locator( '.acf-row:not(.acf-clone) .acf-field[data-key="field_salt_features_items_title"]' ).first();
+		await itemTitle.waitFor();
 		// A new title starts WordPress's first autosave, which marks Publish disabled (clicks are
 		// ignored) until it has saved the draft and shown the permalink.
 		await page.locator( '#title' ).blur();
@@ -232,8 +234,8 @@ try {
 		const isValidation = ( r ) => r.url().includes( 'admin-ajax.php' ) && ( r.request().postData() ?? '' ).includes( 'acf%2Fvalidate_save_post' );
 		await Promise.all( [ page.waitForResponse( isValidation, { timeout: 60000 } ), page.click( '#publish' ) ] );
 		await page.waitForSelector( '.acf-notice.-error', { timeout: 60000 } );
-		const fieldError = await row
-			.locator( '.acf-field[data-key="field_salt_collection_showcase_source"] .acf-notice.-error' )
+		const fieldError = await itemTitle
+			.locator( '.acf-notice.-error' )
 			.textContent()
 			.catch( () => '' );
 		await page.waitForTimeout( 1000 );
@@ -241,14 +243,14 @@ try {
 		result(
 			blocked && fieldError.trim() !== '',
 			'required field blocks the save',
-			`collection-showcase source left empty: ACF says "${ fieldError.trim() }", page not published (still on ${ page.url().replace( url, '' ) })`
+			`features item title left empty: ACF says "${ fieldError.trim() }", page not published (still on ${ page.url().replace( url, '' ) })`
 		);
-		await row.locator( '.acf-field[data-key="field_salt_collection_showcase_source"] select' ).selectOption( 'posts' );
+		await itemTitle.locator( 'input' ).fill( 'Harness feature' );
 		await Promise.all( [ page.waitForURL( /post\.php\?post=\d+&action=edit/, { timeout: 120000 } ), page.click( '#publish' ) ] );
 		result(
 			publishedWithTitle( title ) === 1,
 			'filling the required field lets it publish',
-			`source set to posts, page published (${ page.url().replace( url, '' ) })`
+			`title filled, page published (${ page.url().replace( url, '' ) })`
 		);
 		result( errors.length === 0, 'no console errors while validating', `${ errors.length } errors` );
 		errors.slice( 0, 10 ).forEach( info );
