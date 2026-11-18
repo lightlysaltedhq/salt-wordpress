@@ -53,7 +53,7 @@ function salt_resolve_section_faq( array $context ): ?array {
 	$schema_raw = function_exists( 'get_sub_field' ) ? get_sub_field( 'structuredData' ) : null;
 	$schema_on  = null === $schema_raw ? true : (bool) $schema_raw;
 
-	$faq_posts = salt_resolve_query( salt_query_controls_from_row(), 'faq' );
+	$faq_posts = salt_resolve_query( salt_query_controls_from_query(), 'faq' );
 
 	$items = array();
 	foreach ( $faq_posts as $faq_post ) {

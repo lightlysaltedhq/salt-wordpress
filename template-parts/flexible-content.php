@@ -10,6 +10,9 @@
  * with the post title is emitted BEFORE the sections — no builder page
  * can ship a zero-H1 outline.
  *
+ * A row whose settings turn on firstPageOnly is skipped on any page after
+ * the first (salt_section_hidden_on_this_page()).
+ *
  * ACF-absent (DEP01): renders the safe fallback (title as H1) — no fatal.
  *
  * @package Salt
@@ -30,6 +33,11 @@ if ( have_rows( 'sections' ) ) {
 	$salt_index = 0;
 	while ( have_rows( 'sections' ) ) {
 		the_row();
+		// The contract's firstPageOnly: hidden past page 1, and not counted,
+		// so the next drawn section takes its place in the document.
+		if ( salt_section_hidden_on_this_page() ) {
+			continue;
+		}
 		salt_render_section(
 			salt_section_slug_for_layout( (string) get_row_layout() ),
 			array(

@@ -3,8 +3,10 @@
  * Resolver: Gallery (spec §10 #16; FAIL02) — the logic half of the
  * section; the view is template-parts/sections/gallery.php.
  *
- * Fields: layout (grid|masonry|carousel; invalid => grid, logged), columns
- * (2|3|4; invalid => 3, logged), captions (toggle), images (gallery).
+ * Fields (contract/fields/gallery.json): layout (grid|masonry|carousel;
+ * invalid => grid, logged), columns ('2'|'3'|'4'; invalid => 3, logged),
+ * captions (toggle, default on), images (gallery). heading, intro and
+ * label are stored but not drawn yet (M4).
  * Images are normalised to resolvable attachment IDs; broken/malformed
  * entries are skipped + logged (DATA05). Captions come from the attachment
  * caption (wp_get_attachment_caption) when the captions toggle is on.
@@ -40,7 +42,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *                     attachment caption, '' for none (or captions off).
  *
  * Naming gaps against the contract: `heading`, `intro`, `label` and `named`
- * have no WordPress field or logic yet (no heading field: the carousel is
+ * are stored but have no logic yet (M4) (no heading field: the carousel is
  * drawn with a fixed aria-label, where the contract draws an unnamed set as
  * a grid); `images` is `items` (attachment IDs, not resolved images).
  *

@@ -1,0 +1,114 @@
+{
+  "sections": [
+    "hero",
+    "rich-text",
+    "call-to-action",
+    "media-text",
+    "features",
+    "stats",
+    "logos",
+    "gallery",
+    "process",
+    "faq",
+    "contact",
+    "locations"
+  ],
+  "icons": [
+    {
+      "value": "arrow-right",
+      "label": "Arrow Right"
+    },
+    {
+      "value": "bluesky",
+      "label": "Bluesky"
+    },
+    {
+      "value": "check",
+      "label": "Check"
+    },
+    {
+      "value": "chevron-down",
+      "label": "Chevron Down"
+    },
+    {
+      "value": "clock",
+      "label": "Clock"
+    },
+    {
+      "value": "close",
+      "label": "Close"
+    },
+    {
+      "value": "facebook",
+      "label": "Facebook"
+    },
+    {
+      "value": "github",
+      "label": "Github"
+    },
+    {
+      "value": "globe",
+      "label": "Globe"
+    },
+    {
+      "value": "instagram",
+      "label": "Instagram"
+    },
+    {
+      "value": "link",
+      "label": "Link"
+    },
+    {
+      "value": "linkedin",
+      "label": "Linkedin"
+    },
+    {
+      "value": "mail",
+      "label": "Mail"
+    },
+    {
+      "value": "map-pin",
+      "label": "Map Pin"
+    },
+    {
+      "value": "menu",
+      "label": "Menu"
+    },
+    {
+      "value": "phone",
+      "label": "Phone"
+    },
+    {
+      "value": "pinterest",
+      "label": "Pinterest"
+    },
+    {
+      "value": "reddit",
+      "label": "Reddit"
+    },
+    {
+      "value": "star-filled",
+      "label": "Star Filled"
+    },
+    {
+      "value": "star",
+      "label": "Star"
+    },
+    {
+      "value": "tiktok",
+      "label": "Tiktok"
+    },
+    {
+      "value": "whatsapp",
+      "label": "Whatsapp"
+    },
+    {
+      "value": "x",
+      "label": "X"
+    },
+    {
+      "value": "youtube",
+      "label": "Youtube"
+    }
+  ]
+}

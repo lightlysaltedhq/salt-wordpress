@@ -1,7 +1,7 @@
 <?php
 /**
- * Phase 1: the theme's own field groups, as it registers them today, on real
- * ACF Pro (no harness mu-plugin installed yet). HARNESS ONLY.
+ * Phase 1: the theme's own field groups, as it registers them, on real ACF
+ * Pro. HARNESS ONLY.
  *
  * Loads every local group's fields through ACF (which runs each field type's
  * load_field), so a malformed hand-written definition shows up as a PHP
@@ -37,10 +37,12 @@ salt_harness_info( implode( '; ', $salt_harness_lines ) );
 
 $salt_harness_container = acf_get_field( 'field_salt_sections_container' );
 $salt_harness_files     = glob( get_template_directory() . '/inc/fields/layouts/*.php' );
+$salt_harness_generated = salt_generated_sections_group();
+$salt_harness_gen_count = is_array( $salt_harness_generated ) ? count( $salt_harness_generated['fields'][0]['layouts'] ) : 0;
 salt_harness_result(
-	is_array( $salt_harness_container ) && count( $salt_harness_container['layouts'] ) === count( (array) $salt_harness_files ),
-	'theme sections container (hand-written)',
-	sprintf( '%d layouts registered, %d layout files', is_array( $salt_harness_container ) ? count( $salt_harness_container['layouts'] ) : 0, count( (array) $salt_harness_files ) )
+	is_array( $salt_harness_container ) && $salt_harness_gen_count > 0 && count( $salt_harness_container['layouts'] ) === $salt_harness_gen_count + count( (array) $salt_harness_files ),
+	'theme sections container (generated + hand-written)',
+	sprintf( '%d layouts registered: %d generated (inc/fields/generated/sections.json), %d hand-written layout files', is_array( $salt_harness_container ) ? count( $salt_harness_container['layouts'] ) : 0, $salt_harness_gen_count, count( (array) $salt_harness_files ) )
 );
 
 $salt_harness_page_groups = acf_get_field_groups( array( 'post_type' => 'page' ) );

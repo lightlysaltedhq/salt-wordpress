@@ -46,6 +46,6 @@ return array(
 			),
 		),
 		salt_query_control_fields( 'testimonial' ),
-		salt_section_wrapper_fields( 'testimonials' )
+		salt_section_settings_fields( 'testimonials' )
 	),
 );

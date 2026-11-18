@@ -15,6 +15,9 @@
  *   meta    string  ''        PRE-RENDERED HTML slot (e.g. a date/term line).
  *                             Printed raw — the producer escapes at print.
  *   body    string  ''        Plain-text excerpt/summary (escaped here).
+ *   body_html string ''       Rich-text body: HTML the caller has ALREADY
+ *                             sanitised (salt_sanitize_html()). Drawn in
+ *                             place of body when both are given.
  *   classes string  ''        Extra utility classes appended to the class list.
  *
  * Render via salt_component( 'card', … ) / salt_get_component().
@@ -29,31 +32,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 $args = salt_require_args( // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- $args is WordPress's load_template() template variable.
 	$args ?? array(),
 	array(
-		'title'   => array(
+		'title'     => array(
 			'type'     => 'string',
 			'required' => true,
 		),
-		'url'     => array(
+		'url'       => array(
 			'type'    => 'string',
 			'default' => '',
 		),
-		'level'   => array(
+		'level'     => array(
 			'type'    => 'int',
 			'default' => 3,
 		),
-		'media'   => array(
+		'media'     => array(
 			'type'    => 'string',
 			'default' => '',
 		),
-		'meta'    => array(
+		'meta'      => array(
 			'type'    => 'string',
 			'default' => '',
 		),
-		'body'    => array(
+		'body'      => array(
 			'type'    => 'string',
 			'default' => '',
 		),
-		'classes' => array(
+		'body_html' => array(
+			'type'    => 'string',
+			'default' => '',
+		),
+		'classes'   => array(
 			'type'    => 'string',
 			'default' => '',
 		),
@@ -101,7 +108,9 @@ $salt_title = '' !== $args['url']
 			<?php echo $args['meta']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-rendered slot HTML; the producing component escapes at print. ?>
 		</div>
 		<?php endif; ?>
-		<?php if ( '' !== $args['body'] ) : ?>
+		<?php if ( '' !== $args['body_html'] ) : ?>
+		<div class="x-card-body x-prose text-ink-muted"><?php echo $args['body_html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised by the caller through salt_sanitize_html() (ARGS CONTRACT). ?></div>
+		<?php elseif ( '' !== $args['body'] ) : ?>
 		<p class="x-card-body text-ink-muted"><?php echo esc_html( $args['body'] ); ?></p>
 		<?php endif; ?>
 	</div>

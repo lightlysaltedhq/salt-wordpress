@@ -3,7 +3,9 @@
  * Resolver: Stats / Metrics (spec §10 #7) — the logic half of the section;
  * the view is template-parts/sections/stats.php.
  *
- * Fields: heading (optional), columns (2|3|4), items [value, suffix, label].
+ * Fields (contract/fields/stats.json): heading (optional), intro, columns
+ * (2|3|4), items [icon, value, suffix, label]; intro and icon are stored,
+ * not drawn yet (M4).
  * States (COMPL02): 0 valid items => null (renders NOTHING); 1 item =>
  * valid static single-stat row; N => full grid. Items missing a number are
  * skipped and logged. No schema. No JS — the count-up animation is
@@ -25,10 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   items    array<int, array{value: string, suffix: string|null, label: string|null}>
  *                         Contract `items` (stat): `value` (from the
  *                         `value` field), `suffix`, `label`; never empty.
- *                         The contract's `icon` is not supplied (the
- *                         layout has no icon field).
- *   The contract's `intro` is not supplied either (the layout has no such
- *   field).
+ *                         The contract's `icon` is stored but not
+ *                         supplied yet (M4).
+ *   The contract's `intro` is stored but not supplied yet either (M4).
  *
  * @param array<string,mixed> $context Loop context: index, is_primary.
  * @return array{section: array<string,mixed>, props: array<string,mixed>}|null Null = 0-state.

@@ -94,36 +94,18 @@ final class StatsSectionTest extends SaltTestCase {
 	// Layout shape (DATA02 / FLEET07).
 	// -----------------------------------------------------------------
 
-	public function test_layout_file_shape_and_key_conventions(): void {
-		$layout = include dirname( __DIR__, 2 ) . '/inc/fields/layouts/stats.php';
+	public function test_layout_is_generated_from_the_contract(): void {
+		$layout = salt_test_layout( 'stats' );
 
-		$this->assertSame( 'stats', $layout['name'] );
 		$this->assertSame( 'layout_salt_stats', $layout['key'] );
+		$this->assertSame( array( 'heading', 'intro', 'columns', 'items', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
-		$names = array_map(
-			static fn( array $field ): string => (string) ( $field['name'] ?? '' ),
-			$layout['sub_fields']
-		);
-
-		// Content fields first, wrapper controls last.
-		$this->assertSame( array( 'heading', 'columns', 'items' ), array_slice( array_values( array_filter( $names ) ), 0, 3 ) );
-		$this->assertGreaterThan( array_search( 'items', $names, true ), array_search( 'spacing', $names, true ) );
-
-		$items = null;
-		foreach ( $layout['sub_fields'] as $field ) {
-			if ( 'items' === ( $field['name'] ?? '' ) ) {
-				$items = $field;
-			}
-		}
-		$this->assertNotNull( $items );
+		$items = array_column( $layout['sub_fields'], null, 'name' )['items'];
 		$this->assertSame( 'repeater', $items['type'] );
 		foreach ( $items['sub_fields'] as $sub ) {
 			$this->assertStringStartsWith( 'field_salt_stats_items_', (string) $sub['key'] );
 		}
-		$this->assertSame(
-			array( 'value', 'suffix', 'label' ),
-			array_map( static fn( array $sub ): string => (string) $sub['name'], $items['sub_fields'] )
-		);
+		$this->assertSame( array( 'icon', 'value', 'suffix', 'label' ), array_column( $items['sub_fields'], 'name' ) );
 	}
 
 	// -----------------------------------------------------------------
@@ -335,9 +317,11 @@ final class StatsSectionTest extends SaltTestCase {
 	public function test_resolver_defaults_an_unknown_column_count_and_owns_the_wrapper(): void {
 		$resolved = $this->resolve_stats(
 			array(
-				'columns' => '9',
-				'spacing' => 'lg',
-				'items'   => array( array( 'value' => '1' ) ),
+				'columns'  => '9',
+				'settings' => array(
+					'spacing' => 'lg',
+				),
+				'items'    => array( array( 'value' => '1' ) ),
 			),
 			array(
 				'index'      => 3,

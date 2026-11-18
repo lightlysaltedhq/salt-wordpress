@@ -381,35 +381,141 @@ function salt_section( array $args, callable $content ): void {
 }
 
 /**
- * Build the x-section wrapper args for the current Flexible Content row:
- * the shared §11 Advanced-tab controls (the contract's section settings,
- * salt_section_wrapper_fields()) + loop context (AMBIG03).
+ * Build the x-section wrapper args for the current Flexible Content row
+ * from its `settings` group (the contract's section settings,
+ * contract/fields/_section-settings.json) + loop context (AMBIG03).
+ *
+ * Every setting is read by its contract name and value and mapped to the
+ * wrapper's args: spacing, tone (surface-inverse is x-section's inverse
+ * background), width (x-section's container), anchorId and divider.
+ * toneDark and backgroundImage are stored but not drawn yet: they need the
+ * contract stylesheet (EP-72 M3 unit 9). firstPageOnly is the page loop's
+ * (salt_section_hidden_on_this_page()).
  *
  * @param string              $name    Section slug (hyphenated).
  * @param array<string,mixed> $context Loop context: index, is_primary.
  * @return array<string,mixed>
  */
 function salt_section_wrapper_args( string $name, array $context = array() ): array {
-	$sub = static function ( string $field, string $fallback ): string {
-		if ( ! function_exists( 'get_sub_field' ) ) {
-			return $fallback;
-		}
-		$value = get_sub_field( $field );
+	$settings = salt_section_settings();
+	$setting  = static function ( string $field, string $fallback ) use ( $settings ): string {
+		$value = $settings[ $field ] ?? null;
 		return is_string( $value ) && '' !== $value ? $value : $fallback;
 	};
 
-	// The contract's tone value surface-inverse is x-section's inverse background.
-	$tone = $sub( 'tone', 'surface' );
+	$tone = $setting( 'tone', 'surface' );
 
 	return array(
 		'name'       => $name,
-		'spacing'    => $sub( 'spacing', 'md' ),
+		'spacing'    => $setting( 'spacing', 'md' ),
 		'background' => 'surface-inverse' === $tone ? 'inverse' : $tone,
-		'container'  => $sub( 'width', 'default' ),
-		'anchor'     => $sub( 'anchorId', '' ),
-		'divider'    => function_exists( 'get_sub_field' ) ? (bool) get_sub_field( 'divider' ) : false,
+		'container'  => $setting( 'width', 'default' ),
+		'anchor'     => $setting( 'anchorId', '' ),
+		'divider'    => (bool) ( $settings['divider'] ?? false ),
 		'is_primary' => (bool) ( $context['is_primary'] ?? false ),
 	);
+}
+
+/**
+ * The current Flexible Content row's `settings` group (the contract's
+ * section settings), or an empty array when it has none.
+ *
+ * @return array<string,mixed>
+ */
+function salt_section_settings(): array {
+	$settings = function_exists( 'get_sub_field' ) ? get_sub_field( 'settings' ) : null;
+	return is_array( $settings ) ? $settings : array();
+}
+
+/**
+ * Whether the current row is a section the contract hides here: its
+ * firstPageOnly setting is on and this is a later page of a paginated
+ * view (`paged`, or `page` on a split singular page).
+ *
+ * @return bool
+ */
+function salt_section_hidden_on_this_page(): bool {
+	if ( empty( salt_section_settings()['firstPageOnly'] ) ) {
+		return false;
+	}
+	return max( (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) ) > 1;
+}
+
+/**
+ * A contract link (contract field type `link`: label, type internal|
+ * external, document, url, newTab) as x-button's label/url/target, or
+ * null when it does not make a usable link: no label, an internal link
+ * whose document has no address, or an external link with no address.
+ *
+ * @param mixed $link The stored link group.
+ * @return array{label: string, url: string, target: string}|null
+ */
+function salt_contract_link( $link ): ?array {
+	if ( ! is_array( $link ) ) {
+		return null;
+	}
+
+	$label = trim( is_string( $link['label'] ?? null ) ? $link['label'] : '' );
+	if ( 'external' === ( $link['type'] ?? 'internal' ) ) {
+		$url = trim( is_string( $link['url'] ?? null ) ? $link['url'] : '' );
+	} else {
+		$document = $link['document'] ?? 0;
+		$document = $document instanceof WP_Post ? (int) $document->ID : (int) $document;
+		$url      = $document > 0 ? (string) get_permalink( $document ) : '';
+	}
+
+	if ( '' === $label || '' === $url ) {
+		return null;
+	}
+
+	return array(
+		'label'  => $label,
+		'url'    => $url,
+		'target' => empty( $link['newTab'] ) ? '' : '_blank',
+	);
+}
+
+/**
+ * A contract `buttons` list (rows of { link, style }) as x-button args, in
+ * row order: rows that do not make a usable link are skipped and logged,
+ * an unknown style becomes $default_style, and rows past $max are dropped
+ * and logged.
+ *
+ * @param mixed  $rows          The stored list.
+ * @param string $where         Log prefix, e.g. 'section hero'.
+ * @param int    $max           Most buttons drawn (the contract's limit).
+ * @param string $default_style The list's default style.
+ * @return array<int, array{label: string, url: string, style: string, target: string}>
+ */
+function salt_contract_buttons( $rows, string $where, int $max, string $default_style = 'primary' ): array {
+	$buttons = array();
+	foreach ( is_array( $rows ) ? $rows : array() as $i => $row ) {
+		$link = salt_contract_link( is_array( $row ) ? ( $row['link'] ?? null ) : null );
+		if ( null === $link ) {
+			salt_log( sprintf( '%s: button %d has no label or no address — skipped (broken row).', $where, (int) $i ) );
+			continue;
+		}
+
+		$style = is_string( $row['style'] ?? null ) && '' !== $row['style'] ? $row['style'] : $default_style;
+		if ( ! in_array( $style, array( 'primary', 'secondary', 'ghost' ), true ) ) {
+			salt_log( sprintf( '%s: button %d has unknown style "%s" — using %s.', $where, (int) $i, $style, $default_style ) );
+			$style = $default_style;
+		}
+
+		$buttons[] = array(
+			'label'  => $link['label'],
+			'url'    => $link['url'],
+			'style'  => $style,
+			'target' => $link['target'],
+		);
+	}
+
+	if ( count( $buttons ) > $max ) {
+		salt_log( sprintf( '%s: %d buttons given — only the first %d render.', $where, count( $buttons ), $max ) );
+		$buttons = array_slice( $buttons, 0, $max );
+	}
+
+	return $buttons;
 }
 
 // ---------------------------------------------------------------------------

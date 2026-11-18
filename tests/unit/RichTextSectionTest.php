@@ -144,9 +144,11 @@ final class RichTextSectionTest extends SaltTestCase {
 		$resolved = $this->resolve_rich_text(
 			array(
 				'body'     => '<p>Body only.</p>',
-				'spacing'  => 'lg',
-				'tone'     => 'surface-alt',
-				'anchorId' => 'About',
+				'settings' => array(
+					'spacing'  => 'lg',
+					'tone'     => 'surface-alt',
+					'anchorId' => 'About',
+				),
 			),
 			array(
 				'index'      => 2,

@@ -69,20 +69,11 @@ final class LogosSectionTest extends SaltTestCase {
 	// Layout shape (DATA02).
 	// -----------------------------------------------------------------
 
-	public function test_layout_shape_content_first_then_wrapper(): void {
-		$layout = require dirname( __DIR__, 2 ) . '/inc/fields/layouts/logos.php';
+	public function test_layout_is_generated_from_the_contract(): void {
+		$layout = salt_test_layout( 'logos' );
 
-		$this->assertSame( 'logos', $layout['name'] );
 		$this->assertSame( 'layout_salt_logos', $layout['key'] );
-
-		$names = array_column( $layout['sub_fields'], 'name' );
-		$this->assertSame( array( 'heading', 'items', 'greyscale' ), array_slice( $names, 0, 3 ) );
-		$this->assertContains( 'spacing', $names, 'Wrapper Advanced tab embedded last (§11).' );
-		$this->assertGreaterThan(
-			array_search( 'greyscale', $names, true ),
-			array_search( 'spacing', $names, true ),
-			'Content fields precede the wrapper fields.'
-		);
+		$this->assertSame( array( 'heading', 'intro', 'columns', 'greyscale', 'items', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
 		$fields = array_column( $layout['sub_fields'], null, 'name' );
 		$this->assertSame( 'field_salt_logos_greyscale', $fields['greyscale']['key'] );
@@ -91,7 +82,7 @@ final class LogosSectionTest extends SaltTestCase {
 
 		$sub = array_column( $fields['items']['sub_fields'], null, 'name' );
 		$this->assertSame( 'id', $sub['image']['return_format'] );
-		$this->assertSame( 'url', $sub['url']['type'] );
+		$this->assertSame( 'text', $sub['url']['type'], 'An address in a text field (salt.format url).' );
 		$this->assertSame( 'text', $sub['name']['type'] );
 	}
 
