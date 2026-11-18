@@ -11,9 +11,11 @@
  * Field registration convention (DATA02 — keys are a stability contract,
  * FLEET07): groups 'group_salt_{scope}', fields 'field_salt_{scope}_{name}'.
  * Registration modules live in inc/fields/*.php and hook 'acf/init'
- * (which only fires when ACF is active — inherently guarded). Flexible
- * Content layouts live in inc/fields/layouts/*.php, each returning a
- * layout definition array (see salt_section_layouts()).
+ * (which only fires when ACF is active — inherently guarded). The page
+ * sections' Flexible Content layouts are generated from salt-contract
+ * (inc/fields/generated/sections.json); the collection layouts not yet
+ * folded into the contract's sections live in inc/fields/layouts/*.php
+ * (see salt_section_layouts()).
  *
  * @package Salt
  */
@@ -151,110 +153,125 @@ function salt_assert_field_keys( array $fields ): void {
 }
 
 /**
- * The shared §11 wrapper controls every section layout embeds (collapsed
- * into an "Advanced" tab — spec §5a).
- *
- * Field NAMES are identical across layouts and are the salt-contract's
- * section settings (contract/fields/_section-settings.json, SC-001):
- * spacing, tone, width, anchorId, divider — formerly section_spacing,
- * section_background, section_container, section_anchor and
- * section_divider (docs/contracts/slug-migrations.json). Field KEYS are
- * namespaced per section, with the name in snake_case (DATA02/FLEET07).
- * The tone stores the contract's value surface-inverse where it stored
- * inverse; salt_section_wrapper_args() maps it to x-section's background.
- *
- * @param string $section Section slug (underscored), e.g. 'rich_text'.
- * @return array<int,array<string,mixed>>
+ * Path of the generated page-sections field group (ACF JSON), relative to
+ * the theme root. Written verbatim by the pinned salt-contract emitter
+ * (`emit/acf.mjs --write`, options in sections.options.json beside it) and
+ * kept honest by bin/check-fields-from-contract.php. Never edit it by hand.
  */
-function salt_section_wrapper_fields( string $section ): array {
-	$key = static fn( string $name ): string => 'field_salt_' . $section . '_' . $name;
+const SALT_GENERATED_SECTIONS_FILE = 'inc/fields/generated/sections.json';
 
-	return array(
-		array(
-			'key'   => $key( 'advanced_tab' ),
-			'label' => __( 'Advanced', 'salt' ),
-			'type'  => 'tab',
-		),
-		array(
-			'key'           => $key( 'spacing' ),
-			'name'          => 'spacing',
-			'label'         => __( 'Spacing', 'salt' ),
-			'type'          => 'select',
-			'choices'       => array(
-				'none' => __( 'None', 'salt' ),
-				'sm'   => __( 'Small', 'salt' ),
-				'md'   => __( 'Medium', 'salt' ),
-				'lg'   => __( 'Large', 'salt' ),
-			),
-			'default_value' => 'md',
-		),
-		array(
-			'key'           => $key( 'tone' ),
-			'name'          => 'tone',
-			'label'         => __( 'Background', 'salt' ),
-			'type'          => 'select',
-			'choices'       => array(
-				'surface'         => __( 'Default surface', 'salt' ),
-				'surface-alt'     => __( 'Subtle tint', 'salt' ),
-				'brand-tint'      => __( 'Brand tint', 'salt' ),
-				'surface-inverse' => __( 'Inverse (dark)', 'salt' ),
-			),
-			'default_value' => 'surface',
-		),
-		array(
-			'key'           => $key( 'width' ),
-			'name'          => 'width',
-			'label'         => __( 'Width', 'salt' ),
-			'type'          => 'select',
-			'choices'       => array(
-				'full'    => __( 'Full bleed', 'salt' ),
-				'wide'    => __( 'Wide', 'salt' ),
-				'default' => __( 'Default', 'salt' ),
-				'narrow'  => __( 'Narrow', 'salt' ),
-			),
-			'default_value' => 'default',
-		),
-		array(
-			'key'          => $key( 'anchor_id' ),
-			'name'         => 'anchorId',
-			'label'        => __( 'Anchor ID', 'salt' ),
-			'instructions' => __( 'Optional, for in-page links. Sanitised automatically; duplicates get a numeric suffix.', 'salt' ),
-			'type'         => 'text',
-		),
-		array(
-			'key'           => $key( 'divider' ),
-			'name'          => 'divider',
-			'label'         => __( 'Divider line', 'salt' ),
-			'type'          => 'true_false',
-			'ui'            => 1,
-			'default_value' => 0,
-		),
-	);
+/**
+ * The generated page-sections field group, decoded, or null when the file
+ * is missing or is not the group the emitter writes (logged once per
+ * request). Callers fall back to the hand-written layouts alone, so a
+ * broken file never fatals (DEP01).
+ *
+ * @param bool $reset Forget the cached read (tests).
+ * @return array<string,mixed>|null
+ */
+function salt_generated_sections_group( bool $reset = false ): ?array {
+	static $group = false;
+
+	if ( $reset ) {
+		$group = false;
+	}
+	if ( false !== $group ) {
+		return $group;
+	}
+
+	$path  = get_template_directory() . '/' . SALT_GENERATED_SECTIONS_FILE;
+	$found = salt_generated_sections_decode( is_readable( $path ) ? (string) file_get_contents( $path ) : null ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- A local theme file.
+
+	if ( null === $found ) {
+		salt_log( sprintf( '%s is missing or is not the generated page-sections group — only the hand-written layouts are registered. Regenerate it (bin/check-fields-from-contract.php).', SALT_GENERATED_SECTIONS_FILE ) );
+	}
+
+	$group = $found;
+	return $group;
+}
+
+/**
+ * The page-sections group in the emitter's JSON, or null when the text is
+ * missing, not JSON, or not that group (pure — unit-tested).
+ *
+ * @param string|null $json The file's text, or null when unreadable.
+ * @return array<string,mixed>|null
+ */
+function salt_generated_sections_decode( ?string $json ): ?array {
+	$decoded = null === $json ? null : json_decode( $json, true );
+	$found   = is_array( $decoded ) ? ( $decoded[0] ?? null ) : null;
+
+	if (
+		! is_array( $found )
+		|| 'group_salt_sections' !== ( $found['key'] ?? null )
+		|| 'field_salt_sections_container' !== ( $found['fields'][0]['key'] ?? null )
+		|| ! is_array( $found['fields'][0]['layouts'] ?? null )
+	) {
+		return null;
+	}
+	return $found;
+}
+
+/**
+ * The contract's section settings as a field list for a hand-written
+ * layout: the generated rich-text layout's `settings` group, re-keyed to
+ * the layout's own scope (field_salt_{scope}_settings_*), so every layout
+ * stores its wrapper settings in a group named `settings`, as the contract
+ * does, and salt_section_wrapper_args() reads one shape.
+ *
+ * Only the six collection layouts the contract folds into
+ * collection-showcase and carousel still need this (unit 8 removes them).
+ *
+ * @param string $scope Layout key scope (snake_case), e.g. 'blog_teaser'.
+ * @return array<int,array<string,mixed>> The settings group, or none when the generated file is unusable.
+ */
+function salt_section_settings_fields( string $scope ): array {
+	$group = salt_generated_sections_group();
+	foreach ( null === $group ? array() : $group['fields'][0]['layouts'] as $layout ) {
+		if ( 'rich-text' !== ( $layout['name'] ?? '' ) ) {
+			continue;
+		}
+		foreach ( $layout['sub_fields'] as $field ) {
+			if ( 'settings' === ( $field['name'] ?? '' ) ) {
+				$json = str_replace( '"field_salt_rich_text_settings', '"field_salt_' . $scope . '_settings', (string) wp_json_encode( $field ) );
+				return array( json_decode( $json, true ) );
+			}
+		}
+	}
+	return array();
 }
 
 /**
  * Collect the Flexible Content layout definitions.
  *
- * Each file in inc/fields/layouts/*.php returns ONE layout definition
- * array (name, label, sub_fields). Adding a section (§17) means adding a
- * layout file + a section partial — no changes to the container or loop.
+ * The generated layouts first, in the contract's order and exactly as the
+ * emitter wrote them (salt_generated_sections_group()), then the
+ * hand-written layouts in inc/fields/layouts/*.php, each file returning
+ * ONE layout definition array (name, label, sub_fields), by name. A
+ * hand-written file for a generated section is refused and logged: a
+ * section's fields come from the contract only.
  *
  * @return array<int,array<string,mixed>>
  */
 function salt_section_layouts(): array {
-	$layouts = array();
-	$files   = glob( get_template_directory() . '/inc/fields/layouts/*.php' );
+	$group     = salt_generated_sections_group();
+	$generated = null === $group ? array() : array_values( $group['fields'][0]['layouts'] );
+	$names     = array_column( $generated, 'name' );
 
+	$written = array();
+	$files   = glob( get_template_directory() . '/inc/fields/layouts/*.php' );
 	foreach ( false === $files ? array() : $files as $file ) {
 		$layout = include $file;
-		if ( is_array( $layout ) && isset( $layout['name'] ) ) {
-			$layouts[] = $layout;
-		} else {
+		if ( ! is_array( $layout ) || ! isset( $layout['name'] ) ) {
 			salt_log( sprintf( 'layout file "%s" did not return a valid layout array.', basename( $file ) ) );
+		} elseif ( in_array( $layout['name'], $names, true ) ) {
+			salt_log( sprintf( 'layout file "%1$s" defines \'%2$s\', which is generated from the contract — ignored.', basename( $file ), $layout['name'] ) );
+		} else {
+			$written[] = $layout;
 		}
 	}
 
-	usort( $layouts, static fn( array $a, array $b ): int => strcmp( (string) $a['name'], (string) $b['name'] ) );
+	usort( $written, static fn( array $a, array $b ): int => strcmp( (string) $a['name'], (string) $b['name'] ) );
 
-	return $layouts;
+	return array_merge( $generated, $written );
 }
