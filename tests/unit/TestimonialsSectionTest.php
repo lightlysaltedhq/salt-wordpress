@@ -3,10 +3,11 @@
  * Testimonial slice tests (spec §10 #8, Appendix A.2; SEO02, COMPL02,
  * FAIL02, SEC09).
  *
- * Covers the CPT display-only posture, the field group, the FC layout
- * shape, the section's 0/1/N states, the no-buttons no-JS slider base,
- * and the Review schema path (service-scoped only, rating clamped 1–5,
- * no AggregateRating).
+ * Covers the CPT display-only posture, the generated field group, the FC
+ * layout shape, the section's 0/1/N states, the no-buttons no-JS slider
+ * base, the photo (never a logo) on the quote card, and the schema: no
+ * Review node, since salt-contract 1.0.0-rc.7 dropped the testimonial's
+ * service, and no AggregateRating.
  *
  * @package Salt\Tests
  */
@@ -18,7 +19,7 @@ require_once __DIR__ . '/../shims/testimonial.php';
 require_once __DIR__ . '/../shims/media.php';
 
 require_once dirname( __DIR__, 2 ) . '/inc/cpt/testimonial.php';
-require_once dirname( __DIR__, 2 ) . '/inc/fields/cpt-testimonial.php';
+require_once dirname( __DIR__, 2 ) . '/inc/fields/collections.php';
 
 final class TestimonialsSectionTest extends SaltTestCase {
 
@@ -52,7 +53,7 @@ final class TestimonialsSectionTest extends SaltTestCase {
 
 	/**
 	 * Seed one published service + three testimonials (date DESC order:
-	 * 101 Alice [service 201, rating 5], 102 Bob, 103 Cara [rating 4]).
+	 * 101 Alice [rating 5], 102 Bob, 103 Cara [rating 4]).
 	 */
 	private function seed_standard_set(): void {
 		$this->seed_posts(
@@ -88,7 +89,6 @@ final class TestimonialsSectionTest extends SaltTestCase {
 			'role'    => 'Founder',
 			'company' => 'Acme Ltd',
 			'rating'  => 5,
-			'service' => array( 201 ),
 		);
 		$GLOBALS['salt_test_fields']['102'] = array(
 			'quote' => 'Fast, friendly, flawless.',
@@ -184,45 +184,36 @@ final class TestimonialsSectionTest extends SaltTestCase {
 	// Field group (Appendix A.2, DATA02).
 	// -----------------------------------------------------------------
 
-	public function test_field_group_matches_appendix_a2(): void {
-		salt_register_testimonial_fields();
+	public function test_field_group_is_the_contracts_testimonial(): void {
+		$group = salt_test_collection_group( 'testimonials' );
 
-		$groups = array_values(
-			array_filter(
-				$GLOBALS['salt_test_acf_groups'],
-				static fn( array $g ): bool => 'group_salt_testimonial' === ( $g['key'] ?? '' )
-			)
-		);
-		$this->assertCount( 1, $groups );
+		$this->assertSame( 'group_salt_collection_testimonials', $group['key'] );
+		$this->assertSame( 'testimonial', $group['location'][0][0]['value'] );
 
-		$fields = array();
-		foreach ( $groups[0]['fields'] as $field ) {
-			$fields[ $field['name'] ] = $field;
-		}
-
+		$fields = array_column( $group['fields'], null, 'name' );
+		$this->assertSame( array( 'quote', 'role', 'company', 'rating' ), array_keys( $fields ), 'No logo and no service: the contract dropped both.' );
 		$this->assertSame(
-			array( 'quote', 'role', 'company', 'logo', 'rating', 'service' ),
-			array_keys( $fields )
+			array(
+				'name'  => 'title',
+				'photo' => 'featured-image',
+			),
+			$group['salt']['native']
 		);
 		foreach ( $fields as $name => $field ) {
-			$this->assertSame( 'field_salt_testimonial_' . $name, $field['key'], 'DATA02 key convention.' );
+			$this->assertSame( 'field_salt_collection_testimonials_' . $name, $field['key'], 'DATA02 key convention.' );
 		}
 
 		$this->assertSame( 'textarea', $fields['quote']['type'] );
-		$this->assertSame( 'id', $fields['logo']['return_format'] );
 		$this->assertSame( 'number', $fields['rating']['type'] );
 		$this->assertSame( 1, $fields['rating']['min'] );
 		$this->assertSame( 5, $fields['rating']['max'] );
-		$this->assertSame( array( 'service' ), $fields['service']['post_type'] );
-		$this->assertSame( 'id', $fields['service']['return_format'] );
+		$this->assertSame( 0.5, $fields['rating']['step'], 'Half stars (the contract\'s step).' );
 	}
 
 	public function test_field_group_skipped_when_module_disabled(): void {
 		$GLOBALS['salt_test_fields']['option']['module_testimonial'] = false;
 
-		salt_register_testimonial_fields();
-
-		$this->assertSame( array(), $GLOBALS['salt_test_acf_groups'] );
+		$this->assertNull( salt_test_collection_group( 'testimonials' ) );
 	}
 
 	// -----------------------------------------------------------------
@@ -356,21 +347,28 @@ final class TestimonialsSectionTest extends SaltTestCase {
 		$this->assertSame( 3, substr_count( $html, '<figure' ) );
 	}
 
-	public function test_company_logo_renders_through_x_image(): void {
+	public function test_the_photo_renders_through_x_image_and_a_stored_logo_does_not(): void {
 		$this->seed_standard_set();
-		$GLOBALS['salt_test_fields']['101']['logo'] = 55;
-		$GLOBALS['salt_test_attachments'][55]       = array(
-			'src'    => 'https://example.test/uploads/acme-logo.png',
-			'width'  => 200,
-			'height' => 80,
-			'srcset' => '',
-			'alt'    => 'Acme Ltd logo',
-		);
+		$GLOBALS['salt_test_posts'][1]->salt_thumbnail_id = 56;
+		$GLOBALS['salt_test_fields']['101']['logo']       = 55;
+		foreach ( array(
+			55 => 'acme-logo.png',
+			56 => 'alice.jpg',
+		) as $id => $file ) {
+			$GLOBALS['salt_test_attachments'][ $id ] = array(
+				'src'    => 'https://example.test/uploads/' . $file,
+				'width'  => 200,
+				'height' => 200,
+				'srcset' => '',
+				'alt'    => '',
+			);
+		}
 
 		$html = $this->render_testimonials();
 
 		$this->assertStringContainsString( 'class="x-image h-10 w-auto"', $html );
-		$this->assertStringContainsString( 'acme-logo.png', $html );
+		$this->assertStringContainsString( 'alice.jpg', $html, 'The quote card draws the photo (the featured image).' );
+		$this->assertStringNotContainsString( 'acme-logo.png', $html, 'Never a logo: the contract dropped it.' );
 	}
 
 	public function test_star_rating_is_one_labelled_group_of_decorative_icons(): void {
@@ -387,40 +385,13 @@ final class TestimonialsSectionTest extends SaltTestCase {
 	// Schema (SEO02).
 	// -----------------------------------------------------------------
 
-	public function test_review_node_only_for_testimonials_with_a_service(): void {
+	public function test_no_review_node_is_queued_even_for_a_stored_service(): void {
 		$this->seed_standard_set();
+		$GLOBALS['salt_test_fields']['101']['service'] = array( 201 );
+
 		$this->render_testimonials();
 
-		$reviews = $this->schema_reviews();
-
-		$this->assertCount( 1, $reviews, 'Only the service-linked testimonial queues a Review (never org-attached).' );
-
-		$review = $reviews[0];
-		$this->assertSame(
-			array(
-				'@type' => 'Service',
-				'name'  => 'Web design',
-				'@id'   => 'https://example.test/services/web-design/#service',
-			),
-			$review['itemReviewed']
-		);
-		$this->assertSame(
-			array(
-				'@type' => 'Person',
-				'name'  => 'Alice Example',
-			),
-			$review['author']
-		);
-		$this->assertSame( 'Salt transformed our site.', $review['reviewBody'] );
-		$this->assertSame(
-			array(
-				'@type'       => 'Rating',
-				'ratingValue' => 5,
-				'bestRating'  => 5,
-				'worstRating' => 1,
-			),
-			$review['reviewRating']
-		);
+		$this->assertSame( array(), $this->schema_reviews(), 'The contract dropped the testimonial\'s service, so nothing says what a Review reviews (SEO02: never org-attached).' );
 	}
 
 	public function test_no_aggregate_rating_is_emitted(): void {
@@ -437,63 +408,14 @@ final class TestimonialsSectionTest extends SaltTestCase {
 		$this->assertStringNotContainsString( 'aggregateRating', (string) wp_json_encode( $graph ), 'v1 emits no AggregateRating (deferred — see section docblock).' );
 	}
 
-	public function test_rating_above_five_is_clamped_in_schema_and_markup(): void {
+	public function test_rating_above_five_is_clamped_in_markup(): void {
 		$this->seed_standard_set();
 		$GLOBALS['salt_test_fields']['101']['rating'] = 7;
 
 		$html = $this->render_testimonials();
 
-		$this->assertSame( 5, $this->schema_reviews()[0]['reviewRating']['ratingValue'] );
 		$this->assertStringContainsString( 'aria-label="Rated 5 out of 5 stars"', $html );
 		$this->assertStringContainsString( 'clamped', implode( ' ', $this->logs() ) );
-	}
-
-	public function test_unset_rating_omits_review_rating_but_keeps_the_review(): void {
-		$this->seed_standard_set();
-		unset( $GLOBALS['salt_test_fields']['101']['rating'] );
-
-		$this->render_testimonials();
-
-		$reviews = $this->schema_reviews();
-		$this->assertCount( 1, $reviews );
-		$this->assertArrayNotHasKey( 'reviewRating', $reviews[0] );
-	}
-
-	public function test_broken_service_relationship_emits_no_review_and_logs(): void {
-		$this->seed_standard_set();
-		$GLOBALS['salt_test_fields']['101']['service'] = array( 999 );
-
-		$html = $this->render_testimonials();
-
-		$this->assertStringContainsString( 'x-card-testimonial', $html, 'The card still renders — only the schema is skipped.' );
-		$this->assertSame( array(), $this->schema_reviews() );
-		$this->assertStringContainsString( 'broken relationship', implode( ' ', $this->logs() ) );
-	}
-
-	public function test_unpublished_service_emits_no_review(): void {
-		$this->seed_posts(
-			array(
-				array(
-					'ID'          => 202,
-					'post_type'   => 'service',
-					'post_status' => 'draft',
-					'post_title'  => 'Retired service',
-				),
-				array(
-					'ID'         => 101,
-					'post_type'  => 'testimonial',
-					'post_title' => 'Alice Example',
-				),
-			)
-		);
-		$GLOBALS['salt_test_fields']['101'] = array(
-			'quote'   => 'Quote for a retired service.',
-			'service' => array( 202 ),
-		);
-
-		$this->render_testimonials();
-
-		$this->assertSame( array(), $this->schema_reviews() );
 	}
 
 	// -----------------------------------------------------------------
@@ -550,8 +472,8 @@ final class TestimonialsSectionTest extends SaltTestCase {
 
 	public function test_resolver_returns_data_for_the_cards_not_rendered_components(): void {
 		$this->seed_standard_set();
-		$GLOBALS['salt_test_fields']['101']['logo']   = 55;
-		$GLOBALS['salt_test_fields']['103']['rating'] = 9;
+		$GLOBALS['salt_test_posts'][1]->salt_thumbnail_id = 56;
+		$GLOBALS['salt_test_fields']['103']['rating']     = 9;
 
 		$resolved = $this->resolve_testimonials(
 			array(
@@ -568,23 +490,24 @@ final class TestimonialsSectionTest extends SaltTestCase {
 
 		$items = $resolved['props']['items'];
 		$this->assertCount( 3, $items );
-		$this->assertSame( array( 'author', 'quote', 'role', 'company', 'rating', 'logo_id' ), array_keys( $items[0] ) );
+		$this->assertSame( array( 'author', 'quote', 'role', 'company', 'rating', 'photo_id' ), array_keys( $items[0] ) );
 		$this->assertSame( 'Alice Example', $items[0]['author'] );
 		$this->assertSame( 'Salt transformed our site.', $items[0]['quote'] );
 		$this->assertSame( 'Acme Ltd', $items[0]['company'] );
-		$this->assertSame( 55, $items[0]['logo_id'] );
+		$this->assertSame( 56, $items[0]['photo_id'], 'The photo is the featured image.' );
+		$this->assertSame( 0, $items[1]['photo_id'] );
 		$this->assertSame( 5, $items[2]['rating'], 'The resolver clamps ratings.' );
 		$this->assertStringContainsString( 'rating 9 on testimonial 103', implode( ' ', $this->logs() ) );
 
 		$this->assertStringNotContainsString( '<', (string) wp_json_encode( $items ), 'No pre-rendered component HTML in props (rule 3).' );
 	}
 
-	public function test_resolver_queues_the_review_nodes_itself(): void {
+	public function test_resolver_queues_no_schema(): void {
 		$this->seed_standard_set();
 
 		$this->resolve_testimonials();
 
-		$this->assertCount( 1, $this->schema_reviews(), 'Schema is logic: queued without the view ever running.' );
+		$this->assertSame( array(), salt_schema_queue() );
 	}
 
 	/**
@@ -612,18 +535,18 @@ final class TestimonialsSectionTest extends SaltTestCase {
 
 	public function test_view_draws_the_cards_from_props_alone(): void {
 		$GLOBALS['salt_test_attachments'][55] = array(
-			'src'    => 'https://example.test/uploads/prop-logo.png',
+			'src'    => 'https://example.test/uploads/prop-photo.jpg',
 			'width'  => 200,
 			'height' => 80,
 			'srcset' => '',
 		);
 		$item                                 = array(
-			'author'  => 'Prop Author',
-			'quote'   => 'Drawn from props.',
-			'role'    => 'CEO',
-			'company' => 'Prop Co',
-			'rating'  => 4,
-			'logo_id' => 55,
+			'author'   => 'Prop Author',
+			'quote'    => 'Drawn from props.',
+			'role'     => 'CEO',
+			'company'  => 'Prop Co',
+			'rating'   => 4,
+			'photo_id' => 55,
 		);
 		$props                                = array(
 			'eyebrow' => 'Praise',
@@ -634,8 +557,8 @@ final class TestimonialsSectionTest extends SaltTestCase {
 				array_merge(
 					$item,
 					array(
-						'author'  => 'Second',
-						'logo_id' => 0,
+						'author'   => 'Second',
+						'photo_id' => 0,
 					)
 				),
 			),
@@ -646,7 +569,7 @@ final class TestimonialsSectionTest extends SaltTestCase {
 		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ), 'Heading at the plan level.' );
 		$this->assertStringContainsString( 'data-salt-testimonials', $html );
 		$this->assertSame( 2, substr_count( $html, 'x-testimonials-item' ) );
-		$this->assertStringContainsString( 'prop-logo.png', $html, 'The view renders the logo component from logo_id.' );
+		$this->assertStringContainsString( 'prop-photo.jpg', $html, 'The view renders the image component from photo_id.' );
 		$this->assertStringContainsString( 'Drawn from props.', $html );
 		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
 

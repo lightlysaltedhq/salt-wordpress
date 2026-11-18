@@ -3,8 +3,9 @@
  * Team section + team_member CPT slice tests (spec §10 #12, Appendix A.3).
  *
  * States (COMPL02): 0 members => '' ; 1 member => static grid, no JS;
- * N => grid. Malformed members (no name) and malformed social rows
- * (unknown platform / no url) are skipped + logged. Person schema nodes
+ * N => grid. Malformed members (no name) and social rows with no usable
+ * address are skipped + logged; a row's network is worked out from its
+ * address (salt-contract socials.json). Person schema nodes
  * are queued per rendered member with NO email/phone (PII minimisation).
  *
  * @package Salt\Tests
@@ -17,7 +18,8 @@ require_once __DIR__ . '/../shims/media.php';
 require_once __DIR__ . '/../shims/team.php';
 
 require_once dirname( __DIR__, 2 ) . '/inc/cpt/team-member.php';
-require_once dirname( __DIR__, 2 ) . '/inc/fields/cpt-team-member.php';
+require_once dirname( __DIR__, 2 ) . '/inc/services/chrome.php';
+require_once dirname( __DIR__, 2 ) . '/inc/fields/collections.php';
 
 final class TeamSectionTest extends SaltTestCase {
 
@@ -171,7 +173,7 @@ final class TeamSectionTest extends SaltTestCase {
 		$this->assertSame( '', $this->render_team( array( 'heading' => 'Meet the team' ) ) );
 	}
 
-	public function test_social_row_with_unknown_platform_is_skipped_and_logged(): void {
+	public function test_social_network_comes_from_the_address_and_bad_rows_are_skipped(): void {
 		$this->seed_members(
 			array(
 				$this->member(
@@ -180,16 +182,20 @@ final class TeamSectionTest extends SaltTestCase {
 					array(
 						'socials' => array(
 							array(
-								'platform' => 'linkedin',
-								'url'      => 'https://example.test/in/jane',
+								'name' => 'LinkedIn',
+								'url'  => 'https://www.linkedin.com/in/jane',
 							),
 							array(
-								'platform' => 'myspace',
-								'url'      => 'https://example.test/myspace/jane',
+								'name' => 'Portfolio',
+								'url'  => 'https://example.test/jane',
 							),
 							array(
-								'platform' => 'x',
-								'url'      => '',
+								'name' => 'X',
+								'url'  => '',
+							),
+							array(
+								'name' => 'Broken',
+								'url'  => 'not an address',
 							),
 						),
 					)
@@ -199,12 +205,14 @@ final class TeamSectionTest extends SaltTestCase {
 
 		$html = $this->render_team( array( 'heading' => 'Meet the team' ) );
 
-		$this->assertStringContainsString( 'https://example.test/in/jane', $html );
-		$this->assertStringContainsString( 'aria-label="Jane Doe on LinkedIn"', $html );
-		$this->assertStringNotContainsString( 'myspace', $html );
+		$this->assertStringContainsString( 'https://www.linkedin.com/in/jane', $html );
+		$this->assertStringContainsString( 'aria-label="Jane Doe on LinkedIn"', $html, 'The row\'s name names the link.' );
+		$this->assertStringContainsString( 'aria-label="Jane Doe on Portfolio"', $html, 'An address that names no network still draws, as the globe.' );
+		$this->assertSame( 2, substr_count( $html, 'x-card-team-social ' ) );
+		$this->assertStringNotContainsString( 'not an address', $html );
 		$logs = implode( ' ', $this->logs() );
-		$this->assertStringContainsString( 'unknown platform "myspace"', $logs );
-		$this->assertStringContainsString( 'social row (x) without a url skipped', $logs );
+		$this->assertStringContainsString( 'social row (X) without a usable url skipped', $logs );
+		$this->assertStringContainsString( 'social row (Broken) without a usable url skipped', $logs );
 	}
 
 	// -----------------------------------------------------------------------
@@ -329,8 +337,8 @@ final class TeamSectionTest extends SaltTestCase {
 		$this->assertFalse( $args['show_in_rest'] );
 		$this->assertFalse( $args['has_archive'] );
 
-		$this->assertArrayHasKey( 'department', $GLOBALS['salt_test_taxonomies'] );
-		$this->assertSame( array( 'team_member' ), $GLOBALS['salt_test_taxonomies']['department']['object_type'] );
+		$this->assertSame( array( 'title', 'thumbnail', 'page-attributes' ), $args['supports'], 'No full biography: the contract dropped the body.' );
+		$this->assertSame( array(), $GLOBALS['salt_test_taxonomies'], 'Team has no topics (SC-027): no department taxonomy.' );
 	}
 
 	public function test_disabled_module_registers_no_cpt_or_taxonomy(): void {
@@ -346,37 +354,30 @@ final class TeamSectionTest extends SaltTestCase {
 	// Fields-as-code (DATA02).
 	// -----------------------------------------------------------------------
 
-	public function test_team_member_field_group_registers_the_appendix_a3_fields(): void {
-		salt_register_team_member_fields();
+	public function test_team_member_field_group_is_the_contracts_person(): void {
+		$group = salt_test_collection_group( 'team' );
 
-		$this->assertCount( 1, $GLOBALS['salt_test_acf_groups'] );
-		$group = $GLOBALS['salt_test_acf_groups'][0];
-
-		$this->assertSame( 'group_salt_team_member', $group['key'] );
-
-		$names = array_map( static fn( array $f ): string => (string) $f['name'], $group['fields'] );
-		$this->assertSame( array( 'role', 'short_bio', 'email', 'phone', 'socials' ), $names );
+		$this->assertSame( 'group_salt_collection_team', $group['key'] );
+		$this->assertSame( 'team_member', $group['location'][0][0]['value'] );
+		$this->assertSame( array( 'role', 'bio', 'email', 'phone', 'socials' ), array_column( $group['fields'], 'name' ) );
+		$this->assertSame(
+			array(
+				'name'  => 'title',
+				'photo' => 'featured-image',
+			),
+			$group['salt']['native']
+		);
 
 		$socials = $group['fields'][4];
 		$this->assertSame( 'repeater', $socials['type'] );
-		$this->assertSame(
-			array( 'platform', 'url' ),
-			array_map( static fn( array $f ): string => (string) $f['name'], $socials['sub_fields'] )
-		);
-		$this->assertSame(
-			array( 'linkedin', 'x', 'instagram', 'facebook', 'youtube', 'tiktok', 'github', 'bluesky', 'other' ),
-			array_keys( $socials['sub_fields'][0]['choices'] )
-		);
-
-		$this->assertSame( array(), array_filter( $this->logs(), static fn( string $l ): bool => str_contains( $l, 'DATA02' ) ), 'No key-convention violations.' );
+		$this->assertSame( 10, $socials['max'] );
+		$this->assertSame( array( 'name', 'url' ), array_column( $socials['sub_fields'], 'name' ) );
 	}
 
 	public function test_disabled_module_registers_no_field_group(): void {
 		$GLOBALS['salt_test_fields']['option']['module_team_member'] = false;
 
-		salt_register_team_member_fields();
-
-		$this->assertSame( array(), $GLOBALS['salt_test_acf_groups'] );
+		$this->assertNull( salt_test_collection_group( 'team' ) );
 	}
 
 	// -----------------------------------------------------------------------
@@ -396,7 +397,7 @@ final class TeamSectionTest extends SaltTestCase {
 
 		$this->assertSame( array( 'eyebrow', 'heading', 'columns' ), array_slice( $names, 0, 3 ), 'Content fields first.' );
 		$this->assertContains( 'source', $names, 'Query controls embedded (§10a).' );
-		$this->assertContains( 'taxonomy_terms', $names, 'department taxonomy filter present.' );
+		$this->assertNotContains( 'taxonomy_terms', $names, 'Team has no topics (SC-027), so no term filter.' );
 		$this->assertSame( 'settings', end( $names ), 'The contract\'s section settings group last.' );
 	}
 
@@ -459,11 +460,11 @@ final class TeamSectionTest extends SaltTestCase {
 			1,
 			'  Jane Doe ',
 			array(
-				'role'      => 'Founder',
-				'short_bio' => 'Builds things.',
-				'email'     => 'jane@example.test',
-				'phone'     => '+44 1234',
-				'socials'   => 'not-an-array',
+				'role'    => 'Founder',
+				'bio'     => 'Builds things.',
+				'email'   => 'jane@example.test',
+				'phone'   => '+44 1234',
+				'socials' => 'not-an-array',
 			)
 		);
 		$jane['salt_thumbnail_id']            = 40;
@@ -487,6 +488,7 @@ final class TeamSectionTest extends SaltTestCase {
 		$this->assertSame( array( 'name', 'role', 'bio', 'email', 'phone', 'image_id', 'socials' ), array_keys( $member ) );
 		$this->assertSame( 'Jane Doe', $member['name'], 'The name is trimmed, as before.' );
 		$this->assertSame( 'Founder', $member['role'] );
+		$this->assertSame( 'Builds things.', $member['bio'], 'bio, the contract\'s name (formerly short_bio).' );
 		$this->assertSame( 40, $member['image_id'] );
 		$this->assertSame( array(), $member['socials'], 'A non-array socials field is an empty list.' );
 		$this->assertSame( 0, $resolved['props']['members'][1]['image_id'] );

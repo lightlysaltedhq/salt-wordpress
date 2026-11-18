@@ -61,14 +61,16 @@ final class WorkSectionSnapshotTest extends SaltSnapshotTestCase {
 					'ID'                => 1,
 					'post_type'         => 'work',
 					'post_title'        => 'Alpha rebrand',
+					'post_excerpt'      => 'A full rebrand across print and digital.',
 					'post_date'         => '2026-01-03 00:00:00',
 					'salt_thumbnail_id' => 51,
 				),
 				array(
-					'ID'         => 2,
-					'post_type'  => 'work',
-					'post_title' => 'Beta ecommerce build',
-					'post_date'  => '2026-01-02 00:00:00',
+					'ID'           => 2,
+					'post_type'    => 'work',
+					'post_title'   => 'Beta ecommerce build',
+					'post_excerpt' => 'Headless storefront with a design system.',
+					'post_date'    => '2026-01-02 00:00:00',
 				),
 				array(
 					'ID'         => 3,
@@ -83,14 +85,8 @@ final class WorkSectionSnapshotTest extends SaltSnapshotTestCase {
 			2 => 'https://example.test/work/beta-ecommerce/',
 			3 => 'https://example.test/work/gamma-campaign/',
 		);
-		$GLOBALS['salt_test_fields']['1']     = array(
-			'client'  => 'Alpha Ltd',
-			'summary' => 'A full rebrand across print and digital.',
-		);
-		$GLOBALS['salt_test_fields']['2']     = array(
-			'client'  => 'Beta & Co',
-			'summary' => 'Headless storefront with a design system.',
-		);
+		$GLOBALS['salt_test_fields']['1']     = array( 'client' => 'Alpha Ltd' );
+		$GLOBALS['salt_test_fields']['2']     = array( 'client' => 'Beta & Co' );
 		$GLOBALS['salt_test_attachments'][51] = array(
 			'src'    => 'https://example.test/uploads/alpha-card.jpg',
 			'width'  => 800,
@@ -116,17 +112,15 @@ final class WorkSectionSnapshotTest extends SaltSnapshotTestCase {
 		$this->seed_posts(
 			array(
 				array(
-					'ID'         => 7,
-					'post_type'  => 'work',
-					'post_title' => 'Delta annual report',
+					'ID'           => 7,
+					'post_type'    => 'work',
+					'post_title'   => 'Delta annual report',
+					'post_excerpt' => 'Design and build of the interactive annual report.',
 				),
 			)
 		);
 		$GLOBALS['salt_test_permalinks'][7] = 'https://example.test/work/delta-annual-report/';
-		$GLOBALS['salt_test_fields']['7']   = array(
-			'client'  => 'Delta Trust',
-			'summary' => 'Design and build of the interactive annual report.',
-		);
+		$GLOBALS['salt_test_fields']['7']   = array( 'client' => 'Delta Trust' );
 
 		$this->assertMatchesHtmlSnapshot(
 			'work-single-item',

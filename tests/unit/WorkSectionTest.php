@@ -17,7 +17,7 @@ require_once __DIR__ . '/../shims/media.php';
 require_once __DIR__ . '/../shims/work.php';
 
 require_once dirname( __DIR__, 2 ) . '/inc/cpt/work.php';
-require_once dirname( __DIR__, 2 ) . '/inc/fields/cpt-work.php';
+require_once dirname( __DIR__, 2 ) . '/inc/fields/collections.php';
 
 final class WorkSectionTest extends SaltTestCase {
 
@@ -110,16 +110,14 @@ final class WorkSectionTest extends SaltTestCase {
 		$this->seed_work_posts(
 			array(
 				array(
-					'ID'         => 7,
-					'post_title' => 'Alpha rebrand',
+					'ID'           => 7,
+					'post_title'   => 'Alpha rebrand',
+					'post_excerpt' => 'A full rebrand.',
 				),
 			)
 		);
 		$GLOBALS['salt_test_permalinks'][7] = 'https://example.test/work/alpha-rebrand/';
-		$GLOBALS['salt_test_fields']['7']   = array(
-			'client'  => 'Alpha Ltd',
-			'summary' => 'A full rebrand.',
-		);
+		$GLOBALS['salt_test_fields']['7']   = array( 'client' => 'Alpha Ltd' );
 
 		$html = $this->render_work(
 			array(
@@ -409,7 +407,7 @@ final class WorkSectionTest extends SaltTestCase {
 	// CPT registration (Appendix A.4, DATA01).
 	// -----------------------------------------------------------------
 
-	public function test_cpt_work_registers_public_with_archive_and_taxonomies(): void {
+	public function test_cpt_work_registers_public_with_archive_and_its_topics(): void {
 		salt_register_cpt_work();
 
 		$this->assertArrayHasKey( 'work', $GLOBALS['salt_test_post_types'] );
@@ -417,12 +415,11 @@ final class WorkSectionTest extends SaltTestCase {
 		$this->assertTrue( $cpt['public'] );
 		$this->assertTrue( $cpt['has_archive'] );
 		$this->assertSame( 'work', $cpt['rewrite']['slug'] );
-		$this->assertSame( array( 'title', 'editor', 'thumbnail', 'excerpt' ), $cpt['supports'] );
+		$this->assertSame( array( 'title', 'thumbnail', 'excerpt' ), $cpt['supports'], 'A case study has no page body (contract collections/case-studies.json).' );
 
-		foreach ( array( 'work_type', 'industry' ) as $taxonomy ) {
-			$this->assertArrayHasKey( $taxonomy, $GLOBALS['salt_test_taxonomies'] );
-			$this->assertSame( array( 'work' ), $GLOBALS['salt_test_taxonomies'][ $taxonomy ]['object_type'] );
-		}
+		$this->assertArrayHasKey( 'work_type', $GLOBALS['salt_test_taxonomies'] );
+		$this->assertSame( array( 'work' ), $GLOBALS['salt_test_taxonomies']['work_type']['object_type'] );
+		$this->assertArrayNotHasKey( 'industry', $GLOBALS['salt_test_taxonomies'], 'The contract dropped the industry taxonomy.' );
 	}
 
 	public function test_cpt_work_registers_nothing_when_module_disabled(): void {
@@ -443,34 +440,33 @@ final class WorkSectionTest extends SaltTestCase {
 	// Fields-as-code (Appendix A.4, DATA02).
 	// -----------------------------------------------------------------
 
-	public function test_work_field_group_registers_the_appendix_a4_fields(): void {
-		salt_register_work_fields();
-
-		$this->assertCount( 1, $GLOBALS['salt_test_acf_groups'] );
-		$group = $GLOBALS['salt_test_acf_groups'][0];
-		$this->assertSame( 'group_salt_work', $group['key'] );
+	public function test_work_field_group_is_the_contracts_case_study(): void {
+		$group = salt_test_collection_group( 'case-studies' );
+		$this->assertSame( 'group_salt_collection_case_studies', $group['key'] );
+		$this->assertSame( 'work', $group['location'][0][0]['value'] );
 
 		$by_name = array_column( $group['fields'], null, 'name' );
 		$this->assertSame(
-			array( 'client', 'summary', 'gallery', 'challenge', 'solution', 'results', 'services', 'live_url' ),
+			array( 'client', 'gallery', 'challenge', 'solution', 'results', 'details', 'externalUrl', 'services' ),
 			array_keys( $by_name )
+		);
+		$this->assertSame(
+			array(
+				'title'         => 'title',
+				'topics'        => 'categories',
+				'summary'       => 'excerpt',
+				'featuredImage' => 'featured-image',
+			),
+			$group['salt']['native']
 		);
 		$this->assertSame( 'gallery', $by_name['gallery']['type'] );
 		$this->assertSame( 'id', $by_name['gallery']['return_format'] );
-		$this->assertSame( 'repeater', $by_name['results']['type'] );
-		$this->assertSame(
-			array( 'stat', 'label' ),
-			array_column( $by_name['results']['sub_fields'], 'name' )
-		);
+		$this->assertSame( array( 'stat', 'label' ), array_column( $by_name['results']['sub_fields'], 'name' ) );
+		$this->assertSame( array( 'label', 'value' ), array_column( $by_name['details']['sub_fields'], 'name' ) );
 		$this->assertSame( array( 'service' ), $by_name['services']['post_type'] );
-		$this->assertSame( 'url', $by_name['live_url']['type'] );
-		$this->assertStringStartsWith( 'field_salt_work_', $by_name['client']['key'] );
-
-		$this->assertSame(
-			array(),
-			array_filter( $this->logs(), static fn( string $l ): bool => str_contains( $l, 'DATA02' ) ),
-			'No key-convention violations logged.'
-		);
+		$this->assertSame( 'text', $by_name['externalUrl']['type'] );
+		$this->assertSame( 'url', $by_name['externalUrl']['salt']['format'] );
+		$this->assertStringStartsWith( 'field_salt_collection_case_studies_', $by_name['client']['key'] );
 	}
 
 	public function test_work_field_group_skipped_when_module_disabled(): void {
@@ -481,9 +477,7 @@ final class WorkSectionTest extends SaltTestCase {
 			2
 		);
 
-		salt_register_work_fields();
-
-		$this->assertSame( array(), $GLOBALS['salt_test_acf_groups'] );
+		$this->assertNull( salt_test_collection_group( 'case-studies' ) );
 	}
 
 	// -----------------------------------------------------------------
@@ -596,8 +590,9 @@ final class WorkSectionTest extends SaltTestCase {
 		$this->seed_work_posts(
 			array(
 				array(
-					'ID'         => 1,
-					'post_title' => 'Alpha',
+					'ID'           => 1,
+					'post_title'   => 'Alpha',
+					'post_excerpt' => 'A summary.',
 				),
 				array(
 					'ID'         => 2,
@@ -605,10 +600,7 @@ final class WorkSectionTest extends SaltTestCase {
 				),
 			)
 		);
-		$GLOBALS['salt_test_fields']['1'] = array(
-			'client'  => 'Acme',
-			'summary' => 'A summary.',
-		);
+		$GLOBALS['salt_test_fields']['1'] = array( 'client' => 'Acme' );
 
 		$resolved = $this->resolve_work(
 			array(

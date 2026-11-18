@@ -18,28 +18,28 @@ final class OpeningHoursSnapshotTest extends SaltSnapshotTestCase {
 	private static function week(): array {
 		return array(
 			array(
-				'day'              => 'monday',
-				'open'             => '09:00',
-				'close'            => '17:00',
-				'appointment_only' => false,
+				'day'         => 'monday',
+				'open'        => '09:00',
+				'close'       => '17:00',
+				'appointment' => false,
 			),
 			array(
-				'day'              => 'wednesday',
-				'open'             => '09:00',
-				'close'            => '12:00',
-				'appointment_only' => false,
+				'day'         => 'wednesday',
+				'open'        => '09:00',
+				'close'       => '12:00',
+				'appointment' => false,
 			),
 			array(
-				'day'              => 'wednesday',
-				'open'             => '14:00',
-				'close'            => '17:00',
-				'appointment_only' => false,
+				'day'         => 'wednesday',
+				'open'        => '14:00',
+				'close'       => '17:00',
+				'appointment' => false,
 			),
 			array(
-				'day'              => 'saturday',
-				'open'             => '',
-				'close'            => '',
-				'appointment_only' => true,
+				'day'         => 'saturday',
+				'open'        => '',
+				'close'       => '',
+				'appointment' => true,
 			),
 		);
 	}

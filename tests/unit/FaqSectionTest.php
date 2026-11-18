@@ -12,7 +12,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../shims/acf.php';
 require_once __DIR__ . '/../shims/faq.php';
 require_once dirname( __DIR__, 2 ) . '/inc/cpt/faq.php';
-require_once dirname( __DIR__, 2 ) . '/inc/fields/cpt-faq.php';
+require_once dirname( __DIR__, 2 ) . '/inc/fields/collections.php';
 
 final class FaqSectionTest extends SaltTestCase {
 
@@ -131,16 +131,24 @@ final class FaqSectionTest extends SaltTestCase {
 	// Field group + layout shape (DATA02).
 	// -----------------------------------------------------------------
 
-	public function test_faq_field_group_registers_the_answer_wysiwyg(): void {
-		salt_register_faq_fields();
+	public function test_faq_field_group_is_the_contracts_faq(): void {
+		$group = salt_test_collection_group( 'faqs' );
 
-		$groups = array_column( $GLOBALS['salt_test_acf_groups'], null, 'key' );
-		$this->assertArrayHasKey( 'group_salt_faq', $groups );
+		$this->assertSame( 'group_salt_collection_faqs', $group['key'] );
+		$this->assertSame( 'faq', $group['location'][0][0]['value'] );
+		$this->assertSame(
+			array(
+				'question' => 'title',
+				'topics'   => 'categories',
+			),
+			$group['salt']['native']
+		);
 
-		$fields = array_column( $groups['group_salt_faq']['fields'], null, 'name' );
-		$this->assertArrayHasKey( 'answer', $fields );
-		$this->assertSame( 'field_salt_faq_answer', $fields['answer']['key'] );
+		$fields = array_column( $group['fields'], null, 'name' );
+		$this->assertSame( array( 'answer' ), array_keys( $fields ) );
+		$this->assertSame( 'field_salt_collection_faqs_answer', $fields['answer']['key'] );
 		$this->assertSame( 'wysiwyg', $fields['answer']['type'] );
+		$this->assertSame( array( 'paragraph', 'bold', 'italic', 'link', 'unordered-list', 'ordered-list' ), $fields['answer']['salt']['allowed'] );
 	}
 
 	public function test_layout_is_generated_from_the_contract(): void {

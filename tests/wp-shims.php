@@ -544,6 +544,8 @@ if ( ! class_exists( 'WP_Post' ) ) {
 		/** @var string */
 		public $post_title = '';
 		/** @var string */
+		public $post_excerpt = '';
+		/** @var string */
 		public $post_date = '2026-01-01 00:00:00';
 		/** @var int */
 		public $menu_order = 0;

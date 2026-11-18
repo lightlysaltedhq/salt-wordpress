@@ -11,8 +11,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../shims/acf.php';
 require_once __DIR__ . '/../shims/service.php';
+require_once __DIR__ . '/../shims/media.php';
 require_once dirname( __DIR__, 2 ) . '/inc/cpt/service.php';
-require_once dirname( __DIR__, 2 ) . '/inc/fields/cpt-service.php';
+require_once dirname( __DIR__, 2 ) . '/inc/fields/collections.php';
 
 final class ServicesSectionTest extends SaltTestCase {
 
@@ -35,34 +36,31 @@ final class ServicesSectionTest extends SaltTestCase {
 		$this->seed_posts(
 			array(
 				array(
-					'ID'         => 5,
-					'post_type'  => 'service',
-					'post_title' => 'Web Design',
-					'menu_order' => 1,
+					'ID'           => 5,
+					'post_type'    => 'service',
+					'post_title'   => 'Web Design',
+					'post_excerpt' => 'Fast, accessible sites.',
+					'menu_order'   => 1,
 				),
 				array(
-					'ID'         => 6,
-					'post_type'  => 'service',
-					'post_title' => 'Branding',
-					'menu_order' => 2,
+					'ID'           => 6,
+					'post_type'    => 'service',
+					'post_title'   => 'Branding',
+					'post_excerpt' => 'Identities that stick.',
+					'menu_order'   => 2,
 				),
 				array(
-					'ID'         => 7,
-					'post_type'  => 'service',
-					'post_title' => 'SEO',
-					'menu_order' => 3,
+					'ID'           => 7,
+					'post_type'    => 'service',
+					'post_title'   => 'SEO',
+					'post_excerpt' => 'Be found.',
+					'menu_order'   => 3,
 				),
 			)
 		);
-		$GLOBALS['salt_test_fields']['5'] = array(
-			'summary' => 'Fast, accessible sites.',
-			'icon'    => 'star',
-		);
-		$GLOBALS['salt_test_fields']['6'] = array(
-			'summary' => 'Identities that stick.',
-			'icon'    => 'check',
-		);
-		$GLOBALS['salt_test_fields']['7'] = array( 'summary' => 'Be found.' );
+		// The summary is the excerpt (contract collections/services.json); icon is a field.
+		$GLOBALS['salt_test_fields']['5'] = array( 'icon' => 'star' );
+		$GLOBALS['salt_test_fields']['6'] = array( 'icon' => 'check' );
 	}
 
 	/**
@@ -112,14 +110,14 @@ final class ServicesSectionTest extends SaltTestCase {
 		$this->seed_posts(
 			array(
 				array(
-					'ID'         => 5,
-					'post_type'  => 'service',
-					'post_title' => 'Web Design',
-					'menu_order' => 1,
+					'ID'           => 5,
+					'post_type'    => 'service',
+					'post_title'   => 'Web Design',
+					'post_excerpt' => 'Fast, accessible sites.',
+					'menu_order'   => 1,
 				),
 			)
 		);
-		$GLOBALS['salt_test_fields']['5'] = array( 'summary' => 'Fast, accessible sites.' );
 
 		$html = $this->render_services( array( 'heading' => 'Our services' ) );
 
@@ -336,11 +334,10 @@ final class ServicesSectionTest extends SaltTestCase {
 		$GLOBALS['salt_test_fields']['option']['module_service'] = false;
 
 		salt_register_cpt_service();
-		salt_register_service_fields();
 
 		$this->assertArrayNotHasKey( 'service', $GLOBALS['salt_test_cpts'] );
 		$this->assertArrayNotHasKey( 'service_category', $GLOBALS['salt_test_taxonomies'] );
-		$this->assertSame( array(), $GLOBALS['salt_test_acf_groups'] );
+		$this->assertNull( salt_test_collection_group( 'services' ) );
 	}
 
 	public function test_cpt_registers_with_appendix_a1_flags(): void {
@@ -363,19 +360,27 @@ final class ServicesSectionTest extends SaltTestCase {
 		$this->assertTrue( $tax['args']['hierarchical'] );
 	}
 
-	public function test_field_group_follows_appendix_a1_and_data02(): void {
-		salt_register_service_fields();
+	public function test_field_group_is_the_contracts_service(): void {
+		$group = salt_test_collection_group( 'services' );
 
-		$this->assertCount( 1, $GLOBALS['salt_test_acf_groups'] );
-		$group = $GLOBALS['salt_test_acf_groups'][0];
-
-		$this->assertSame( 'group_salt_service', $group['key'] );
+		$this->assertSame( 'group_salt_collection_services', $group['key'] );
 		$this->assertSame(
-			array( 'icon', 'summary', 'headline', 'benefits', 'price_from', 'related_services', 'cta' ),
-			array_column( $group['fields'], 'name' )
+			array( 'icon', 'benefits', 'priceFrom', 'relatedServices', 'cta' ),
+			array_column( $group['fields'], 'name' ),
+			'The title, topics, summary, intro and featured image are WordPress\'s own (salt.native).'
+		);
+		$this->assertSame(
+			array(
+				'title'         => 'title',
+				'topics'        => 'categories',
+				'summary'       => 'excerpt',
+				'intro'         => 'body',
+				'featuredImage' => 'featured-image',
+			),
+			$group['salt']['native']
 		);
 		foreach ( $group['fields'] as $field ) {
-			$this->assertStringStartsWith( 'field_salt_service_', $field['key'] );
+			$this->assertStringStartsWith( 'field_salt_collection_services_', $field['key'] );
 		}
 		$this->assertSame( 'service', $group['location'][0][0]['value'] );
 	}
@@ -410,9 +415,16 @@ final class ServicesSectionTest extends SaltTestCase {
 	public function test_archive_content_card_delegates_to_the_component(): void {
 		$GLOBALS['salt_test_current_post'] = 7;
 		$GLOBALS['salt_test_title']        = 'SEO';
-		$GLOBALS['salt_test_fields']['7']  = array(
-			'summary' => 'Be found.',
-			'icon'    => 'star',
+		$GLOBALS['salt_test_fields']['7']  = array( 'icon' => 'star' );
+		$this->seed_posts(
+			array(
+				array(
+					'ID'           => 7,
+					'post_type'    => 'service',
+					'post_title'   => 'SEO',
+					'post_excerpt' => 'Be found.',
+				),
+			)
 		);
 
 		ob_start();
@@ -487,13 +499,36 @@ final class ServicesSectionTest extends SaltTestCase {
 		$this->assertNull( $resolved['props']['view_all_url'] );
 
 		$this->assertCount( 3, $resolved['props']['items'] );
-		$this->assertSame( array( 'title', 'url', 'summary', 'icon' ), array_keys( $resolved['props']['items'][0] ) );
+		$this->assertSame( array( 'title', 'url', 'summary', 'icon', 'image_id' ), array_keys( $resolved['props']['items'][0] ) );
+		$this->assertSame( 'Fast, accessible sites.', $resolved['props']['items'][0]['summary'], 'The summary is the excerpt.' );
+		$this->assertSame( 0, $resolved['props']['items'][0]['image_id'], 'No featured image is 0.' );
 		$this->assertSame( 'Web Design', $resolved['props']['items'][0]['title'] );
 		$this->assertSame( 'star', $resolved['props']['items'][0]['icon'] );
 		$this->assertSame( '', $resolved['props']['items'][2]['icon'], 'A missing icon is an empty string.' );
 
 		$this->assertSame( 'services', $resolved['section']['name'] );
 		$this->assertTrue( $resolved['section']['has_heading'] );
+	}
+
+	public function test_a_featured_image_is_drawn_in_place_of_the_icon(): void {
+		$this->seed_services();
+		$GLOBALS['salt_test_posts'][0]->salt_thumbnail_id = 42;
+		$GLOBALS['salt_test_attachments'][42]             = array(
+			'src'    => 'https://example.test/uploads/web.jpg',
+			'width'  => 1200,
+			'height' => 900,
+			'srcset' => '',
+			'alt'    => '',
+		);
+
+		$resolved = $this->resolve_services( array( 'heading' => 'Our services' ) );
+		$this->assertSame( 42, $resolved['props']['items'][0]['image_id'] );
+
+		$html  = $this->render_services( array( 'heading' => 'Our services' ) );
+		$cards = explode( '</article>', $html );
+		$this->assertStringContainsString( '<img', $cards[0], 'The card with a featured image draws it (contract display: image from featuredImage).' );
+		$this->assertStringNotContainsString( 'x-card-service-icon', $cards[0], 'The icon is drawn only when there is no image.' );
+		$this->assertStringContainsString( 'x-card-service-icon', $cards[1], 'A card without an image keeps its icon.' );
 	}
 
 	public function test_resolver_skips_broken_rows_and_queues_the_schema_itself(): void {
@@ -535,10 +570,11 @@ final class ServicesSectionTest extends SaltTestCase {
 
 	public function test_view_draws_from_props_alone(): void {
 		$item  = array(
-			'title'   => 'Prop Service',
-			'url'     => 'https://example.test/services/prop/',
-			'summary' => 'From props.',
-			'icon'    => '',
+			'title'    => 'Prop Service',
+			'url'      => 'https://example.test/services/prop/',
+			'summary'  => 'From props.',
+			'icon'     => '',
+			'image_id' => 0,
 		);
 		$props = array(
 			'eyebrow'      => 'What we do',

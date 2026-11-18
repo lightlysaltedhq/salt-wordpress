@@ -163,10 +163,11 @@ final class IntegrationPageTest extends SaltTestCase {
 		$this->seed_posts(
 			array(
 				array(
-					'ID'         => 201,
-					'post_type'  => 'service',
-					'post_title' => 'Web design',
-					'menu_order' => 1,
+					'ID'           => 201,
+					'post_type'    => 'service',
+					'post_title'   => 'Web design',
+					'post_excerpt' => 'We design websites.',
+					'menu_order'   => 1,
 				),
 				array(
 					'ID'         => 301,
@@ -181,22 +182,20 @@ final class IntegrationPageTest extends SaltTestCase {
 				),
 			)
 		);
-		$GLOBALS['salt_test_fields']['201']['summary'] = 'We design websites.';
 		$GLOBALS['salt_test_fields']['301']['quote']   = 'Superb work.';
 		$GLOBALS['salt_test_fields']['301']['rating']  = 5;
-		$GLOBALS['salt_test_fields']['301']['service'] = 201;
 		$GLOBALS['salt_test_fields']['401']['address'] = array(
-			'line1'    => '1 High St',
-			'city'     => 'Worcester',
-			'postcode' => 'WR1 1AA',
-			'country'  => 'GB',
+			'street'     => '1 High St',
+			'locality'   => 'Worcester',
+			'postalCode' => 'WR1 1AA',
+			'country'    => 'GB',
 		);
-		$GLOBALS['salt_test_fields']['401']['opening_hours'] = array(
+		$GLOBALS['salt_test_fields']['401']['hours']   = array(
 			array(
-				'day'              => 'monday',
-				'open'             => '09:00',
-				'close'            => '17:00',
-				'appointment_only' => false,
+				'day'         => 'monday',
+				'open'        => '09:00',
+				'close'       => '17:00',
+				'appointment' => false,
 			),
 		);
 
@@ -247,11 +246,11 @@ final class IntegrationPageTest extends SaltTestCase {
 			array_filter( $nodes, static fn( array $n ): bool => ( $n['@type'] ?? '' ) === $type )
 		);
 
-		$this->assertNotEmpty( $by_type( 'Service' ), 'Service node emitted.' );
+		$services = $by_type( 'Service' );
+		$this->assertNotEmpty( $services, 'Service node emitted.' );
+		$this->assertSame( 'We design websites.', $services[0]['description'] ?? null, 'The description is the summary, stored in the excerpt.' );
 
-		$reviews = $by_type( 'Review' );
-		$this->assertNotEmpty( $reviews, 'Review node emitted for the service-linked testimonial.' );
-		$this->assertSame( 'Service', $reviews[0]['itemReviewed']['@type'] ?? '', 'Review scoped to the Service, never the Organization (SEO02).' );
+		$this->assertSame( array(), $by_type( 'Review' ), 'No Review node: the contract dropped the testimonial\'s service, and a Review is never org-attached (SEO02).' );
 
 		$offices = $by_type( 'LocalBusiness' );
 		$this->assertNotEmpty( $offices, 'Office LocalBusiness node emitted.' );

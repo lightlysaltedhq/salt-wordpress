@@ -86,3 +86,21 @@ if ( ! function_exists( 'get_the_ID' ) ) {
 		return (int) ( $GLOBALS['salt_test_current_post'] ?? 0 );
 	}
 }
+
+if ( ! function_exists( 'get_post_thumbnail_id' ) ) {
+	/**
+	 * get_post_thumbnail_id shim — reads the fixture's salt_thumbnail_id.
+	 *
+	 * @param WP_Post|int|null $post Post fixture or ID.
+	 * @return int Attachment ID, 0 when none.
+	 */
+	function get_post_thumbnail_id( $post = null ): int {
+		if ( is_int( $post ) ) {
+			$post = get_post( $post );
+		}
+		if ( ! $post instanceof WP_Post ) {
+			return 0;
+		}
+		return (int) ( $post->salt_thumbnail_id ?? 0 );
+	}
+}

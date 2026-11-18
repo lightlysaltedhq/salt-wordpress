@@ -7,7 +7,7 @@
  * Time seam: the partial calls salt_location_status() with no $now (live
  * time), so rendered-pill tests use fixtures whose status is the same at
  * ANY instant (all-week overnight spans => always open; a day 3 days away
- * => always closed; all-week appointment_only => always appointment; no
+ * => always closed; all-week appointment => always appointment; no
  * hours => unknown). Frozen-clock assertions call salt_location_status()
  * directly with an injected $now.
  *
@@ -29,7 +29,7 @@ final class LocationsSectionTest extends SaltTestCase {
 	/**
 	 * Seed location posts + their ACF fields.
 	 *
-	 * @param array<int,array<string,mixed>> $offices Office fixtures: title, address, phone, email, opening_hours.
+	 * @param array<int,array<string,mixed>> $offices Office fixtures: title, address, phone, email, hours.
 	 * @return void
 	 */
 	private function seed_offices( array $offices ): void {
@@ -42,7 +42,7 @@ final class LocationsSectionTest extends SaltTestCase {
 				'post_title' => (string) ( $office['title'] ?? 'Office ' . $id ),
 				'menu_order' => $i,
 			);
-			foreach ( array( 'address', 'phone', 'email', 'opening_hours' ) as $key ) {
+			foreach ( array( 'address', 'phone', 'email', 'hours' ) as $key ) {
 				if ( array_key_exists( $key, $office ) ) {
 					$GLOBALS['salt_test_fields'][ (string) $id ][ $key ] = $office[ $key ];
 				}
@@ -91,10 +91,10 @@ final class LocationsSectionTest extends SaltTestCase {
 	 */
 	private static function hours_row( string $day, string $open = '', string $close = '', bool $appointment = false ): array {
 		return array(
-			'day'              => $day,
-			'open'             => $open,
-			'close'            => $close,
-			'appointment_only' => $appointment,
+			'day'         => $day,
+			'open'        => $open,
+			'close'       => $close,
+			'appointment' => $appointment,
 		);
 	}
 
@@ -151,15 +151,15 @@ final class LocationsSectionTest extends SaltTestCase {
 		$this->seed_offices(
 			array(
 				array(
-					'title'         => 'Bath office',
-					'address'       => array(
-						'line1'    => '1 High Street',
-						'city'     => 'Bath',
-						'postcode' => 'BA1 1AA',
+					'title'   => 'Bath office',
+					'address' => array(
+						'street'     => '1 High Street',
+						'locality'   => 'Bath',
+						'postalCode' => 'BA1 1AA',
 					),
-					'phone'         => '+44 1225 000000',
-					'email'         => 'bath@example.test',
-					'opening_hours' => self::always_open_hours(),
+					'phone'   => '+44 1225 000000',
+					'email'   => 'bath@example.test',
+					'hours'   => self::always_open_hours(),
 				),
 			)
 		);
@@ -243,8 +243,8 @@ final class LocationsSectionTest extends SaltTestCase {
 		$this->seed_offices(
 			array(
 				array(
-					'title'         => 'Bath office',
-					'opening_hours' => self::always_open_hours(),
+					'title' => 'Bath office',
+					'hours' => self::always_open_hours(),
 				),
 			)
 		); // phpcs:ignore Universal.Arrays.MixedKeyedUnkeyedArray
@@ -258,8 +258,8 @@ final class LocationsSectionTest extends SaltTestCase {
 		$this->seed_offices(
 			array(
 				array(
-					'title'         => 'Bath office',
-					'opening_hours' => self::always_closed_hours(),
+					'title' => 'Bath office',
+					'hours' => self::always_closed_hours(),
 				),
 			)
 		); // phpcs:ignore Universal.Arrays.MixedKeyedUnkeyedArray
@@ -273,8 +273,8 @@ final class LocationsSectionTest extends SaltTestCase {
 		$this->seed_offices(
 			array(
 				array(
-					'title'         => 'Bath office',
-					'opening_hours' => self::always_appointment_hours(),
+					'title' => 'Bath office',
+					'hours' => self::always_appointment_hours(),
 				),
 			)
 		); // phpcs:ignore Universal.Arrays.MixedKeyedUnkeyedArray
@@ -303,9 +303,9 @@ final class LocationsSectionTest extends SaltTestCase {
 				array(
 					'title'   => 'Bath office',
 					'address' => array(
-						'line1'    => '1 High Street',
-						'city'     => 'Bath',
-						'postcode' => 'BA1 1AA',
+						'street'     => '1 High Street',
+						'locality'   => 'Bath',
+						'postalCode' => 'BA1 1AA',
 					),
 				),
 			)
@@ -362,18 +362,17 @@ final class LocationsSectionTest extends SaltTestCase {
 		$this->seed_offices(
 			array(
 				array(
-					'title'         => 'Bath office',
-					'address'       => array(
-						'line1'    => '1 High Street',
-						'line2'    => 'Widcombe',
-						'city'     => 'Bath',
-						'region'   => 'Somerset',
-						'postcode' => 'BA1 1AA',
-						'country'  => 'GB',
+					'title'   => 'Bath office',
+					'address' => array(
+						'street'     => "1 High Street\nWidcombe",
+						'locality'   => 'Bath',
+						'region'     => 'Somerset',
+						'postalCode' => 'BA1 1AA',
+						'country'    => 'GB',
 					),
-					'phone'         => '+44 1225 000000',
-					'email'         => 'bath@example.test',
-					'opening_hours' => self::schema_fixture_hours(),
+					'phone'   => '+44 1225 000000',
+					'email'   => 'bath@example.test',
+					'hours'   => self::schema_fixture_hours(),
 				),
 			)
 		);
@@ -522,17 +521,17 @@ final class LocationsSectionTest extends SaltTestCase {
 		$this->seed_offices(
 			array(
 				array(
-					'ID'            => 301,
-					'title'         => ' Bath office ',
-					'address'       => array(
-						'line1'    => ' 1 High Street ',
-						'region'   => '  ',
-						'city'     => 'Bath',
-						'postcode' => 'BA1 1AA',
+					'ID'      => 301,
+					'title'   => ' Bath office ',
+					'address' => array(
+						'street'     => ' 1 High Street ',
+						'region'     => '  ',
+						'locality'   => 'Bath',
+						'postalCode' => 'BA1 1AA',
 					),
-					'phone'         => ' +44 (0)1225 000000 ',
-					'email'         => '',
-					'opening_hours' => self::always_appointment_hours(),
+					'phone'   => ' +44 (0)1225 000000 ',
+					'email'   => '',
+					'hours'   => self::always_appointment_hours(),
 				),
 				array(
 					'ID'    => 302,

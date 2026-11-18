@@ -305,7 +305,7 @@ final class ResolverTest extends SaltTestCase {
 
 	public function test_taxonomy_map_is_the_frozen_contract(): void {
 		$this->assertSame( 'service_category', salt_query_taxonomy( 'service' ) );
-		$this->assertSame( 'department', salt_query_taxonomy( 'team_member' ) );
+		$this->assertNull( salt_query_taxonomy( 'team_member' ), 'Team has no topics (SC-027).' );
 		$this->assertSame( 'work_type', salt_query_taxonomy( 'work' ) );
 		$this->assertSame( 'faq_category', salt_query_taxonomy( 'faq' ) );
 		$this->assertSame( 'category', salt_query_taxonomy( 'post' ) );
