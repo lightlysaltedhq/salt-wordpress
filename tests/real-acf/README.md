@@ -18,6 +18,21 @@ inspection (it prints how to drop them), `--offline` skips the latest-release ch
 reports it as `STALENESS NOT CHECKED`, `--report <file>` copies the report. The script exits 0
 only when every check passes.
 
+`--conformance` runs none of the checks below. It builds the same site, keeps it up and runs the
+contract's conformance runner against it, so the view and page cases render on real WordPress and
+ACF Pro (`npm run conformance:harness`; see `tests/contract-adapter/README.md`). After the install
+phase, `php/view.php setup` sets the routes the cases' paths take, removes WordPress's sample
+content, adds the menus and snapshots the database. Then the built-in server starts, and `npm run
+conformance:contract` runs with the chosen PHP first on `PATH`. For each view or page case, the
+adapter calls `php/view.php`, which restores that snapshot, seeds the case and requests its path.
+`php/conformance.php` then fails the phase when any case did not render. As in every phase, any
+entry in `debug.log` fails it too. The site's address is `http://salt-harness.test`, whatever port
+the server takes, so the report is the same on every run. It does not need Playwright.
+
+The phases share their seeding helpers in `php/seed.php`: the contract phase's section values to
+ACF, and the singles phase's service, case-study and post documents, images, related services,
+menus and HTTP GET. `php/view.php` uses the same ones.
+
 It needs:
 
 - PHP 8.2 or later with `mysqli`, Node 22 or later, Composer and `curl`.
