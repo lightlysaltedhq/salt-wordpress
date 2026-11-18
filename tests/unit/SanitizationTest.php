@@ -35,7 +35,6 @@ final class SanitizationTest extends SaltTestCase {
 			'span with style' => array( '<p><span style="font-size:40px">big</span></p>', array( '<span', 'style=' ) ),
 			'font tag'        => array( '<p><font color="red">loud</font></p>', array( '<font', 'color=' ) ),
 			'h1 tag'          => array( '<h1>page title</h1>', array( '<h1' ) ),
-			'h2 tag'          => array( '<h2>section title</h2>', array( '<h2' ) ),
 		);
 	}
 
@@ -69,8 +68,11 @@ final class SanitizationTest extends SaltTestCase {
 			'ul li'      => array( '<ul><li>one</li><li>two</li></ul>', array( '<ul>', '<li>one</li>', '<li>two</li>' ) ),
 			'ol li'      => array( '<ol><li>first</li></ol>', array( '<ol>', '<li>first</li>' ) ),
 			'blockquote' => array( '<blockquote><p>quote</p></blockquote>', array( '<blockquote>', '<p>quote</p>' ) ),
+			'h2'         => array( '<h2>section title</h2>', array( '<h2>section title</h2>' ) ),
 			'h3'         => array( '<h3>heading</h3>', array( '<h3>heading</h3>' ) ),
 			'h4'         => array( '<h4>subheading</h4>', array( '<h4>subheading</h4>' ) ),
+			'h5'         => array( '<h5>minor</h5>', array( '<h5>minor</h5>' ) ),
+			'h6'         => array( '<h6>least</h6>', array( '<h6>least</h6>' ) ),
 			'br'         => array( '<p>line<br>break</p>', array( '<br' ) ),
 			'code'       => array( '<p><code>salt_log()</code></p>', array( '<code>salt_log()</code>' ) ),
 		);
@@ -130,7 +132,7 @@ final class SanitizationTest extends SaltTestCase {
 
 	public function test_allow_list_has_exactly_the_permitted_tags(): void {
 		$this->assertEqualsCanonicalizing(
-			array( 'p', 'a', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'h3', 'h4', 'br', 'code' ),
+			array( 'p', 'a', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'h2', 'h3', 'h4', 'h5', 'h6', 'br', 'code' ),
 			array_keys( salt_allowed_html() )
 		);
 	}
@@ -174,7 +176,7 @@ final class SanitizationTest extends SaltTestCase {
 	public function test_invalid_elements_covers_the_dangerous_tags(): void {
 		$invalid = explode( ',', salt_tinymce_config( array() )['invalid_elements'] );
 
-		foreach ( array( 'script', 'iframe', 'span', 'font', 'h1', 'h2' ) as $tag ) {
+		foreach ( array( 'script', 'iframe', 'span', 'font', 'h1' ) as $tag ) {
 			$this->assertContains( $tag, $invalid );
 		}
 	}
@@ -216,7 +218,7 @@ final class SanitizationTest extends SaltTestCase {
 
 		$this->assertSame( 'salt-editor', $init['body_class'] );
 		$this->assertFalse( $init['menubar'] );
-		$this->assertSame( 'Paragraph=p;Heading 3=h3;Heading 4=h4', $init['block_formats'] );
+		$this->assertSame( 'Paragraph=p;Heading 2=h2;Heading 3=h3;Heading 4=h4;Heading 5=h5;Heading 6=h6', $init['block_formats'] );
 		$this->assertSame( 'none', $init['paste_webkit_styles'] );
 		$this->assertTrue( $init['paste_remove_styles_if_webkit'] );
 	}

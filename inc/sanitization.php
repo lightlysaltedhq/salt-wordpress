@@ -26,6 +26,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Deliberately narrow for v1: no figure/figcaption (narrower is safer;
  * widening is a major bump, narrowing is not). No class, id, or style
  * attribute on anything — presentation belongs to the theme, not content.
+ * Headings h2 to h6 follow salt-contract 1.0.0-rc.7 (ID-3950): rich text
+ * stores heading-2 to heading-6; h1 stays the page's alone.
  *
  * @return array<string,array<string,true>> Allowed tags => allowed attributes.
  */
@@ -44,8 +46,11 @@ function salt_allowed_html(): array {
 		'ol'         => array(),
 		'li'         => array(),
 		'blockquote' => array(),
+		'h2'         => array(),
 		'h3'         => array(),
 		'h4'         => array(),
+		'h5'         => array(),
+		'h6'         => array(),
 		'br'         => array(),
 		'code'       => array(),
 	);
@@ -100,9 +105,9 @@ function salt_mce_valid_elements(): string {
  * @return array<string,mixed> Modified settings.
  */
 function salt_tinymce_config( array $init ): array {
-	$init['block_formats']                 = 'Paragraph=p;Heading 3=h3;Heading 4=h4';
+	$init['block_formats']                 = 'Paragraph=p;Heading 2=h2;Heading 3=h3;Heading 4=h4;Heading 5=h5;Heading 6=h6';
 	$init['valid_elements']                = salt_mce_valid_elements();
-	$init['invalid_elements']              = 'script,iframe,style,span,font,h1,h2';
+	$init['invalid_elements']              = 'script,iframe,style,span,font,h1';
 	$init['paste_webkit_styles']           = 'none';
 	$init['paste_remove_styles_if_webkit'] = true;
 	return $init;
