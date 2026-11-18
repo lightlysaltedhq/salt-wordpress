@@ -25,6 +25,7 @@ foreach ( array( 'service', 'work', 'team-member', 'testimonial', 'faq', 'locati
 	require_once dirname( __DIR__, 2 ) . '/inc/cpt/' . $salt_cpt_file . '.php';
 }
 require_once dirname( __DIR__, 2 ) . '/inc/fields/collections.php';
+require_once dirname( __DIR__, 2 ) . '/inc/cpt/post.php';
 
 final class GeneratedCollectionsTest extends SaltTestCase {
 
@@ -154,22 +155,15 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 		}
 	}
 
-	public function test_the_post_fields_unit_10_wires_are_hidden_from_the_editor(): void {
-		$posts = array_values( array_filter( salt_generated_collection_groups( true ), static fn( array $group ): bool => 'posts' === $group['salt']['collection'] ) )[0];
+	public function test_the_primary_topic_is_drawn_in_the_topics_box_alone(): void {
+		$posts   = array_values( array_filter( salt_generated_collection_groups( true ), static fn( array $group ): bool => 'posts' === $group['salt']['collection'] ) )[0];
+		$primary = array_column( $posts['fields'], null, 'key' )[ SALT_POST_PRIMARY_TOPIC_FIELD ];
 
-		$this->assertSame( array_column( $posts['fields'], 'key' ), salt_collection_fields_hidden_until_id_3952(), 'author, primaryTopic and layout: every field of the posts group, kept in it verbatim.' );
-		foreach ( $posts['fields'] as $field ) {
-			$this->assertFalse( salt_hide_fields_until_id_3952( $field ), "{$field['name']} is hidden until ID-3952." );
-		}
-		foreach ( salt_generated_collection_groups() as $group ) {
-			if ( 'posts' === $group['salt']['collection'] ) {
-				continue;
-			}
-			foreach ( $group['fields'] as $field ) {
-				$this->assertSame( $field, salt_hide_fields_until_id_3952( $field ), "{$field['key']} stays in the editor." );
-			}
-		}
-		$this->assertFalse( salt_hide_fields_until_id_3952( false ) );
+		$this->assertSame( array( 'field_salt_collection_posts_author', SALT_POST_PRIMARY_TOPIC_FIELD, 'field_salt_collection_posts_layout' ), array_column( $posts['fields'], 'key' ), 'author, primaryTopic and layout, kept in the group verbatim.' );
+		$this->assertFalse( salt_post_primary_topic_in_box( $primary ), 'Not drawn in the post\'s field group.' );
+		salt_post_drawing_topics_box( true );
+		$this->assertSame( $primary, salt_post_primary_topic_in_box( $primary ), 'Drawn in the Topics box.' );
+		salt_post_drawing_topics_box( false );
 	}
 
 	/**

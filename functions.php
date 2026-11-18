@@ -56,6 +56,7 @@ require_once SALT_DIR . '/inc/setup.php';
 require_once SALT_DIR . '/inc/performance.php';
 require_once SALT_DIR . '/inc/filters.php';
 require_once SALT_DIR . '/inc/cpt/topics.php';
+require_once SALT_DIR . '/inc/cpt/post.php';
 require_once SALT_DIR . '/inc/cpt/service.php';
 require_once SALT_DIR . '/inc/cpt/testimonial.php';
 require_once SALT_DIR . '/inc/cpt/team-member.php';
