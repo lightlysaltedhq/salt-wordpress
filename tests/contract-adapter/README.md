@@ -9,6 +9,14 @@ draws with the case's expected HTML. EP-72 M3 unit 5, ID-3626. Dev only: nothing
 `conformance.json`. It is M4's worklist: the markup moves to the contract there, and each
 section's, view's and page's row should turn green.
 
+**The baseline records only the first difference per case**, so it does not show the seeding of a
+view or page case is right. Today every view fails first on `main`'s `tabindex` and every page on
+the head's `noscript`, before any of the case's content is compared. What the harness seeds has
+been read by hand, not compared. For example, `search/results` lists three results, but WordPress's
+own search for `hedge` returns only those whose title or text holds the word, so its third result
+("Boundaries and screening") would not be drawn. Such gaps surface only once the wrapper matches,
+in M4.
+
 ## Run it
 
 ```sh
@@ -27,7 +35,7 @@ salt-conformance --platform wordpress \
   --fields-options inc/fields/generated/sections.options.json \
   --styles assets/dist/salt.*/salt.css \
   --implementation-version <Version: in style.css> \
-  --out tests/contract-adapter/baseline
+  --out tests/contract-adapter/report
 ```
 
 On its own it renders the sections and the chrome; the views and the page fail with exit 4.
@@ -44,12 +52,15 @@ report and removes the site. It needs what the harness needs (`tests/real-acf/RE
 a MariaDB or MySQL account, Composer), but not Playwright. It fails when any case fails for a
 reason other than its markup (the adapter exited non-zero: 4, 1 or 70), and when any PHP notice,
 warning, deprecation, error or `salt_log` line reaches the site's `debug.log`. **This is the run
-that writes the committed baseline.** After a contract re-pin, or when the theme's markup changes,
-run it on PHP 8.2 and 8.5, check the two reports are the same, and commit `baseline/`.
+that writes the committed baseline.** It copies its report to `baseline/` only when every case
+rendered. After a contract re-pin, or when the theme's markup changes, run it on PHP 8.2 and 8.5,
+check the two reports are the same, and commit `baseline/`.
 
-The script prints the Markdown report and rewrites `baseline/`. **It always exits 1**: the run is partial
+The plain script prints the Markdown report and writes it to `report/` (git-ignored), never to
+`baseline/`, so a run without the harness cannot put the view and page rows back to exit 4.
+Regenerate the baseline with `npm run conformance:harness`, not this script. **It always exits 1**: the run is partial
 (below), and the runner exits 1 on every partial run by design (SC-017). Exit 2 is a usage error.
-Read the report, not the exit status. Commit `baseline/` again when the theme's markup changes.
+Read the report, not the exit status.
 The run is deterministic: the same theme and contract give the same files byte for byte.
 
 `php` is whichever PHP is first on `PATH`. To run another, put it first:
