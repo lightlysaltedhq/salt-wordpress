@@ -19,6 +19,7 @@ composer test                 # PHPUnit (unit, snapshot + conformance suites)
 npm run lint:js && npm run lint:css
 npm run build                 # rebuild assets/dist — COMMIT the output
 php bin/extract-slugs.php --write   # after any field/layout change — COMMIT the registry
+php bin/check-fields-from-contract.php   # the section fields are the pinned contract's
 ```
 
 Snapshots (FLEET01): a failing snapshot means you changed shared markup.
@@ -49,9 +50,10 @@ failure prints the new hash), and record the bump in CHANGELOG.md.
 ## Adding a section
 
 Follow the recipe in [SECTIONS.md](SECTIONS.md) — the Rich Text section is
-the copyable exemplar. A new section touches ONLY its layout file, its
-resolver (`inc/sections/`), its view (`template-parts/sections/`), its
-tests, and the SECTIONS.md registry row.
+the copyable exemplar. A new section's fields are generated from the pinned
+salt-contract (`php bin/check-fields-from-contract.php --write`); otherwise
+it touches ONLY its resolver (`inc/sections/`), its view
+(`template-parts/sections/`), its tests, and the SECTIONS.md registry row.
 
 ## Branching & releases
 

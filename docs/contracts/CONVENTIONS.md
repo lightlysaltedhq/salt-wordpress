@@ -163,8 +163,9 @@ sections but its nearest contract file lacks (intro's `eyebrow`) is
 described as a "shared name", not "contract".
 
 A plain-text value never takes a contract prop name whose contract type
-is rich text: it gets a WordPress-local name (`body_text` in cta and
-features, where the contract's `body` / item `text` are rich text).
+is rich text. (Since the fields are generated from the contract, 6.0.0,
+cta `body` and features item `text` are rich text and carry the
+contract's names.)
 
 Contact is contract-named, but its service and form props stay flat and
 WordPress-local (named as rule 4 names them) instead of forming the
@@ -242,9 +243,8 @@ array(
 - **Optional text:** `salt_nullable_text( $raw )` — `null` when blank,
   otherwise the stored string UNCHANGED (it never trims). Where the
   pre-split code trimmed a value before use, the resolver trims first and
-  then nulls (rule 2 wins): pricing `eyebrow` and `heading`; stats item
-  `suffix` and `label`; features item `icon` and `body_text`; cta
-  `heading` and `body_text`.
+  then nulls (rule 2 wins): stats item `suffix` and `label`; features
+  item `icon`; cta `heading`.
 - **Rich text:** sanitised once, in the resolver, with
   `salt_sanitize_html()`. Never sanitise twice: the view prints it as it
   is.
