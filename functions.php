@@ -32,6 +32,7 @@ require_once SALT_DIR . '/inc/schema/graph.php';
 require_once SALT_DIR . '/inc/services/vendor.php';
 require_once SALT_DIR . '/inc/services/svg.php';
 require_once SALT_DIR . '/inc/services/post-meta.php';
+require_once SALT_DIR . '/inc/services/post-author.php';
 require_once SALT_DIR . '/inc/services/consent.php';
 require_once SALT_DIR . '/inc/services/location-status.php';
 require_once SALT_DIR . '/inc/services/updater.php';
