@@ -1,0 +1,15 @@
+{
+  "name": "salt-real-acf-harness",
+  "private": true,
+  "description": "Dev-only: the real-ACF harness's browser checks. Never shipped; needs no credential.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "harness": "./run.sh"
+  },
+  "devDependencies": {
+    "playwright": "1.65.1"
+  }
+}

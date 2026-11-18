@@ -1,0 +1,31 @@
+{
+    "name": "lightly-salted/salt-real-acf-harness-acf-pro",
+    "description": "Dev-only: ACF Pro for the real-ACF harness, from ACF's private Composer repository. Needs COMPOSER_AUTH (ACF Pro licence key and an activated site URL); the zip is the alternative. Never shipped.",
+    "type": "project",
+    "license": "proprietary",
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://connect.advancedcustomfields.com"
+        }
+    ],
+    "require": {
+        "wpengine/advanced-custom-fields-pro": "6.8.11"
+    },
+    "extra": {
+        "installer-paths": {
+            "vendor/wpengine/{$name}/": [
+                "wpengine/advanced-custom-fields-pro"
+            ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true
+        },
+        "platform": {
+            "php": "8.2.99"
+        },
+        "sort-packages": true
+    }
+}

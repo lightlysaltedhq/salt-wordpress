@@ -1,0 +1,245 @@
+#!/usr/bin/env bash
+# The real-ACF harness: builds a throwaway WordPress with the salt theme and real ACF Pro,
+# registers the pinned salt-contract emitter's field groups, seeds and reads back every
+# contract fixture, checks storage paths, drives the classic editor in a real browser, prints
+# a pass/fail report and removes everything it made. See tests/real-acf/README.md.
+#
+# usage: tests/real-acf/run.sh [--php 8.2|8.5|<binary>] [--no-browser] [--keep] [--report <file>]
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$HERE/../.." && pwd)"
+
+PHP_CHOICE="${SALT_HARNESS_PHP:-php}"
+KEEP=0
+BROWSER=1
+REPORT=""
+
+usage() { sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'; }
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--php) PHP_CHOICE="${2:?--php needs a version or binary}"; shift 2 ;;
+		--no-browser) BROWSER=0; shift ;;
+		--keep) KEEP=1; shift ;;
+		--report) REPORT="${2:?--report needs a file}"; shift 2 ;;
+		-h|--help) usage; exit 0 ;;
+		*) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
+	esac
+done
+
+die() { echo "SETUP FAILED: $*" >&2; exit 2; }
+
+# ── PHP ─────────────────────────────────────────────────────────────────────────────────────────
+php_minor() { "$1" -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;' 2>/dev/null || true; }
+if [[ "$PHP_CHOICE" =~ ^[0-9]+\.[0-9]+$ ]]; then
+	PHP=""
+	for candidate in "php$PHP_CHOICE" "/opt/homebrew/opt/php@$PHP_CHOICE/bin/php" "/usr/local/opt/php@$PHP_CHOICE/bin/php" "/usr/bin/php$PHP_CHOICE" php; do
+		if command -v "$candidate" >/dev/null 2>&1 && [ "$(php_minor "$candidate")" = "$PHP_CHOICE" ]; then
+			PHP="$(command -v "$candidate")"
+			break
+		fi
+	done
+	[ -n "$PHP" ] || die "no PHP $PHP_CHOICE binary found; pass --php <path>"
+else
+	PHP="$(command -v "$PHP_CHOICE" || true)"
+	[ -n "$PHP" ] || die "PHP binary $PHP_CHOICE not found"
+fi
+"$PHP" -r 'exit(extension_loaded("mysqli") ? 0 : 1);' || die "$PHP has no mysqli extension"
+PHP_VERSION="$("$PHP" -r 'echo PHP_VERSION;')"
+
+# ── ACF Pro: a Composer-installed copy, or the zip (hash-checked) ───────────────────────────────
+ACF_VERSION="${SALT_ACF_VERSION:-6.8.11}"
+ACF_COMPOSER_COPY="$HERE/acf-composer/vendor/wpengine/advanced-custom-fields-pro"
+if [ -z "${SALT_ACF_DIR:-}" ] && [ -z "${SALT_ACF_ZIP:-}" ] && [ -f "$ACF_COMPOSER_COPY/acf.php" ]; then
+	SALT_ACF_DIR="$ACF_COMPOSER_COPY"
+fi
+if [ -n "${SALT_ACF_DIR:-}" ]; then
+	[ -f "$SALT_ACF_DIR/acf.php" ] || die "SALT_ACF_DIR=$SALT_ACF_DIR has no acf.php"
+	ACF_SOURCE="Composer copy at $SALT_ACF_DIR"
+else
+	ACF_ZIP="${SALT_ACF_ZIP:-/Users/Shared/salt-harness/acf-pro-6.8.11.zip}"
+	ACF_SHA256="${SALT_ACF_SHA256:-b383a6c059b14554bf5e011722da9ea5ca174a66af6b7a977d4324041d5e4376}"
+	[ -f "$ACF_ZIP" ] || die "no ACF Pro zip at $ACF_ZIP (set SALT_ACF_ZIP, or SALT_ACF_DIR for a Composer copy)"
+	if command -v sha256sum >/dev/null 2>&1; then
+		actual="$(sha256sum "$ACF_ZIP" | cut -d' ' -f1)"
+	else
+		actual="$(shasum -a 256 "$ACF_ZIP" | cut -d' ' -f1)"
+	fi
+	[ "$actual" = "$ACF_SHA256" ] || die "ACF Pro zip SHA-256 is $actual, expected $ACF_SHA256"
+	ACF_SOURCE="zip $ACF_ZIP (SHA-256 verified)"
+fi
+
+# ── Dependencies (the harness's own; the theme's install is never touched) ─────────────────────
+[ -f "$REPO/node_modules/@lightlysaltedhq/salt-contract/package.json" ] || die "run npm ci at the repository root first (the pinned salt-contract)"
+WP_CORE="$HERE/vendor/roots/wordpress-no-content"
+if [ ! -f "$WP_CORE/wp-load.php" ]; then
+	composer install --working-dir="$HERE" --no-interaction --no-progress --quiet || die "composer install in tests/real-acf failed"
+fi
+if [ "$BROWSER" = 1 ]; then
+	[ -d "$HERE/node_modules/playwright" ] || npm ci --prefix "$HERE" --no-audit --no-fund --silent || die "npm ci in tests/real-acf failed"
+	(cd "$HERE" && npx --no-install playwright install chromium-headless-shell >/dev/null) || die "could not install Playwright's Chromium"
+fi
+
+# ── The throwaway site ──────────────────────────────────────────────────────────────────────────
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/salt-harness.XXXXXX")"
+WP="$TMP/wp"
+DB="salt_harness_$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 12 || true)"
+SERVER_PID=""
+DB_CREATED=0
+
+if [ -z "${SALT_HARNESS_DB_HOST:-}" ]; then
+	if [ -S /tmp/mysql.sock ]; then SALT_HARNESS_DB_HOST="localhost:/tmp/mysql.sock"; else SALT_HARNESS_DB_HOST="localhost"; fi
+fi
+export SALT_HARNESS_DB_HOST
+export SALT_HARNESS_DB_USER="${SALT_HARNESS_DB_USER:-$(id -un)}"
+export SALT_HARNESS_DB_PASSWORD="${SALT_HARNESS_DB_PASSWORD:-}"
+
+cleanup() {
+	local status=$?
+	if [ -n "$SERVER_PID" ]; then kill "$SERVER_PID" 2>/dev/null || true; wait "$SERVER_PID" 2>/dev/null || true; fi
+	if [ "$KEEP" = 1 ]; then
+		echo "kept: site $WP, database $DB (drop it with: $PHP $HERE/php/db.php drop $DB)"
+	else
+		if [ "$DB_CREATED" = 1 ]; then
+			if "$PHP" "$HERE/php/db.php" drop "$DB"; then echo "cleanup: database $DB dropped"; else echo "cleanup: could not drop database $DB" >&2; fi
+		fi
+		rm -rf "$TMP" && echo "cleanup: $TMP removed"
+	fi
+	exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+
+PORT="$("$PHP" -r '$s = stream_socket_server("tcp://127.0.0.1:0"); $n = stream_socket_get_name($s, false); echo substr($n, strrpos($n, ":") + 1);')"
+URL="http://127.0.0.1:$PORT"
+
+cp -R "$WP_CORE" "$WP"
+mkdir -p "$WP/wp-content/themes" "$WP/wp-content/plugins" "$WP/wp-content/mu-plugins" "$WP/wp-content/uploads"
+ln -s "$REPO" "$WP/wp-content/themes/salt"
+cp "$HERE"/site/*.php "$WP/wp-content/mu-plugins/"
+if [ -n "${SALT_ACF_DIR:-}" ]; then
+	cp -R "$SALT_ACF_DIR" "$WP/wp-content/plugins/advanced-custom-fields-pro"
+else
+	unzip -q "$ACF_ZIP" -d "$WP/wp-content/plugins"
+fi
+ACF_HEADER_VERSION="$(sed -n 's/^ \* Version: *//p' "$WP/wp-content/plugins/advanced-custom-fields-pro/acf.php" | head -1 | tr -d '[:space:]')"
+[ "$ACF_HEADER_VERSION" = "$ACF_VERSION" ] || die "ACF Pro is $ACF_HEADER_VERSION, expected $ACF_VERSION"
+
+ACF_JSON="$TMP/salt-sections.acf.json"
+EMIT_LINE="$(node "$HERE/emit.mjs" "$ACF_JSON")" || die "the emitter failed"
+
+salt() { "$PHP" -r 'echo bin2hex(random_bytes(32));'; }
+cat >"$WP/wp-config.php" <<PHP
+<?php
+// Generated by tests/real-acf/run.sh for one throwaway run.
+define( 'DB_NAME', '$DB' );
+define( 'DB_USER', getenv( 'SALT_HARNESS_DB_USER' ) );
+define( 'DB_PASSWORD', getenv( 'SALT_HARNESS_DB_PASSWORD' ) );
+define( 'DB_HOST', getenv( 'SALT_HARNESS_DB_HOST' ) );
+define( 'DB_CHARSET', 'utf8mb4' );
+define( 'DB_COLLATE', '' );
+define( 'AUTH_KEY', '$(salt)' );
+define( 'SECURE_AUTH_KEY', '$(salt)' );
+define( 'LOGGED_IN_KEY', '$(salt)' );
+define( 'NONCE_KEY', '$(salt)' );
+define( 'AUTH_SALT', '$(salt)' );
+define( 'SECURE_AUTH_SALT', '$(salt)' );
+define( 'LOGGED_IN_SALT', '$(salt)' );
+define( 'NONCE_SALT', '$(salt)' );
+\$table_prefix = 'wp_';
+define( 'WP_HOME', '$URL' );
+define( 'WP_SITEURL', '$URL' );
+define( 'WP_ENVIRONMENT_TYPE', 'local' );
+define( 'WP_DEBUG', true );
+define( 'WP_DEBUG_LOG', '$TMP/debug.log' );
+define( 'WP_DEBUG_DISPLAY', false );
+define( 'DISABLE_WP_CRON', true );
+define( 'AUTOMATIC_UPDATER_DISABLED', true );
+define( 'WP_HTTP_BLOCK_EXTERNAL', true );
+define( 'FS_METHOD', 'direct' );
+define( 'SALT_HARNESS_ACF_JSON', '$ACF_JSON' );
+if ( ! defined( 'ABSPATH' ) ) {
+	define( 'ABSPATH', __DIR__ . '/' );
+}
+require_once ABSPATH . 'wp-settings.php';
+PHP
+
+export SALT_HARNESS_WP="$WP"
+export SALT_HARNESS_URL="$URL"
+SALT_HARNESS_ADMIN_PASS="$("$PHP" -r 'echo bin2hex(random_bytes(12));')"
+export SALT_HARNESS_ADMIN_PASS
+export SALT_HARNESS_ACF_VERSION="$ACF_VERSION"
+export SALT_HARNESS_ACF_JSON="$ACF_JSON"
+export SALT_HARNESS_FIXTURES="$REPO/node_modules/@lightlysaltedhq/salt-contract/fixtures"
+export SALT_HARNESS_STATE="$TMP/state.json"
+export SALT_HARNESS_PHP_BIN="$PHP"
+touch "$TMP/debug.log"
+
+# ── Phases ──────────────────────────────────────────────────────────────────────────────────────
+OUT="$TMP/report.txt"
+: >"$OUT"
+PHASES=()
+
+# phase <name> <command...>: runs the command, then checks debug.log for anything it added.
+phase() {
+	local name="$1"; shift
+	local from status=0
+	from="$(wc -c <"$TMP/debug.log" | tr -d ' ')"
+	echo "── $name" | tee -a "$OUT"
+	"$@" 2>&1 | tee -a "$OUT" || status=$?
+	"$PHP" "$HERE/php/notices.php" "$TMP/debug.log" "$from" "$name" 2>&1 | tee -a "$OUT" || status=1
+	if [ "$status" = 0 ]; then PHASES+=("PASS  $name"); else PHASES+=("FAIL  $name"); fi
+}
+
+{
+	echo "Salt real-ACF harness"
+	echo "  PHP        $PHP_VERSION ($PHP)"
+	echo "  WordPress  $(sed -n "s/^\$wp_version = '\(.*\)';/\1/p" "$WP/wp-includes/version.php")"
+	echo "  ACF Pro    $ACF_HEADER_VERSION from $ACF_SOURCE"
+	echo "  contract   $EMIT_LINE"
+	echo "  database   $DB on $SALT_HARNESS_DB_HOST"
+	echo "  site       $URL in $TMP"
+} | tee -a "$OUT"
+
+"$PHP" "$HERE/php/db.php" create "$DB" || die "could not create database $DB"
+DB_CREATED=1
+
+phase "install" "$PHP" "$HERE/php/install.php"
+phase "theme's hand-written groups (no harness mu-plugin)" "$PHP" "$HERE/php/theme-groups.php"
+
+# The harness mu-plugins/ register the emitted JSON until the theme does (unit 3 deletes it).
+shopt -s nullglob
+for mu in "$HERE"/mu-plugins/*.php; do cp "$mu" "$WP/wp-content/mu-plugins/"; done
+shopt -u nullglob
+phase "contract field shape: register, seed, read back, storage" "$PHP" "$HERE/php/contract.php"
+
+if [ "$BROWSER" = 1 ]; then
+	# PHP's default max_input_vars (1000) truncates the re-save of a page holding every fixture
+	# case; browser.mjs reports how many variables the form posts against this limit.
+	export SALT_HARNESS_MAX_INPUT_VARS="${SALT_HARNESS_MAX_INPUT_VARS:-20000}"
+	# A browser save of that page also outlasts the default 30-second max_execution_time.
+	PHP_CLI_SERVER_WORKERS=4 "$PHP" -d max_input_vars="$SALT_HARNESS_MAX_INPUT_VARS" -d max_execution_time=600 -S "127.0.0.1:$PORT" -t "$WP" >"$TMP/server.log" 2>&1 &
+	SERVER_PID=$!
+	for _ in $(seq 1 50); do
+		curl -fs -o /dev/null "$URL/wp-login.php" && break
+		sleep 0.2
+	done
+	phase "editor in a real browser (Chromium)" node "$HERE/browser.mjs"
+else
+	PHASES+=("SKIP  editor in a real browser (--no-browser)")
+fi
+
+echo | tee -a "$OUT"
+echo "Summary (PHP $PHP_VERSION, ACF Pro $ACF_HEADER_VERSION, WordPress $(sed -n "s/^\$wp_version = '\(.*\)';/\1/p" "$WP/wp-includes/version.php"))" | tee -a "$OUT"
+for p in "${PHASES[@]}"; do echo "  $p" | tee -a "$OUT"; done
+FAILS="$(grep -c '^FAIL' "$OUT" || true)"
+PASSES="$(grep -c '^PASS' "$OUT" || true)"
+echo "  checks: $PASSES passed, $FAILS failed" | tee -a "$OUT"
+[ -z "$REPORT" ] || cp "$OUT" "$REPORT"
+
+if printf '%s\n' "${PHASES[@]}" | grep -q '^FAIL'; then
+	echo "RESULT: FAIL"
+	exit 1
+fi
+echo "RESULT: PASS"

@@ -1,0 +1,8 @@
+# The harness's own installs (WordPress, Playwright, ACF Pro by Composer). Never committed.
+/vendor/
+/node_modules/
+/acf-composer/vendor/
+# ACF Pro credentials, if a developer keeps them in a file instead of COMPOSER_AUTH.
+auth.json
+# Never commit the ACF Pro zip.
+*.zip
