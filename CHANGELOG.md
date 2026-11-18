@@ -187,6 +187,11 @@ markup granularity (cross-reference your site's override manifest).
 
 - **Version `6.0.0-dev`** in `style.css` and `SALT_VERSION` (founder
   decision D11). No tag and no release.
+- **Requires WordPress 7.1** (the founder's ruling of 18/11/2026).
+  `style.css` says `Requires at least: 7.1` (was 6.5) and `Tested up to:
+  7.1`, and phpcs checks against `minimum_wp_version` 7.1; it flags
+  nothing new. The real-ACF harness moves to WordPress 7.1.5, the latest
+  release.
 - **Resolvers read the contract's field names and shapes.** View props and
   view markup are unchanged (that is M4) except where the new shape
   forces it; see BREAKING for the visible changes.
@@ -345,6 +350,15 @@ markup granularity (cross-reference your site's override manifest).
     (`admin/title-limit.js`, the same way as the summary) with "The title is
     N characters long. Shorten it to 120 characters or fewer", counted as
     the summary is.
+  - **A topic's name is checked on save (`_topic.json`, maxLength 120; the
+    founder's ruling of 18/11/2026).** A service, case study, FAQ or
+    location topic named over 120 characters is refused in the editor
+    (`admin/topic-name-limit.js`, the same way as the title) with "The topic
+    name is N characters long. Shorten it to 120 characters or fewer",
+    counted as the title is: on the term add screen, the term edit screen,
+    and the Topics box's "add new" form, where each comma-separated name is
+    checked and one over-long name refuses them all. Posts' categories are
+    ID-3952's.
   - **Other checks on save the contract asks for** (`inc/fields/checks.php`):
     a field with the email format (a team member's and a location's
     `email`) must be one @, a domain with a dot and no spaces; a location's
@@ -377,10 +391,11 @@ markup granularity (cross-reference your site's override manifest).
     author with no profile photo has no avatar; a testimonial rated 4.5
     draws four and a half stars (the star markup is now an empty row with a
     clipped filled row over it); the topics taxonomies are labelled Topics
-    with no parent; the service intro draws no shortcode, embed or media;
-    an FAQ answer loses h3, h4, blockquote and code, a features item's text
-    loses its headings, and a case study's challenge and solution narrow
-    from `wp_kses_post()` to their lists (see the rich-text entry above).
+    with no parent and refuse a name over 120 characters; the service intro
+    draws no shortcode, embed or media; an FAQ answer loses h3, h4,
+    blockquote and code, a features item's text loses its headings, and a
+    case study's challenge and solution narrow from `wp_kses_post()` to
+    their lists (see the rich-text entry above).
   - **Removed field slugs in the registry:** `appointment_only`, `benefit`,
     `city`, `geo`, `headline`, `line1`, `line2`, `live_url`, `logo`,
     `opening_hours`, `platform`, `postcode`, `price_from`,
