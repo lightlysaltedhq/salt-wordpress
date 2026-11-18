@@ -54,7 +54,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$layout = salt_test_layout( 'call-to-action' );
 
 		$this->assertSame( 'layout_salt_call_to_action', $layout['key'] );
-		$this->assertSame( array( 'heading', 'body', 'buttons', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
+		$this->assertSame( array( 'heading', 'body', 'buttons', '', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
 		$by_name = array_column( $layout['sub_fields'], null, 'name' );
 		$this->assertSame( 'wysiwyg', $by_name['body']['type'], 'The contract body is rich text.' );

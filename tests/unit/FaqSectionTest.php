@@ -147,7 +147,7 @@ final class FaqSectionTest extends SaltTestCase {
 		$layout = salt_test_layout( 'faq' );
 
 		$this->assertSame( 'layout_salt_faq', $layout['key'] );
-		$this->assertSame( array( 'eyebrow', 'heading', 'intro', 'query', 'structuredData', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
+		$this->assertSame( array( 'eyebrow', 'heading', 'intro', 'query', 'structuredData', '', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
 		$fields = array_column( $layout['sub_fields'], null, 'name' );
 		$this->assertSame( array( 'mode', 'categories', 'items', 'order', 'count' ), array_column( $fields['query']['sub_fields'], 'name' ), 'The contract\'s collection query.' );

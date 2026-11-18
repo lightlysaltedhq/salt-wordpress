@@ -89,7 +89,7 @@ final class GallerySectionTest extends SaltTestCase {
 
 		$this->assertSame( 'layout_salt_gallery', $layout['key'] );
 		$this->assertSame(
-			array( 'heading', 'intro', 'layout', 'columns', 'label', 'captions', 'images', 'settings' ),
+			array( 'heading', 'intro', 'layout', 'columns', 'label', 'captions', 'images', '', 'settings' ),
 			array_column( $layout['sub_fields'], 'name' )
 		);
 

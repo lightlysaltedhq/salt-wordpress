@@ -222,6 +222,14 @@
                 }
               },
               {
+                "key": "field_salt_hero_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
                 "key": "field_salt_hero_settings",
                 "label": "Section settings",
                 "name": "settings",
@@ -459,8 +467,11 @@
                     "unordered-list",
                     "ordered-list",
                     "blockquote",
+                    "heading-2",
                     "heading-3",
-                    "heading-4"
+                    "heading-4",
+                    "heading-5",
+                    "heading-6"
                   ]
                 }
               },
@@ -474,6 +485,14 @@
                   "centre": "Centred"
                 },
                 "default_value": "left"
+              },
+              {
+                "key": "field_salt_rich_text_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
               },
               {
                 "key": "field_salt_rich_text_settings",
@@ -815,6 +834,14 @@
                   "rowLabel": "link.label",
                   "itemLabel": "Button"
                 }
+              },
+              {
+                "key": "field_salt_call_to_action_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
               },
               {
                 "key": "field_salt_call_to_action_settings",
@@ -1206,6 +1233,14 @@
                 }
               },
               {
+                "key": "field_salt_media_text_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
                 "key": "field_salt_media_text_settings",
                 "label": "Section settings",
                 "name": "settings",
@@ -1537,6 +1572,14 @@
                 }
               },
               {
+                "key": "field_salt_features_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
                 "key": "field_salt_features_settings",
                 "label": "Section settings",
                 "name": "settings",
@@ -1843,6 +1886,14 @@
                 }
               },
               {
+                "key": "field_salt_stats_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
                 "key": "field_salt_stats_settings",
                 "label": "Section settings",
                 "name": "settings",
@@ -2123,6 +2174,14 @@
                   "rowLabel": "name",
                   "itemLabel": "Logo"
                 }
+              },
+              {
+                "key": "field_salt_logos_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
               },
               {
                 "key": "field_salt_logos_settings",
@@ -2418,6 +2477,14 @@
                 "type": "gallery",
                 "instructions": "Shown in this order. Alternative text and captions come from the media library.",
                 "return_format": "id"
+              },
+              {
+                "key": "field_salt_gallery_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
               },
               {
                 "key": "field_salt_gallery_settings",
@@ -2814,6 +2881,14 @@
                 "default_value": 0
               },
               {
+                "key": "field_salt_process_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
                 "key": "field_salt_process_settings",
                 "label": "Section settings",
                 "name": "settings",
@@ -3175,6 +3250,14 @@
                 "default_value": 1
               },
               {
+                "key": "field_salt_faq_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
                 "key": "field_salt_faq_settings",
                 "label": "Section settings",
                 "name": "settings",
@@ -3428,6 +3511,14 @@
                 "name": "formIntro",
                 "type": "textarea",
                 "instructions": "Short copy above the form."
+              },
+              {
+                "key": "field_salt_contact_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
               },
               {
                 "key": "field_salt_contact_settings",
@@ -3772,6 +3863,14 @@
                 "salt": {
                   "source": "locations"
                 }
+              },
+              {
+                "key": "field_salt_locations_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
               },
               {
                 "key": "field_salt_locations_settings",

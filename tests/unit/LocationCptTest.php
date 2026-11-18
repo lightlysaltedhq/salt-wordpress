@@ -116,7 +116,7 @@ final class LocationCptTest extends SaltTestCase {
 		$layout = salt_test_layout( 'locations' );
 
 		$this->assertSame( 'layout_salt_locations', $layout['key'] );
-		$this->assertSame( array( 'eyebrow', 'heading', 'query', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
+		$this->assertSame( array( 'eyebrow', 'heading', 'query', '', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
 		// The contract's collection query for the location CPT, incl. its taxonomy.
 		$query = array_column( $layout['sub_fields'], null, 'name' )['query'];

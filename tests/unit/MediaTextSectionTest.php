@@ -78,7 +78,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 		$layout = salt_test_layout( 'media-text' );
 
 		$this->assertSame( 'layout_salt_media_text', $layout['key'] );
-		$this->assertSame( array( 'mode', 'rows', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
+		$this->assertSame( array( 'mode', 'rows', '', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
 		$rows = $layout['sub_fields'][1];
 		$this->assertSame( 'repeater', $rows['type'] );
