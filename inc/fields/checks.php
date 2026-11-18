@@ -5,6 +5,11 @@
  *
  * - `salt.format: email` — "an email address (one @, a domain with a dot,
  *   no spaces), checked on save" (textField format);
+ * - `salt.format: url` — "an absolute address (http, https, mailto or tel)"
+ *   (textField format), refused on save otherwise (the founder's ruling on
+ *   PR #26). It covers socials.url, externalUrl, the features and logos
+ *   items' url, and the url of every link: a link's url carries the format
+ *   and is shown, so submitted, only when its type is external;
  * - `salt.maxLines` — "the most lines the text may hold, checked on save"
  *   (textareaField maxLines; a location's street, two);
  * - a service's relatedServices refuses the service itself (services.json
@@ -30,6 +35,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function salt_is_contract_email( string $value ): bool {
 	return 1 === preg_match( '/^[^\s@]+@[^\s@]+\.[^\s@]+$/', $value );
+}
+
+/**
+ * Whether a value is an absolute address as the contract's url format
+ * describes one: http or https with a host, or mailto or tel with an
+ * address. A path ("/contact"), an anchor ("#pricing"), a scheme-relative
+ * address ("//x.example") and any other scheme are not.
+ *
+ * @param string $value The value.
+ * @return bool
+ */
+function salt_is_contract_url( string $value ): bool {
+	return 1 === preg_match( '#^(?:https?://[^/?\#\s]+|(?:mailto|tel):\S)#i', $value );
 }
 
 /**
@@ -60,6 +78,9 @@ function salt_validate_contract_value( $valid, $value, $field ) {
 	$value = wp_unslash( $value );
 	if ( 'email' === ( $field['salt']['format'] ?? null ) && ! salt_is_contract_email( trim( $value ) ) ) {
 		return __( 'Enter an email address: one @, a domain with a dot, and no spaces.', 'salt' );
+	}
+	if ( 'url' === ( $field['salt']['format'] ?? null ) && ! salt_is_contract_url( trim( $value ) ) ) {
+		return __( 'Enter a full address that starts with http://, https://, mailto: or tel:. A path such as /contact or an anchor such as #pricing is not accepted; link to a page on this site with an internal link instead.', 'salt' );
 	}
 	$max_lines = (int) ( $field['salt']['maxLines'] ?? 0 );
 	if ( $max_lines > 0 && salt_line_count( $value ) > $max_lines ) {

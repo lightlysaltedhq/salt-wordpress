@@ -19,6 +19,9 @@
  *    no Add Media button and Text tab buttons for its list alone; a service
  *    or post summary of 301 two-byte characters is refused and 300 published;
  *    the post fields unit 10 wires are not drawn.
+ * 7. The url format on save: a service's external cta link and a case
+ *    study's externalUrl refuse /contact, #pricing, //x.example, javascript:
+ *    and ftp:, and take https and mailto (a case study then publishes).
  */
 
 import { execFileSync } from 'node:child_process';
@@ -418,6 +421,82 @@ try {
 			'the topic screens offer no parent',
 			`"${ heading }"; Parent on the add form ${ addHasParent }, on the edit form ${ editHasParent }`
 		);
+	}
+	// ── 7. The url format on save (inc/fields/checks.php) ──────────────────────────────────────
+	{
+		const URL_MESSAGE =
+			'Enter a full address that starts with http://, https://, mailto: or tel:. A path such as /contact or an anchor such as #pricing is not accepted; link to a page on this site with an internal link instead.';
+		const isValidation = ( r ) => r.url().includes( 'admin-ajax.php' ) && ( r.request().postData() ?? '' ).includes( 'acf%2Fvalidate_save_post' );
+		// Set the value, press Publish, wait for ACF's validation and read the field's message.
+		const tryUrl = async ( p, input, key, value ) => {
+			await p.evaluate(
+				( [ sel, v ] ) => {
+					document.querySelectorAll( '.acf-notice.-error' ).forEach( ( n ) => n.remove() );
+					document.querySelector( sel ).value = v;
+				},
+				[ input, value ]
+			);
+			await p.waitForSelector( '#publish:not(.disabled)' );
+			await Promise.all( [ p.waitForResponse( isValidation, { timeout: 60000 } ), p.click( '#publish' ) ] );
+			await p.waitForTimeout( 800 );
+			return p
+				.evaluate( ( k ) => document.querySelector( `.acf-field[data-key="${ k }"] .acf-notice.-error` )?.textContent.trim() ?? '', key )
+				.catch( () => '' );
+		};
+		const ready = async ( p, title ) => {
+			await p.waitForFunction( () => window.acf && document.readyState === 'complete' );
+			await p.fill( '#title', title );
+			await p.locator( '#title' ).blur();
+			await p.waitForSelector( '#edit-slug-box #sample-permalink', { timeout: 60000 } );
+		};
+		const refused = [ '/contact', '#pricing', '//x.example', 'javascript:alert(1)', 'ftp://files.example' ];
+
+		// A service's cta, made an external link. A new service never publishes here (it needs a benefit).
+		const svc = await open( '/wp-admin/post-new.php?post_type=service' );
+		await ready( svc.page, `Harness: url ${ Date.now() }` );
+		const cta = 'field_salt_collection_services_cta';
+		await svc.page.evaluate( ( k ) => {
+			document.querySelector( `.acf-field[data-key="${ k }_type"] input[value="external"]` ).click();
+			document.querySelector( `.acf-field[data-key="${ k }_label"] input` ).value = 'Ask us';
+		}, cta );
+		const ctaInput = `.acf-field[data-key="${ cta }_url"] input`;
+		const ctaSaw = [];
+		for ( const v of [ ...refused, 'https://hollinfarm.example/visit', 'mailto:hello@hollinfarm.example' ] ) {
+			ctaSaw.push( [ v, await tryUrl( svc.page, ctaInput, `${ cta }_url`, v ) ] );
+		}
+		const ctaOk = ctaSaw.every( ( [ v, m ] ) => ( refused.includes( v ) ? m === URL_MESSAGE : m === '' ) );
+		result(
+			ctaOk,
+			'an external link refuses a url that is not absolute http, https, mailto or tel',
+			`service cta: ${ ctaSaw.map( ( [ v, m ] ) => `${ v } ${ m === URL_MESSAGE ? 'refused' : m === '' ? 'taken' : `"${ m }"` }` ).join( '; ' ) }`
+		);
+		result( svc.errors.length === 0, 'no console errors while checking urls on a service', `${ svc.errors.length } errors` );
+		svc.errors.slice( 0, 10 ).forEach( info );
+		await close( svc.page );
+
+		// A case study's externalUrl: refused as a path, then published with https.
+		const work = await open( '/wp-admin/post-new.php?post_type=work' );
+		const workTitle = `Harness: url case study ${ Date.now() }`;
+		await ready( work.page, workTitle );
+		const ext = 'field_salt_collection_case_studies_external_url';
+		const extInput = `.acf-field[data-key="${ ext }"] input`;
+		const pathSaid = await tryUrl( work.page, extInput, ext, '/contact' );
+		const pathRefused = pathSaid === URL_MESSAGE && publishedWithTitle( workTitle, 'work' ) === 0;
+		await work.page.evaluate( ( sel ) => {
+			document.querySelectorAll( '.acf-notice.-error' ).forEach( ( n ) => n.remove() );
+			document.querySelector( sel ).value = 'https://combefarm.example/orchard';
+		}, extInput );
+		await work.page.waitForSelector( '#publish:not(.disabled)' );
+		await Promise.all( [ work.page.waitForURL( /message=\d+/, { timeout: 120000 } ), work.page.click( '#publish' ) ] );
+		const published = publishedWithTitle( workTitle, 'work' ) === 1;
+		result(
+			pathRefused && published,
+			'a case study\'s externalUrl refuses a path and takes https',
+			`/contact: ${ pathSaid === URL_MESSAGE ? 'refused' : `"${ pathSaid }"` }, ${ pathRefused ? 'not saved' : 'SAVED' }; https://combefarm.example/orchard: ${ published ? 'published' : 'NOT PUBLISHED' }`
+		);
+		result( work.errors.length === 0, 'no console errors while checking urls on a case study', `${ work.errors.length } errors` );
+		work.errors.slice( 0, 10 ).forEach( info );
+		await close( work.page );
 	}
 	const unloadTotal = [ ...unloadBy.values() ].reduce( ( a, b ) => a + b, 0 );
 	info(
