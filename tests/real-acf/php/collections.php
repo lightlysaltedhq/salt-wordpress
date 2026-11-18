@@ -305,23 +305,28 @@ foreach ( $generated as $group ) {
 	);
 }
 
-// author, primaryTopic and layout do nothing until unit 10 (ID-3952): ACF does not draw them,
-// but the round trip above stored and read them like every other field.
-$hidden = array();
-foreach ( salt_collection_fields_hidden_until_id_3952() as $key ) {
-	$field          = acf_get_field( $key );
-	$hidden[ $key ] = is_array( $field ) && false === acf_prepare_field( $field );
+// The post fields: author and layout are drawn in the post's field group; primaryTopic only in the
+// Topics box (inc/cpt/post.php), so acf_prepare_field() gives false for it outside the box.
+$post_fields = array();
+foreach ( array( 'field_salt_collection_posts_author', 'field_salt_collection_posts_layout' ) as $key ) {
+	$post_fields[ $key ] = is_array( acf_prepare_field( acf_get_field( $key ) ) );
 }
-$shown = acf_prepare_field( acf_get_field( 'field_salt_collection_services_price_from' ) );
+$post_fields['primaryTopic not in the group'] = false === acf_prepare_field( acf_get_field( SALT_POST_PRIMARY_TOPIC_FIELD ) );
+salt_post_drawing_topics_box( true );
+$post_fields['primaryTopic in the Topics box'] = is_array( acf_prepare_field( acf_get_field( SALT_POST_PRIMARY_TOPIC_FIELD ) ) );
+salt_post_drawing_topics_box( false );
+$post_fields['no classic editor on posts'] = ! post_type_supports( 'post', 'editor' );
+$post_fields['no Tags box on posts']       = ! in_array( 'post_tag', get_object_taxonomies( 'post' ), true );
+$post_fields['categories labelled Topics'] = 'Topics' === get_taxonomy( 'category' )->labels->name;
 salt_harness_result(
-	! in_array( false, $hidden, true ) && is_array( $shown ),
-	'the post fields unit 10 wires are hidden from the editor, and still store',
-	sprintf( 'acf_prepare_field() gives false for %s; a service field is still drawn; posts round-trip above through update_field and get_field', implode( ', ', array_map( static fn( string $k, bool $ok ): string => $k . ( $ok ? '' : ' (DRAWN)' ), array_keys( $hidden ), $hidden ) ) )
+	! in_array( false, $post_fields, true ),
+	'posts are stored as sections, with the credited author and the primary topic beside Topics',
+	implode( ', ', array_map( static fn( string $k, bool $ok ): string => $k . ( $ok ? ' ok' : ' WRONG' ), array_keys( $post_fields ), $post_fields ) )
 );
 
 // Topics stay flat (_topic.json): a parent asked for on insert or update is not kept.
 $flat = array();
-foreach ( salt_topic_taxonomies() as $taxonomy ) {
+foreach ( array_merge( salt_topic_taxonomies(), array( 'category' ) ) as $taxonomy ) {
 	$parent       = wp_insert_term( 'Harness parent ' . $taxonomy, $taxonomy );
 	$child        = wp_insert_term( 'Harness child ' . $taxonomy, $taxonomy, array( 'parent' => (int) $parent['term_id'] ) );
 	$after_insert = (int) get_term( (int) $child['term_id'], $taxonomy )->parent;

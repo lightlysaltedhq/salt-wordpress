@@ -23,6 +23,7 @@ require_once dirname( __DIR__, 2 ) . '/inc/cpt/work.php';
 require_once dirname( __DIR__, 2 ) . '/inc/cpt/faq.php';
 require_once dirname( __DIR__, 2 ) . '/inc/cpt/location.php';
 require_once dirname( __DIR__, 2 ) . '/inc/fields/collections.php';
+require_once dirname( __DIR__, 2 ) . '/inc/cpt/post.php';
 
 final class TopicsTest extends SaltTestCase {
 
@@ -61,7 +62,20 @@ final class TopicsTest extends SaltTestCase {
 		foreach ( salt_topic_taxonomies() as $taxonomy ) {
 			$this->assertSame( 0, salt_topic_update_parent( 12, 34, $taxonomy ), $taxonomy );
 		}
-		$this->assertSame( 12, salt_topic_update_parent( 12, 34, 'category' ), 'Posts\' categories are ID-3952\'s and keep their parent.' );
+		$this->assertSame( 12, salt_topic_update_parent( 12, 34, 'category' ), 'Posts\' categories are inc/cpt/post.php\'s.' );
+	}
+
+	public function test_a_post_topic_never_takes_a_parent_on_update(): void {
+		$this->assertSame( 0, salt_post_topic_update_parent( 12, 34, 'category' ) );
+		$this->assertSame( 12, salt_post_topic_update_parent( 12, 34, 'service_category' ), 'Another taxonomy is topics.php\'s.' );
+	}
+
+	public function test_post_categories_are_labelled_topics_and_drawn_by_the_topics_box(): void {
+		$args = salt_post_topics_taxonomy_args( array( 'hierarchical' => true ), 'category' );
+		$this->assertSame( salt_topic_labels(), $args['labels'] );
+		$this->assertSame( 'salt_post_topics_meta_box', $args['meta_box_cb'] );
+		$this->assertTrue( $args['hierarchical'], 'Hierarchical only to keep the checkbox box.' );
+		$this->assertSame( array( 'hierarchical' => false ), salt_post_topics_taxonomy_args( array( 'hierarchical' => false ), 'post_tag' ) );
 	}
 
 	/**

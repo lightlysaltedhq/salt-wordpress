@@ -92,6 +92,22 @@ markup granularity (cross-reference your site's override manifest).
   for byte on PHP 8.2 and 8.5. The harness's phases now share their seeding
   helpers in `tests/real-acf/php/seed.php`, and `db.php` can snapshot and
   restore the site's tables. No theme code changed.
+- **Posts on the section builder, credited to a team member, filed under
+  topics (ID-3952, EP-72 M3 unit 10; the founder's rulings of 18/11/2026).**
+  A post's body is its generated `layout` field: `single-post.php` draws a
+  rich-text section that is prose alone as the post's prose and every other
+  section as a band, in stored order (`salt_the_post_layout()`,
+  section#sections-in-a-post). The byline and the author box are the
+  `author` team member's name, role, bio and featured image
+  (`salt_post_credited_author()`), never the WordPress user; a post that
+  credits no one draws neither. The author archive is a team member's: the
+  author address takes a published team member's slug and lists the posts
+  crediting them, with the member's photo, role and bio as the profile
+  (`inc/services/post-author.php`). Categories are the posts' topics
+  (`inc/cpt/post.php`): labelled Topics, no parent control, stored flat,
+  with the `primaryTopic` field under the box's checklist; the badge is the
+  primary topic, the tags row is the post's topics, and the default
+  category is never drawn. The archive still draws a topic's description.
 - **The contract's token layer and stylesheet, beside Tailwind (ID-3611,
   EP-72 M3 unit 9).** `assets/src/css/app.css` now emits every token
   salt-contract 1.0.0-rc.6's `contract/token-layer.json` asks of a theme
@@ -329,6 +345,14 @@ markup granularity (cross-reference your site's override manifest).
   contract has no rule for, in every display mode.
 
 ### BREAKING
+- **Posts (ID-3952).** Posts have no classic editor and no Tags box: the
+  body is the `layout` field, and `post_content` and `post_tag` are no
+  longer read or drawn. The byline, the author box, BlogPosting's `author`
+  and the author archive are the credited team member's, so a WordPress
+  user's archive address (`?author=<id>`, or a user's slug) is now not
+  found, and the `profile_photo` user field is no longer drawn. Posts'
+  categories cannot take a parent. Nothing on WordPress is in use, so no
+  content is migrated.
 - **Rich-text allow-list widened, and narrowed per field (salt-contract
   1.0.0-rc.7, ID-3950; security-reviewed on PR #26).** `salt_allowed_html()`
   is the superset and now holds h2 to h6 (still no attribute on any of them;
@@ -438,10 +462,8 @@ markup granularity (cross-reference your site's override manifest).
     `cta`, the sections' buttons and links). A path such as `/contact`, an
     anchor such as `#pricing`, `//x.example`, `javascript:` and `ftp:` are
     refused with a message naming the four schemes.
-  - **Post fields hidden until unit 10.** `author`, `primaryTopic` and
-    `layout` stay in the generated posts group (so the drift check holds and
-    they store and read), but `acf/prepare_field` keeps them out of the
-    editor until ID-3952 wires them.
+  - **Post fields.** `author` and `layout` are drawn in the post's group, and
+    `primaryTopic` in the Topics box (ID-3952, under Added).
   - **The service intro (the founder's ruling).** `single-service.php` draws
     the stored body with paragraphs added (`wpautop()`) and sanitised to the
     intro's list, with no shortcode, oEmbed or other `the_content` filter

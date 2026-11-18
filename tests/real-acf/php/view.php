@@ -27,12 +27,15 @@
  *  - the page: a page with the document's title, at the case's path (the
  *    front page for /), its `document.sections` as rows of `sections`;
  *  - post, service, case-study: the document as singles.php seeds it, at
- *    its path; a post's `document.sections` as rows of its `layout` field,
+ *    its path; a post's body as its `layout`'s first row (prose) and its
+ *    `document.sections` as the rows after it,
  *    its `adjacent` newer and older posts a day after and before it, and the
  *    case's `collections` as posts of their types;
  *  - archive: the topic as a category with its description, or the author
- *    as a user with the href's slug and the title as name; `route.cards` as
- *    posts in it or by them;
+ *    as a published team member with the href's slug, the title as name, the
+ *    strapline as role, the biography as bio and the photo as featured image
+ *    (the theme's provisional mapping, ID-3952); `route.cards` as posts in
+ *    it or crediting them;
  *  - search: each result as a document of its kind; not-found: nothing.
  *
  * It requests the case's `context.path` from the harness server (the
@@ -287,7 +290,8 @@ switch ( $salt_view_kind ) {
 	case 'post':
 		$salt_view_post = salt_harness_seed_post( $salt_view_input );
 		if ( isset( $salt_view_doc['sections'] ) ) {
-			update_field( 'layout', salt_view_rows( (array) $salt_view_doc['sections'], 'field_salt_collection_posts_layout' ), $salt_view_post['id'] );
+			// The prose comes first in the layout (post/band-*), then the case's bands.
+			update_field( 'field_salt_collection_posts_layout', array_merge( (array) get_field( 'field_salt_collection_posts_layout', $salt_view_post['id'], false ), salt_view_rows( (array) $salt_view_doc['sections'], 'field_salt_collection_posts_layout' ) ), $salt_view_post['id'] );
 		}
 		foreach ( array(
 			'newer' => '+1 day',
@@ -312,17 +316,17 @@ switch ( $salt_view_kind ) {
 	case 'archive':
 		$salt_view_slug = salt_harness_slug( (string) ( $salt_view_doc['href'] ?? $salt_view_path ) );
 		if ( 'author' === ( $salt_view_doc['kind'] ?? '' ) ) {
-			$salt_view_more = array(
-				'post_author' => (int) wp_insert_user(
-					array(
-						'user_login'    => $salt_view_slug,
-						'user_nicename' => $salt_view_slug,
-						'display_name'  => (string) $salt_view_doc['title'],
-						'user_pass'     => wp_generate_password(),
-						'role'          => 'author',
-					)
+			$salt_view_member = salt_harness_team_member(
+				array(
+					'name'  => (string) $salt_view_doc['title'],
+					'href'  => (string) ( $salt_view_doc['href'] ?? $salt_view_path ),
+					'role'  => $salt_view_doc['strapline'] ?? null,
+					'bio'   => $salt_view_doc['biography'] ?? null,
+					'photo' => $salt_view_doc['photo'] ?? null,
 				),
+				$salt_view_media
 			);
+			$salt_view_more   = array();
 		} else {
 			$salt_view_term = wp_insert_term(
 				(string) $salt_view_doc['title'],
@@ -335,7 +339,10 @@ switch ( $salt_view_kind ) {
 			$salt_view_more = array( 'post_category' => array( (int) $salt_view_term['term_id'] ) );
 		}
 		foreach ( (array) ( $salt_view_input['route']['cards'] ?? array() ) as $salt_view_card ) {
-			salt_view_card( (array) $salt_view_card, $salt_view_media, $salt_view_more );
+			$salt_view_card_id = salt_view_card( (array) $salt_view_card, $salt_view_media, $salt_view_more );
+			if ( isset( $salt_view_member ) ) {
+				update_field( 'field_salt_collection_posts_author', $salt_view_member, $salt_view_card_id );
+			}
 		}
 		break;
 	case 'search':

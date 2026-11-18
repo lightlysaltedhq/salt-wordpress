@@ -39,40 +39,6 @@ function salt_register_collection_fields(): void {
 add_action( 'acf/init', 'salt_register_collection_fields' );
 
 /**
- * The post fields that do nothing until unit 10 (ID-3952): the credited
- * author (the author archive by team member), the primary topic (drawn
- * beside the Topics box) and the layout (posts on the section builder).
- * They stay in the generated group verbatim, so the drift check holds and
- * values can be stored and read, but the editor does not offer them until
- * ID-3952 wires them.
- *
- * @return string[] Field keys.
- */
-function salt_collection_fields_hidden_until_id_3952(): array {
-	return array(
-		'field_salt_collection_posts_author',
-		'field_salt_collection_posts_primary_topic',
-		'field_salt_collection_posts_layout',
-	);
-}
-
-/**
- * Hide a field ID-3952 has not wired yet from the editor
- * ('acf/prepare_field'). Returning false only stops ACF drawing it;
- * update_field() and get_field() still work.
- *
- * @param array<string,mixed>|false $field The field.
- * @return array<string,mixed>|false
- */
-function salt_hide_fields_until_id_3952( $field ) {
-	if ( is_array( $field ) && in_array( $field['key'] ?? '', salt_collection_fields_hidden_until_id_3952(), true ) ) {
-		return false;
-	}
-	return $field;
-}
-add_filter( 'acf/prepare_field', 'salt_hide_fields_until_id_3952' );
-
-/**
  * The longest summary, in characters (salt-contract rc.7: summary,
  * maxLength 300, on services, case studies and posts). WordPress keeps the
  * summary in the excerpt (salt.native), so no ACF field carries the limit
@@ -137,9 +103,8 @@ function salt_summary_error( string $summary ): ?string {
  * admin/summary-limit.js checks the Excerpt box when the form is submitted
  * (Publish, Update or Save Draft), counting as salt_summary_length() does,
  * and if it is over the limit stops the save and shows the message above
- * the form. It is the theme's own check, not ACF's: ACF validates a form
- * only when it holds an ACF field, and a post's edit form holds none while
- * ID-3952's fields are hidden.
+ * the form. It is the theme's own check, not ACF's: the excerpt is not an
+ * ACF field, so ACF's validation never sees it.
  *
  * @param string $hook_suffix The admin screen.
  * @return void

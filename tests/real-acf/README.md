@@ -107,16 +107,22 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    it offers. Each value is read back with `get_field()` and compared, and every meta path must
    carry its field key. The places WordPress keeps natively (`salt.native`: the title, the
    excerpt, the body and the featured image) are set the WordPress way and read back through the
-   theme's own readers. The post fields unit 10 wires (`author`, `primaryTopic`, `layout`) must be
-   hidden from the editor by `acf/prepare_field` and still store, and every topic must be stored
-   flat, whatever parent is asked for on insert or update.
+   theme's own readers. A post's `author` and `layout` must be drawn in its group and
+   `primaryTopic` only in the Topics box; posts must have no classic editor and no Tags box, and
+   their categories must be labelled Topics. Every topic, posts' categories included, must be
+   stored flat, whatever parent is asked for on insert or update.
 6. **The single templates over HTTP.** PHP's built-in server starts here (with or without
    `--no-browser`). `php/singles.php` seeds one document each from the pinned contract's
    `fixtures/service/full.json`, `fixtures/case-study/full.json` and `fixtures/post/full.json`:
    each `document` value goes to its native place or, through `update_field()`, to its generated
    field; named media become attachments with the fixture's alt text, and related or listed
-   services become services. It requests `single-service.php`, `single-work.php` and
-   `single-post.php` and checks each answers 200 and draws every seeded value the template draws.
+   services become services. The post's body is its `layout`'s first row (prose), its author a
+   team member published under the author's href slug (`seed.php`, `salt_harness_team_member()`),
+   and its category its `primaryTopic`. Fields are seeded by key: `update_field()` looks a name up
+   loosely, and the page gallery's `layout` select shares the post's `layout` name. It requests
+   `single-service.php`, `single-work.php` and `single-post.php` and checks each answers 200 and
+   draws every seeded value the template draws: for the post, the primary topic as the badge and
+   the team member's name, role and photo.
    It also checks the service intro runs no shortcode or embed, and that a testimonial rated 4.5
    draws 90% of five stars on a page. Known fixture mismatch, pending the contract's EP-70
    correction: rc.7's service intro holds an `<h3>` its own list does not allow, so the intro's
@@ -140,8 +146,9 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    - each rich-text editor offers only its field's contract list;
    - the Topics box and the topic screens offer no parent; the service editor has no Add Media
      button and Text tab buttons for its list alone; a summary of 301 two-byte characters is
-     refused with the editor message on a service and a post, and 300 is accepted; the hidden post
-     fields are not drawn;
+     refused with the editor message on a service and a post, and 300 is accepted; a post's editor
+     is the section builder with the credited author, no classic editor and no Tags box, and its
+     Topics box has no parent and holds the primary topic;
    - a url that is not absolute http, https, mailto or tel is refused on save: a service's external
      cta refuses `/contact`, `#pricing`, `//x.example`, `javascript:` and `ftp:` and takes https and
      mailto, and a case study's `externalUrl` refuses a path and takes https;

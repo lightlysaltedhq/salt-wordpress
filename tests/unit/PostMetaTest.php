@@ -76,4 +76,59 @@ final class PostMetaTest extends SaltTestCase {
 			$this->assertFileExists( $path, "share service {$key} points at a missing icon" );
 		}
 	}
+
+	// -----------------------------------------------------------------------
+	// A post's layout: which rich-text rows are the post's prose.
+	// -----------------------------------------------------------------------
+
+	public function test_a_rich_text_row_left_alone_is_prose(): void {
+		$defaults = salt_post_prose_defaults();
+
+		$this->assertSame( 'left', $defaults['alignment'] );
+		$this->assertSame( 'md', $defaults['settings']['spacing'] );
+		$this->assertTrue( salt_post_row_is_prose( array(), $defaults ), 'Nothing set.' );
+		$this->assertTrue(
+			salt_post_row_is_prose(
+				array(
+					'eyebrow'   => '',
+					'heading'   => '',
+					'alignment' => 'left',
+					'settings'  => array(
+						'spacing'         => 'md',
+						'tone'            => 'surface',
+						'toneDark'        => 'auto',
+						'width'           => 'default',
+						'divider'         => false,
+						'backgroundImage' => array(
+							'image'         => null,
+							'fit'           => 'cover',
+							'scrimStrength' => 'strong',
+						),
+						'anchorId'        => '',
+						'firstPageOnly'   => true,
+					),
+				),
+				$defaults
+			),
+			'Every setting at its default, as the form stores it (firstPageOnly is not one the rule names).'
+		);
+	}
+
+	public function test_a_rich_text_row_an_editor_set_anything_on_is_a_band(): void {
+		$defaults = salt_post_prose_defaults();
+		foreach ( array(
+			'an eyebrow'    => array( 'eyebrow' => 'Note' ),
+			'a heading'     => array( 'heading' => 'Why' ),
+			'centred'       => array( 'alignment' => 'centre' ),
+			'small spacing' => array( 'settings' => array( 'spacing' => 'sm' ) ),
+			'a tone'        => array( 'settings' => array( 'tone' => 'brand-tint' ) ),
+			'a dark tone'   => array( 'settings' => array( 'toneDark' => 'surface' ) ),
+			'a width'       => array( 'settings' => array( 'width' => 'wide' ) ),
+			'a divider'     => array( 'settings' => array( 'divider' => true ) ),
+			'an anchor'     => array( 'settings' => array( 'anchorId' => 'notes' ) ),
+			'a background'  => array( 'settings' => array( 'backgroundImage' => array( 'image' => 12 ) ) ),
+		) as $what => $row ) {
+			$this->assertFalse( salt_post_row_is_prose( $row, $defaults ), $what );
+		}
+	}
 }
