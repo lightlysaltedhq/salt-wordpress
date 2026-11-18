@@ -67,7 +67,8 @@ it touches ONLY its resolver (`inc/sections/`), its view
   is plain `vX.Y.Z`, `style.css` `Version` and `SALT_VERSION` equal it, and the
   commit is on `origin/main`. The check runs after the tag is pushed, so delete a
   failed tag at once (see docs/RELEASE-POLICY.md).
-- Field/layout renames additionally need a
+- Field/layout renames, and moving a field into or out of a group or
+  repeater (its stored meta path changes), additionally need a
   `docs/contracts/slug-migrations.json` entry (CI enforces, FLEET07).
 
 ## Non-negotiables

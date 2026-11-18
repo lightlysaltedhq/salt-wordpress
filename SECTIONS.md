@@ -17,7 +17,8 @@ release requirement ("SECTIONS.md current" checklist line).
   always.
 - Components are `x-{name}` ↔ `template-parts/components/{name}.php`.
 - Field keys: `field_salt_{scope}_{name}`; groups `group_salt_{scope}`
-  (DATA02). Layout slugs + field names are CI-guarded (FLEET07).
+  (DATA02). Layout slugs, field names and field storage paths are
+  CI-guarded (FLEET07).
 
 ## Adding a section (§17 recipe, as implemented)
 
@@ -118,7 +119,7 @@ snapshot diff is the trigger).
 A deprecated section/component/arg ships as a working back-compat shim for
 **at least one minor release** before removal; removal is a MAJOR. The shim
 logs via `salt_log()` ("deprecated since …"). Renamed layout slugs/field
-names additionally require a `docs/contracts/slug-migrations.json` entry
+names, and fields moved into or out of a group or repeater, additionally require a `docs/contracts/slug-migrations.json` entry
 (FLEET07) describing how existing DB rows are handled.
 
 ## Migration from the live theme (DATA01 — documented later task)

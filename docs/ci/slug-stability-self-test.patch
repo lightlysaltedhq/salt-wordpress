@@ -1,0 +1,17 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 6646bf0..8ba6410 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -147,6 +147,12 @@ jobs:
+ 
+       - name: No slug removed without major bump or migration entry
+         run: php bin/check-slug-stability.php
++
++      # The gate's own cases (ID-3943): a field moved into or out of a group, a renamed
++      # group or repeater, and a removed layout fail a non-major bump. Throwaway repo in
++      # a temp dir; needs php and git only.
++      - name: Slug-stability gate self-test
++        run: bash bin/check-slug-stability.test.sh
+   
+   release-tag:
+     name: Release tag gate

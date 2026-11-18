@@ -75,7 +75,9 @@ consume this document verbatim and must not deviate.
   `field_salt_media_text_row_media_side`). Field NAMES follow the
   salt-contract's `contract/fields/*.json` verbatim (camelCase where the
   contract is). Renaming a field name or FC layout
-  slug is a MAJOR bump + entry in `docs/contracts/slug-migrations.json`
+  slug, or changing a field's storage path (moving it into or out of a
+  group or repeater: `sections_N_heading` → `sections_N_settings_heading`),
+  is a MAJOR bump + entry in `docs/contracts/slug-migrations.json`
   (FLEET07 — CI enforces).
 
 ## Schema
