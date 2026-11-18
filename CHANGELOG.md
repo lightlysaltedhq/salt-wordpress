@@ -93,6 +93,28 @@ markup granularity (cross-reference your site's override manifest).
   It is `export-ignore`d. A CI job for it is proposed in
   `docs/ci/real-acf-harness.patch` and needs the `ACF_PRO_KEY` and
   `ACF_PRO_SITE_URL` secrets. See `tests/real-acf/README.md`.
+- **Every collection's fields generated from the contract (ID-3610 part
+  B, EP-72 M3 unit 7).** `inc/fields/generated/collections.json` is
+  salt-contract 1.0.0-rc.7's ACF emitter output (`emit/acf.mjs` with
+  `inc/fields/generated/collections.options.json`): one group per
+  collection the theme installs, `group_salt_collection_{collection}`,
+  located on its post type (services on `service`, case studies on
+  `work`, testimonials on `testimonial`, posts on `post`, team on
+  `team_member`, faqs on `faq`, locations on `location`). The loader
+  (`salt_generated_collection_groups()` in `inc/acf.php`) registers it
+  through `inc/fields/collections.php`, each group behind its module gate;
+  posts always register. What the contract names under `salt.native` is
+  read from WordPress, not ACF: the title, the body, the excerpt (the
+  summary, through the new `salt_post_summary()`), the featured image,
+  categories and the post date. `bin/check-fields-from-contract.php` now
+  also fails when the collections JSON is not the pinned emitter's
+  output, when a registered collection group differs from it, when another
+  group sits on a collection's post type, or when an
+  `inc/fields/cpt-*.php` file exists. The options and user groups stay
+  hand-written. `docs/ci/fields-from-contract.patch` names the wider check.
+  The real ACF harness has a new phase (`tests/real-acf/php/collections.php`)
+  that seeds every generated collection field through `update_field()`
+  on all seven post types, reads it back and checks its storage.
 - **salt-contract pinned exactly (ID-3627).** `@lightlysaltedhq/salt-contract`
   1.0.0-rc.6 is a devDependency on a committed `npm pack` tarball,
   `vendor-contract/lightlysaltedhq-salt-contract-1.0.0-rc.6.tgz`, packed
@@ -154,6 +176,19 @@ markup granularity (cross-reference your site's override manifest).
   harness-only mu-plugin is gone; the harness checks that the theme's
   generated layouts are the emitter's output, and a new phase renders the
   fixture page through the theme's section loop on real ACF values.
+- **salt-contract 1.0.0-rc.7 (ID-3944, ID-3949, ID-3950).** The pin moves
+  to `vendor-contract/lightlysaltedhq-salt-contract-1.0.0-rc.7.tgz`, packed
+  from lightlysaltedhq/contracts at `d292ecc`; the rc.6 tarball is gone.
+  `inc/fields/generated/sections.json` is regenerated: every layout gains a
+  Settings tab (it stores nothing) before its `settings` group. The
+  conformance baseline in `tests/contract-adapter/baseline/` is
+  regenerated against rc.7, and the adapter seeds a collection's native
+  places from `salt.native`.
+- **Rich text stores headings 2 to 6 (ID-3950).** `salt_allowed_html()`
+  and the editor's formats widen from h3 and h4 to h2 to h6, still with no
+  attributes; h1 stays forbidden. Before, an editor re-save turned a
+  stored h2, h5 or h6 into a paragraph. Stored levels are drawn as stored;
+  the contract's re-ranking from the section's heading base is M4.
 - **Slugs (FLEET07).** `docs/contracts/slug-registry.json` regenerated.
   The 6.0.0 entries in `docs/contracts/slug-migrations.json` are retired:
   they only described stored content from before 6.0.0, and no site holds
@@ -193,6 +228,50 @@ markup granularity (cross-reference your site's override manifest).
   contract has no rule for, in every display mode.
 
 ### BREAKING
+- **Collections read the contract's own field shape (ID-3610 part B,
+  EP-72 M3 unit 7; FLEET07: MAJOR, 6.0.0).** As with the sections, no site
+  holds Salt for WordPress content, so there is no dual reader and no
+  migration. Generated keys are `group_salt_collection_{collection}` and
+  `field_salt_collection_{collection}_{path}`.
+  - **Removed files:** `inc/fields/cpt-{service,work,testimonial,
+    team-member,faq,location}.php` and their groups (`group_salt_service`
+    and the rest); the six legacy collection layouts and their resolvers
+    stay until unit 8.
+  - **Dropped fields:** testimonial `logo` (`companyLogo`; the card draws
+    the author's photo, the featured image, instead) and `service`; service
+    `headline` (the H1 is the title); the `summary` fields on services and
+    case studies (the summary is the excerpt); team socials `platform` (the
+    network is worked out from the address, `socials.json`); location
+    `geo` (now `lat`, `lng` and `zoom`).
+  - **Dropped from WordPress:** the `industry` taxonomy on work and the
+    `department` taxonomy on team members; the body (editor) of work and
+    team members; the location's featured image; the Gravatar fallback for
+    a post author (the avatar is the user's `profile_photo` or nothing).
+  - **Renamed fields:** work `live_url` → `externalUrl`; service
+    `price_from` (a number) → `priceFrom` (text, drawn as written),
+    `related_services` → `relatedServices`, benefit row `benefit` → `text`,
+    `cta` (an ACF link) → a contract link `{label, type, document, url,
+    newTab}`; team `short_bio` → `bio`; location address `line1` and
+    `line2` → `street` (a line each), `city` → `locality`, `postcode` →
+    `postalCode`, `opening_hours` → `hours`, row `appointment_only` →
+    `appointment`.
+  - **New, stored but not drawn until M4:** case study `details`;
+    location `lat`, `lng` and `zoom`; post `author`, `primaryTopic` and
+    `layout`.
+  - **Removed schema:** the testimonial `Review` nodes. A Review needs the
+    service it reviews, and the contract stores none.
+  - **Visible changes:** the service card draws its featured image, and its
+    icon only when it has none (rc.7 card mapping); the testimonial card
+    draws the author's photo, not the company logo; a team member's social
+    link is labelled by the network its address belongs to; the service
+    single's H1 is the title, its price reads "Projects from" and the text
+    as written (no £ added), and a service is never related to itself; the
+    case study single no longer draws its industry fact or its body; a post
+    author with no profile photo has no avatar.
+  - **Removed field slugs in the registry:** `appointment_only`, `benefit`,
+    `city`, `geo`, `headline`, `line1`, `line2`, `live_url`, `logo`,
+    `opening_hours`, `platform`, `postcode`, `price_from`,
+    `related_services`, `service`, `short_bio`, `summary`.
 - **Sections read the contract's own field shape (ID-3610 part A, EP-72 M3
   unit 3; FLEET07: MAJOR, 6.0.0).** Nothing stored before this change is
   read: no site holds Salt for WordPress content, so there is no dual
