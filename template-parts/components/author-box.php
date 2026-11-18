@@ -1,12 +1,12 @@
 <?php
 /**
- * x-author-box — post author attribution card (avatar + bio from the
- * WordPress user; the caller resolves both).
+ * x-author-box — post author attribution card (photo and bio from the
+ * credited team member; the caller resolves both).
  *
  * ARGS CONTRACT (v1 — changing this signature or the markup structure is a
  * MAJOR semver bump, §4/§12):
  *   name    string required  Author display name (escaped here).
- *   bio     string ''        Plain-text bio (the WP user description; escaped here).
+ *   bio     string ''        Plain-text bio (the team member's bio; escaped here).
  *   url     string ''        Author archive URL — the name links when present.
  *   role    string ''        Role line under the name (escaped here).
  *   media   string ''        PRE-RENDERED HTML slot (an x-image render
