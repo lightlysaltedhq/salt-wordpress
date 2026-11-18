@@ -112,24 +112,17 @@ final class LocationCptTest extends SaltTestCase {
 		$this->assertSame( array(), $this->logs() );
 	}
 
-	public function test_layout_embeds_query_controls_then_wrapper_fields_last(): void {
-		$layout = include dirname( __DIR__, 2 ) . '/inc/fields/layouts/locations.php';
+	public function test_layout_is_generated_from_the_contract(): void {
+		$layout = salt_test_layout( 'locations' );
 
-		$this->assertSame( 'locations', $layout['name'] );
 		$this->assertSame( 'layout_salt_locations', $layout['key'] );
+		$this->assertSame( array( 'eyebrow', 'heading', 'query', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
-		$names = array_column( $layout['sub_fields'], 'name' );
-
-		// Content fields first.
-		$this->assertSame( array( 'eyebrow', 'heading' ), array_slice( $names, 0, 2 ) );
-
-		// Principle-7 query controls for the location CPT, incl. its taxonomy.
-		$keys = array_column( $layout['sub_fields'], 'key' );
-		$this->assertContains( 'field_salt_query_location_source', $keys );
-		$this->assertContains( 'field_salt_query_location_taxonomy_terms', $keys );
-
-		// Shared §11 wrapper fields LAST.
-		$this->assertSame( 'divider', end( $names ) );
-		$this->assertContains( 'field_salt_locations_spacing', $keys );
+		// The contract's collection query for the location CPT, incl. its taxonomy.
+		$query = array_column( $layout['sub_fields'], null, 'name' )['query'];
+		$parts = array_column( $query['sub_fields'], null, 'name' );
+		$this->assertSame( 'location_area', $parts['categories']['taxonomy'] );
+		$this->assertSame( array( 'location' ), $parts['items']['post_type'] );
+		$this->assertSame( 'field_salt_locations_query_mode', $parts['mode']['key'] );
 	}
 }

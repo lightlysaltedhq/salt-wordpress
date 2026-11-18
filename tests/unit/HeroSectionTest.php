@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../shims/acf.php';
 require_once __DIR__ . '/../shims/media.php';
+require_once __DIR__ . '/../shims/blog.php';
 
 final class HeroSectionTest extends SaltTestCase {
 
@@ -81,11 +82,8 @@ final class HeroSectionTest extends SaltTestCase {
 	public function test_subheading_and_cta_alone_still_render_nothing(): void {
 		$html = $this->render_hero(
 			array(
-				'subheading'  => 'A lonely strapline.',
-				'cta_primary' => array(
-					'title' => 'Go',
-					'url'   => 'https://example.test/go/',
-				),
+				'subheading' => 'A lonely strapline.',
+				'buttons'    => array( salt_test_button( 'Go', 'https://example.test/go/' ) ),
 			)
 		);
 
@@ -110,8 +108,8 @@ final class HeroSectionTest extends SaltTestCase {
 
 		$html = $this->render_hero(
 			array(
-				'heading' => 'Welcome',
-				'image'   => 41,
+				'heading'  => 'Welcome',
+				'settings' => array( 'backgroundImage' => array( 'image' => 41 ) ),
 			)
 		);
 
@@ -169,9 +167,9 @@ final class HeroSectionTest extends SaltTestCase {
 
 		$html = $this->render_hero(
 			array(
-				'variant' => 'full-bleed',
-				'heading' => 'Welcome',
-				'image'   => 41,
+				'variant'  => 'full-bleed',
+				'heading'  => 'Welcome',
+				'settings' => array( 'backgroundImage' => array( 'image' => 41 ) ),
 			)
 		);
 
@@ -191,6 +189,69 @@ final class HeroSectionTest extends SaltTestCase {
 		);
 
 		$this->assertStringContainsString( 'md:grid-cols-2', $html );
+	}
+
+	public function test_stacked_variant_is_drawn_as_split_until_m4(): void {
+		$this->seed_hero_image();
+
+		$resolved = $this->resolve_hero(
+			array(
+				'variant' => 'stacked',
+				'heading' => 'Welcome',
+				'image'   => 41,
+			)
+		);
+
+		$this->assertSame( 'split', $resolved['props']['variant'] );
+		$this->assertSame( 41, $resolved['props']['image_id'] );
+	}
+
+	public function test_full_bleed_ignores_the_split_image_field(): void {
+		$this->seed_hero_image();
+
+		$resolved = $this->resolve_hero(
+			array(
+				'variant' => 'full-bleed',
+				'heading' => 'Welcome',
+				'image'   => 41,
+			)
+		);
+
+		$this->assertSame( 0, $resolved['props']['image_id'], 'A full-bleed hero draws the background image, not image.' );
+	}
+
+	public function test_an_internal_button_links_to_its_document(): void {
+		// Either get_permalink() shim may be loaded first: give both the address.
+		$GLOBALS['salt_test_permalinks'][7]       = 'https://example.test/about-us/';
+		$GLOBALS['salt_test_schema']['permalink'] = 'https://example.test/about-us/';
+
+		$resolved = $this->resolve_hero(
+			array(
+				'heading' => 'Welcome',
+				'buttons' => array(
+					array(
+						'link'  => array(
+							'label'    => 'About us',
+							'type'     => 'internal',
+							'document' => 7,
+						),
+						'style' => 'ghost',
+					),
+				),
+			)
+		);
+
+		$this->assertSame(
+			array(
+				array(
+					'label'  => 'About us',
+					'url'    => 'https://example.test/about-us/',
+					'style'  => 'ghost',
+					'target' => '',
+				),
+			),
+			$resolved['props']['ctas']
+		);
 	}
 
 	public function test_split_variant_without_an_image_degrades_to_a_text_block(): void {
@@ -219,7 +280,7 @@ final class HeroSectionTest extends SaltTestCase {
 	public function test_headingless_hero_with_image_does_not_claim_the_h1(): void {
 		$this->seed_hero_image();
 
-		$html = $this->render_hero( array( 'image' => 41 ), true );
+		$html = $this->render_hero( array( 'settings' => array( 'backgroundImage' => array( 'image' => 41 ) ) ), true );
 
 		$this->assertSame( 0, preg_match_all( '/<h1[\s>]/', $html ) );
 		$this->assertFalse( salt_h1_claimed(), 'Heading-less hero leaves the H1 claim for the page fallback.' );
@@ -232,15 +293,10 @@ final class HeroSectionTest extends SaltTestCase {
 	public function test_ctas_render_primary_and_secondary_styles(): void {
 		$html = $this->render_hero(
 			array(
-				'heading'       => 'Welcome',
-				'cta_primary'   => array(
-					'title'  => 'Get started',
-					'url'    => 'https://example.test/start/',
-					'target' => '',
-				),
-				'cta_secondary' => array(
-					'title' => 'Learn more',
-					'url'   => 'https://example.test/about/',
+				'heading' => 'Welcome',
+				'buttons' => array(
+					salt_test_button( 'Get started', 'https://example.test/start/' ),
+					salt_test_button( 'Learn more', 'https://example.test/about/', 'secondary' ),
 				),
 			)
 		);
@@ -254,25 +310,21 @@ final class HeroSectionTest extends SaltTestCase {
 	public function test_malformed_cta_is_skipped_and_logged(): void {
 		$html = $this->render_hero(
 			array(
-				'heading'     => 'Welcome',
-				'cta_primary' => array( 'title' => 'No destination' ),
+				'heading' => 'Welcome',
+				'buttons' => array( salt_test_button( 'No destination', '' ) ),
 			)
 		);
 
 		$this->assertStringNotContainsString( 'No destination', $html );
 		$this->assertStringNotContainsString( 'x-hero-ctas', $html, 'No empty CTA row.' );
-		$this->assertStringContainsString( 'cta_primary link is malformed', implode( ' ', $this->logs() ) );
+		$this->assertStringContainsString( 'section hero: button 0 has no label or no address', implode( ' ', $this->logs() ) );
 	}
 
-	public function test_blank_target_cta_opens_in_the_same_tab(): void {
+	public function test_new_tab_button_opens_a_new_tab(): void {
 		$html = $this->render_hero(
 			array(
-				'heading'     => 'Welcome',
-				'cta_primary' => array(
-					'title'  => 'External',
-					'url'    => 'https://example.test/out/',
-					'target' => '_blank',
-				),
+				'heading' => 'Welcome',
+				'buttons' => array( salt_test_button( 'External', 'https://example.test/out/', 'primary', true ) ),
 			)
 		);
 
@@ -283,27 +335,19 @@ final class HeroSectionTest extends SaltTestCase {
 	// Layout contract (FLEET07 / DATA02).
 	// -----------------------------------------------------------------
 
-	public function test_layout_file_returns_the_frozen_contract_shape(): void {
-		$layout = include dirname( __DIR__, 2 ) . '/inc/fields/layouts/hero.php';
+	public function test_layout_is_generated_from_the_contract(): void {
+		$layout = salt_test_layout( 'hero' );
 
-		$this->assertSame( 'hero', $layout['name'] );
 		$this->assertSame( 'layout_salt_hero', $layout['key'] );
-
-		$names = array_values( array_filter( array_column( $layout['sub_fields'], 'name' ) ) );
-
-		// Content fields first…
 		$this->assertSame(
-			array( 'variant', 'eyebrow', 'heading', 'subheading', 'image', 'cta_primary', 'cta_secondary' ),
-			array_slice( $names, 0, 7 )
+			array( 'variant', 'eyebrow', 'heading', 'subheading', 'image', 'mediaSide', 'alignment', 'buttons', 'settings' ),
+			array_column( $layout['sub_fields'], 'name' )
 		);
-		// …then the §11 wrapper fields last.
-		$this->assertSame( 'divider', end( $names ) );
 
 		$by_name = array_column( $layout['sub_fields'], null, 'name' );
-		$this->assertSame( array( 'full-bleed', 'split', 'minimal' ), array_keys( $by_name['variant']['choices'] ) );
+		$this->assertSame( array( 'full-bleed', 'split', 'stacked', 'minimal' ), array_keys( $by_name['variant']['choices'] ) );
 		$this->assertSame( 'id', $by_name['image']['return_format'], 'Image is an attachment ID.' );
-		$this->assertSame( 'link', $by_name['cta_primary']['type'] );
-		$this->assertSame( 'array', $by_name['cta_primary']['return_format'] );
+		$this->assertSame( 2, $by_name['buttons']['max'] );
 
 		foreach ( array_filter( array_column( $layout['sub_fields'], 'key' ) ) as $key ) {
 			$this->assertStringStartsWith( 'field_salt_hero_', (string) $key, 'DATA02 key convention.' );
@@ -380,8 +424,8 @@ final class HeroSectionTest extends SaltTestCase {
 
 		$resolved = $this->resolve_hero(
 			array(
-				'variant' => 'full-bleed',
-				'image'   => 41,
+				'variant'  => 'full-bleed',
+				'settings' => array( 'backgroundImage' => array( 'image' => 41 ) ),
 			)
 		);
 
@@ -398,14 +442,12 @@ final class HeroSectionTest extends SaltTestCase {
 
 		$resolved = $this->resolve_hero(
 			array(
-				'variant'       => 'minimal',
-				'heading'       => 'Welcome',
-				'image'         => 41,
-				'cta_primary'   => array( 'title' => 'No destination' ),
-				'cta_secondary' => array(
-					'title'  => 'About',
-					'url'    => 'https://example.test/about/',
-					'target' => '_blank',
+				'variant' => 'minimal',
+				'heading' => 'Welcome',
+				'image'   => 41,
+				'buttons' => array(
+					salt_test_button( 'No destination', '' ),
+					salt_test_button( 'About', 'https://example.test/about/', 'secondary', true ),
 				),
 			)
 		);
@@ -425,7 +467,7 @@ final class HeroSectionTest extends SaltTestCase {
 
 		$logs = implode( ' ', $this->logs() );
 		$this->assertStringContainsString( 'minimal variant ignores media', $logs );
-		$this->assertStringContainsString( 'cta_primary link is malformed', $logs );
+		$this->assertStringContainsString( 'section hero: button 0 has no label or no address', $logs );
 	}
 
 	public function test_view_draws_from_props_alone(): void {

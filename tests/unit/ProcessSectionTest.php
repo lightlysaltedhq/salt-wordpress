@@ -152,48 +152,23 @@ final class ProcessSectionTest extends SaltTestCase {
 	// Layout shape (DATA02 / FLEET07).
 	// -----------------------------------------------------------------
 
-	public function test_layout_file_shape_and_key_conventions(): void {
-		$layout = include dirname( __DIR__, 2 ) . '/inc/fields/layouts/process.php';
+	public function test_layout_is_generated_from_the_contract(): void {
+		$layout = salt_test_layout( 'process' );
 
-		$this->assertSame( 'process', $layout['name'] );
 		$this->assertSame( 'layout_salt_process', $layout['key'] );
-
-		$names = array_map(
-			static fn( array $field ): string => (string) ( $field['name'] ?? '' ),
-			$layout['sub_fields']
-		);
-
-		// Content fields first, wrapper controls last.
 		$this->assertSame(
-			array( 'heading', 'eyebrow', 'layout', 'steps', 'structuredData' ),
-			array_slice( array_values( array_filter( $names ) ), 0, 5 )
+			array( 'eyebrow', 'heading', 'intro', 'layout', 'steps', 'structuredData', 'settings' ),
+			array_column( $layout['sub_fields'], 'name' )
 		);
-		$this->assertGreaterThan( array_search( 'structuredData', $names, true ), array_search( 'spacing', $names, true ) );
 
-		$steps  = null;
-		$toggle = null;
-		foreach ( $layout['sub_fields'] as $field ) {
-			if ( 'steps' === ( $field['name'] ?? '' ) ) {
-				$steps = $field;
-			}
-			if ( 'structuredData' === ( $field['name'] ?? '' ) ) {
-				$toggle = $field;
-			}
-		}
-
-		$this->assertNotNull( $steps );
-		$this->assertSame( 'repeater', $steps['type'] );
-		$this->assertSame(
-			array( 'title', 'text', 'icon' ),
-			array_map( static fn( array $sub ): string => (string) $sub['name'], $steps['sub_fields'] )
-		);
-		foreach ( $steps['sub_fields'] as $sub ) {
+		$fields = array_column( $layout['sub_fields'], null, 'name' );
+		$this->assertSame( 'repeater', $fields['steps']['type'] );
+		$this->assertSame( array( 'icon', 'image', 'title', 'text', 'cta' ), array_column( $fields['steps']['sub_fields'], 'name' ) );
+		foreach ( $fields['steps']['sub_fields'] as $sub ) {
 			$this->assertStringStartsWith( 'field_salt_process_steps_', (string) $sub['key'] );
 		}
-
-		$this->assertNotNull( $toggle );
-		$this->assertSame( 'true_false', $toggle['type'] );
-		$this->assertSame( 0, $toggle['default_value'], 'HowTo schema is OPT-IN — default OFF (§15).' );
+		$this->assertSame( 'true_false', $fields['structuredData']['type'] );
+		$this->assertSame( 0, $fields['structuredData']['default_value'], 'HowTo schema is OPT-IN — default OFF (§15).' );
 	}
 
 	// -----------------------------------------------------------------

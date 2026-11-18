@@ -248,12 +248,19 @@ final class TestimonialsSectionTest extends SaltTestCase {
 		$this->assertContains( 'field_salt_query_testimonial_count', $keys );
 		$this->assertNotContains( 'taxonomy_terms', $names );
 
-		// Wrapper fields LAST.
-		$this->assertSame( 'field_salt_testimonials_divider', end( $keys ) );
+		// The contract's section settings group LAST, keyed in this layout's scope.
+		$this->assertSame( 'field_salt_testimonials_settings', end( $keys ) );
+		$settings = end( $layout['sub_fields'] );
+		$this->assertSame( 'group', $settings['type'] );
+		$this->assertSame(
+			array( 'spacing', 'tone', 'toneDark', 'width', 'backgroundImage', 'anchorId', 'firstPageOnly', 'divider' ),
+			array_column( $settings['sub_fields'], 'name' )
+		);
+		$this->assertSame( 'field_salt_testimonials_settings_spacing', $settings['sub_fields'][0]['key'] );
 		$this->assertLessThan(
-			array_search( 'field_salt_testimonials_advanced_tab', $keys, true ),
+			array_search( 'field_salt_testimonials_settings', $keys, true ),
 			array_search( 'field_salt_query_testimonial_source', $keys, true ),
-			'Query controls come before the wrapper Advanced tab.'
+			'Query controls come before the settings group.'
 		);
 	}
 

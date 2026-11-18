@@ -50,52 +50,20 @@ final class CallToActionSectionTest extends SaltTestCase {
 	// Layout shape (DATA02 / FLEET07).
 	// -----------------------------------------------------------------
 
-	public function test_layout_file_shape_and_key_conventions(): void {
-		$layout = include dirname( __DIR__, 2 ) . '/inc/fields/layouts/call-to-action.php';
+	public function test_layout_is_generated_from_the_contract(): void {
+		$layout = salt_test_layout( 'call-to-action' );
 
-		$this->assertSame( 'call-to-action', $layout['name'] );
 		$this->assertSame( 'layout_salt_call_to_action', $layout['key'] );
+		$this->assertSame( array( 'heading', 'body', 'buttons', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
-		$names = array_map(
-			static fn( array $field ): string => (string) ( $field['name'] ?? '' ),
-			$layout['sub_fields']
-		);
-
-		// Content fields first…
-		$this->assertSame( array( 'heading', 'body', 'buttons' ), array_slice( array_values( array_filter( $names ) ), 0, 3 ) );
-		// …then the shared §11 wrapper controls last.
-		$this->assertContains( 'spacing', $names );
-		$this->assertGreaterThan( array_search( 'buttons', $names, true ), array_search( 'spacing', $names, true ) );
-
-		$buttons    = null;
-		$background = null;
-		foreach ( $layout['sub_fields'] as $field ) {
-			if ( 'buttons' === ( $field['name'] ?? '' ) ) {
-				$buttons = $field;
-			}
-			if ( 'tone' === ( $field['name'] ?? '' ) ) {
-				$background = $field;
-			}
-		}
-
-		$this->assertNotNull( $buttons );
-		$this->assertSame( 'repeater', $buttons['type'] );
-		$this->assertSame( 2, $buttons['max'], 'Buttons repeater caps at 2.' );
-		foreach ( $buttons['sub_fields'] as $sub ) {
-			$this->assertStringStartsWith( 'field_salt_call_to_action_buttons_', (string) $sub['key'] );
-		}
-		$this->assertSame(
-			array( 'label', 'url', 'style' ),
-			array_map( static fn( array $sub ): string => (string) $sub['name'], $buttons['sub_fields'] )
-		);
+		$by_name = array_column( $layout['sub_fields'], null, 'name' );
+		$this->assertSame( 'wysiwyg', $by_name['body']['type'], 'The contract body is rich text.' );
+		$this->assertSame( 2, $by_name['buttons']['max'], 'Buttons list caps at 2.' );
+		$this->assertSame( array( 'link', 'style' ), array_column( $by_name['buttons']['sub_fields'], 'name' ) );
 
 		// The CTA band defaults to the brand tint in the admin UI too.
-		$this->assertNotNull( $background );
-		$this->assertSame( 'brand-tint', $background['default_value'] );
-
-		// Newsletter variant DEFERRED: no email/embed field may ship (PRIV01).
-		$this->assertNotContains( 'variant', $names );
-		$this->assertNotContains( 'newsletter_embed', $names );
+		$tone = array_column( $by_name['settings']['sub_fields'], null, 'name' )['tone'];
+		$this->assertSame( 'brand-tint', $tone['default_value'] );
 	}
 
 	// -----------------------------------------------------------------
@@ -107,7 +75,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$this->assertSame( '', $this->render_cta_section( array( 'heading' => '   ' ) ) );
 		$this->assertSame(
 			'',
-			$this->render_cta_section( array( 'buttons' => array( array( 'label' => 'No URL' ) ) ) ),
+			$this->render_cta_section( array( 'buttons' => array( salt_test_button( 'No URL', '' ) ) ) ),
 			'A row whose only content is malformed buttons renders nothing (COMPL02).'
 		);
 	}
@@ -118,11 +86,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 				'heading' => 'Ready to start?',
 				'body'    => 'Tell us about your project.',
 				'buttons' => array(
-					array(
-						'label' => 'Get in touch',
-						'url'   => 'https://example.test/contact/',
-						'style' => 'primary',
-					),
+					salt_test_button( 'Get in touch', 'https://example.test/contact/', 'primary' ),
 				),
 			)
 		);
@@ -140,16 +104,8 @@ final class CallToActionSectionTest extends SaltTestCase {
 			array(
 				'heading' => 'Ready?',
 				'buttons' => array(
-					array(
-						'label' => 'Primary',
-						'url'   => 'https://example.test/a/',
-						'style' => 'primary',
-					),
-					array(
-						'label' => 'Secondary',
-						'url'   => 'https://example.test/b/',
-						'style' => 'secondary',
-					),
+					salt_test_button( 'Primary', 'https://example.test/a/', 'primary' ),
+					salt_test_button( 'Secondary', 'https://example.test/b/', 'secondary' ),
 				),
 			)
 		);
@@ -164,21 +120,11 @@ final class CallToActionSectionTest extends SaltTestCase {
 			array(
 				'heading' => 'Ready?',
 				'buttons' => array(
-					array(
-						'label' => 'Kept',
-						'url'   => 'https://example.test/1/',
-					),
+					salt_test_button( 'Kept', 'https://example.test/1/' ),
 					'not-a-row',
-					array( 'label' => 'No URL' ),
-					array(
-						'label' => 'Also kept',
-						'url'   => 'https://example.test/2/',
-						'style' => 'wobbly',
-					),
-					array(
-						'label' => 'Third — dropped',
-						'url'   => 'https://example.test/3/',
-					),
+					salt_test_button( 'No URL', '' ),
+					salt_test_button( 'Also kept', 'https://example.test/2/', 'wobbly' ),
+					salt_test_button( 'Third — dropped', 'https://example.test/3/' ),
 				),
 			)
 		);
@@ -186,8 +132,8 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$this->assertSame( 2, preg_match_all( '/<a\b/', $html ), 'Max 2 valid buttons render.' );
 		$this->assertStringNotContainsString( 'Third', $html );
 		$logs = implode( ' ', $this->logs() );
-		$this->assertStringContainsString( 'call-to-action section: button 1 is not a row array', $logs );
-		$this->assertStringContainsString( 'call-to-action section: button 2 is missing a label or URL', $logs );
+		$this->assertStringContainsString( 'call-to-action section: button 1 has no label or no address', $logs );
+		$this->assertStringContainsString( 'call-to-action section: button 2 has no label or no address', $logs );
 		$this->assertStringContainsString( 'unknown style "wobbly"', $logs );
 		$this->assertStringContainsString( 'only the first 2 render', $logs );
 	}
@@ -209,8 +155,8 @@ final class CallToActionSectionTest extends SaltTestCase {
 	public function test_editor_chosen_background_wins(): void {
 		$html = $this->render_cta_section(
 			array(
-				'heading' => 'Ready?',
-				'tone'    => 'surface-inverse',
+				'heading'  => 'Ready?',
+				'settings' => array( 'tone' => 'surface-inverse' ),
 			)
 		);
 
@@ -226,18 +172,15 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$html = $this->render_cta_section(
 			array(
 				'heading' => 'Safe <script>alert(1)</script>',
-				'body'    => 'Copy <em>markup</em>',
+				'body'    => '<p>Copy <em>markup</em><script>alert(3)</script></p>',
 				'buttons' => array(
-					array(
-						'label' => 'Go <b>now</b>',
-						'url'   => 'javascript:alert(2)',
-					),
+					salt_test_button( 'Go <b>now</b>', 'javascript:alert(2)' ),
 				),
 			)
 		);
 
 		$this->assertStringNotContainsString( '<script', $html );
-		$this->assertStringNotContainsString( '<em>', $html );
+		$this->assertStringContainsString( '<em>markup</em>', $html, 'The body is rich text: allowed markup is kept.' );
 		$this->assertStringNotContainsString( '<b>', $html );
 		$this->assertStringNotContainsString( 'javascript:', $html );
 	}
@@ -246,10 +189,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$html = $this->render_cta_section(
 			array(
 				'buttons' => array(
-					array(
-						'label' => 'Go',
-						'url'   => 'https://example.test/',
-					),
+					salt_test_button( 'Go', 'https://example.test/' ),
 				),
 			),
 			array(
@@ -279,10 +219,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 			array(
 				'heading' => 'Ready?',
 				'buttons' => array(
-					array(
-						'label' => 'Go',
-						'url'   => 'https://example.test/',
-					),
+					salt_test_button( 'Go', 'https://example.test/' ),
 				),
 			)
 		);
@@ -328,10 +265,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 					'heading' => '  ',
 					'body'    => "\n",
 					'buttons' => array(
-						array(
-							'label' => 'No url',
-							'url'   => '',
-						),
+						salt_test_button( 'No url', '' ),
 					),
 				)
 			)
@@ -344,34 +278,28 @@ final class CallToActionSectionTest extends SaltTestCase {
 				'heading' => ' Ready? ',
 				'body'    => 'Talk to us.',
 				'buttons' => array(
-					array(
-						'label' => 'Go',
-						'url'   => '/go',
-						'style' => 'secondary',
-					),
-					array(
-						'label' => 'Odd',
-						'url'   => '/odd',
-						'style' => 'bogus',
-					),
+					salt_test_button( 'Go', '/go', 'secondary' ),
+					salt_test_button( 'Odd', '/odd', 'bogus' ),
 				),
 			)
 		);
 
-		$this->assertSame( array( 'heading', 'body_text', 'buttons' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( array( 'heading', 'body', 'buttons' ), array_keys( $resolved['props'] ) );
 		$this->assertSame( 'Ready?', $resolved['props']['heading'] );
-		$this->assertSame( 'Talk to us.', $resolved['props']['body_text'] );
+		$this->assertSame( 'Talk to us.', $resolved['props']['body'] );
 		$this->assertSame(
 			array(
 				array(
-					'label' => 'Go',
-					'href'  => '/go',
-					'style' => 'secondary',
+					'label'  => 'Go',
+					'href'   => '/go',
+					'style'  => 'secondary',
+					'newTab' => false,
 				),
 				array(
-					'label' => 'Odd',
-					'href'  => '/odd',
-					'style' => 'primary',
+					'label'  => 'Odd',
+					'href'   => '/odd',
+					'style'  => 'primary',
+					'newTab' => false,
 				),
 			),
 			$resolved['props']['buttons']
@@ -382,16 +310,13 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$resolved = $this->resolve_cta(
 			array(
 				'buttons' => array(
-					array(
-						'label' => 'Go',
-						'url'   => '/go',
-					),
+					salt_test_button( 'Go', '/go' ),
 				),
 			)
 		);
 
 		$this->assertNull( $resolved['props']['heading'] );
-		$this->assertNull( $resolved['props']['body_text'] );
+		$this->assertNull( $resolved['props']['body'] );
 		$this->assertFalse( $resolved['section']['has_heading'] );
 	}
 
@@ -403,8 +328,8 @@ final class CallToActionSectionTest extends SaltTestCase {
 
 		$resolved = $this->resolve_cta(
 			array(
-				'heading' => 'Hi',
-				'tone'    => 'surface-alt',
+				'heading'  => 'Hi',
+				'settings' => array( 'tone' => 'surface-alt' ),
 			)
 		);
 		$this->assertSame( 'surface-alt', $resolved['section']['background'] );
@@ -413,10 +338,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 	public function test_resolver_drops_buttons_beyond_two(): void {
 		$buttons = array();
 		foreach ( array( 'a', 'b', 'c' ) as $key ) {
-			$buttons[] = array(
-				'label' => $key,
-				'url'   => '/' . $key,
-			);
+			$buttons[] = salt_test_button( $key, '/' . $key );
 		}
 		$resolved = $this->resolve_cta( array( 'buttons' => $buttons ) );
 
@@ -430,13 +352,14 @@ final class CallToActionSectionTest extends SaltTestCase {
 			false,
 			array(
 				'props' => array(
-					'heading'   => 'From props',
-					'body_text' => 'Copy <b>x</b>',
-					'buttons'   => array(
+					'heading' => 'From props',
+					'body'    => '<p>Copy <b>x</b></p>',
+					'buttons' => array(
 						array(
-							'label' => 'Press',
-							'href'  => '/pressed',
-							'style' => 'ghost',
+							'label'  => 'Press',
+							'href'   => '/pressed',
+							'style'  => 'ghost',
+							'newTab' => true,
 						),
 					),
 				),
@@ -451,7 +374,8 @@ final class CallToActionSectionTest extends SaltTestCase {
 
 		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
 		$this->assertStringContainsString( 'From props', $html );
-		$this->assertStringContainsString( 'Copy &lt;b&gt;x&lt;/b&gt;', $html );
+		$this->assertStringContainsString( '<p>Copy <b>x</b></p>', $html, 'body arrives sanitised; the view prints it.' );
+		$this->assertStringContainsString( 'target="_blank"', $html );
 		$this->assertStringContainsString( 'href="/pressed"', $html );
 		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
 	}

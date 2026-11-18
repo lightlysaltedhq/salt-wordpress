@@ -49,39 +49,20 @@ final class FeaturesSectionTest extends SaltTestCase {
 	// Layout shape (DATA02 / FLEET07).
 	// -----------------------------------------------------------------
 
-	public function test_layout_file_shape_and_key_conventions(): void {
-		$layout = include dirname( __DIR__, 2 ) . '/inc/fields/layouts/features.php';
+	public function test_layout_is_generated_from_the_contract(): void {
+		$layout = salt_test_layout( 'features' );
 
-		$this->assertSame( 'features', $layout['name'] );
 		$this->assertSame( 'layout_salt_features', $layout['key'] );
+		$this->assertSame( array( 'eyebrow', 'heading', 'intro', 'columns', 'items', 'settings' ), array_column( $layout['sub_fields'], 'name' ) );
 
-		$names = array_map(
-			static fn( array $field ): string => (string) ( $field['name'] ?? '' ),
-			$layout['sub_fields']
-		);
-
-		// Content fields first…
-		$this->assertSame( array( 'eyebrow', 'heading', 'columns', 'items' ), array_slice( array_values( array_filter( $names ) ), 0, 4 ) );
-		// …then the shared §11 wrapper controls last.
-		$this->assertContains( 'spacing', $names );
-		$this->assertGreaterThan( array_search( 'items', $names, true ), array_search( 'spacing', $names, true ) );
-
-		// Repeater sub-field keys follow field_salt_features_items_{name}.
-		$items = null;
-		foreach ( $layout['sub_fields'] as $field ) {
-			if ( 'items' === ( $field['name'] ?? '' ) ) {
-				$items = $field;
-			}
-		}
-		$this->assertNotNull( $items );
+		$items = array_column( $layout['sub_fields'], null, 'name' )['items'];
 		$this->assertSame( 'repeater', $items['type'] );
-		foreach ( $items['sub_fields'] as $sub ) {
-			$this->assertStringStartsWith( 'field_salt_features_items_', (string) $sub['key'] );
-		}
-		$this->assertSame(
-			array( 'icon', 'title', 'text', 'url' ),
-			array_map( static fn( array $sub ): string => (string) $sub['name'], $items['sub_fields'] )
-		);
+		$fields = array_column( $items['sub_fields'], null, 'name' );
+		$this->assertSame( array( 'icon', 'title', 'text', 'url' ), array_keys( $fields ) );
+		$this->assertSame( 'select', $fields['icon']['type'], 'The icon is the site\'s icon select.' );
+		$this->assertContains( 'check', array_keys( $fields['icon']['choices'] ) );
+		$this->assertSame( 'wysiwyg', $fields['text']['type'], 'The text is rich text.' );
+		$this->assertSame( 'text', $fields['url']['type'], 'The url is a plain address.' );
 	}
 
 	// -----------------------------------------------------------------
@@ -132,10 +113,7 @@ final class FeaturesSectionTest extends SaltTestCase {
 						'icon'  => 'check',
 						'title' => 'Fast',
 						'text'  => 'Quick.',
-						'url'   => array(
-							'url'   => 'https://example.test/fast/',
-							'title' => 'Fast',
-						),
+						'url'   => 'https://example.test/fast/',
 					),
 					array(
 						'title' => 'Accessible',
@@ -202,15 +180,15 @@ final class FeaturesSectionTest extends SaltTestCase {
 				'items'   => array(
 					array(
 						'title' => 'Title <em>markup</em>',
-						'text'  => 'Text <script>alert(2)</script>',
-						'url'   => array( 'url' => 'javascript:alert(3)' ),
+						'text'  => '<p>Text <script>alert(2)</script></p>',
+						'url'   => 'javascript:alert(3)',
 					),
 				),
 			)
 		);
 
 		$this->assertStringNotContainsString( '<script', $html );
-		$this->assertStringNotContainsString( '<em>', $html );
+		$this->assertStringNotContainsString( '<em>', $html, 'The title is plain text.' );
 		$this->assertStringNotContainsString( 'javascript:', $html );
 	}
 
@@ -307,8 +285,8 @@ final class FeaturesSectionTest extends SaltTestCase {
 					array(
 						'icon'  => 'star',
 						'title' => ' Fast ',
-						'text'  => ' Really fast. ',
-						'url'   => array( 'url' => '/fast' ),
+						'text'  => '<p>Really <strong>fast</strong>.</p>',
+						'url'   => '/fast',
 					),
 					array( 'title' => 'Bare' ),
 				),
@@ -322,16 +300,16 @@ final class FeaturesSectionTest extends SaltTestCase {
 		$this->assertSame(
 			array(
 				array(
-					'icon'      => 'star',
-					'title'     => 'Fast',
-					'body_text' => 'Really fast.',
-					'href'      => '/fast',
+					'icon'  => 'star',
+					'title' => 'Fast',
+					'text'  => '<p>Really <strong>fast</strong>.</p>',
+					'href'  => '/fast',
 				),
 				array(
-					'icon'      => null,
-					'title'     => 'Bare',
-					'body_text' => null,
-					'href'      => null,
+					'icon'  => null,
+					'title' => 'Bare',
+					'text'  => null,
+					'href'  => null,
 				),
 			),
 			$resolved['props']['items']
@@ -341,10 +319,10 @@ final class FeaturesSectionTest extends SaltTestCase {
 	public function test_resolver_nulls_blank_text_defaults_columns_and_owns_the_wrapper(): void {
 		$resolved = $this->resolve_features(
 			array(
-				'eyebrow' => '  ',
-				'columns' => '7',
-				'spacing' => 'lg',
-				'items'   => array( array( 'title' => 'One' ) ),
+				'eyebrow'  => '  ',
+				'columns'  => '7',
+				'settings' => array( 'spacing' => 'lg' ),
+				'items'    => array( array( 'title' => 'One' ) ),
 			)
 		);
 
@@ -368,10 +346,10 @@ final class FeaturesSectionTest extends SaltTestCase {
 					'columns' => '2',
 					'items'   => array(
 						array(
-							'icon'      => null,
-							'title'     => 'Card title',
-							'body_text' => 'Card copy',
-							'href'      => '/card',
+							'icon'  => null,
+							'title' => 'Card title',
+							'text'  => '<p>Card copy</p>',
+							'href'  => '/card',
 						),
 					),
 				),
@@ -387,7 +365,7 @@ final class FeaturesSectionTest extends SaltTestCase {
 		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
 		$this->assertSame( 1, preg_match_all( '/<h3[\s>]/', $html ), 'Card titles step one level below the heading.' );
 		$this->assertStringContainsString( 'Eyebrow from props', $html );
-		$this->assertStringContainsString( 'Card copy', $html );
+		$this->assertStringContainsString( '<div class="x-card-body x-prose text-ink-muted"><p>Card copy</p></div>', $html, 'Rich text drawn as sanitised HTML.' );
 		$this->assertStringContainsString( 'href="/card"', $html );
 		$this->assertStringContainsString( 'sm:grid-cols-2', $html );
 		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );

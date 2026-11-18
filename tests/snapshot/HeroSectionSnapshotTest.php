@@ -63,19 +63,15 @@ final class HeroSectionSnapshotTest extends SaltSnapshotTestCase {
 			'hero-full-bleed',
 			$this->render_hero(
 				array(
-					'variant'       => 'full-bleed',
-					'eyebrow'       => 'Design studio',
-					'heading'       => 'We build brands that last',
-					'subheading'    => 'Strategy, identity and digital for ambitious SMEs.',
-					'image'         => 41,
-					'cta_primary'   => array(
-						'title' => 'Start a project',
-						'url'   => 'https://example.test/contact/',
+					'variant'    => 'full-bleed',
+					'eyebrow'    => 'Design studio',
+					'heading'    => 'We build brands that last',
+					'subheading' => 'Strategy, identity and digital for ambitious SMEs.',
+					'buttons'    => array(
+						salt_test_button( 'Start a project', 'https://example.test/contact/' ),
+						salt_test_button( 'See our work', 'https://example.test/work/', 'secondary' ),
 					),
-					'cta_secondary' => array(
-						'title' => 'See our work',
-						'url'   => 'https://example.test/work/',
-					),
+					'settings'   => array( 'backgroundImage' => array( 'image' => 41 ) ),
 				)
 			)
 		);
@@ -86,14 +82,11 @@ final class HeroSectionSnapshotTest extends SaltSnapshotTestCase {
 			'hero-split',
 			$this->render_hero(
 				array(
-					'variant'     => 'split',
-					'heading'     => 'A partner, not a supplier',
-					'subheading'  => 'We work alongside your team.',
-					'image'       => 41,
-					'cta_primary' => array(
-						'title' => 'Get in touch',
-						'url'   => 'https://example.test/contact/',
-					),
+					'variant'    => 'split',
+					'heading'    => 'A partner, not a supplier',
+					'subheading' => 'We work alongside your team.',
+					'image'      => 41,
+					'buttons'    => array( salt_test_button( 'Get in touch', 'https://example.test/contact/' ) ),
 				)
 			)
 		);

@@ -78,11 +78,7 @@ final class MediaTextSectionSnapshotTest extends SaltSnapshotTestCase {
 							'heading'   => 'Inside the studio',
 							'content'   => '<p>Where the work happens, <strong>every day</strong>.</p>',
 							'mediaSide' => 'right',
-							'cta'       => array(
-								'url'    => 'https://example.test/about/',
-								'title'  => 'About us',
-								'target' => '',
-							),
+							'buttons'   => array( salt_test_button( 'About us', 'https://example.test/about/', 'secondary' ) ),
 						),
 					),
 				)

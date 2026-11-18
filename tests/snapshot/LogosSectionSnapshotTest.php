@@ -107,8 +107,10 @@ final class LogosSectionSnapshotTest extends SaltSnapshotTestCase {
 							'name'  => 'Acme Co',
 						),
 					),
-					'tone'      => 'surface-alt',
-					'spacing'   => 'sm',
+					'settings'  => array(
+						'tone'    => 'surface-alt',
+						'spacing' => 'sm',
+					),
 				)
 			)
 		);
