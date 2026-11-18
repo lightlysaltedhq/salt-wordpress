@@ -3,7 +3,8 @@ import globals from 'globals';
 
 export default [
 	{
-		ignores: [ 'assets/dist/**', 'vendor/**', 'node_modules/**' ],
+		// tests/real-acf installs its own WordPress (and, in CI, ACF Pro) under vendor trees.
+		ignores: [ 'assets/dist/**', 'vendor/**', 'node_modules/**', 'tests/real-acf/vendor/**', 'tests/real-acf/acf-composer/**' ],
 	},
 	js.configs.recommended,
 	{
@@ -25,11 +26,19 @@ export default [
 		},
 	},
 	{
-		files: [ 'bin/**/*.mjs', 'eslint.config.js' ],
+		files: [ 'bin/**/*.mjs', 'tests/real-acf/*.mjs', 'eslint.config.js' ],
 		languageOptions: {
 			ecmaVersion: 2023,
 			sourceType: 'module',
 			globals: { ...globals.node },
+		},
+	},
+	{
+		// The harness's Playwright script also passes functions to page.evaluate(), which run
+		// in the browser.
+		files: [ 'tests/real-acf/browser.mjs' ],
+		languageOptions: {
+			globals: { ...globals.browser },
 		},
 	},
 ];
