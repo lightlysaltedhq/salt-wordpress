@@ -384,4 +384,52 @@ final class SanitizationTest extends SaltTestCase {
 		$this->assertStringContainsString( 'h2', $other['valid_elements'], 'Other editors start from the superset.' );
 		$this->assertArrayNotHasKey( 'toolbar1', $other );
 	}
+
+	// -----------------------------------------------------------------------
+	// 8. The service intro: drawn and stored to its list (founder's ruling).
+	// -----------------------------------------------------------------------
+
+	public function test_the_service_intro_is_drawn_with_paragraphs_and_its_list_alone(): void {
+		$html = salt_service_intro_html( "One <strong>bold</strong> line.\n\n<h3>Head</h3> <img src=\"x.jpg\"> [gallery ids=\"1\"]\n\nhttps://www.youtube.com/watch?v=abc" );
+
+		$this->assertStringContainsString( '<p>One <strong>bold</strong> line.</p>', $html );
+		$this->assertStringNotContainsString( '<h3', $html, 'No heading in the intro\'s list.' );
+		$this->assertStringNotContainsString( '<img', $html );
+		$this->assertStringContainsString( '[gallery ids="1"]', $html, 'No shortcode runs.' );
+		$this->assertStringContainsString( '<p>https://www.youtube.com/watch?v=abc</p>', $html, 'No oEmbed: the address stays text.' );
+	}
+
+	public function test_a_service_body_is_stored_sanitised_to_the_intro_list(): void {
+		$service = salt_service_intro_on_save(
+			array(
+				'post_type'    => 'service',
+				'post_content' => wp_slash( '<h2>Big</h2><p class="x">It\'s <em>here</em>.</p><img src="x.jpg">' ),
+			)
+		);
+		$page    = salt_service_intro_on_save(
+			array(
+				'post_type'    => 'page',
+				'post_content' => '<h2>Big</h2>',
+			)
+		);
+
+		$this->assertSame( wp_slash( 'Big<p>It\'s <em>here</em>.</p>' ), $service['post_content'], 'Stored as it shows, still slashed for wp_insert_post().' );
+		$this->assertSame( '<h2>Big</h2>', $page['post_content'], 'Other post types untouched.' );
+	}
+
+	public function test_the_service_editor_offers_no_media_and_only_its_list(): void {
+		$GLOBALS['typenow'] = 'service';
+		try {
+			$service = salt_service_editor_settings( array( 'media_buttons' => true ), 'content' );
+			$other   = salt_service_editor_settings( array( 'media_buttons' => true ), 'acf-editor-1' );
+		} finally {
+			unset( $GLOBALS['typenow'] );
+		}
+		$page = salt_service_editor_settings( array( 'media_buttons' => true ), 'content' );
+
+		$this->assertFalse( $service['media_buttons'] );
+		$this->assertSame( array( 'buttons' => 'strong,em,link,ul,ol,li' ), $service['quicktags'] );
+		$this->assertTrue( $other['media_buttons'] );
+		$this->assertTrue( $page['media_buttons'] );
+	}
 }

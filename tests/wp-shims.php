@@ -947,6 +947,39 @@ if ( ! function_exists( 'wp_unslash' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_slash' ) ) {
+	/**
+	 * wp_slash shim.
+	 *
+	 * @param mixed $value Value.
+	 * @return mixed
+	 */
+	function wp_slash( $value ) {
+		return is_array( $value ) ? array_map( 'wp_slash', $value ) : ( is_string( $value ) ? addslashes( $value ) : $value );
+	}
+}
+
+if ( ! function_exists( 'wpautop' ) ) {
+	/**
+	 * wpautop shim: blank-line-separated blocks become paragraphs, and a
+	 * single line break inside one becomes <br />. Enough for the theme's
+	 * own text; the real filter is proved in the real ACF harness.
+	 *
+	 * @param string $text Text.
+	 * @return string
+	 */
+	function wpautop( string $text ): string {
+		$blocks = preg_split( '/\n\s*\n/', trim( str_replace( "\r\n", "\n", $text ) ) );
+		$out    = '';
+		foreach ( (array) $blocks as $block ) {
+			if ( '' !== trim( (string) $block ) ) {
+				$out .= '<p>' . str_replace( "\n", "<br />\n", trim( (string) $block ) ) . "</p>\n";
+			}
+		}
+		return $out;
+	}
+}
+
 if ( ! function_exists( 'admin_url' ) ) {
 	/**
 	 * admin_url shim.

@@ -6,7 +6,9 @@
  *
  * Reads salt-contract's service (collections/services.json): the title,
  * topics (the service_category terms), summary (the excerpt), intro (the
- * body) and featuredImage (the featured image) from WordPress, and icon,
+ * body, drawn by salt_service_intro_html(): paragraphs added and its
+ * contract list kept, with no shortcodes, embeds or other the_content
+ * filters) and featuredImage (the featured image) from WordPress, and icon,
  * benefits, priceFrom, relatedServices and cta from the generated group.
  *
  * @package Salt
@@ -139,10 +141,7 @@ while ( have_posts() ) {
 	if ( '' !== trim( (string) get_post_field( 'post_content', $salt_service_id ) ) ) {
 		echo '<div class="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
 		echo '<div class="x-prose">';
-		// The intro allows only its contract list (SALT_SERVICE_INTRO_ALLOWED).
-		ob_start();
-		the_content();
-		echo salt_sanitize_html( (string) ob_get_clean(), SALT_SERVICE_INTRO_ALLOWED ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised to the intro's contract list.
+		echo salt_service_intro_html( (string) get_post_field( 'post_content', $salt_service_id, 'raw' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised to the intro's contract list.
 		echo '</div>';
 		echo '</div>';
 	}

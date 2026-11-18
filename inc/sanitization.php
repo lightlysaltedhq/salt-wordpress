@@ -134,6 +134,80 @@ function salt_sanitize_html( string $html, ?array $allowed = null ): string {
 const SALT_SERVICE_INTRO_ALLOWED = array( 'paragraph', 'bold', 'italic', 'link', 'unordered-list', 'ordered-list' );
 
 /**
+ * The service intro as drawn: the stored body with paragraphs added
+ * (wpautop()) and sanitised to the intro's contract list. No shortcode,
+ * oEmbed or other the_content filter runs, so the page shows only what the
+ * list allows (the founder's ruling on PR #26); media on a service page
+ * would need a contract change.
+ *
+ * @param string $body The post's stored body.
+ * @return string HTML.
+ */
+function salt_service_intro_html( string $body ): string {
+	return salt_sanitize_html( wpautop( $body ), SALT_SERVICE_INTRO_ALLOWED );
+}
+
+/**
+ * Store a service's body sanitised to the intro's list, so what is stored
+ * is what shows ('wp_insert_post_data').
+ *
+ * @param array<string,mixed> $data Slashed post data about to be stored.
+ * @return array<string,mixed>
+ */
+function salt_service_intro_on_save( array $data ): array {
+	if ( 'service' === ( $data['post_type'] ?? '' ) && is_string( $data['post_content'] ?? null ) ) {
+		$data['post_content'] = wp_slash( salt_sanitize_html( wp_unslash( $data['post_content'] ), SALT_SERVICE_INTRO_ALLOWED ) );
+	}
+	return $data;
+}
+add_filter( 'wp_insert_post_data', 'salt_service_intro_on_save' );
+
+/**
+ * The Text tab's buttons for a list: only tags the list allows.
+ *
+ * @param string[] $allowed Contract element kinds.
+ * @return string Comma-separated quicktags button ids.
+ */
+function salt_quicktags_for( array $allowed ): string {
+	$buttons = array(
+		'strong' => 'bold',
+		'em'     => 'italic',
+		'link'   => 'link',
+		'block'  => 'blockquote',
+		'ul'     => 'unordered-list',
+		'ol'     => 'ordered-list',
+		'li'     => array( 'unordered-list', 'ordered-list' ),
+		'code'   => 'code',
+	);
+	$offered = array();
+	foreach ( $buttons as $button => $kinds ) {
+		if ( array() !== array_intersect( (array) $kinds, $allowed ) ) {
+			$offered[] = $button;
+		}
+	}
+	return implode( ',', $offered );
+}
+
+/**
+ * The service's own editor offers only what its intro shows: no Add Media
+ * button, and Text tab buttons for the list alone ('wp_editor_settings').
+ * The Visual tab's toolbar and formats are narrowed in
+ * salt_tinymce_config().
+ *
+ * @param array<string,mixed> $settings  wp_editor() settings.
+ * @param string              $editor_id The editor's id.
+ * @return array<string,mixed>
+ */
+function salt_service_editor_settings( array $settings, string $editor_id ): array {
+	if ( 'content' !== $editor_id || 'service' !== ( $GLOBALS['typenow'] ?? '' ) ) {
+		return $settings;
+	}
+	$settings['media_buttons'] = false;
+	$settings['quicktags']     = array( 'buttons' => salt_quicktags_for( SALT_SERVICE_INTRO_ALLOWED ) );
+	return $settings;
+}
+
+/**
  * TinyMCE valid_elements string derived from salt_allowed_html().
  *
  * Built programmatically by iterating the allow-list array so the editor
@@ -323,6 +397,7 @@ function salt_mce_buttons_2(): array {
  */
 function salt_configure_editor(): void {
 	add_filter( 'tiny_mce_before_init', 'salt_tinymce_config', 10, 2 );
+	add_filter( 'wp_editor_settings', 'salt_service_editor_settings', 10, 2 );
 	add_filter( 'acf/prepare_field/type=wysiwyg', 'salt_wysiwyg_field_editor' );
 	add_action( 'acf/input/admin_enqueue_scripts', 'salt_rich_text_editor_enqueue' );
 	add_filter( 'mce_buttons', 'salt_mce_buttons' );
