@@ -1,0 +1,1227 @@
+{
+  "format": "salt-conformance/1",
+  "contract": {
+    "package": "@lightlysaltedhq/salt-contract",
+    "version": "1.0.0-rc.6"
+  },
+  "platform": "wordpress",
+  "implementation": {
+    "version": "5.0.0"
+  },
+  "adapter": {
+    "kind": "command",
+    "target": "php tests/contract-adapter/adapter.php"
+  },
+  "ok": false,
+  "partial": true,
+  "problems": [],
+  "summary": {
+    "pass": 0,
+    "fail": 15,
+    "incomplete": 0,
+    "notShipped": 2,
+    "files": {
+      "pass": 0,
+      "fail": 9,
+      "notShipped": 0
+    }
+  },
+  "fields": null,
+  "stylesheets": null,
+  "sections": [
+    {
+      "id": "hero",
+      "status": "fail",
+      "fixtures": {
+        "total": 10,
+        "passed": 1,
+        "failed": 9,
+        "failures": [
+          {
+            "case": "full-bleed-background-inverse",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "welcome__heading",
+            "found": null
+          },
+          {
+            "case": "full-bleed-background-no-focal-point",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "garden-tour__heading",
+            "found": null
+          },
+          {
+            "case": "full-bleed-no-background",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "hero-plain__heading",
+            "found": null
+          },
+          {
+            "case": "minimal-centre-inverse-dark-alt",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "about__heading",
+            "found": null
+          },
+          {
+            "case": "minimal-left-brand-tint-collapsed",
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "div.salt-section",
+            "expected": "<div class=\"salt-section\" data-collapse-top data-spacing=\"md\" data-tone=\"brand-tint\" data-tone-dark=\"brand-tint\" data-track=\"hero-2\" data-width=\"default\" id=\"intro\" style=\"--salt-section-space:var(--s…",
+            "found": null
+          },
+          {
+            "case": "split-image-left",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "hero-split__heading",
+            "found": null
+          },
+          {
+            "case": "split-image-right-later",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "aftercare__heading",
+            "found": null
+          },
+          {
+            "case": "split-no-image-new-tab",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "guide__heading",
+            "found": null
+          },
+          {
+            "case": "stacked-image-divider",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "clifton__heading",
+            "found": null
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "rich-text",
+      "status": "fail",
+      "fixtures": {
+        "total": 5,
+        "passed": 1,
+        "failed": 4,
+        "failures": [
+          {
+            "case": "body-only-first-on-page",
+            "kind": "mismatch",
+            "difference": "element",
+            "path": "div.salt-section",
+            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"rich-text-1\" data-width=\"default\" id=\"approach-first\" style=\"--salt-section-space:var(--space-secti…",
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-rich-text text-ink x-section\" data-section=\"rich-text\">"
+          },
+          {
+            "case": "body-only-no-heading",
+            "kind": "mismatch",
+            "difference": "element",
+            "path": "div.salt-section",
+            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"rich-text-1\" data-width=\"default\" id=\"approach\" style=\"--salt-section-space:var(--space-section-md)…",
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-rich-text text-ink x-section\" data-section=\"rich-text\">"
+          },
+          {
+            "case": "centre-inverse",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "small-team__heading",
+            "found": null
+          },
+          {
+            "case": "left-eyebrow-heading-body",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "how-we-work__heading",
+            "found": null
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "call-to-action",
+      "status": "fail",
+      "fixtures": {
+        "total": 4,
+        "passed": 1,
+        "failed": 3,
+        "failures": [
+          {
+            "case": "body-and-button-no-heading",
+            "kind": "mismatch",
+            "difference": "element",
+            "path": "div.salt-section",
+            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"brand-tint\" data-tone-dark=\"surface-inverse\" data-track=\"call-to-action-3\" data-width=\"full\" id=\"calendar\" style=\"--salt-section-space:var(--spac…",
+            "found": "<section class=\"bg-brand-tint md:py-20 py-14 section-call-to-action text-ink x-section\" data-section=\"call-to-action\">"
+          },
+          {
+            "case": "heading-body-two-buttons",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "book__heading",
+            "found": null
+          },
+          {
+            "case": "heading-only-inverse",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "spring__heading",
+            "found": null
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "media-text",
+      "status": "fail",
+      "fixtures": {
+        "total": 4,
+        "passed": 1,
+        "failed": 3,
+        "failures": [
+          {
+            "case": "alternating-inverse",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "process-rows__heading",
+            "found": null
+          },
+          {
+            "case": "single-many-rows",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "services-rows__heading",
+            "found": null
+          },
+          {
+            "case": "single-one-row-first",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "planting__heading",
+            "found": null
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "features",
+      "status": "fail",
+      "fixtures": {
+        "total": 4,
+        "passed": 1,
+        "failed": 3,
+        "failures": [
+          {
+            "case": "four-columns-inverse",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "features-four__heading",
+            "found": null
+          },
+          {
+            "case": "many-items-linked",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "features-many__heading",
+            "found": null
+          },
+          {
+            "case": "one-item",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "features-one__heading",
+            "found": null
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "stats",
+      "status": "fail",
+      "fixtures": {
+        "total": 3,
+        "passed": 1,
+        "failed": 2,
+        "failures": [
+          {
+            "case": "many-with-icons",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "stats-many__heading",
+            "found": null
+          },
+          {
+            "case": "one-stat-inverse",
+            "kind": "mismatch",
+            "difference": "element",
+            "path": "div.salt-section",
+            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"stats-1\" data-width=\"default\" id=\"stats-one\" style=\"--salt-section-space:var(--spac…",
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-stats text-ink x-section\" data-section=\"stats\">"
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "logos",
+      "status": "fail",
+      "fixtures": {
+        "total": 3,
+        "passed": 1,
+        "failed": 2,
+        "failures": [
+          {
+            "case": "many-linked-greyscale",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "logos-many__heading",
+            "found": null
+          },
+          {
+            "case": "one-unlinked-colour-inverse",
+            "kind": "mismatch",
+            "difference": "element",
+            "path": "div.salt-section",
+            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"logos-1\" data-width=\"default\" id=\"logos-one\" style=\"--salt-section-space:var(--spac…",
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-logos text-ink x-section\" data-section=\"logos\">"
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "gallery",
+      "status": "fail",
+      "fixtures": {
+        "total": 6,
+        "passed": 1,
+        "failed": 5,
+        "failures": [
+          {
+            "case": "carousel-with-heading",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "gallery-slides__heading",
+            "found": null
+          },
+          {
+            "case": "carousel-with-label",
+            "kind": "mismatch",
+            "difference": "element",
+            "path": "div.salt-section",
+            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"gallery-3\" data-width=\"default\" id=\"gallery-label\" style=\"--salt-section-space:var(--space-section-…",
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-gallery text-ink x-section\" data-section=\"gallery\">"
+          },
+          {
+            "case": "grid-captions-first",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "gallery-grid__heading",
+            "found": null
+          },
+          {
+            "case": "masonry-captions-off",
+            "kind": "mismatch",
+            "difference": "element",
+            "path": "div.salt-section",
+            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"gallery-1\" data-width=\"default\" id=\"gallery-masonry\" style=\"--salt-section-space:va…",
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-gallery text-ink x-section\" data-section=\"gallery\">"
+          },
+          {
+            "case": "one-image",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "gallery-one__heading",
+            "found": null
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "process",
+      "status": "fail",
+      "fixtures": {
+        "total": 4,
+        "passed": 1,
+        "failed": 3,
+        "failures": [
+          {
+            "case": "cards-inverse",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "process-cards__heading",
+            "found": null
+          },
+          {
+            "case": "one-step",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "process-one__heading",
+            "found": null
+          },
+          {
+            "case": "timeline-many",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "process-timeline__heading",
+            "found": null
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "faq",
+      "status": "fail",
+      "fixtures": {
+        "total": 3,
+        "passed": 1,
+        "failed": 2,
+        "failures": [
+          {
+            "case": "many",
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "section.salt-section",
+            "expected": "<section aria-labelledby=\"faq-help__heading\" class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"faq-1\" data-width=\"default\" id=\"faq-help\" style=\"--salt-sec…",
+            "found": null
+          },
+          {
+            "case": "one-inverse",
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "section.salt-section",
+            "expected": "<section aria-labelledby=\"faq-one__heading\" class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"faq-1\" data-width=\"default\" id=\"faq-one\" sty…",
+            "found": null
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "tabs",
+      "status": "not shipped"
+    },
+    {
+      "id": "collection-showcase",
+      "status": "fail",
+      "fixtures": {
+        "total": 8,
+        "passed": 1,
+        "failed": 7,
+        "failures": [
+          {
+            "case": "accordion-testimonials",
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "section.salt-section",
+            "expected": "<section aria-labelledby=\"kind-words__heading\" class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"collection-showcase-4\" data-width=\"defaul…",
+            "found": null
+          },
+          {
+            "case": "featured-case-studies",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "recent-work__heading",
+            "found": null
+          },
+          {
+            "case": "grid-services-first",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "services-grid__heading",
+            "found": null
+          },
+          {
+            "case": "grid-team-contacts",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "the-team__heading",
+            "found": null
+          },
+          {
+            "case": "index-posts-grouped",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "journal-index__heading",
+            "found": null
+          },
+          {
+            "case": "index-posts-ungrouped",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "journal-all__heading",
+            "found": null
+          },
+          {
+            "case": "list-posts-dated",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "latest-posts__heading",
+            "found": null
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "carousel",
+      "status": "fail",
+      "fixtures": {
+        "total": 6,
+        "passed": 1,
+        "failed": 5,
+        "failures": [
+          {
+            "case": "inline-generic-heading",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "recent-gardens__heading",
+            "found": null
+          },
+          {
+            "case": "inline-no-name-list",
+            "kind": "mismatch",
+            "difference": "element",
+            "path": "div.salt-section",
+            "expected": "<div class=\"salt-section\" data-spacing=\"none\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"carousel-3\" data-width=\"narrow\" id=\"two-steps\">",
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-scroll-carousel text-ink x-section\" data-section=\"scroll-carousel\">"
+          },
+          {
+            "case": "inline-one-card",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "our-base__heading",
+            "found": null
+          },
+          {
+            "case": "inline-quote-label-inverse",
+            "kind": "mismatch",
+            "difference": "element",
+            "path": "div.salt-section",
+            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"carousel-2\" data-width=\"default\" id=\"client-quotes\" style=\"--salt-section-space:var…",
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-scroll-carousel text-ink x-section\" data-section=\"scroll-carousel\">"
+          },
+          {
+            "case": "testimonials-source",
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "section.salt-section",
+            "expected": "<section aria-labelledby=\"kind-words-carousel__heading\" class=\"salt-section\" data-spacing=\"md\" data-tone=\"brand-tint\" data-tone-dark=\"brand-tint\" data-track=\"carousel-5\" data-width=\"default\" id=\"kind-…",
+            "found": null
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "listing",
+      "status": "not shipped"
+    },
+    {
+      "id": "contact",
+      "status": "fail",
+      "fixtures": {
+        "total": 5,
+        "passed": 0,
+        "failed": 5,
+        "failures": [
+          {
+            "case": "closed-details-hidden-inverse",
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "div.salt-section",
+            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"contact-1\" data-width=\"default\" id=\"contact-closed\" style=\"--salt-section-space:var…",
+            "found": null
+          },
+          {
+            "case": "closed-with-details",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "contact__heading",
+            "found": null
+          },
+          {
+            "case": "form-invalid",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "enquire__heading",
+            "found": null
+          },
+          {
+            "case": "form-open",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "enquire__heading",
+            "found": null
+          },
+          {
+            "case": "form-sent",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "enquire__heading",
+            "found": null
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "locations",
+      "status": "fail",
+      "fixtures": {
+        "total": 3,
+        "passed": 1,
+        "failed": 2,
+        "failures": [
+          {
+            "case": "many-offices-map-inverse",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "offices__heading",
+            "found": null
+          },
+          {
+            "case": "one-office-open",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "find-us__heading",
+            "found": null
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    },
+    {
+      "id": "pricing",
+      "status": "fail",
+      "fixtures": {
+        "total": 3,
+        "passed": 1,
+        "failed": 2,
+        "failures": [
+          {
+            "case": "one-plan-inverse",
+            "kind": "mismatch",
+            "difference": "element",
+            "path": "div.salt-section",
+            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"pricing-1\" data-width=\"default\" id=\"pricing-one\" style=\"--salt-section-space:var(--…",
+            "found": "<section class=\"bg-surface md:py-20 py-14 section-pricing text-ink x-section\" data-section=\"pricing\">"
+          },
+          {
+            "case": "three-plans-featured",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "pricing-three__heading",
+            "found": null
+          }
+        ]
+      },
+      "fields": {
+        "status": "not run",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "stylesheets": {
+        "status": "not run"
+      }
+    }
+  ],
+  "files": [
+    {
+      "id": "site-header",
+      "kind": "chrome",
+      "status": "fail",
+      "fixtures": {
+        "total": 6,
+        "passed": 0,
+        "failed": 6,
+        "failures": [
+          {
+            "case": "drawer-open",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "header.salt-header",
+            "name": "class",
+            "expected": "salt-header",
+            "found": "bg-surface border-b border-border x-header"
+          },
+          {
+            "case": "light-and-dark-logo",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "header.salt-header",
+            "name": "class",
+            "expected": "salt-header",
+            "found": "bg-surface border-b border-border x-header"
+          },
+          {
+            "case": "menu-submenus-phone-cta-sticky",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "header.salt-header",
+            "name": "class",
+            "expected": "salt-header",
+            "found": "bg-surface border-b border-border is-sticky x-header"
+          },
+          {
+            "case": "theme-toggle-button",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "header.salt-header",
+            "name": "class",
+            "expected": "salt-header",
+            "found": "bg-surface border-b border-border x-header"
+          },
+          {
+            "case": "theme-toggle",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "header.salt-header",
+            "name": "class",
+            "expected": "salt-header",
+            "found": "bg-surface border-b border-border x-header"
+          },
+          {
+            "case": "wordmark-only",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "header.salt-header",
+            "name": "class",
+            "expected": "salt-header",
+            "found": "bg-surface border-b border-border x-header"
+          }
+        ]
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      }
+    },
+    {
+      "id": "site-footer",
+      "kind": "chrome",
+      "status": "fail",
+      "fixtures": {
+        "total": 5,
+        "passed": 0,
+        "failed": 5,
+        "failures": [
+          {
+            "case": "columns-socials-copyright",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "footer.salt-footer",
+            "name": "class",
+            "expected": "salt-footer",
+            "found": "bg-surface-alt border-border border-t x-footer"
+          },
+          {
+            "case": "consent-panel-open",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "footer.salt-footer",
+            "name": "class",
+            "expected": "salt-footer",
+            "found": "bg-surface-alt border-border border-t x-footer"
+          },
+          {
+            "case": "display-preferences",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "footer.salt-footer",
+            "name": "class",
+            "expected": "salt-footer",
+            "found": "bg-surface-alt border-border border-t x-footer"
+          },
+          {
+            "case": "single-flat-menu-inverse",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "footer.salt-footer",
+            "name": "class",
+            "expected": "salt-footer",
+            "found": "bg-surface-alt border-border border-t x-footer"
+          },
+          {
+            "case": "theme-toggle-button",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "footer.salt-footer",
+            "name": "class",
+            "expected": "salt-footer",
+            "found": "bg-surface-alt border-border border-t x-footer"
+          }
+        ]
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      }
+    },
+    {
+      "id": "page",
+      "kind": "page",
+      "status": "fail",
+      "fixtures": {
+        "total": 4,
+        "passed": 0,
+        "failed": 4,
+        "failures": [
+          {
+            "case": "fallback-heading",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "header-section-footer",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "hero-minimal-centre",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "hero-split-image",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          }
+        ]
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      }
+    },
+    {
+      "id": "post",
+      "kind": "view",
+      "status": "fail",
+      "fixtures": {
+        "total": 2,
+        "passed": 0,
+        "failed": 2,
+        "failures": [
+          {
+            "case": "full",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "minimal",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          }
+        ]
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      }
+    },
+    {
+      "id": "service",
+      "kind": "view",
+      "status": "fail",
+      "fixtures": {
+        "total": 2,
+        "passed": 0,
+        "failed": 2,
+        "failures": [
+          {
+            "case": "full",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view service is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "minimal",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view service is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          }
+        ]
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      }
+    },
+    {
+      "id": "case-study",
+      "kind": "view",
+      "status": "fail",
+      "fixtures": {
+        "total": 4,
+        "passed": 0,
+        "failed": 4,
+        "failures": [
+          {
+            "case": "aside",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "band",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "full",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "minimal",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          }
+        ]
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      }
+    },
+    {
+      "id": "archive",
+      "kind": "view",
+      "status": "fail",
+      "fixtures": {
+        "total": 2,
+        "passed": 0,
+        "failed": 2,
+        "failures": [
+          {
+            "case": "author",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view archive is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "topic",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view archive is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          }
+        ]
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      }
+    },
+    {
+      "id": "search",
+      "kind": "view",
+      "status": "fail",
+      "fixtures": {
+        "total": 3,
+        "passed": 0,
+        "failed": 3,
+        "failures": [
+          {
+            "case": "no-query",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "no-results",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "results",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          }
+        ]
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      }
+    },
+    {
+      "id": "not-found",
+      "kind": "view",
+      "status": "fail",
+      "fixtures": {
+        "total": 2,
+        "passed": 0,
+        "failed": 2,
+        "failures": [
+          {
+            "case": "minimal",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view not-found is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          },
+          {
+            "case": "with-search",
+            "kind": "adapter",
+            "error": "the adapter exited 4",
+            "stderr": "salt adapter: the view not-found is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+          }
+        ]
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      }
+    }
+  ]
+}
