@@ -248,3 +248,68 @@ function salt_query_controls_from_row(): array {
 		'count'          => (int) $count,
 	);
 }
+
+/**
+ * Read the contract's collection-query group of the CURRENT Flexible
+ * Content row (contract field type `collection-query`: mode, categories,
+ * items, order, count) into a salt_resolve_query() controls array — the
+ * one reader every section built on the contract's query uses (faq and
+ * locations today).
+ *
+ *   mode automatic   => the source's defaults (salt_query_default_args());
+ *   mode by-category => the categories (term IDs) as a taxonomy filter;
+ *   mode manual      => the items, in the order picked; order and count
+ *                       are hidden for it, so they are not read;
+ *   order default|newest|title => the source's order | date DESC | title ASC;
+ *   count 0 => the source's default; capped at the contract's 24.
+ *
+ * Unknown values fall back to automatic / default, logged.
+ *
+ * @param string $field The query group's name (the contract's is `query`).
+ * @return array<string,mixed>
+ */
+function salt_query_controls_from_query( string $field = 'query' ): array {
+	$query = function_exists( 'get_sub_field' ) ? get_sub_field( $field ) : null;
+	$query = is_array( $query ) ? $query : array();
+
+	$mode = is_string( $query['mode'] ?? null ) && '' !== $query['mode'] ? $query['mode'] : 'automatic';
+	if ( ! in_array( $mode, array( 'automatic', 'by-category', 'manual' ), true ) ) {
+		salt_log( sprintf( 'collection query: unknown mode "%s" — using automatic.', $mode ) );
+		$mode = 'automatic';
+	}
+
+	$ids = static fn( $values ): array => array_values(
+		array_filter(
+			array_map(
+				static fn( $item ): int => $item instanceof WP_Post ? (int) $item->ID : ( is_object( $item ) && isset( $item->term_id ) ? (int) $item->term_id : (int) $item ),
+				is_array( $values ) ? $values : array()
+			)
+		)
+	);
+
+	if ( 'manual' === $mode ) {
+		return array(
+			'source' => 'manual',
+			'manual' => $ids( $query['items'] ?? null ),
+		);
+	}
+
+	$order = is_string( $query['order'] ?? null ) && '' !== $query['order'] ? $query['order'] : 'default';
+	$by    = array(
+		'default' => array( '', '' ),
+		'newest'  => array( 'date', 'DESC' ),
+		'title'   => array( 'title', 'ASC' ),
+	);
+	if ( ! isset( $by[ $order ] ) ) {
+		salt_log( sprintf( 'collection query: unknown order "%s" — using default.', $order ) );
+		$order = 'default';
+	}
+
+	return array(
+		'source'         => 'by-category' === $mode ? 'taxonomy' : 'default',
+		'taxonomy_terms' => 'by-category' === $mode ? $ids( $query['categories'] ?? null ) : array(),
+		'orderby'        => $by[ $order ][0],
+		'order'          => $by[ $order ][1],
+		'count'          => min( 24, max( 0, (int) ( $query['count'] ?? 0 ) ) ),
+	);
+}
