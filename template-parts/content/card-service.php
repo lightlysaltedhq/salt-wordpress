@@ -14,16 +14,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $salt_service_id = (int) get_the_ID();
 
-$salt_summary = get_field( 'summary', $salt_service_id );
-$salt_icon    = get_field( 'icon', $salt_service_id );
+$salt_icon = get_field( 'icon', $salt_service_id );
 
 salt_component(
 	'card-service',
 	array(
-		'title'   => (string) get_the_title(),
-		'url'     => (string) get_the_permalink( $salt_service_id ),
-		'summary' => is_string( $salt_summary ) ? $salt_summary : '',
-		'icon'    => is_string( $salt_icon ) ? $salt_icon : '',
-		'level'   => 2,
+		'title'    => (string) get_the_title(),
+		'url'      => (string) get_the_permalink( $salt_service_id ),
+		'summary'  => salt_post_summary( $salt_service_id ),
+		'icon'     => is_string( $salt_icon ) ? $salt_icon : '',
+		'image_id' => (int) get_post_thumbnail_id( $salt_service_id ),
+		'level'    => 2,
 	)
 );

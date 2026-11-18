@@ -3,15 +3,18 @@
  * CPT: Work / Case Studies (spec Appendix A.4) — public portfolio content.
  *
  * Public posture: single views + a /work/ archive (has_archive true), with
- * the work_type and industry taxonomies for filtering (§10a query controls
- * filter by work_type — salt_query_taxonomy()).
+ * the work_type taxonomy (the contract's topics) for filtering (§10a query
+ * controls filter by work_type — salt_query_taxonomy()). A case study is
+ * fixed fields (salt-contract collections/case-studies.json): no page body,
+ * so no editor; the summary is the excerpt and featuredImage the thumbnail.
+ * The industry taxonomy was dropped from the contract and is not registered.
  *
  * DATA01 (migration parity): 'case_study' is a FIELD-SHAPE parity alias
  * ONLY — no second CPT is registered here or anywhere. The live theme's
  * case_study posts are converted by the one-shot WP-CLI importer (a later,
  * deliberately-out-of-this-build task) which rewrites post_type
  * case_study→work, remaps taxonomy terms and relationship IDs, and maps
- * field keys onto the group_salt_work names below. Do not improvise
+ * field keys onto the generated case-study group's names. Do not improvise
  * per-site conversions.
  *
  * @package Salt
@@ -22,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Register the work post type + work_type / industry taxonomies (module-gated).
+ * Register the work post type + work_type taxonomy (module-gated).
  *
  * @return void
  */
@@ -57,7 +60,7 @@ function salt_register_cpt_work(): void {
 				'slug'       => 'work',
 				'with_front' => false,
 			),
-			'supports'            => array( 'title', 'editor', 'thumbnail', 'excerpt' ),
+			'supports'            => array( 'title', 'thumbnail', 'excerpt' ),
 			'menu_icon'           => 'dashicons-portfolio',
 			'menu_position'       => 22,
 		)
@@ -82,30 +85,6 @@ function salt_register_cpt_work(): void {
 			'show_admin_column' => true,
 			'rewrite'           => array(
 				'slug'       => 'work-type',
-				'with_front' => false,
-			),
-		)
-	);
-
-	register_taxonomy(
-		'industry',
-		'work',
-		array(
-			'labels'            => array(
-				'name'          => __( 'Industries', 'salt' ),
-				'singular_name' => __( 'Industry', 'salt' ),
-				'search_items'  => __( 'Search industries', 'salt' ),
-				'edit_item'     => __( 'Edit industry', 'salt' ),
-				'add_new_item'  => __( 'Add new industry', 'salt' ),
-				'menu_name'     => __( 'Industries', 'salt' ),
-			),
-			'hierarchical'      => true,
-			'public'            => true,
-			'show_ui'           => true,
-			'show_in_rest'      => false,
-			'show_admin_column' => true,
-			'rewrite'           => array(
-				'slug'       => 'industry',
 				'with_front' => false,
 			),
 		)

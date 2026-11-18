@@ -1,11 +1,13 @@
 <?php
 /**
  * Single service (spec §6, service-page build-out) — hero (icon + category
- * eyebrow → H1 [headline override] → summary lede → price-from), benefits
- * checklist, editor content, CTA band, related-services grid + Service schema.
+ * eyebrow → H1 → summary lede → price-from), benefits checklist, the
+ * introduction, CTA band, related-services grid + Service schema.
  *
- * Renders EVERY group_salt_service field: icon, summary, headline, benefits,
- * price_from, related_services, cta.
+ * Reads salt-contract's service (collections/services.json): the title,
+ * topics (the service_category terms), summary (the excerpt), intro (the
+ * body) and featuredImage (the featured image) from WordPress, and icon,
+ * benefits, priceFrom, relatedServices and cta from the generated group.
  *
  * @package Salt
  */
@@ -23,26 +25,22 @@ while ( have_posts() ) {
 	$salt_permalink  = (string) get_permalink();
 
 	$salt_icon       = (string) get_field( 'icon', $salt_service_id );
-	$salt_summary    = (string) get_field( 'summary', $salt_service_id );
-	$salt_headline   = (string) get_field( 'headline', $salt_service_id );
-	$salt_price_from = get_field( 'price_from', $salt_service_id );
-	$salt_price_from = is_numeric( $salt_price_from ) ? (float) $salt_price_from : 0.0;
+	$salt_summary    = salt_post_summary( $salt_service_id );
+	$salt_price_from = trim( (string) get_field( 'priceFrom', $salt_service_id ) );
 
 	$salt_benefits = get_field( 'benefits', $salt_service_id );
 	$salt_benefits = is_array( $salt_benefits ) ? $salt_benefits : array();
 
-	$salt_related_ids = get_field( 'related_services', $salt_service_id );
+	$salt_related_ids = get_field( 'relatedServices', $salt_service_id );
 	$salt_related_ids = is_array( $salt_related_ids ) ? array_map( 'intval', $salt_related_ids ) : array();
+	// Never the service itself (collections/services.json, relatedServices).
+	$salt_related_ids = array_values( array_diff( $salt_related_ids, array( $salt_service_id ) ) );
 
-	$salt_cta     = get_field( 'cta', $salt_service_id );
-	$salt_cta_url = is_array( $salt_cta ) ? trim( (string) ( $salt_cta['url'] ?? '' ) ) : '';
-	$salt_cta_txt = is_array( $salt_cta ) ? trim( (string) ( $salt_cta['title'] ?? '' ) ) : '';
+	// The contract's link (label, type, document, url, newTab); null when unusable.
+	$salt_cta = salt_contract_link( get_field( 'cta', $salt_service_id ) );
 
 	$salt_categories = get_the_terms( $salt_service_id, 'service_category' );
 	$salt_categories = is_array( $salt_categories ) ? $salt_categories : array();
-
-	// headline is the documented H1 override; the post title backstops it.
-	$salt_h1 = '' !== trim( $salt_headline ) ? $salt_headline : (string) get_the_title();
 
 	// ------------------------------------------------------------------
 	// Hero.
@@ -72,7 +70,7 @@ while ( have_posts() ) {
 		);
 	}
 
-	salt_the_document_h1( $salt_h1, 'x-heading text-4xl md:text-5xl font-bold tracking-tight' );
+	salt_the_document_h1( (string) get_the_title(), 'x-heading text-4xl md:text-5xl font-bold tracking-tight' );
 
 	if ( '' !== trim( $salt_summary ) ) {
 		printf(
@@ -81,14 +79,15 @@ while ( have_posts() ) {
 		);
 	}
 
-	if ( $salt_price_from > 0 ) {
+	// priceFrom is a display value, drawn as written (£500, POA).
+	if ( '' !== $salt_price_from ) {
 		printf(
 			'<p class="x-service-price mt-6 text-sm font-semibold uppercase tracking-widest text-ink-muted">%s</p>',
 			esc_html(
 				sprintf(
-					/* translators: %s: formatted starting price. */
-					__( 'Projects from £%s', 'salt' ),
-					number_format_i18n( $salt_price_from )
+					/* translators: %s: the starting price as the editor wrote it, such as £500. */
+					__( 'Projects from %s', 'salt' ),
+					$salt_price_from
 				)
 			)
 		);
@@ -102,7 +101,7 @@ while ( have_posts() ) {
 	// ------------------------------------------------------------------
 	$salt_benefit_items = array();
 	foreach ( $salt_benefits as $salt_row ) {
-		$salt_benefit = is_array( $salt_row ) ? trim( (string) ( $salt_row['benefit'] ?? '' ) ) : '';
+		$salt_benefit = is_array( $salt_row ) ? trim( (string) ( $salt_row['text'] ?? '' ) ) : '';
 		if ( '' !== $salt_benefit ) {
 			$salt_benefit_items[] = $salt_benefit;
 		}
@@ -135,7 +134,7 @@ while ( have_posts() ) {
 	}
 
 	// ------------------------------------------------------------------
-	// Editor content.
+	// The introduction (the contract's intro, stored in the body).
 	// ------------------------------------------------------------------
 	if ( '' !== trim( (string) get_post_field( 'post_content', $salt_service_id ) ) ) {
 		echo '<div class="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
@@ -148,16 +147,16 @@ while ( have_posts() ) {
 	// ------------------------------------------------------------------
 	// CTA band.
 	// ------------------------------------------------------------------
-	if ( '' !== $salt_cta_url && '' !== $salt_cta_txt ) {
+	if ( null !== $salt_cta ) {
 		echo '<div class="x-service-cta bg-brand-tint py-14 md:py-20">';
 		echo '<div class="mx-auto w-full max-w-5xl px-4 text-center sm:px-6 lg:px-8">';
 		salt_component(
 			'button',
 			array(
-				'label'  => $salt_cta_txt,
-				'url'    => $salt_cta_url,
+				'label'  => $salt_cta['label'],
+				'url'    => $salt_cta['url'],
 				'style'  => 'primary',
-				'target' => is_array( $salt_cta ) ? (string) ( $salt_cta['target'] ?? '' ) : '',
+				'target' => $salt_cta['target'],
 			)
 		);
 		echo '</div>';
@@ -184,16 +183,16 @@ while ( have_posts() ) {
 			if ( '' === $salt_related_title ) {
 				continue;
 			}
-			$salt_related_summary = get_field( 'summary', $salt_related_id );
-			$salt_related_icon    = get_field( 'icon', $salt_related_id );
+			$salt_related_icon = get_field( 'icon', $salt_related_id );
 			salt_component(
 				'card-service',
 				array(
-					'title'   => $salt_related_title,
-					'url'     => (string) get_permalink( $salt_related_id ),
-					'summary' => is_string( $salt_related_summary ) ? $salt_related_summary : '',
-					'icon'    => is_string( $salt_related_icon ) ? $salt_related_icon : '',
-					'level'   => 3,
+					'title'    => $salt_related_title,
+					'url'      => (string) get_permalink( $salt_related_id ),
+					'summary'  => salt_post_summary( $salt_related_id ),
+					'icon'     => is_string( $salt_related_icon ) ? $salt_related_icon : '',
+					'image_id' => (int) get_post_thumbnail_id( $salt_related_id ),
+					'level'    => 3,
 				)
 			);
 		}

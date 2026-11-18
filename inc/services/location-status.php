@@ -35,11 +35,11 @@ if ( ! function_exists( 'salt_location_status' ) ) {
 	 * Resolve the current open status for a set of opening hours (ARCH07 pluggable).
 	 *
 	 * Row contract (frozen, stored 24h): day ('monday'..'sunday', lowercase
-	 * English storage keys), open/close ('HH:MM'), appointment_only (bool).
+	 * English storage keys), open/close ('HH:MM'), appointment (bool).
 	 * Multiple rows per day express split hours. Semantics:
 	 *
 	 * - Empty $opening_hours => 'unknown' with an empty label (COMPL02).
-	 * - An appointment_only row makes its whole day 'appointment' (times ignored).
+	 * - An appointment row makes its whole day 'appointment' (times ignored).
 	 * - Open when now is within [open, close): at-open inclusive, at-close exclusive.
 	 * - close <= open means the span crosses midnight (e.g. friday 20:00–02:00
 	 *   covers Fri 20:00 → Sat 02:00), so early-morning times also match the
@@ -76,8 +76,8 @@ if ( ! function_exists( 'salt_location_status' ) ) {
 				continue;
 			}
 
-			if ( ! empty( $row['appointment_only'] ) ) {
-				// Contract: appointment_only claims the whole day; times are ignored.
+			if ( ! empty( $row['appointment'] ) ) {
+				// Contract: appointment claims the whole day; times are ignored.
 				$appointment_days[ $day ] = true;
 				continue;
 			}

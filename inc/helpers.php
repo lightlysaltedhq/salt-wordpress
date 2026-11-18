@@ -68,3 +68,16 @@ function salt_option( string $selector ) {
 function salt_classnames( array $class_names ): string {
 	return implode( ' ', array_filter( array_map( 'trim', $class_names ), static fn( string $c ): bool => '' !== $c ) );
 }
+
+/**
+ * A collection item's `summary`: on WordPress it is stored in the post's
+ * own excerpt (salt-contract collections, platforms.WordPress.native). The
+ * stored excerpt only — never one WordPress makes up from the body.
+ *
+ * @param WP_Post|int $post The post or its ID.
+ * @return string Trimmed; '' when there is none.
+ */
+function salt_post_summary( $post ): string {
+	$post = $post instanceof WP_Post ? $post : get_post( (int) $post );
+	return $post instanceof WP_Post ? trim( (string) $post->post_excerpt ) : '';
+}

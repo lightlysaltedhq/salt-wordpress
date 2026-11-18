@@ -5,8 +5,10 @@
  * share row, author box, prev/next navigation + BlogPosting schema.
  *
  * The author box pulls the display name + bio straight from the WordPress
- * user; the avatar prefers the ACF profile_photo user field and falls back
- * to get_avatar() (Gravatar).
+ * user, and the avatar from the ACF profile_photo user field, drawn only
+ * when there is one: salt-contract 1.0.0-rc.7 dropped the Gravatar
+ * fallback (collections/team.json). The credited author as a team member
+ * is ID-3952.
  *
  * @package Salt
  */
@@ -36,7 +38,7 @@ while ( have_posts() ) {
 	$salt_author_bio  = (string) get_the_author_meta( 'description' );
 	$salt_author_url  = (string) get_author_posts_url( $salt_author_id );
 
-	// Avatar: ACF profile_photo (user field) wins; Gravatar is the fallback.
+	// Avatar: the ACF profile_photo user field, or none (no Gravatar).
 	$salt_avatar_html = '';
 	$salt_photo_id    = function_exists( 'get_field' ) ? (int) get_field( 'profile_photo', 'user_' . $salt_author_id ) : 0;
 	if ( $salt_photo_id > 0 ) {
@@ -48,9 +50,6 @@ while ( have_posts() ) {
 				'classes'  => 'size-full object-cover',
 			)
 		);
-	}
-	if ( '' === $salt_avatar_html ) {
-		$salt_avatar_html = (string) get_avatar( $salt_author_id, 96, '', $salt_author_name, array( 'class' => 'size-full object-cover' ) );
 	}
 
 	// ------------------------------------------------------------------
@@ -72,7 +71,9 @@ while ( have_posts() ) {
 	echo '<div class="x-post-meta mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-muted">';
 
 	echo '<span class="x-post-meta-author inline-flex items-center gap-2">';
-	echo '<span class="size-8 shrink-0 overflow-hidden rounded-full">' . $salt_avatar_html . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_avatar()/x-image markup; both escape internally.
+	if ( '' !== $salt_avatar_html ) {
+		echo '<span class="size-8 shrink-0 overflow-hidden rounded-full">' . $salt_avatar_html . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- x-image markup, escaped internally.
+	}
 	printf(
 		'<a class="font-medium text-ink hover:text-brand" href="%s">%s</a>',
 		esc_url( $salt_author_url ),

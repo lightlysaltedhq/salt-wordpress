@@ -2,8 +2,8 @@
 /**
  * CPT: FAQ (spec Appendix A.5) — display-only posture (SEC09).
  *
- * The question is the post title; the answer is an ACF WYSIWYG field
- * (inc/fields/cpt-faq.php). Display-only: no single view, no archive, no
+ * The question is the post title; the answer is the generated FAQ group's
+ * rich-text field (salt-contract collections/faqs.json). Display-only: no single view, no archive, no
  * REST surface — content exists solely to be composed into the FAQ
  * section (§10 #13) and its FAQPage JSON-LD (SEO03).
  *

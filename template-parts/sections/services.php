@@ -10,7 +10,7 @@
  * $args:
  *   props  array{ eyebrow: string|null, heading: string|null,
  *                 layout: 'grid'|'list'|'featured', columns: '2'|'3'|'4',
- *                 items: array<int, array{title: string, url: string, summary: string, icon: string}>,
+ *                 items: array<int, array{title: string, url: string, summary: string, icon: string, image_id: int}>,
  *                 view_all_url: string|null }
  *          items is never empty.
  *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
@@ -52,12 +52,13 @@ $salt_card = static function ( array $data, string $classes = '' ) use ( $salt_c
 	salt_component(
 		'card-service',
 		array(
-			'title'   => $data['title'],
-			'url'     => $data['url'],
-			'summary' => $data['summary'],
-			'icon'    => $data['icon'],
-			'level'   => $salt_card_level,
-			'classes' => $classes,
+			'title'    => $data['title'],
+			'url'      => $data['url'],
+			'summary'  => $data['summary'],
+			'icon'     => $data['icon'],
+			'image_id' => $data['image_id'],
+			'level'    => $salt_card_level,
+			'classes'  => $classes,
 		)
 	);
 };

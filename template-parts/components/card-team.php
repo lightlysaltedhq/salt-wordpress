@@ -12,13 +12,15 @@
  *                             (href digits/+ only; the visible text keeps formatting).
  *   media   string  ''        PRE-RENDERED HTML slot (an x-image headshot render).
  *                             Printed raw — the producer escapes at print.
- *   socials array   []        Rows: array{platform: string, url: string} — platform
- *                             one of salt-known keys (linkedin|x|instagram|facebook|
- *                             youtube|tiktok|github|bluesky|other). Rendered as an
- *                             icon link (bundled icon set, shared with x-share-links);
- *                             unknown platform or empty url ⇒ row skipped +
- *                             salt_log()ged. External hrefs allowed here by
- *                             assignment (socials); rel="noopener noreferrer".
+ *   socials array   []        Rows: array{name: string, url: string}, the contract's
+ *                             socials (collections/_person.json). The network is
+ *                             worked out from the address (salt_social_link(),
+ *                             contract/socials.json) and drawn as its bundled icon
+ *                             (shared with x-share-links); an address that names no
+ *                             network draws the globe. name names the link. A row
+ *                             with no usable address is skipped + salt_log()ged.
+ *                             External hrefs allowed here by assignment (socials);
+ *                             rel="noopener noreferrer".
  *   level   int     3         Name heading level, clamped 1..6 (out of range is
  *                             clamped + salt_log()ged).
  *   classes string  ''        Extra utility classes appended to the class list.
@@ -100,43 +102,28 @@ if ( '' !== $salt_phone && '' === $salt_tel ) {
 	salt_log( sprintf( 'x-card-team: phone "%s" yields no dialable tel: href — link skipped.', $salt_phone ) );
 }
 
-// Validated social links (unknown platform / empty url ⇒ skipped + logged).
-// Each platform maps to a bundled icon (assets/src/icons — the same set the
-// x-share-links component draws from).
-$salt_platforms    = array(
-	'linkedin'  => array( __( 'LinkedIn', 'salt' ), 'linkedin' ),
-	'x'         => array( __( 'X', 'salt' ), 'x' ),
-	'instagram' => array( __( 'Instagram', 'salt' ), 'instagram' ),
-	'facebook'  => array( __( 'Facebook', 'salt' ), 'facebook' ),
-	'youtube'   => array( __( 'YouTube', 'salt' ), 'youtube' ),
-	'tiktok'    => array( __( 'TikTok', 'salt' ), 'tiktok' ),
-	'github'    => array( __( 'GitHub', 'salt' ), 'github' ),
-	'bluesky'   => array( __( 'Bluesky', 'salt' ), 'bluesky' ),
-	'other'     => array( __( 'Website', 'salt' ), 'globe' ),
-);
+// Social links: the network from the address (contract/socials.json), the
+// label from the row's name; a row with no usable address is skipped + logged.
 $salt_social_links = array();
 foreach ( (array) $args['socials'] as $salt_social ) {
-	$salt_platform = is_array( $salt_social ) ? (string) ( $salt_social['platform'] ?? '' ) : '';
-	$salt_url      = is_array( $salt_social ) ? trim( (string) ( $salt_social['url'] ?? '' ) ) : '';
+	$salt_url  = is_array( $salt_social ) ? trim( (string) ( $salt_social['url'] ?? '' ) ) : '';
+	$salt_name = is_array( $salt_social ) ? trim( (string) ( $salt_social['name'] ?? '' ) ) : '';
+	$salt_link = '' === $salt_url ? null : salt_social_link( $salt_url );
 
-	if ( ! isset( $salt_platforms[ $salt_platform ] ) ) {
-		salt_log( sprintf( 'x-card-team: social row with unknown platform "%s" skipped.', $salt_platform ) );
-		continue;
-	}
-	if ( '' === $salt_url ) {
-		salt_log( sprintf( 'x-card-team: social row (%s) without a url skipped.', $salt_platform ) );
+	if ( null === $salt_link ) {
+		salt_log( sprintf( 'x-card-team: social row (%s) without a usable url skipped.', $salt_name ) );
 		continue;
 	}
 
 	$salt_social_links[] = array(
 		'label' => sprintf(
-			/* translators: 1: member name. 2: social platform. */
+			/* translators: 1: member name. 2: what the social link is called, such as LinkedIn. */
 			__( '%1$s on %2$s', 'salt' ),
 			$args['name'],
-			$salt_platforms[ $salt_platform ][0]
+			'' !== $salt_name ? $salt_name : $salt_link['label']
 		),
-		'icon'  => $salt_platforms[ $salt_platform ][1],
-		'url'   => $salt_url,
+		'icon'  => '' !== $salt_link['icon'] ? $salt_link['icon'] : 'globe',
+		'url'   => $salt_link['url'],
 	);
 }
 ?>

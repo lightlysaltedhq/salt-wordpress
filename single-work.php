@@ -1,12 +1,16 @@
 <?php
 /**
  * Single work item (spec §6, case-study build-out) — hero (work_type eyebrow
- * → H1 → summary lede → client/industry/services meta + live link), featured
- * image, editor content, challenge/solution, results stats (x-stat), gallery
- * grid + CreativeWork schema.
+ * → H1 → summary lede → client/services meta + live link), featured image,
+ * challenge/solution, results stats (x-stat), gallery grid + CreativeWork
+ * schema.
  *
- * Renders EVERY group_salt_work field: client, summary, gallery, challenge,
- * solution, results, services, live_url.
+ * Reads salt-contract's case study (collections/case-studies.json): the
+ * title, topics (the work_type terms), summary (the excerpt) and
+ * featuredImage (the featured image) from WordPress, and client, gallery,
+ * challenge, solution, results, services and externalUrl from the
+ * generated group. A case study has no page body. details is stored but
+ * not drawn yet (M4).
  *
  * @package Salt
  */
@@ -23,11 +27,11 @@ while ( have_posts() ) {
 	$salt_work_id   = (int) get_the_ID();
 	$salt_permalink = (string) get_permalink();
 
-	$salt_client    = (string) get_field( 'client', $salt_work_id );
-	$salt_summary   = (string) get_field( 'summary', $salt_work_id );
-	$salt_challenge = (string) get_field( 'challenge', $salt_work_id );
-	$salt_solution  = (string) get_field( 'solution', $salt_work_id );
-	$salt_live_url  = (string) get_field( 'live_url', $salt_work_id );
+	$salt_client       = (string) get_field( 'client', $salt_work_id );
+	$salt_summary      = salt_post_summary( $salt_work_id );
+	$salt_challenge    = (string) get_field( 'challenge', $salt_work_id );
+	$salt_solution     = (string) get_field( 'solution', $salt_work_id );
+	$salt_external_url = (string) get_field( 'externalUrl', $salt_work_id );
 
 	$salt_results = get_field( 'results', $salt_work_id );
 	$salt_results = is_array( $salt_results ) ? $salt_results : array();
@@ -40,8 +44,6 @@ while ( have_posts() ) {
 
 	$salt_work_types = get_the_terms( $salt_work_id, 'work_type' );
 	$salt_work_types = is_array( $salt_work_types ) ? $salt_work_types : array();
-	$salt_industries = get_the_terms( $salt_work_id, 'industry' );
-	$salt_industries = is_array( $salt_industries ) ? $salt_industries : array();
 
 	// ------------------------------------------------------------------
 	// Hero.
@@ -68,13 +70,10 @@ while ( have_posts() ) {
 		);
 	}
 
-	// Fact strip: client / industry / services (linked) / live link.
+	// Fact strip: client / services (linked) / live link.
 	$salt_facts = array();
 	if ( '' !== trim( $salt_client ) ) {
 		$salt_facts[] = array( __( 'Client', 'salt' ), esc_html( $salt_client ) );
-	}
-	if ( array() !== $salt_industries ) {
-		$salt_facts[] = array( __( 'Industry', 'salt' ), esc_html( implode( ', ', wp_list_pluck( $salt_industries, 'name' ) ) ) );
 	}
 	if ( array() !== $salt_service_ids ) {
 		$salt_service_links = array();
@@ -105,13 +104,13 @@ while ( have_posts() ) {
 		echo '</dl>';
 	}
 
-	if ( '' !== trim( $salt_live_url ) ) {
+	if ( '' !== trim( $salt_external_url ) ) {
 		echo '<div class="mt-8">';
 		salt_component(
 			'button',
 			array(
 				'label'  => __( 'Visit live site', 'salt' ),
-				'url'    => $salt_live_url,
+				'url'    => $salt_external_url,
 				'style'  => 'secondary',
 				'target' => '_blank',
 			)
@@ -138,17 +137,6 @@ while ( have_posts() ) {
 				'classes'       => 'aspect-[16/9] w-full rounded-lg object-cover',
 			)
 		);
-		echo '</div>';
-	}
-
-	// ------------------------------------------------------------------
-	// Editor content.
-	// ------------------------------------------------------------------
-	if ( '' !== trim( (string) get_post_field( 'post_content', $salt_work_id ) ) ) {
-		echo '<div class="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
-		echo '<div class="x-prose">';
-		the_content();
-		echo '</div>';
 		echo '</div>';
 	}
 

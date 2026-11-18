@@ -1,6 +1,12 @@
 <?php
 /**
- * CPT: Team member (spec §10 #12, Appendix A.3) + 'department' taxonomy.
+ * CPT: Team member (spec §10 #12, Appendix A.3).
+ *
+ * A team member is a record with no login (salt-contract
+ * collections/team.json): name is the title and photo the featured image;
+ * role, bio, email, phone and socials are the generated group's. The full
+ * biography (the body) and the department taxonomy were dropped from the
+ * contract (team has no topics, SC-027), so neither is registered.
  *
  * v1 DECISION (documented per Appendix A.3 "Public: optional"): team_member
  * is NOT public. Single bio pages are a nice-to-have the spec leaves
@@ -22,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Register the team_member post type and its department taxonomy.
+ * Register the team_member post type.
  *
  * @return void
  */
@@ -49,23 +55,7 @@ function salt_register_cpt_team_member(): void {
 			'show_in_rest'        => false,
 			'has_archive'         => false,
 			'menu_icon'           => 'dashicons-groups',
-			'supports'            => array( 'title', 'editor', 'thumbnail', 'page-attributes' ),
-		)
-	);
-
-	register_taxonomy(
-		'department',
-		array( 'team_member' ),
-		array(
-			'labels'            => array(
-				'name'          => __( 'Departments', 'salt' ),
-				'singular_name' => __( 'Department', 'salt' ),
-			),
-			'public'            => false,
-			'show_ui'           => true,
-			'show_in_rest'      => false,
-			'hierarchical'      => true,
-			'show_admin_column' => true,
+			'supports'            => array( 'title', 'thumbnail', 'page-attributes' ),
 		)
 	);
 }

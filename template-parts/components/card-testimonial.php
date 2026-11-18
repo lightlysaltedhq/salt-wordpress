@@ -14,7 +14,7 @@
  *                             rating renders as one role="img" group with an
  *                             aria-label; the star icons are decorative.
  *   media   string  ''        PRE-RENDERED HTML slot (e.g. an x-image render
- *                             of the company logo). Printed raw — the
+ *                             of the person's photo). Printed raw — the
  *                             producer escapes at print.
  *   classes string  ''        Extra utility classes appended to the class list.
  *

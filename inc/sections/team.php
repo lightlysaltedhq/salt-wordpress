@@ -82,7 +82,7 @@ function salt_resolve_section_team( array $context ): ?array {
 	foreach ( $valid_posts as $post_item ) {
 		$name  = trim( (string) $post_item->post_title );
 		$role  = (string) get_field( 'role', $post_item->ID );
-		$bio   = (string) get_field( 'short_bio', $post_item->ID );
+		$bio   = (string) get_field( 'bio', $post_item->ID );
 		$email = (string) get_field( 'email', $post_item->ID );
 		$phone = (string) get_field( 'phone', $post_item->ID );
 		$rows  = get_field( 'socials', $post_item->ID );
