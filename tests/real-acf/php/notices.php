@@ -13,27 +13,16 @@ if ( PHP_SAPI !== 'cli' || $argc < 4 ) {
 	exit( 2 );
 }
 
-$salt_harness_log   = (string) file_get_contents( $argv[1], false, null, (int) $argv[2] );
-$salt_harness_by    = array();
-$salt_harness_known = array();
-$salt_harness_n     = 0;
+$salt_harness_log = (string) file_get_contents( $argv[1], false, null, (int) $argv[2] );
+$salt_harness_by  = array();
+$salt_harness_n   = 0;
 
 foreach ( preg_split( '/\R/', $salt_harness_log ) as $salt_harness_line ) {
 	if ( ! str_starts_with( $salt_harness_line, '[' ) ) {
 		continue;
 	}
-	$salt_harness_text = preg_replace( '/^\[[^\]]+\]\s*/', '', $salt_harness_line );
-	// WordPress 6.8 is not ready for PHP 8.5: rendering a front-end page passes null as an array
-	// offset inside core (wp-includes), which PHP 8.5 deprecates. Reported, not counted; only
-	// this one deprecation, only from wp-includes, only on PHP 8.5 or later.
-	if (
-		PHP_VERSION_ID >= 80500
-		&& 1 === preg_match( '#^PHP Deprecated:  Using null as an array offset is deprecated, use an empty string instead in \S+/wp-includes/[^ ]+\.php on line \d+$#', $salt_harness_text )
-	) {
-		$salt_harness_known[ $salt_harness_text ] = ( $salt_harness_known[ $salt_harness_text ] ?? 0 ) + 1;
-		continue;
-	}
 	++$salt_harness_n;
+	$salt_harness_text = preg_replace( '/^\[[^\]]+\]\s*/', '', $salt_harness_line );
 	if ( str_contains( $salt_harness_text, '/wp-content/themes/salt/' ) || str_starts_with( $salt_harness_text, 'salt' ) ) {
 		$salt_harness_from = 'theme';
 	} elseif ( str_contains( $salt_harness_text, '/wp-content/plugins/advanced-custom-fields-pro/' ) ) {
@@ -44,10 +33,6 @@ foreach ( preg_split( '/\R/', $salt_harness_log ) as $salt_harness_line ) {
 		$salt_harness_from = 'WordPress core / PHP';
 	}
 	$salt_harness_by[ $salt_harness_from ][ $salt_harness_text ] = ( $salt_harness_by[ $salt_harness_from ][ $salt_harness_text ] ?? 0 ) + 1;
-}
-
-foreach ( $salt_harness_known as $salt_harness_text => $salt_harness_count ) {
-	echo '     known WordPress core on PHP 8.5, not counted: ' . $salt_harness_count . ' x ' . $salt_harness_text . "\n";
 }
 
 if ( 0 === $salt_harness_n ) {

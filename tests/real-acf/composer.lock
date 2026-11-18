@@ -4,27 +4,27 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1c52b89862144fbfd35ca7072f469277",
+    "content-hash": "6fb694815ac14a96b80b800245ea923c",
     "packages": [
         {
             "name": "roots/wordpress-no-content",
-            "version": "6.8.12",
+            "version": "7.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/WordPress/WordPress.git",
-                "reference": "6.8.12"
+                "reference": "7.1.4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://downloads.w.org/release/wordpress-6.8.12-no-content.zip",
-                "reference": "6.8.12",
-                "shasum": "c7106b955105d9d29b71fd27eaefd0379d5963fd"
+                "url": "https://downloads.w.org/release/wordpress-7.1.4-no-content.zip",
+                "reference": "7.1.4",
+                "shasum": "1dd4bfa7b13dec725c0062a3fb62ba0536cb8699"
             },
             "require": {
-                "php": ">= 7.2.24"
+                "php": ">= 7.4"
             },
             "provide": {
-                "wordpress/core-implementation": "6.8.12"
+                "wordpress/core-implementation": "7.1.4"
             },
             "suggest": {
                 "ext-curl": "Performs remote request operations.",
@@ -75,8 +75,8 @@
                     "type": "other"
                 }
             ],
-            "time": "2026-10-28T17:15:53+00:00",
-            "published-time": "2026-10-28T17:16:08+00:00"
+            "time": "2026-10-28T17:15:58+00:00",
+            "published-time": "2026-10-28T17:16:09+00:00"
         }
     ],
     "packages-dev": [],

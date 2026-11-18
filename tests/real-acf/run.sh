@@ -4,7 +4,8 @@
 # contract fixture, checks storage paths, drives the classic editor in a real browser, prints
 # a pass/fail report and removes everything it made. See tests/real-acf/README.md.
 #
-# usage: tests/real-acf/run.sh [--php 8.2|8.5|<binary>] [--no-browser] [--keep] [--report <file>]
+# usage: tests/real-acf/run.sh [--php 8.2|8.5|<binary>] [--no-browser] [--keep] [--offline] [--report <file>]
+# --offline skips the check that the pinned WordPress is the latest release (reported as not checked).
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,15 +14,17 @@ REPO="$(cd "$HERE/../.." && pwd)"
 PHP_CHOICE="${SALT_HARNESS_PHP:-php}"
 KEEP=0
 BROWSER=1
+OFFLINE=0
 REPORT=""
 
-usage() { sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; }
 
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--php) PHP_CHOICE="${2:?--php needs a version or binary}"; shift 2 ;;
 		--no-browser) BROWSER=0; shift ;;
 		--keep) KEEP=1; shift ;;
+		--offline) OFFLINE=1; shift ;;
 		--report) REPORT="${2:?--report needs a file}"; shift 2 ;;
 		-h|--help) usage; exit 0 ;;
 		*) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
@@ -73,9 +76,14 @@ fi
 # ── Dependencies (the harness's own; the theme's install is never touched) ─────────────────────
 [ -f "$REPO/node_modules/@lightlysaltedhq/salt-contract/package.json" ] || die "run npm ci at the repository root first (the pinned salt-contract)"
 WP_CORE="$HERE/vendor/roots/wordpress-no-content"
-if [ ! -f "$WP_CORE/wp-load.php" ]; then
+# The WordPress this run uses is the one composer.lock pins: install it when it is missing or differs.
+WP_PINNED="$("$PHP" -r 'foreach (json_decode(file_get_contents($argv[1]), true)["packages"] as $p) { if ($p["name"] === "roots/wordpress-no-content") { echo $p["version"]; } }' "$HERE/composer.lock")"
+[ -n "$WP_PINNED" ] || die "tests/real-acf/composer.lock pins no roots/wordpress-no-content"
+wp_installed() { sed -n "s/^\$wp_version = '\(.*\)';/\1/p" "$WP_CORE/wp-includes/version.php" 2>/dev/null || true; }
+if [ ! -f "$WP_CORE/wp-load.php" ] || [ "$(wp_installed)" != "$WP_PINNED" ]; then
 	composer install --working-dir="$HERE" --no-interaction --no-progress --quiet || die "composer install in tests/real-acf failed"
 fi
+[ "$(wp_installed)" = "$WP_PINNED" ] || die "WordPress in tests/real-acf/vendor is $(wp_installed), expected $WP_PINNED (composer.lock)"
 if [ "$BROWSER" = 1 ]; then
 	[ -d "$HERE/node_modules/playwright" ] || npm ci --prefix "$HERE" --no-audit --no-fund --silent || die "npm ci in tests/real-acf failed"
 	(cd "$HERE" && npx --no-install playwright install chromium-headless-shell >/dev/null) || die "could not install Playwright's Chromium"
@@ -201,6 +209,20 @@ phase() {
 	echo "  database   $DB on $SALT_HARNESS_DB_HOST"
 	echo "  site       $URL in $TMP"
 } | tee -a "$OUT"
+
+# Clients run the latest WordPress: a pinned release that has fallen behind fails the run.
+if [ "$OFFLINE" = 1 ]; then
+	echo "── WordPress is the latest release" | tee -a "$OUT"
+	echo "SKIP STALENESS NOT CHECKED (--offline): WordPress $WP_PINNED was not compared with the latest release" | tee -a "$OUT"
+	PHASES+=("SKIP  WordPress is the latest release: STALENESS NOT CHECKED (--offline)")
+else
+	echo "── WordPress is the latest release" | tee -a "$OUT"
+	if "$PHP" "$HERE/php/latest.php" "$WP_PINNED" 2>&1 | tee -a "$OUT"; [ "${PIPESTATUS[0]}" = 0 ]; then
+		PHASES+=("PASS  WordPress is the latest release")
+	else
+		PHASES+=("FAIL  WordPress is the latest release")
+	fi
+fi
 
 "$PHP" "$HERE/php/db.php" create "$DB" || die "could not create database $DB"
 DB_CREATED=1

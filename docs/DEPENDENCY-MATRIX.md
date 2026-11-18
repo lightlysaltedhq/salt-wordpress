@@ -7,6 +7,7 @@ move through the same pinned/canary discipline as the theme.
 
 | salt release | WordPress core | ACF Pro | PHP | Updater |
 |---|---|---|---|---|
+| v6.0.x | The latest release only (7.1.4 on 2026-11-18). The real-ACF harness pins it exactly and fails when a newer release is out; any PHP deprecation, notice or warning fails the harness | ≥ 6.3.0 (pinned min, `SALT_MIN_ACF_VERSION`); harness: 6.8.11 | 8.2+ (harness: 8.2 and 8.5) | Git Updater ≥ 12 or git-deploy |
 | v2.0.x | 6.5 – 6.8 | ≥ 6.3.0 (pinned min, `SALT_MIN_ACF_VERSION`) | 8.2+ | Git Updater ≥ 12 or git-deploy |
 | v0.2.x – v1.0.x | 6.5 – 6.8 | ≥ 6.3.0 | 8.2+ | Git Updater ≥ 12 or git-deploy |
 
