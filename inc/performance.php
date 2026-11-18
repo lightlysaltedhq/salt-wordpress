@@ -199,7 +199,7 @@ function salt_asset_missing_admin_notice(): void {
 /**
  * Enqueue the theme's hashed assets ('wp_enqueue_scripts').
  *
- * Both handles use $ver = null so WordPress emits no ?ver= query string —
+ * Every handle uses $ver = null so WordPress emits no ?ver= query string —
  * the content hash in the filename is the cache-buster (ARCH03). Missing
  * assets are skipped (salt_asset() already logged) and surfaced loudly via
  * an admin notice.
@@ -208,10 +208,20 @@ function salt_asset_missing_admin_notice(): void {
  */
 function salt_enqueue_assets(): void {
 	$style  = salt_asset( 'app.css' );
+	$salt   = salt_asset( 'salt.css' );
 	$script = salt_asset( 'app.js' );
 
 	if ( null !== $style ) {
 		wp_enqueue_style( 'salt-app', $style, array(), null );
+	}
+
+	// The contract's stylesheet, served verbatim as a stylesheet of its own
+	// and AFTER Tailwind's (salt-contract README, Stylesheets): Tailwind v4
+	// declares its layer order first, so salt.css's `@layer base` joins
+	// Tailwind's base layer instead of preceding it. Depending on salt-app is
+	// what makes WordPress print it second.
+	if ( null !== $salt ) {
+		wp_enqueue_style( 'salt-contract', $salt, null !== $style ? array( 'salt-app' ) : array(), null );
 	}
 
 	if ( null !== $script ) {
@@ -227,7 +237,7 @@ function salt_enqueue_assets(): void {
 		);
 	}
 
-	if ( null === $style || null === $script ) {
+	if ( null === $style || null === $salt || null === $script ) {
 		add_action( 'admin_notices', 'salt_asset_missing_admin_notice' );
 	}
 }

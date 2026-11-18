@@ -11,3 +11,4 @@
 /vendor-contract/ export-ignore
 # The real-ACF harness (ID-3610): dev and CI only, so client sites never receive it.
 /tests/real-acf/ export-ignore
+/tests/contract-adapter/ export-ignore
