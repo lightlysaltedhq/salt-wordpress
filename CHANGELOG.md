@@ -8,27 +8,6 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
-### BREAKING
-
-- **The six collection layouts are gone; collection-showcase and carousel
-  replace them (ID-3600, EP-72 M3 unit 8).** Layouts `services`, `work`,
-  `team`, `testimonials`, `blog_teaser` and `scroll_carousel` are removed,
-  with their field files (`inc/fields/layouts/`), resolvers, views,
-  scripts (`sections/testimonials.js`, `sections/scroll-carousel.js`),
-  tests and snapshots, and with `inc/query/controls.php`
-  (`salt_query_control_fields()`), `salt_query_controls_from_row()`,
-  `salt_section_settings_fields()`, `salt_testimonials_layout()` and the
-  per-row section lookup (`salt_contract_section_conditions()`,
-  `salt_contract_section_variant()`, `salt_contract_layout_label()`;
-  `salt_override_tier()` takes no `$variant`). The components
-  `x-card-team` and `x-card-testimonial`
-  (`template-parts/components/card-team.php`, `card-testimonial.php`) go
-  too: nothing draws them. No
-  site uses them, so there is no migration. A child theme's
-  `template-parts/sections/{services,work,team,testimonials,blog-teaser,scroll-carousel}.php`
-  is no longer loaded; declare `collection-showcase` or `carousel` in
-  `salt-overrides.json` instead.
-
 ### Added
 
 - **Collection showcase and carousel, to salt-contract 1.0.0-rc.7 (ID-3600,
@@ -345,6 +324,24 @@ markup granularity (cross-reference your site's override manifest).
   contract has no rule for, in every display mode.
 
 ### BREAKING
+- **The six collection layouts are gone; collection-showcase and carousel
+  replace them (ID-3600, EP-72 M3 unit 8).** Layouts `services`, `work`,
+  `team`, `testimonials`, `blog_teaser` and `scroll_carousel` are removed,
+  with their field files (`inc/fields/layouts/`), resolvers, views,
+  scripts (`sections/testimonials.js`, `sections/scroll-carousel.js`),
+  tests and snapshots, and with `inc/query/controls.php`
+  (`salt_query_control_fields()`), `salt_query_controls_from_row()`,
+  `salt_section_settings_fields()`, `salt_testimonials_layout()` and the
+  per-row section lookup (`salt_contract_section_conditions()`,
+  `salt_contract_section_variant()`, `salt_contract_layout_label()`;
+  `salt_override_tier()` takes no `$variant`). The components
+  `x-card-team` and `x-card-testimonial`
+  (`template-parts/components/card-team.php`, `card-testimonial.php`) go
+  too: nothing draws them. No
+  site uses them, so there is no migration. A child theme's
+  `template-parts/sections/{services,work,team,testimonials,blog-teaser,scroll-carousel}.php`
+  is no longer loaded; declare `collection-showcase` or `carousel` in
+  `salt-overrides.json` instead.
 - **Posts (ID-3952).** Posts have no classic editor and no Tags box: the
   body is the `layout` field, and `post_content` and `post_tag` are no
   longer read or drawn. The byline, the author box, BlogPosting's `author`

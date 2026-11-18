@@ -181,21 +181,19 @@ section passes only when all four ran and passed.
 | Check | What it proves | In this run |
 | --- | --- | --- |
 | Fixtures | The adapter's HTML for each case equals the case's expected HTML once both are normalised. A failure names the section, the case and the first differing node, by path. | **Ran** for every section, the chrome, the views and the page. With the harness up, every case renders and differs only in its markup. |
-| Classes | Every `salt-*` class in the output is one the contract's markup uses. | **Ran**, but it passes trivially: the theme draws `x-*` classes and no `salt-*` class yet. It starts to bite in M4. |
-| Field parity | The theme's committed ACF field snapshot is the one the contract's emitter generates. | **Ran** against `inc/fields/generated/sections.json`. It passes for the twelve generated sections and fails for collection-showcase and carousel, which the snapshot does not contain until unit 8 builds them. |
+| Classes | Every `salt-*` class in the output is one the contract's markup uses. | **Ran**. It bites for collection-showcase and carousel, which draw the contract's `salt-*` markup since unit 8; elsewhere it passes trivially, because the theme draws `x-*` classes until M4. |
+| Field parity | The theme's committed ACF field snapshot is the one the contract's emitter generates. | **Ran** against `inc/fields/generated/sections.json`. It passes for all fourteen shipped sections, collection-showcase and carousel included since unit 8. |
 | Stylesheet pin | The CSS the theme serves is byte for byte the contract's `styles/salt.css`. | **Ran** against the served copy, `assets/dist/salt.<hash>/salt.css`, and passes. |
 
 The chrome, views and page have no fields, so the runner holds them to fixtures and classes only.
 
 ## Why the run is partial
 
-A conforming run needs all four checks for every section the theme ships (SC-017). Three things
+A conforming run needs all four checks for every section the theme ships (SC-017). Two things
 are missing today, so the script passes `--partial` and the report says "Partial, not conforming".
 
-- **Most fixtures fail.** The theme still draws its own `x-*` markup; M4 moves each section's
-  view to the contract's markup.
-- **collection-showcase and carousel fail field parity.** They are still drawn by the six
-  hand-written legacy layouts, which are not in the generated snapshot. Unit 8 replaces them.
+- **Most fixtures fail.** The theme still draws its own `x-*` markup for every section but
+  collection-showcase and carousel; M4 moves each other section's view to the contract's markup.
 - **`tabs`, `listing` and `pricing` are not shipped.** The contract records `tabs` and `listing`
   as owed by WordPress (`contract/sections.json`). The theme retired its pricing layout in 6.0.0;
   pricing becomes a grain-wordpress recipe (ID-3955). Only a partial run may leave a section out.

@@ -77,6 +77,11 @@ contract's `query` group (`salt_query_controls_from_query()`, SCOPE01).
 The six collection layouts (services, work, team, testimonials,
 blog_teaser, scroll_carousel) and `salt_query_control_fields()` were
 removed in unit 8 (EP-72 M3).
+A post's body is the same builder (its `layout` field, ID-3952 unit 10),
+limited by salt-contract rc.7 to rich-text, media-text, gallery,
+call-to-action and faq: a rich-text row that is prose alone is drawn as the
+post's prose, every other row as a band (`salt_the_post_layout()`).
+Collection showcase and carousel are page sections only.
 Intro (folded into Rich Text) and Pricing (a Grain for WordPress recipe,
 SC-006) were removed in 6.0.0.
 
@@ -102,7 +107,7 @@ docblock at the top of its partial (enforced at runtime by
 | x-map | components/map.php | Click-to-load facade; consent-gated (v2) |
 | x-booking | components/booking.php | Provider facade; plain link until consent (v2) |
 | x-share-links | components/share-links.php | Social share intents (x/facebook/linkedin/whatsapp/bluesky/reddit/email + pinterest opt-in); copy-link button `hidden` until sections/share.js activates it (FAIL02) |
-| x-author-box | components/author-box.php | Post author attribution (name/bio from the WP user; avatar slot) |
+| x-author-box | components/author-box.php | Post author attribution (name, role, bio and photo from the credited team member, never the WordPress user; ID-3952) |
 
 Changing any args signature or markup structure = MAJOR (RELEASE-POLICY.md;
 snapshot diff is the trigger).
