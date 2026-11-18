@@ -1007,27 +1007,35 @@
         "failures": [
           {
             "case": "fallback-heading",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "html > head > noscript",
+            "expected": "<noscript>",
+            "found": null
           },
           {
             "case": "header-section-footer",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "html > head > noscript",
+            "expected": "<noscript>",
+            "found": null
           },
           {
             "case": "hero-minimal-centre",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "html > head > noscript",
+            "expected": "<noscript>",
+            "found": null
           },
           {
             "case": "hero-split-image",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "html > head > noscript",
+            "expected": "<noscript>",
+            "found": null
           }
         ]
       },
@@ -1047,39 +1055,57 @@
         "failures": [
           {
             "case": "band-call-to-action",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "band-faq",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "band-gallery-one-image",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "band-media-text",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "full",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "minimal",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           }
         ]
       },
@@ -1099,15 +1125,21 @@
         "failures": [
           {
             "case": "full",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view service is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "minimal",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view service is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           }
         ]
       },
@@ -1127,27 +1159,39 @@
         "failures": [
           {
             "case": "aside",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "band",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "full",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "minimal",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           }
         ]
       },
@@ -1167,15 +1211,21 @@
         "failures": [
           {
             "case": "author",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view archive is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "topic",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view archive is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           }
         ]
       },
@@ -1195,21 +1245,30 @@
         "failures": [
           {
             "case": "no-query",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "no-results",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "results",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           }
         ]
       },
@@ -1229,15 +1288,21 @@
         "failures": [
           {
             "case": "minimal",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view not-found is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "with-search",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view not-found is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           }
         ]
       },

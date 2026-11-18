@@ -23,107 +23,7 @@
  */
 
 require __DIR__ . '/wp.php';
-
-/**
- * A fixture case from the pinned contract.
- *
- * @param string $name e.g. 'service/full'.
- * @return array<string,mixed>
- */
-function salt_harness_fixture( string $name ): array {
-	return (array) json_decode( (string) file_get_contents( getenv( 'SALT_HARNESS_FIXTURES' ) . '/' . $name . '.json' ), true );
-}
-
-/**
- * A real 1x1 PNG attachment per fixture media name, with its alt text.
- *
- * @param string              $name  Media name.
- * @param array<string,mixed> $media The case's media.
- * @return int Attachment ID.
- */
-function salt_harness_single_image( string $name, array $media ): int {
-	static $ids = array();
-	if ( isset( $ids[ $name ] ) ) {
-		return $ids[ $name ];
-	}
-	$uploads = wp_upload_dir();
-	$file    = $uploads['path'] . '/single-' . $name . '.png';
-	file_put_contents( $file, base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- A fixed 1x1 PNG.
-	$id = (int) wp_insert_attachment(
-		array(
-			'post_title'     => $name,
-			'post_mime_type' => 'image/png',
-			'post_status'    => 'inherit',
-			'guid'           => $uploads['url'] . '/single-' . $name . '.png',
-		),
-		$file
-	);
-	wp_update_attachment_metadata(
-		$id,
-		array(
-			'width'  => (int) ( $media[ $name ]['width'] ?? 1 ),
-			'height' => (int) ( $media[ $name ]['height'] ?? 1 ),
-			'file'   => _wp_relative_upload_path( $file ),
-			'sizes'  => array(),
-		)
-	);
-	update_post_meta( $id, '_wp_attachment_image_alt', (string) ( $media[ $name ]['alt'] ?? '' ) );
-	$ids[ $name ] = $id;
-	return $id;
-}
-
-/**
- * A published service per fixture id, made once (a related or listed one).
- *
- * @param array<string,mixed> $item  The fixture's card: id, title, text, image.
- * @param array<string,mixed> $media The case's media.
- * @return int Post ID.
- */
-function salt_harness_single_service( array $item, array $media ): int {
-	static $ids = array();
-	$slug       = (string) $item['id'];
-	if ( ! isset( $ids[ $slug ] ) ) {
-		$ids[ $slug ] = (int) wp_insert_post(
-			array(
-				'post_type'    => 'service',
-				'post_status'  => 'publish',
-				'post_name'    => 'single-' . $slug,
-				'post_title'   => (string) $item['title'],
-				'post_excerpt' => (string) ( $item['text'] ?? '' ),
-			)
-		);
-		if ( isset( $item['image'] ) ) {
-			set_post_thumbnail( $ids[ $slug ], salt_harness_single_image( (string) $item['image'], $media ) );
-		}
-	}
-	return $ids[ $slug ];
-}
-
-/**
- * GET a URL from the harness server: the status and the body.
- *
- * @param string $url URL.
- * @return array{int,string}
- */
-function salt_harness_get( string $url ): array {
-	$context = stream_context_create(
-		array(
-			'http' => array(
-				'ignore_errors' => true,
-				'timeout'       => 120,
-			),
-		)
-	);
-	$body    = (string) file_get_contents( $url, false, $context ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- The harness's own local server.
-	$headers = function_exists( 'http_get_last_response_headers' ) ? (array) http_get_last_response_headers() : ( $http_response_header ?? array() );
-	$status  = 0;
-	foreach ( $headers as $header ) {
-		if ( 1 === preg_match( '#^HTTP/\S+\s+(\d{3})#', (string) $header, $m ) ) {
-			$status = (int) $m[1];
-		}
-	}
-	return array( $status, $body );
-}
+require __DIR__ . '/seed.php';
 
 /**
  * Request a page and check it answers 200 and draws every expected fragment.
@@ -155,59 +55,16 @@ function salt_harness_single_check( string $what, int $id, array $expect, array 
 	return $body;
 }
 
-// A site has its menus: the chrome logs a theme location with none, as it should.
-foreach ( array( 'primary', 'footer' ) as $location ) {
-	$menu = wp_create_nav_menu( 'Harness ' . $location );
-	wp_update_nav_menu_item(
-		(int) $menu,
-		0,
-		array(
-			'menu-item-title'  => 'Home',
-			'menu-item-url'    => home_url( '/' ),
-			'menu-item-status' => 'publish',
-		)
-	);
-	$locations              = (array) get_theme_mod( 'nav_menu_locations', array() );
-	$locations[ $location ] = (int) $menu;
-	set_theme_mod( 'nav_menu_locations', $locations );
-}
+salt_harness_seed_menus();
 
 // ── The service (fixtures/service/full.json) ─────────────────────────────────────────────────
 $case    = salt_harness_fixture( 'service/full' );
 $doc     = $case['document'];
 $media   = (array) ( $case['media'] ?? array() );
-$enquire = (int) wp_insert_post(
-	array(
-		'post_type'   => 'page',
-		'post_status' => 'publish',
-		'post_title'  => (string) $case['documents'][ $doc['cta']['document'] ]['title'],
-	)
-);
-$related = array_map( static fn( array $item ): int => salt_harness_single_service( $item, $media ), $doc['related'] );
-$service = (int) wp_insert_post(
-	array(
-		'post_type'    => 'service',
-		'post_status'  => 'publish',
-		'post_title'   => (string) $doc['title'],
-		'post_excerpt' => (string) $doc['summary'],
-		'post_content' => (string) $doc['intro'],
-	)
-);
-update_field( 'benefits', array_map( static fn( string $text ): array => array( 'text' => $text ), $doc['benefits'] ), $service );
-update_field( 'priceFrom', (string) $doc['priceFrom'], $service );
-update_field( 'relatedServices', $related, $service );
-update_field(
-	'cta',
-	array(
-		'label'    => (string) $doc['cta']['label'],
-		'type'     => (string) $doc['cta']['type'],
-		'document' => $enquire,
-		'url'      => '',
-		'newTab'   => (bool) $doc['cta']['newTab'],
-	),
-	$service
-);
-$expect = array(
+$seeded  = salt_harness_seed_service( $case );
+$service = $seeded['id'];
+$enquire = $seeded['enquire'];
+$expect  = array(
 	'title'               => '>' . esc_html( $doc['title'] ) . '</h1>',
 	'summary'             => esc_html( $doc['summary'] ),
 	'price'               => esc_html( $doc['priceFrom'] ),
@@ -251,7 +108,7 @@ $probe = (int) wp_insert_post(
 		'post_type'    => 'service',
 		'post_status'  => 'publish',
 		'post_title'   => 'Harness intro probe',
-		'post_content' => "First paragraph with <strong>bold</strong>.\n\n[gallery ids=\"{$related[0]}\"]\n\nhttps://www.youtube.com/watch?v=abc123\n\n<img src=\"x.jpg\" alt=\"\">",
+		'post_content' => "First paragraph with <strong>bold</strong>.\n\n[gallery ids=\"{$seeded['related'][0]}\"]\n\nhttps://www.youtube.com/watch?v=abc123\n\n<img src=\"x.jpg\" alt=\"\">",
 	)
 );
 salt_harness_single_check(
@@ -270,26 +127,10 @@ salt_harness_single_check(
 );
 
 // ── The case study (fixtures/case-study/full.json) ───────────────────────────────────────────
-$case  = salt_harness_fixture( 'case-study/full' );
-$doc   = $case['document'];
-$media = (array) ( $case['media'] ?? array() );
-$work  = (int) wp_insert_post(
-	array(
-		'post_type'    => 'work',
-		'post_status'  => 'publish',
-		'post_title'   => (string) $doc['title'],
-		'post_excerpt' => (string) $doc['summary'],
-	)
-);
-set_post_thumbnail( $work, salt_harness_single_image( (string) $doc['image'], $media ) );
-update_field( 'client', (string) $doc['client'], $work );
-update_field( 'challenge', (string) $doc['challenge'], $work );
-update_field( 'solution', (string) $doc['solution'], $work );
-update_field( 'results', $doc['results'], $work );
-update_field( 'details', $doc['details'], $work );
-update_field( 'gallery', array_map( static fn( string $name ): int => salt_harness_single_image( $name, $media ), $doc['gallery'] ), $work );
-update_field( 'externalUrl', (string) $doc['externalUrl'], $work );
-update_field( 'services', array_map( static fn( array $item ): int => salt_harness_single_service( $item, $media ), $doc['services'] ), $work );
+$case   = salt_harness_fixture( 'case-study/full' );
+$doc    = $case['document'];
+$media  = (array) ( $case['media'] ?? array() );
+$work   = salt_harness_seed_case_study( $case );
 $expect = array(
 	'title'          => '>' . esc_html( $doc['title'] ) . '</h1>',
 	'summary'        => esc_html( $doc['summary'] ),
@@ -318,36 +159,9 @@ salt_harness_info( 'details is stored but not drawn (M4): get_field returns ' . 
 $case   = salt_harness_fixture( 'post/full' );
 $doc    = $case['document'];
 $media  = (array) ( $case['media'] ?? array() );
-$topics = array();
-foreach ( $doc['topics'] as $topic ) {
-	$term     = wp_insert_term( (string) $topic['title'], 'category' );
-	$topics[] = is_array( $term ) ? (int) $term['term_id'] : 0;
-}
-$post = (int) wp_insert_post(
-	array(
-		'post_type'     => 'post',
-		'post_status'   => 'publish',
-		'post_title'    => (string) $doc['title'],
-		'post_content'  => (string) $doc['body'],
-		'post_date'     => $doc['date'] . ' 09:00:00',
-		'post_category' => $topics,
-		'post_author'   => 1,
-	)
-);
-set_post_thumbnail( $post, salt_harness_single_image( (string) $doc['featuredImage'], $media ) );
-// The credited author is a team member (ID-3952 draws it); stored, as the contract shapes it.
-$member = (int) wp_insert_post(
-	array(
-		'post_type'   => 'team_member',
-		'post_status' => 'publish',
-		'post_title'  => (string) $doc['author']['name'],
-	)
-);
-update_field( 'role', (string) $doc['author']['role'], $member );
-update_field( 'bio', (string) $doc['author']['bio'], $member );
-set_post_thumbnail( $member, salt_harness_single_image( (string) $doc['author']['photo'], $media ) );
-update_field( 'author', $member, $post );
-update_field( 'primaryTopic', $topics[0], $post );
+$seeded = salt_harness_seed_post( $case );
+$post   = $seeded['id'];
+$member = $seeded['member'];
 salt_harness_single_check(
 	'single-post.php draws the contract\'s post/full',
 	$post,

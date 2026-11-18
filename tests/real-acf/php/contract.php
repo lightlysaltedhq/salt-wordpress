@@ -24,6 +24,7 @@
  */
 
 require __DIR__ . '/wp.php';
+require __DIR__ . '/seed.php';
 
 wp_set_current_user( 1 );
 
@@ -444,26 +445,6 @@ salt_harness_exit();
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────
 
 /**
- * A field's sub field by name.
- *
- * @param array<int,array<string,mixed>> $fields Sub fields.
- * @param string                         $name   Name.
- * @return array<string,mixed>
- */
-function salt_harness_sub( array $fields, string $name ): array {
-	foreach ( $fields as $field ) {
-		if ( ( $field['name'] ?? '' ) === $name ) {
-			return $field;
-		}
-	}
-	return array(
-		'type' => 'missing',
-		'key'  => '',
-		'name' => $name,
-	);
-}
-
-/**
  * The first choice of a select at a dotted path in a layout.
  *
  * @param array<string,mixed> $layout Layout.
@@ -497,107 +478,6 @@ function salt_harness_templates( array $fields, string $prefix ): array {
 		}
 	}
 	return $out;
-}
-
-/**
- * A real 1x1 PNG attachment per media name, made once.
- *
- * @param string $name Fixture media name.
- * @return int Attachment ID.
- */
-function salt_harness_attachment( string $name ): int {
-	static $ids = array();
-	if ( isset( $ids[ $name ] ) ) {
-		return $ids[ $name ];
-	}
-	$uploads = wp_upload_dir();
-	$file    = $uploads['path'] . '/' . $name . '.png';
-	file_put_contents( $file, base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- A fixed 1x1 PNG.
-	$id = wp_insert_attachment(
-		array(
-			'post_title'     => $name,
-			'post_mime_type' => 'image/png',
-			'post_status'    => 'inherit',
-			'guid'           => $uploads['url'] . '/' . $name . '.png',
-		),
-		$file
-	);
-	wp_update_attachment_metadata(
-		$id,
-		array(
-			'width'  => 1,
-			'height' => 1,
-			'file'   => _wp_relative_upload_path( $file ),
-			'sizes'  => array(),
-		)
-	);
-	$ids[ $name ] = (int) $id;
-	return $ids[ $name ];
-}
-
-/**
- * A published post of a type per document name, made once.
- *
- * @param string $name      Fixture document name.
- * @param string $post_type Post type.
- * @return int Post ID.
- */
-function salt_harness_document( string $name, string $post_type ): int {
-	static $ids = array();
-	$key        = $post_type . ':' . $name;
-	if ( ! isset( $ids[ $key ] ) ) {
-		$ids[ $key ] = (int) wp_insert_post(
-			array(
-				'post_type'   => $post_type,
-				'post_status' => 'publish',
-				'post_title'  => ucfirst( $name ),
-				'post_name'   => $name,
-			)
-		);
-	}
-	return $ids[ $key ];
-}
-
-/**
- * Contract-shaped values to what ACF stores: named media and documents become
- * IDs; everything else is passed as the contract has it.
- *
- * @param mixed               $value Contract value.
- * @param array<string,mixed> $field ACF field.
- * @return mixed
- */
-function salt_harness_to_acf( $value, array $field ) {
-	switch ( $field['type'] ) {
-		case 'group':
-			$out = array();
-			foreach ( (array) $value as $name => $v ) {
-				$out[ $name ] = salt_harness_to_acf( $v, salt_harness_sub( $field['sub_fields'], (string) $name ) );
-			}
-			return $out;
-		case 'repeater':
-			return array_map(
-				static fn( $row ) => salt_harness_to_acf(
-					$row,
-					array(
-						'type'       => 'group',
-						'sub_fields' => $field['sub_fields'],
-					)
-				),
-				(array) $value
-			);
-		case 'image':
-			return salt_harness_attachment( (string) $value );
-		case 'gallery':
-			return array_map( static fn( $v ) => salt_harness_attachment( (string) $v ), (array) $value );
-		case 'post_object':
-			return salt_harness_document( (string) $value, (string) ( $field['post_type'][0] ?? 'page' ) );
-		case 'relationship':
-			return array_map( static fn( $v ) => salt_harness_document( (string) $v, (string) ( $field['post_type'][0] ?? 'page' ) ), (array) $value );
-		case 'taxonomy':
-			return array_map( static fn( $v ) => (int) ( wp_insert_term( (string) $v, $field['taxonomy'] )['term_id'] ?? 0 ), (array) $value );
-		default:
-			return $value;
-	}
 }
 
 /**

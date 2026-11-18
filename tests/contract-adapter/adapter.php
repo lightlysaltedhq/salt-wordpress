@@ -20,14 +20,20 @@
  *    salt_render_section(): the theme's resolver and view for that section;
  *  - a chrome case (site-header, site-footer): the case's `site` is seeded
  *    into the theme's options and bloginfo, and the template part rendered;
- *  - a view or the page: not rendered yet (they need WordPress's loop and
- *    document head); the case fails with exit 4 and says so.
+ *  - a view or the page: these need WordPress's loop and document head, so
+ *    they are rendered by the real-ACF harness's running WordPress when one
+ *    is up (tests/real-acf/run.sh --conformance sets SALT_HARNESS_WP and
+ *    SALT_HARNESS_URL): the case goes to tests/real-acf/php/view.php, which
+ *    seeds it into the site, requests its path and writes main#main, or the
+ *    whole document for the page; its output and exit status are this
+ *    adapter's. Without the harness, the case fails with exit 4 and says so.
  *
- * Exit codes: 0 rendered; 2 the input is not a case; 3 the theme does not
- * ship the section (or has no section for the case's source); 4 the adapter
- * cannot render this kind of case yet; 70 the render raised a PHP error,
- * warning, notice or deprecation, or threw. Diagnostics go to stderr, never
- * stdout, so no PHP diagnostic can pass as markup.
+ * Exit codes: 0 rendered; 1 the harness's site answered the wrong status;
+ * 2 the input is not a case; 3 the theme does not ship the section (or has
+ * no section for the case's source); 4 the adapter cannot render this kind
+ * of case without the harness; 70 the render raised a PHP error, warning,
+ * notice or deprecation, or threw. Diagnostics go to stderr, never stdout,
+ * so no PHP diagnostic can pass as markup.
  *
  * Usage: php tests/contract-adapter/adapter.php < fixtures/hero/empty.json
  *
@@ -544,6 +550,22 @@ if ( ! is_array( $salt_adapter_input ) ) {
 	salt_adapter_stop( 2, 'salt adapter: stdin is not a fixture case.' );
 }
 
+$salt_adapter_wp = (string) getenv( 'SALT_HARNESS_WP' );
+if ( ( isset( $salt_adapter_input['view'] ) || isset( $salt_adapter_input['page'] ) ) && '' !== $salt_adapter_wp && '' !== (string) getenv( 'SALT_HARNESS_URL' ) && is_file( $salt_adapter_wp . '/wp-load.php' ) ) {
+	// The harness's site renders it: the case on stdin, its stdout and stderr passed through.
+	$salt_adapter_view = proc_open( // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- CLI tooling: the harness's own script.
+		array( PHP_BINARY, SALT_ADAPTER_THEME . '/tests/real-acf/php/view.php' ),
+		array(
+			0 => array( 'pipe', 'r' ),
+			1 => STDOUT,
+			2 => STDERR,
+		),
+		$salt_adapter_pipes
+	);
+	fwrite( $salt_adapter_pipes[0], (string) json_encode( $salt_adapter_input ) );
+	fclose( $salt_adapter_pipes[0] );
+	exit( proc_close( $salt_adapter_view ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- An exit status, not output.
+}
 if ( isset( $salt_adapter_input['view'] ) || isset( $salt_adapter_input['page'] ) ) {
 	salt_adapter_stop(
 		4,

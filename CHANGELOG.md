@@ -24,6 +24,22 @@ markup granularity (cross-reference your site's override manifest).
   The baseline report against salt-contract 1.0.0-rc.6 is committed in
   `tests/contract-adapter/baseline/` as M4's worklist. Views and the page
   are not rendered yet. See `tests/contract-adapter/README.md`.
+- **The contract's view and page cases render on the real-ACF harness's
+  WordPress (ID-3626, EP-72 M3 unit 5b).** `npm run conformance:harness`
+  (`tests/real-acf/run.sh --conformance`) builds the harness's site with
+  ACF Pro, keeps it up and runs `npm run conformance:contract` against it.
+  With the site up, the adapter hands each view and page case to
+  `tests/real-acf/php/view.php`. That script resets the site, seeds the
+  case's document, site, route, media and documents into posts, terms,
+  options and routes, requests `context.path` (a search at WordPress's own
+  `/?s=`), and returns `main#main`, or the whole document for the page.
+  Without the harness, those cases still exit 4. All 23 view and page cases in salt-contract 1.0.0-rc.7 now render
+  with no PHP diagnostic and differ only in their markup. Any PHP notice,
+  warning, deprecation or error fails the case (exit 70) and the run. The
+  committed baseline is regenerated from this run, and it is the same byte
+  for byte on PHP 8.2 and 8.5. The harness's phases now share their seeding
+  helpers in `tests/real-acf/php/seed.php`, and `db.php` can snapshot and
+  restore the site's tables. No theme code changed.
 - **The contract's token layer and stylesheet, beside Tailwind (ID-3611,
   EP-72 M3 unit 9).** `assets/src/css/app.css` now emits every token
   salt-contract 1.0.0-rc.6's `contract/token-layer.json` asks of a theme
