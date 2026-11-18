@@ -1,11 +1,11 @@
-# Salt conformance: wordpress 6.0.0-dev against @lightlysaltedhq/salt-contract 1.0.0-rc.6
+# Salt conformance: wordpress 6.0.0-dev against @lightlysaltedhq/salt-contract 1.0.0-rc.7
 
 **Partial, not conforming.** 0 section(s) pass, 14 fail, 0 incomplete, 3 not shipped. Chrome, views and page: 0 pass, 9 fail, 0 not shipped. Adapter: command `php tests/contract-adapter/adapter.php`.
 
 | Section | Fixtures | Field parity | Classes | Stylesheet pin |
 | --- | --- | --- | --- | --- |
 | hero | 1/10 | pass | pass | pass |
-| rich-text | 1/5 | pass | pass | pass |
+| rich-text | 1/7 | pass | pass | pass |
 | call-to-action | 1/4 | pass | pass | pass |
 | media-text | 1/4 | pass | pass | pass |
 | features | 1/4 | pass | pass | pass |
@@ -27,7 +27,7 @@
 | site-header | chrome | 0/6 | pass |
 | site-footer | chrome | 0/5 | pass |
 | page | page | 0/4 | pass |
-| post | view | 0/2 | pass |
+| post | view | 0/6 | pass |
 | service | view | 0/2 | pass |
 | case-study | view | 0/4 | pass |
 | archive | view | 0/2 | pass |
@@ -36,7 +36,7 @@
 
 ## Stylesheet pin
 
-Pass: `assets/dist/salt.4f3bca2639/salt.css` against this contract's `styles/salt.css` (1.0.0-rc.6): identical.
+Pass: `assets/dist/salt.4f3bca2639/salt.css` against this contract's `styles/salt.css` (1.0.0-rc.7): identical.
 
 ## Field parity
 
@@ -58,9 +58,11 @@ acf snapshot `inc/fields/generated/sections.json` with options `inc/fields/gener
 
 ### rich-text
 
+- `rich-text/body-headings-two-to-six`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface" data-tone-dark="surface" data-track="rich-text-1" data-width="default" id="border" style="--salt-section-space:var(--space-section-md)">`, found `<section class="bg-surface md:py-20 py-14 section-rich-text text-ink x-section" data-section="rich-text" id="border">`
 - `rich-text/body-only-first-on-page`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface" data-tone-dark="surface" data-track="rich-text-1" data-width="default" id="approach-first" style="--salt-section-space:var(--space-secti…`, found `<section class="bg-surface md:py-20 py-14 section-rich-text text-ink x-section" data-section="rich-text" id="approach-first">`
 - `rich-text/body-only-no-heading`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface" data-tone-dark="surface" data-track="rich-text-1" data-width="default" id="approach" style="--salt-section-space:var(--space-section-md)…`, found `<section class="bg-surface md:py-20 py-14 section-rich-text text-ink x-section" data-section="rich-text" id="approach">`
 - `rich-text/centre-inverse`: attribute `aria-labelledby` at `section.salt-section`: expected `small-team__heading`, found nothing
+- `rich-text/heading-headings-shift-down`: attribute `aria-labelledby` at `section.salt-section`: expected `planting-notes__heading`, found nothing
 - `rich-text/left-eyebrow-heading-body`: attribute `aria-labelledby` at `section.salt-section`: expected `how-we-work__heading`, found nothing
 
 ### call-to-action
@@ -107,8 +109,8 @@ acf snapshot `inc/fields/generated/sections.json` with options `inc/fields/gener
 
 ### faq
 
-- `faq/many`: missing at `section.salt-section`: expected `<section aria-labelledby="faq-help__heading" class="salt-section" data-spacing="md" data-tone="surface" data-tone-dark="surface" data-track="faq-1" data-width="default" id="faq-help" style="--salt-sec…`, found nothing
-- `faq/one-inverse`: missing at `section.salt-section`: expected `<section aria-labelledby="faq-one__heading" class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="faq-1" data-width="default" id="faq-one" sty…`, found nothing
+- `faq/many`: attribute `aria-labelledby` at `section.salt-section`: expected `faq-help__heading`, found nothing
+- `faq/one-inverse`: attribute `aria-labelledby` at `section.salt-section`: expected `faq-one__heading`, found nothing
 
 ### collection-showcase
 
@@ -169,6 +171,10 @@ acf snapshot `inc/fields/generated/sections.json` with options `inc/fields/gener
 
 ### post
 
+- `post/band-call-to-action`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `post/band-faq`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `post/band-gallery-one-image`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `post/band-media-text`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
 - `post/full`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
 - `post/minimal`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
 
