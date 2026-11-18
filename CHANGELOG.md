@@ -10,6 +10,15 @@ markup granularity (cross-reference your site's override manifest).
 
 ### Added
 
+- **salt-contract pinned exactly (ID-3627).** `@lightlysaltedhq/salt-contract`
+  1.0.0-rc.6 is a devDependency on a committed `npm pack` tarball,
+  `vendor-contract/lightlysaltedhq-salt-contract-1.0.0-rc.6.tgz`, packed
+  from lightlysaltedhq/contracts at `30fe7ef`, because release candidates
+  are never published. `tests/conformance/SaltContractPinTest.php` fails
+  on any other spec in `package.json` or the lockfile, on a changed byte
+  in the tarball, and on an installed copy that is not the tarball's files
+  unchanged. Read at build and test time only; the tarball is
+  `export-ignore`d, so client sites never receive it.
 - **Declared extension points: `salt-overrides.json` (ID-3613).** The
   parent reads the salt-contract's replaced-logic declaration
   (`schema/replaced-logic.schema.json`, SC-015) from the root of the child
