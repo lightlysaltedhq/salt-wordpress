@@ -10,6 +10,19 @@ markup granularity (cross-reference your site's override manifest).
 
 ### Added
 
+- **A PHP fixture adapter and a partial contract conformance baseline
+  (ID-3626, EP-72 M3 unit 5).** `tests/contract-adapter/adapter.php` is
+  the command adapter for the pinned salt-contract's conformance runner.
+  It reads one fixture case on stdin and seeds its values into the ACF
+  shims in the contract's stored shape. It then renders the case through
+  the theme's resolver and view, or the chrome's template part, without
+  WordPress. Any PHP diagnostic fails the case. `npm run
+  conformance:contract` runs it with `--partial`; it always exits 1, as
+  every partial run does (SC-017). The run left out field parity (unit 3)
+  and the stylesheet pin (unit 9), and `tabs` and `listing` are not shipped.
+  The baseline report against salt-contract 1.0.0-rc.6 is committed in
+  `tests/contract-adapter/baseline/` as M4's worklist. Views and the page
+  are not rendered yet. See `tests/contract-adapter/README.md`.
 - **Real ACF Pro harness for the contract's field shape (ID-3610, EP-72
   M3 unit 2).** `tests/real-acf/run.sh --php 8.2|8.5` builds a throwaway
   WordPress 6.8 with the theme and ACF Pro 6.8.11 (the hash-checked zip,
