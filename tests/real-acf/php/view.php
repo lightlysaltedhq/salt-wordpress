@@ -39,7 +39,7 @@
  * search view at WordPress's own search address, /?s=<query>), and writes
  * main#main, or the whole document for the page. Exit 0 rendered; 1 the
  * site answered another status than the view's (200, or 404 for
- * not-found); 70 a PHP notice, warning, deprecation or error reached
+ * not-found); 4 a view it has no seeding for; 70 a PHP notice, warning, deprecation or error reached
  * debug.log while the case was seeded or rendered, each written to stderr.
  * The theme's salt_log lines are written to stderr and do not fail it.
  *
@@ -247,7 +247,7 @@ function salt_view_card( array $card, array $media, array $more ): int {
 			'post_title'   => (string) $card['title'],
 			'post_name'    => salt_harness_slug( (string) ( $card['href'] ?? '' ) ),
 			'post_excerpt' => (string) ( $card['text'] ?? '' ),
-			'post_date'    => isset( $card['date'] ) ? $card['date'] . ' 09:00:00' : '',
+			'post_date'    => isset( $card['date'] ) ? $card['date'] . ' 09:00:00' : '2026-01-01 09:00:00', // Fixed, so the report does not change day to day.
 		)
 	);
 	if ( isset( $card['image'] ) ) {
@@ -363,8 +363,9 @@ switch ( $salt_view_kind ) {
 	case 'not-found':
 		break;
 	default:
-		fwrite( STDERR, "salt harness: no seeding for the view {$salt_view_kind}\n" );
-		exit( 2 );
+		// As the adapter's exit 4: a kind of case it cannot render yet, not input that is no case.
+		fwrite( STDERR, "salt harness: the view {$salt_view_kind} is not rendered by the harness yet: view.php has no seeding for it\n" );
+		exit( 4 );
 }
 $salt_view_stray = (string) ob_get_clean();
 if ( '' !== $salt_view_stray ) {

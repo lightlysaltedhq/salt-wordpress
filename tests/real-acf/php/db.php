@@ -56,7 +56,8 @@ try {
 				$salt_harness_db->query( "CREATE TABLE `base_{$salt_harness_table}` LIKE `{$salt_harness_table}`" );
 				$salt_harness_db->query( "INSERT INTO `base_{$salt_harness_table}` SELECT * FROM `{$salt_harness_table}`" );
 			} else {
-				// TRUNCATE resets the next ID; the copied rows then set it as the snapshot had it.
+				// TRUNCATE resets the counter; the copied rows then set the next ID to the highest restored
+				// ID plus one. That is not always the next ID the snapshot had, but it is the same on every restore.
 				$salt_harness_db->query( "TRUNCATE TABLE `{$salt_harness_table}`" );
 				$salt_harness_db->query( "INSERT INTO `{$salt_harness_table}` SELECT * FROM `base_{$salt_harness_table}`" );
 			}
