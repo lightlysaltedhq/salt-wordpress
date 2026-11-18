@@ -122,10 +122,14 @@ real-ACF harness's WordPress (below).
   - The page is a page with the document's title at the case's path (the front page for `/`),
     with its `document.sections` as rows of `sections`.
   - A post, service or case study is seeded as the singles phase seeds it, at its path. A post's
-    `document.sections` become rows of its `layout` field. Its `adjacent` newer and older posts
+    `body` is the first row of its `layout` field (a rich-text section that is prose alone), its
+    `document.sections` the rows after it, its author a team member and its category its primary
+    topic. Its `adjacent` newer and older posts
     are dated a day after and before it. The case's `collections` become posts of their types.
-  - An archive's topic becomes a category with its description. Its author becomes a user whose
-    slug is the href's and whose name is the title. `route.cards` become posts in it or by them.
+  - An archive's topic becomes a category with its description. Its author becomes a published
+    team member whose slug is the href's and whose name is the title, with the strapline as its
+    role, the biography as its bio and the photo as its featured image (the theme's provisional
+    mapping, ID-3952). `route.cards` become posts in the topic or crediting the team member.
   - Each search result becomes a document of its kind (`Post`, `Service`, `Page`). The search is
     requested at WordPress's own address, `/?s=<query>`, since routing stays native (SC-003); the
     theme registers no `/search/` route. A not-found case seeds nothing and expects a 404.
@@ -140,8 +144,7 @@ real-ACF harness's WordPress (below).
   results) are fixed for the same reason.
 
   What the theme cannot hold yet, it does not draw, and the report shows that as a markup
-  difference. The case's `labels` are the theme's own strings. A post's sections and its author
-  as a team member, and an author's archive by team member, wait for ID-3952. A case study's
+  difference. The case's `labels` are the theme's own strings. A case study's
   `site.caseStudy` layout has no option in the theme yet. Pagination draws only what WordPress
   holds: a case gives one page of cards or results, not the documents behind its `total` or
   `count`.

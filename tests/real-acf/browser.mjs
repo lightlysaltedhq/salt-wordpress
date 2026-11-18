@@ -18,7 +18,9 @@
  * 6. The Topics box and term screens offer no parent; the service editor has
  *    no Add Media button and Text tab buttons for its list alone; a service
  *    or post summary of 301 two-byte characters is refused and 300 published;
- *    the post fields unit 10 wires are not drawn.
+ *    a post's editor is the section builder (layout) with the credited
+ *    author, no classic editor and no Tags box, and its Topics box has no
+ *    parent and holds the primary topic.
  * 7. The url format on save: a service's external cta link and a case
  *    study's externalUrl refuse /contact, #pricing, //x.example, javascript:
  *    and ftp:, and take https and mailto.
@@ -331,7 +333,7 @@ try {
 		screen.errors.slice( 0, 10 ).forEach( info );
 		await close( screen.page );
 	}
-	// ── 6. Topics, the service editor, the hidden post fields and the summary check ─────────
+	// ── 6. Topics, the service editor, the post editor and the summary check ─────────
 	{
 		// The Topics box on a new service: labelled Topics, its "add new" form has no parent.
 		const { page, errors } = await open( '/wp-admin/post-new.php?post_type=service' );
@@ -392,10 +394,24 @@ try {
 				// The first autosave already put post.php?post=N in the address; a save adds message=.
 				await Promise.all( [ p.waitForURL( /message=\d+/, { timeout: 120000 } ), p.click( '#publish' ) ] );
 				result( publishedWithTitle( title, type ) === 1, `a ${ type } summary of 300 characters is published`, '300 two-byte characters' );
-				const hidden = await p.evaluate( () =>
-					[ 'author', 'primary_topic', 'layout' ].filter( ( n ) => document.querySelector( `.acf-field[data-key="field_salt_collection_posts_${ n }"]` ) )
+				const post = await p.evaluate( () => {
+					const field = ( n ) => document.querySelector( `.acf-field[data-key="field_salt_collection_posts_${ n }"]` );
+					const box = document.querySelector( '#categorydiv' );
+					return {
+						author: !! field( 'author' ) && ! box?.contains( field( 'author' ) ),
+						layout: !! field( 'layout' ),
+						primary: document.querySelectorAll( '.acf-field[data-key="field_salt_collection_posts_primary_topic"]' ).length === 1 && !! box?.contains( field( 'primary_topic' ) ),
+						title: box?.querySelector( '.hndle, h2' )?.textContent.trim(),
+						parent: !! document.querySelector( '[name="newcategory_parent"], label[for="newcategory_parent"]' ),
+						editor: !! document.querySelector( '#postdivrich' ),
+						tags: !! document.querySelector( '#tagsdiv-post_tag' ),
+					};
+				} );
+				result(
+					post.author && post.layout && post.primary && post.title === 'Topics' && ! post.parent && ! post.editor && ! post.tags,
+					'the post editor is the section builder, with the credited author and the primary topic in the Topics box',
+					`author ${ post.author ? 'drawn' : 'MISSING' }; layout ${ post.layout ? 'drawn' : 'MISSING' }; primary topic ${ post.primary ? 'in the box' : 'NOT IN THE BOX' }; box "${ post.title }"; parent ${ post.parent ? 'PRESENT' : 'none' }; classic editor ${ post.editor ? 'PRESENT' : 'none' }; Tags box ${ post.tags ? 'PRESENT' : 'none' }`
 				);
-				result( hidden.length === 0, 'the post fields unit 10 wires are not in the editor', hidden.length ? `drawn: ${ hidden.join( ', ' ) }` : 'author, primaryTopic and layout not drawn' );
 			}
 			if ( screen === null ) {
 				await close( p );

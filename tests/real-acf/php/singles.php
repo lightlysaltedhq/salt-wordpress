@@ -166,17 +166,20 @@ salt_harness_single_check(
 	'single-post.php draws the contract\'s post/full',
 	$post,
 	array(
-		'title'          => '>' . esc_html( $doc['title'] ) . '</h1>',
-		'date'           => 'datetime="' . $doc['date'] . 'T09:00:00',
-		// Which topic the badge shows is primaryTopic's, which ID-3952 draws; today it is one of them.
-		'a topic badge'  => 'class="x-post-category',
-		'featured image' => 'alt="' . esc_attr( $media[ $doc['featuredImage'] ]['alt'] ) . '"',
-		'body'           => 'Most gardeners reach for a bottle of feed',
-		'body h3'        => '<h3>Why compost does the heavy lifting</h3>',
-		'body bold'      => '<strong>well-rotted</strong>',
+		'title'           => '>' . esc_html( $doc['title'] ) . '</h1>',
+		'date'            => 'datetime="' . $doc['date'] . 'T09:00:00',
+		// The badge is the primary topic (the fixture's category), not merely the first topic.
+		'primary topic'   => esc_html( $doc['category']['title'] ) . '</a></p>',
+		'credited author' => '>' . esc_html( $doc['author']['name'] ) . '</a>',
+		'author role'     => esc_html( $doc['author']['role'] ),
+		'author photo'    => 'alt="' . esc_attr( $media[ $doc['author']['photo'] ]['alt'] ) . '"',
+		'featured image'  => 'alt="' . esc_attr( $media[ $doc['featuredImage'] ]['alt'] ) . '"',
+		'body'            => 'Most gardeners reach for a bottle of feed',
+		'body h3'         => '<h3>Why compost does the heavy lifting</h3>',
+		'body bold'       => '<strong>well-rotted</strong>',
 	)
 );
-salt_harness_info( 'author and primaryTopic are stored, not drawn until ID-3952: author ' . (int) get_field( 'author', $post ) . ' (team member ' . $member . '), primaryTopic ' . (int) get_field( 'primaryTopic', $post ) );
+salt_harness_info( 'author ' . (int) get_field( 'author', $post ) . ' (team member ' . $member . '), primaryTopic ' . (int) get_field( 'primaryTopic', $post ) . '; the WordPress user is never drawn' );
 
 // ── Half stars (testimonials.json rating, step 0.5) ──────────────────────────────────────────
 $testimonial = (int) wp_insert_post(
