@@ -9,10 +9,17 @@
  *   author  string  ''        Author name (the testimonial post title).
  *   role    string  ''        Author role, e.g. "Founder".
  *   company string  ''        Company name (joined to role with a comma).
- *   rating  int     0         1–5 star rating; 0 = no rating shown. Out of
- *                             range is clamped to 0..5 + salt_log()ged. The
- *                             rating renders as one role="img" group with an
- *                             aria-label; the star icons are decorative.
+ *   rating  float   0         1–5 star rating in half stars (salt-contract
+ *                             rc.7 testimonials.json rating, step 0.5); 0 =
+ *                             no rating shown. Out of range is clamped to
+ *                             0..5 + salt_log()ged. The rating renders as
+ *                             one role="img" group with an aria-label. The
+ *                             stars are drawn as the contract's card draws
+ *                             them (markup/card.json, rating): five empty
+ *                             stars with five filled stars clipped to
+ *                             --salt-rating-fill, the rating as a
+ *                             percentage of 5, so 4.5 fills 90%. All of
+ *                             it is decorative.
  *   media   string  ''        PRE-RENDERED HTML slot (e.g. an x-image render
  *                             of the person's photo). Printed raw — the
  *                             producer escapes at print.
@@ -48,8 +55,8 @@ $args = salt_require_args( // phpcs:ignore WordPress.NamingConventions.PrefixAll
 			'default' => '',
 		),
 		'rating'  => array(
-			'type'    => 'int',
-			'default' => 0,
+			'type'    => 'float',
+			'default' => 0.0,
 		),
 		'media'   => array(
 			'type'    => 'string',
@@ -68,10 +75,10 @@ if ( '' === trim( $args['quote'] ) ) {
 	return;
 }
 
-$salt_rating = (int) $args['rating'];
+$salt_rating = (float) $args['rating'];
 if ( $salt_rating < 0 || $salt_rating > 5 ) {
-	salt_log( sprintf( 'x-card-testimonial: rating %d out of range — clamped to 0..5.', $salt_rating ) );
-	$salt_rating = max( 0, min( 5, $salt_rating ) );
+	salt_log( sprintf( 'x-card-testimonial: rating %s out of range — clamped to 0..5.', (string) $salt_rating ) );
+	$salt_rating = max( 0.0, min( 5.0, $salt_rating ) );
 }
 
 $salt_attribution_line = implode(
@@ -84,12 +91,17 @@ $salt_attribution_line = implode(
 
 $salt_has_attribution = '' !== trim( $args['author'] ) || '' !== $salt_attribution_line || '' !== $args['media'];
 
+// PENDING the founder's ruling: the contract's label is "{n} of {N}"
+// (markup/card.json) and does not say how a half value is written. It is
+// written "4.5" for now (PHP's own float string, the same in every locale),
+// not with the locale's decimal separator.
 $salt_rating_label = sprintf(
-	/* translators: 1: given star rating. 2: maximum star rating. */
-	__( 'Rated %1$d out of %2$d stars', 'salt' ),
-	$salt_rating,
+	/* translators: 1: given star rating, such as 4 or 4.5. 2: maximum star rating. */
+	__( 'Rated %1$s out of %2$d stars', 'salt' ),
+	(string) $salt_rating,
 	5
 );
+$salt_rating_fill = salt_rating_fill( $salt_rating );
 
 $salt_classes = salt_classnames(
 	array(
@@ -101,31 +113,34 @@ $salt_classes = salt_classnames(
 <figure class="<?php echo esc_attr( $salt_classes ); ?>">
 	<?php if ( $salt_rating >= 1 ) : ?>
 	<div class="x-card-testimonial-rating flex gap-1 text-brand" role="img" aria-label="<?php echo esc_attr( $salt_rating_label ); ?>">
-		<?php
-		// Always 5 stars: {rating} filled + the remainder muted outlines, so
-		// a 3/5 is visually distinct from a 5/5 (not just fewer glyphs).
-		for ( $salt_star = 1; $salt_star <= 5; $salt_star++ ) {
-			if ( $salt_star <= $salt_rating ) {
+		<span class="x-card-testimonial-stars relative inline-flex gap-1 text-border" aria-hidden="true" style="<?php echo esc_attr( '--salt-rating-fill: ' . $salt_rating_fill ); ?>">
+			<?php
+			// Five empty stars, with five filled stars clipped to the
+			// rating's share of 5 laid over them (contract card: rating).
+			for ( $salt_star = 1; $salt_star <= 5; $salt_star++ ) {
 				salt_component(
 					'icon',
 					array(
-						'name' => 'star-filled',
+						'name' => 'star',
 						'size' => 'sm',
 					)
 				);
-				continue;
 			}
-			echo '<span class="x-card-testimonial-star-empty text-border">';
-			salt_component(
-				'icon',
-				array(
-					'name' => 'star',
-					'size' => 'sm',
-				)
-			);
-			echo '</span>';
-		}
-		?>
+			?>
+			<span class="x-card-testimonial-stars-fill absolute inset-y-0 left-0 flex w-(--salt-rating-fill) gap-1 overflow-hidden text-brand">
+				<?php
+				for ( $salt_star = 1; $salt_star <= 5; $salt_star++ ) {
+					salt_component(
+						'icon',
+						array(
+							'name' => 'star-filled',
+							'size' => 'sm',
+						)
+					);
+				}
+				?>
+			</span>
+		</span>
 	</div>
 	<?php endif; ?>
 	<blockquote class="x-card-testimonial-quote whitespace-pre-line text-ink"><?php echo esc_html( $args['quote'] ); ?></blockquote>

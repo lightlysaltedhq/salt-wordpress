@@ -17,8 +17,8 @@
  *   props  array{ eyebrow: string|null, heading: string|null,
  *                 layout: 'grid'|'slider',
  *                 items: array<int, array{author: string, quote: string, role: string,
- *                          company: string, rating: int, photo_id: int}> }
- *          items is never empty; rating is 0..5; photo_id 0 = no photo.
+ *                          company: string, rating: float, photo_id: int}> }
+ *          items is never empty; rating is 0..5 in half stars; photo_id 0 = no photo.
  *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
  *
  * @package Salt

@@ -81,3 +81,15 @@ function salt_post_summary( $post ): string {
 	$post = $post instanceof WP_Post ? $post : get_post( (int) $post );
 	return $post instanceof WP_Post ? trim( (string) $post->post_excerpt ) : '';
 }
+
+/**
+ * The share of five stars a rating fills, as the contract's card writes it
+ * in --salt-rating-fill (markup/card.json, rating): the rating as a
+ * percentage of 5, so 4.5 is "90%" and 4 is "80%".
+ *
+ * @param float $rating Rating, 0..5.
+ * @return string CSS percentage.
+ */
+function salt_rating_fill( float $rating ): string {
+	return (string) round( max( 0.0, min( 5.0, $rating ) ) / 5 * 100, 2 ) . '%';
+}

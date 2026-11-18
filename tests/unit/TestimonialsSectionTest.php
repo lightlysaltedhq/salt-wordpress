@@ -14,6 +14,8 @@
 
 declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 require_once __DIR__ . '/../shims/acf.php';
 require_once __DIR__ . '/../shims/testimonial.php';
 require_once __DIR__ . '/../shims/media.php';
@@ -378,7 +380,41 @@ final class TestimonialsSectionTest extends SaltTestCase {
 
 		$this->assertStringContainsString( 'aria-label="Rated 5 out of 5 stars"', $html );
 		$this->assertStringContainsString( 'aria-label="Rated 4 out of 5 stars"', $html );
-		$this->assertSame( 10, substr_count( $html, 'aria-hidden="true"' ), 'Two rated cards x 5 decorative stars (filled + empty).' );
+		$this->assertSame( 22, substr_count( $html, 'aria-hidden="true"' ), 'Two rated cards, each a decorative stars span holding 5 empty and 5 filled star icons.' );
+	}
+
+	/**
+	 * Stored rating, its fill and its label (rc.7 testimonials.json rating,
+	 * step 0.5; markup/card.json rating).
+	 *
+	 * @return array<string,array{float|int,string,string}>
+	 */
+	public static function rating_provider(): array {
+		return array(
+			'4.5 draws four and a half stars' => array( 4.5, '90%', 'Rated 4.5 out of 5 stars' ),
+			'4 draws four stars'              => array( 4, '80%', 'Rated 4 out of 5 stars' ),
+			'1 draws one star'                => array( 1, '20%', 'Rated 1 out of 5 stars' ),
+			'5 draws five stars'              => array( 5, '100%', 'Rated 5 out of 5 stars' ),
+		);
+	}
+
+	#[DataProvider( 'rating_provider' )]
+	public function test_a_rating_fills_its_share_of_five_stars( float|int $stored, string $fill, string $label ): void {
+		$this->seed_standard_set();
+		$GLOBALS['salt_test_fields']['101']['rating'] = $stored;
+		unset( $GLOBALS['salt_test_fields']['103']['rating'] );
+
+		$html = $this->render_testimonials();
+
+		$this->assertStringContainsString( 'style="--salt-rating-fill: ' . $fill . '"', $html );
+		$this->assertSame( 1, substr_count( $html, 'style="--salt-rating-fill' ), 'One rated card.' );
+		// The label's "4.5" is provisional, pending the founder's ruling on how {n} is written.
+		$this->assertStringContainsString( 'aria-label="' . $label . '"', $html );
+		$stars = substr( $html, (int) strpos( $html, 'x-card-testimonial-stars ' ) );
+		$stars = substr( $stars, 0, (int) strpos( $stars, '</blockquote>' ) );
+		$fill  = substr( $stars, (int) strpos( $stars, 'x-card-testimonial-stars-fill' ) );
+		$this->assertSame( 10, substr_count( $stars, '<svg' ), 'Five empty stars and five filled ones.' );
+		$this->assertSame( 5, substr_count( $fill, '<svg' ), 'The five filled stars are in the clipped fill span.' );
 	}
 
 	// -----------------------------------------------------------------
@@ -496,7 +532,7 @@ final class TestimonialsSectionTest extends SaltTestCase {
 		$this->assertSame( 'Acme Ltd', $items[0]['company'] );
 		$this->assertSame( 56, $items[0]['photo_id'], 'The photo is the featured image.' );
 		$this->assertSame( 0, $items[1]['photo_id'] );
-		$this->assertSame( 5, $items[2]['rating'], 'The resolver clamps ratings.' );
+		$this->assertSame( 5.0, $items[2]['rating'], 'The resolver clamps ratings.' );
 		$this->assertStringContainsString( 'rating 9 on testimonial 103', implode( ' ', $this->logs() ) );
 
 		$this->assertStringNotContainsString( '<', (string) wp_json_encode( $items ), 'No pre-rendered component HTML in props (rule 3).' );

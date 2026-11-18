@@ -46,12 +46,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   layout   string       WordPress-local: 'grid' | 'slider' (invalid =>
  *                         'grid'). The contract splits this across two
  *                         sections, so it is not its `layout`.
- *   items    array<int, array{author: string, quote: string, role: string, company: string, rating: int, photo_id: int}>
+ *   items    array<int, array{author: string, quote: string, role: string, company: string, rating: float, photo_id: int}>
  *                         WordPress-local (contract `cards`): the
  *                         testimonials in query order; never empty. author
  *                         is the contract's name (the title). rating is
- *                         already clamped to 0..5 in whole stars (the half
- *                         star the contract allows is drawn in M4);
+ *                         clamped to 0..5 and kept in half stars (the
+ *                         card draws 4.5 as 90% of five stars);
  *                         photo_id is the photo's (featured image's)
  *                         attachment ID, 0 for none. The view renders the
  *                         card components itself (rule 3).
@@ -81,10 +81,12 @@ function salt_resolve_section_testimonials( array $context ): ?array {
 		}
 
 		$rating_raw = get_field( 'rating', $post_item->ID );
-		$rating     = is_numeric( $rating_raw ) ? (int) $rating_raw : 0;
+		// Half stars (rc.7 testimonials.json rating: 1 to 5, step 0.5): the
+		// stored value is kept as stored, only clamped to 0..5.
+		$rating = is_numeric( $rating_raw ) ? (float) $rating_raw : 0.0;
 		if ( $rating < 0 || $rating > 5 ) {
-			salt_log( sprintf( 'testimonials: rating %d on testimonial %d out of range — clamped to 0..5.', $rating, (int) $post_item->ID ) );
-			$rating = max( 0, min( 5, $rating ) );
+			salt_log( sprintf( 'testimonials: rating %s on testimonial %d out of range — clamped to 0..5.', (string) $rating, (int) $post_item->ID ) );
+			$rating = max( 0.0, min( 5.0, $rating ) );
 		}
 
 		$items[] = array(
