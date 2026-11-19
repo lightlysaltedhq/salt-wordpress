@@ -7,6 +7,7 @@
  *        php meta.php --published-title <title> [post type]   (count published; pages by default)
  *        php meta.php --the-content < list.json    (each through acf_the_content)
  *        php meta.php --term-name <name> <taxonomy>   (count the terms with that name)
+ *        php meta.php --post <post id>   (the post's status, title and excerpt)
  *
  * @package Salt\Tests\RealAcf
  */
@@ -30,6 +31,18 @@ if ( '--published-title' === ( $argv[1] ?? '' ) ) {
 
 if ( '--term-name' === ( $argv[1] ?? '' ) ) {
 	echo (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->terms} t JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = t.term_id WHERE tt.taxonomy = %s AND t.name = %s", (string) ( $argv[3] ?? '' ), (string) ( $argv[2] ?? '' ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the database itself, not a cache.
+	exit( 0 );
+}
+
+if ( '--post' === ( $argv[1] ?? '' ) ) {
+	$salt_harness_row = $wpdb->get_row( $wpdb->prepare( "SELECT post_status, post_title, post_excerpt FROM {$wpdb->posts} WHERE ID = %d", (int) ( $argv[2] ?? 0 ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the database itself, not a cache.
+	echo wp_json_encode(
+		array(
+			'status'  => $salt_harness_row['post_status'] ?? null,
+			'title'   => $salt_harness_row['post_title'] ?? null,
+			'excerpt' => $salt_harness_row['post_excerpt'] ?? null,
+		)
+	);
 	exit( 0 );
 }
 

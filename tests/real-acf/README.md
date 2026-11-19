@@ -145,18 +145,26 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
      diffed before and after, and each change is put in a named class or failed;
    - each rich-text editor offers only its field's contract list;
    - the Topics box and the topic screens offer no parent; the service editor has no Add Media
-     button and Text tab buttons for its list alone; a summary of 301 two-byte characters is
-     refused with the editor message on a service and a post, and 300 is accepted; a post's editor
-     is the section builder with the credited author, no classic editor and no Tags box, and its
-     Topics box has no parent and holds the primary topic;
+     button and Text tab buttons for its list alone; a summary shows "N / 300" as it is typed and
+     "Over the suggested 300 characters" past it, and a service summary over 300 saves as a
+     draft; a post with a title over 120 and a summary over 300 saves as a draft, publishes and
+     updates with both counts showing; a post's editor is the section builder with the credited
+     author, no classic editor and no Tags box, and its Topics box has no parent and holds the
+     primary topic;
    - a url that is not absolute http, https, mailto or tel is refused on save: a service's external
      cta refuses `/contact`, `#pricing`, `//x.example`, `javascript:` and `ftp:` and takes https and
      mailto, and a case study's `externalUrl` refuses a path and takes https;
-   - on each collection's edit screen, a title of 121 two-byte characters is refused with the
-     editor message and 120 is not;
-   - a topic name of 121 two-byte characters is refused with the editor message and not saved,
-     and 120 is saved, on the term add and edit screens and in the Topics box of a service, case
-     study, FAQ and location (by its button, by Enter, and as one part of a comma-separated list).
+   - on each collection's edit screen, the title shows "N / 120": past 60, "Search results may
+     shorten a title over about 60 characters" on services, case studies and posts only; past 120,
+     "Over the suggested 120 characters"; and a title over 120 saves as a draft. Nothing refuses
+     a save (`admin/character-count.js`);
+   - on the term add and edit screens of service topics and of posts' categories (labelled
+     Topics), the name shows "N / 120" and the note past it, and a name over 120 is added and
+     updated; quick edit and the Topics box's "add new" form have no count, and the box adds a
+     name over 120 too.
+
+   With `SALT_HARNESS_SCREENSHOTS` set to a directory, this phase saves pictures of the counts
+   there.
 8. Prints a summary, drops the database and removes the temporary directory, whether the run
    passed, failed or was interrupted.
 

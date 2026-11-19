@@ -16,21 +16,26 @@
  *    intro (its own editor) no heading. Read from the live TinyMCE, and
  *    proved by what it keeps of headings 2 to 6 set into it.
  * 6. The Topics box and term screens offer no parent; the service editor has
- *    no Add Media button and Text tab buttons for its list alone; a service
- *    or post summary of 301 two-byte characters is refused and 300 published;
- *    a post's editor is the section builder (layout) with the credited
- *    author, no classic editor and no Tags box, and its Topics box has no
- *    parent and holds the primary topic.
+ *    no Add Media button and Text tab buttons for its list alone; a summary
+ *    shows "N / 300" as it is typed and the note past 300, and a service
+ *    summary over 300 saves as a draft; a post with a title over 120 and a
+ *    summary over 300 saves as a draft, publishes and updates, the counts
+ *    showing each time; a post's editor is the section builder (layout) with
+ *    the credited author, no classic editor and no Tags box, and its Topics
+ *    box has no parent and holds the primary topic.
  * 7. The url format on save: a service's external cta link and a case
  *    study's externalUrl refuse /contact, #pricing, //x.example, javascript:
  *    and ftp:, and take https and mailto.
- * 8. The title limit: on each collection's edit screen a title of 121
- *    two-byte characters is refused with the message and not saved, and
- *    one of 120 is not refused (a post then publishes).
- * 9. The topic name limit: a name of 121 two-byte characters is refused with
- *    the message and not saved, and one of 120 is saved, on the term add and
- *    edit screens and in the Topics box of a service, case study, FAQ and
- *    location (by the button, by Enter and as one part of a comma list).
+ * 8. The title's count: on each collection's edit screen "N / 120", the
+ *    search note past 60 on services, case studies and posts only, the
+ *    strong note past 120, and a title over 120 saves as a draft.
+ * 9. The topic name's count: on the term add and edit screens of a topics
+ *    taxonomy and of posts' categories, "N / 120" and the note past 120; a
+ *    name over 120 is added and updated. No count in quick edit or in the
+ *    Topics box's add-new form, which adds a name over 120 too.
+ *
+ * With SALT_HARNESS_SCREENSHOTS set to a directory, it saves pictures of the
+ * counts there.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -107,6 +112,57 @@ async function open( target ) {
 async function close( page ) {
 	await page.close( { runBeforeUnload: false } );
 }
+
+// The character count beside a field (admin/character-count.js): its text, whether it is past
+// the target (is-over, red and bold), and the mark it is past.
+const countOf = ( p, field ) =>
+	p.evaluate( ( f ) => {
+		const c = document.getElementById( `salt-character-count-${ f }` );
+		return c ? { text: c.textContent.replace( /\s+/g, ' ' ).trim(), over: c.classList.contains( 'is-over' ), mark: c.dataset.mark } : null;
+	}, field );
+const counts = ( n, target, note = '' ) => `${ n } / ${ target }${ note ? ` ${ note }` : '' }`;
+const OVER = ( target ) => `Over the suggested ${ target } characters`;
+const SEARCH = 'Search results may shorten a title over about 60 characters';
+// A unique text of exactly n code points, the rest two-byte.
+const textOf = ( prefix, n ) => Array.from( `${ prefix } ${ Date.now() } ${ 'é'.repeat( n ) }` ).slice( 0, n ).join( '' );
+// The post's status, title and excerpt, straight from the database.
+const postRow = ( id ) => JSON.parse( execFileSync( php, [ path.join( here, 'php/meta.php' ), '--post', String( id ) ], { encoding: 'utf8' } ) );
+// Screenshots of the counts, when SALT_HARNESS_SCREENSHOTS names a directory.
+const shots = process.env.SALT_HARNESS_SCREENSHOTS ?? '';
+const shot = async ( p, selector, name ) => {
+	if ( shots ) {
+		fs.mkdirSync( shots, { recursive: true } );
+		await p.locator( selector ).first().screenshot( { path: path.join( shots, `${ name }.png` ) } );
+	}
+};
+// Type a new post's title and leave it, then wait for WordPress's first autosave (Save Draft and
+// Publish are disabled until it is done; only viewable types draw a permalink, so wait for
+// autosave.js's own event).
+const titleNewPost = async ( p, title ) => {
+	await p.evaluate( () => {
+		window.saltHarnessAutosaved = false;
+		window.jQuery( document ).on( 'after-autosave', () => {
+			window.saltHarnessAutosaved = true;
+		} );
+	} );
+	await p.fill( '#title', title );
+	await p.locator( '#title' ).blur();
+	await p.waitForFunction( () => window.saltHarnessAutosaved, null, { timeout: 60000 } );
+};
+// Save the edit form by a button (#save-post or #publish) and wait for the reloaded screen, whose
+// address carries a message= (WordPress then takes it out of the address, so the navigation is
+// what is checked). Which message it is says little: when ACF has validated the form it submits it
+// again without the button's name, and WordPress then says 4 whatever was saved. The caller reads
+// the stored status from the database.
+const saveBy = async ( p, button ) => {
+	await p.waitForSelector( `${ button }:not(.disabled)` );
+	const [ saved ] = await Promise.all( [
+		p.waitForURL( /[?&]message=\d+(&|$)/, { timeout: 120000 } ).then( () => true, () => false ),
+		p.click( button ),
+	] );
+	await p.waitForFunction( () => document.readyState === 'complete' );
+	return saved;
+};
 
 try {
 	// ── Log in ────────────────────────────────────────────────────────────────────────────────
@@ -491,64 +547,83 @@ try {
 			`Add Media ${ box.media ? 'PRESENT' : 'none' }; Text tab buttons ${ box.quicktags.join( ', ' ) }`
 		);
 
-		// The summary check (admin/summary-limit.js): 301 characters refused with the message, 300 not.
-		const trySummary = async ( p, summary ) => {
-			await p.evaluate( ( text ) => {
-				document.querySelector( '#excerpt' ).value = text;
-			}, summary );
-			await p.waitForSelector( '#publish:not(.disabled)' );
-			await p.click( '#publish' );
-			await p.waitForTimeout( 1500 );
-			return p.evaluate( () => document.querySelector( '#salt-summary-limit' )?.textContent.trim() ?? '' );
-		};
-		for ( const [ type, screen ] of [ [ 'service', page ], [ 'post', null ] ] ) {
-			const p = screen ?? ( await open( `/wp-admin/post-new.php?post_type=${ type }` ) ).page;
-			await p.waitForFunction( () => window.saltSummaryLimit && document.readyState === 'complete' );
-			const title = `Harness: summary ${ type } ${ Date.now() }`;
-			await p.fill( '#title', title );
-			await p.locator( '#title' ).blur();
-			await p.waitForSelector( '#edit-slug-box #sample-permalink', { timeout: 60000 } );
-			const refused = await trySummary( p, 'é'.repeat( 301 ) );
-			const notPublished = publishedWithTitle( title, type ) === 0;
+		// The summary's count (admin/character-count.js): "N / 300" beside the Excerpt box as the
+		// editor types, the note past 300, and never a refusal.
+		{
+			const title = textOf( 'Harness: summary service', 40 );
+			await titleNewPost( page, title );
+			const empty = await countOf( page, 'excerpt' );
+			await page.fill( '#excerpt', 'é'.repeat( 250 ) );
+			const under = await countOf( page, 'excerpt' );
+			await shot( page, '#postexcerpt', 'summary-under-300' );
+			await page.fill( '#excerpt', 'é'.repeat( 301 ) );
+			const over = await countOf( page, 'excerpt' );
+			await shot( page, '#postexcerpt', 'summary-over-300' );
+			const id = await page.inputValue( '#post_ID' );
+			const drafted = await saveBy( page, '#save-post' );
+			const row = postRow( id );
+			const after = await countOf( page, 'excerpt' );
 			result(
-				refused === 'The summary (the Excerpt box) is 301 characters long. Shorten it to 300 characters or fewer.' && notPublished,
-				`a ${ type } summary of 301 characters is refused`,
-				`301 two-byte characters: the editor says "${ refused }"; ${ notPublished ? 'not saved' : 'SAVED' }`
+				empty?.text === counts( 0, 300 ) && under?.text === counts( 250, 300 ) && ! under.over && over?.text === counts( 301, 300, OVER( 300 ) ) && over.over &&
+					drafted && row.status === 'draft' && Array.from( row.excerpt ).length === 301 && after?.text === counts( 301, 300, OVER( 300 ) ),
+				'a service summary over 300 characters is counted, not refused, and saves as a draft',
+				`empty "${ empty?.text }"; 250 two-byte "${ under?.text }"; 301 two-byte "${ over?.text }"; Save Draft ${ drafted ? 'saved' : 'NOT SAVED' }, ${ row.status } with ${ Array.from( row.excerpt ?? '' ).length } characters; reloaded "${ after?.text }"`
 			);
-			if ( type === 'service' ) {
-				// A new service still needs its required benefit, so ACF then refuses it for that alone.
-				const other = await trySummary( p, 'é'.repeat( 300 ) );
-				result( other === '', 'a service summary of 300 characters is accepted', '300 two-byte characters: no summary message (ACF then asks for the required benefit)' );
-			} else {
-				await p.evaluate( () => {
-					document.querySelector( '#excerpt' ).value = 'é'.repeat( 300 );
-				} );
-				await p.waitForSelector( '#publish:not(.disabled)' );
-				// The first autosave already put post.php?post=N in the address; a save adds message=.
-				await Promise.all( [ p.waitForURL( /message=\d+/, { timeout: 120000 } ), p.click( '#publish' ) ] );
-				result( publishedWithTitle( title, type ) === 1, `a ${ type } summary of 300 characters is published`, '300 two-byte characters' );
-				const post = await p.evaluate( () => {
-					const field = ( n ) => document.querySelector( `.acf-field[data-key="field_salt_collection_posts_${ n }"]` );
-					const box = document.querySelector( '#categorydiv' );
-					return {
-						author: !! field( 'author' ) && ! box?.contains( field( 'author' ) ),
-						layout: !! field( 'layout' ),
-						primary: document.querySelectorAll( '.acf-field[data-key="field_salt_collection_posts_primary_topic"]' ).length === 1 && !! box?.contains( field( 'primary_topic' ) ),
-						title: box?.querySelector( '.hndle, h2' )?.textContent.trim(),
-						parent: !! document.querySelector( '[name="newcategory_parent"], label[for="newcategory_parent"]' ),
-						editor: !! document.querySelector( '#postdivrich' ),
-						tags: !! document.querySelector( '#tagsdiv-post_tag' ),
-					};
-				} );
-				result(
-					post.author && post.layout && post.primary && post.title === 'Topics' && ! post.parent && ! post.editor && ! post.tags,
-					'the post editor is the section builder, with the credited author and the primary topic in the Topics box',
-					`author ${ post.author ? 'drawn' : 'MISSING' }; layout ${ post.layout ? 'drawn' : 'MISSING' }; primary topic ${ post.primary ? 'in the box' : 'NOT IN THE BOX' }; box "${ post.title }"; parent ${ post.parent ? 'PRESENT' : 'none' }; classic editor ${ post.editor ? 'PRESENT' : 'none' }; Tags box ${ post.tags ? 'PRESENT' : 'none' }`
-				);
+		}
+
+		// On a post: an over-target title and summary save as a draft, publish and update.
+		{
+			const p = ( await open( '/wp-admin/post-new.php?post_type=post' ) ).page;
+			await p.waitForFunction( () => window.saltCharacterCount && document.readyState === 'complete' );
+			// WordPress hides a post's Excerpt box until it is ticked in Screen Options.
+			if ( ! ( await p.isVisible( '#excerpt' ) ) ) {
+				await p.evaluate( () => document.querySelector( '#postexcerpt-hide' ).click() );
+				await p.waitForSelector( '#excerpt', { state: 'visible' } );
 			}
-			if ( screen === null ) {
-				await close( p );
-			}
+			const id = await p.inputValue( '#post_ID' );
+			const steps = [];
+			const title1 = textOf( 'Harness: post', 125 );
+			await titleNewPost( p, title1 );
+			await p.fill( '#excerpt', 'é'.repeat( 310 ) );
+			const shown = [ await countOf( p, 'title' ), await countOf( p, 'excerpt' ) ];
+			steps.push( [ 'Save Draft', await saveBy( p, '#save-post' ), 'draft', title1, 310 ] );
+			steps[ 0 ].push( postRow( id ), [ await countOf( p, 'title' ), await countOf( p, 'excerpt' ) ] );
+			steps.push( [ 'Publish', await saveBy( p, '#publish' ), 'publish', title1, 310 ] );
+			steps[ 1 ].push( postRow( id ), [ await countOf( p, 'title' ), await countOf( p, 'excerpt' ) ] );
+			const title2 = textOf( 'Harness: post updated', 130 );
+			await p.fill( '#title', title2 );
+			await p.fill( '#excerpt', 'é'.repeat( 320 ) );
+			steps.push( [ 'Update', await saveBy( p, '#publish' ), 'publish', title2, 320 ] );
+			steps[ 2 ].push( postRow( id ), [ await countOf( p, 'title' ), await countOf( p, 'excerpt' ) ] );
+			const okStep = ( [ , saved, status, title, excerpt, row, [ t, e ] ] ) =>
+				saved && row.status === status && row.title === title && Array.from( row.excerpt ).length === excerpt &&
+				t?.text === counts( Array.from( title ).length, 120, OVER( 120 ) ) && t.over && e?.text === counts( excerpt, 300, OVER( 300 ) ) && e.over;
+			result(
+				shown[ 0 ]?.text === counts( 125, 120, OVER( 120 ) ) && shown[ 1 ]?.text === counts( 310, 300, OVER( 300 ) ) && steps.every( okStep ),
+				'a post with a title over 120 and a summary over 300 saves as a draft, publishes and updates, with the counts showing',
+				`typed: "${ shown[ 0 ]?.text }", "${ shown[ 1 ]?.text }"; ${ steps
+					.map( ( [ by, saved, , , , row, [ t, e ] ] ) => `${ by } ${ saved ? 'saved' : 'NOT SAVED' } (${ row.status }, title ${ Array.from( row.title ?? '' ).length }, summary ${ Array.from( row.excerpt ?? '' ).length }; counts "${ t?.text }", "${ e?.text }")` )
+					.join( '; ' ) }`
+			);
+			const post = await p.evaluate( () => {
+				const field = ( n ) => document.querySelector( `.acf-field[data-key="field_salt_collection_posts_${ n }"]` );
+				const box = document.querySelector( '#categorydiv' );
+				return {
+					author: !! field( 'author' ) && ! box?.contains( field( 'author' ) ),
+					layout: !! field( 'layout' ),
+					primary: document.querySelectorAll( '.acf-field[data-key="field_salt_collection_posts_primary_topic"]' ).length === 1 && !! box?.contains( field( 'primary_topic' ) ),
+					title: box?.querySelector( '.hndle, h2' )?.textContent.trim(),
+					parent: !! document.querySelector( '[name="newcategory_parent"], label[for="newcategory_parent"]' ),
+					editor: !! document.querySelector( '#postdivrich' ),
+					tags: !! document.querySelector( '#tagsdiv-post_tag' ),
+				};
+			} );
+			result(
+				post.author && post.layout && post.primary && post.title === 'Topics' && ! post.parent && ! post.editor && ! post.tags,
+				'the post editor is the section builder, with the credited author and the primary topic in the Topics box',
+				`author ${ post.author ? 'drawn' : 'MISSING' }; layout ${ post.layout ? 'drawn' : 'MISSING' }; primary topic ${ post.primary ? 'in the box' : 'NOT IN THE BOX' }; box "${ post.title }"; parent ${ post.parent ? 'PRESENT' : 'none' }; classic editor ${ post.editor ? 'PRESENT' : 'none' }; Tags box ${ post.tags ? 'PRESENT' : 'none' }`
+			);
+			await close( p );
 		}
 		result( errors.length === 0, 'no console errors on the service screen', `${ errors.length } errors` );
 		errors.slice( 0, 10 ).forEach( info );
@@ -645,146 +720,124 @@ try {
 		work.errors.slice( 0, 10 ).forEach( info );
 		await close( work.page );
 	}
-	// ── 8. The title limit (admin/title-limit.js) ──────────────────────────────────────────────
+	// ── 8. The title's count (admin/character-count.js) ───────────────────────────────────────
+	// "N / 120" beside the title as the editor types; services, case studies and posts also say
+	// search results may shorten it past 60; past 120 the strong note. A title over 120 saves as a
+	// draft (a post publishes and updates with one in phase 6).
 	{
-		const message = ( n ) => `The title is ${ n } characters long. Shorten it to 120 characters or fewer.`;
-		// A unique title of exactly n code points, the rest two-byte.
-		const titleOf = ( type, n ) => Array.from( `${ type } ${ Date.now() } ${ 'é'.repeat( n ) }` ).slice( 0, n ).join( '' );
-		const saidAfterPublish = async ( p ) => {
-			await p.waitForSelector( '#publish:not(.disabled)' );
-			await Promise.all( [ p.waitForURL( /message=\d+/, { timeout: 3000 } ).catch( () => null ), p.click( '#publish' ) ] );
-			await p.waitForTimeout( 800 );
-			return p.evaluate( () => document.querySelector( '#salt-title-limit' )?.textContent.trim() ?? '' ).catch( () => '' );
-		};
 		for ( const type of [ 'service', 'work', 'post', 'testimonial', 'team_member', 'faq', 'location' ] ) {
+			const search = [ 'service', 'work', 'post' ].includes( type );
 			const { page, errors } = await open( `/wp-admin/post-new.php?post_type=${ type }` );
-			await page.waitForFunction( () => window.saltTitleLimit && document.readyState === 'complete' );
-			const long = titleOf( type, 121 );
-			// Leaving a new title starts WordPress's first autosave (Publish is disabled until it is
-			// done). Only viewable types then draw a permalink, so wait for autosave.js's own event.
-			await page.evaluate( () => {
-				window.saltHarnessAutosaved = false;
-				window.jQuery( document ).on( 'after-autosave', () => {
-					window.saltHarnessAutosaved = true;
-				} );
-			} );
-			await page.fill( '#title', long );
-			await page.locator( '#title' ).blur();
-			await page.waitForFunction( () => window.saltHarnessAutosaved, null, { timeout: 60000 } );
-			const refused = await saidAfterPublish( page );
-			const notPublished = publishedWithTitle( long, type ) === 0; // WordPress's autosave keeps a draft, as it does for the summary.
-			const fits = titleOf( type, 120 );
-			await page.fill( '#title', fits );
-			const accepted = await saidAfterPublish( page );
-			const published = publishedWithTitle( fits, type ) === 1;
+			await page.waitForFunction( () => window.saltCharacterCount && document.readyState === 'complete' );
+			const id = await page.inputValue( '#post_ID' );
+			const seen = {};
+			for ( const [ name, n ] of [ [ 'under-60', 40 ], [ 'between-60-and-120', 90 ], [ 'over-120', 125 ] ] ) {
+				await page.fill( '#title', textOf( type, n ) );
+				seen[ name ] = await countOf( page, 'title' );
+				if ( type === 'service' || ( [ 'faq', 'team_member' ].includes( type ) && name !== 'between-60-and-120' ) ) {
+					await shot( page, '#titlediv', `title-${ type }-${ name }` );
+				}
+			}
+			const want = {
+				'under-60': counts( 40, 120 ),
+				'between-60-and-120': counts( 90, 120, search ? SEARCH : '' ),
+				'over-120': counts( 125, 120, OVER( 120 ) ),
+			};
+			const shown = Object.keys( want ).every( ( k ) => seen[ k ]?.text === want[ k ] ) && ! seen[ 'under-60' ].over && ! seen[ 'between-60-and-120' ].over && seen[ 'over-120' ].over;
+			const long = textOf( type, 125 );
+			await titleNewPost( page, long );
+			const drafted = await saveBy( page, '#save-post' );
+			const row = postRow( id );
+			const after = await countOf( page, 'title' );
 			result(
-				refused === message( 121 ) && notPublished && accepted === '' && ( type !== 'post' || published ),
-				`a ${ type } title of 121 characters is refused and 120 is not`,
-				`121 two-byte: "${ refused }", ${ notPublished ? 'not published' : 'PUBLISHED' }; 120 two-byte: ${ accepted === '' ? 'no title message' : `"${ accepted }"` }, ${ published ? 'published' : 'not published (other fields still required)' }`
+				shown && drafted && row.status === 'draft' && row.title === long && after?.text === want[ 'over-120' ],
+				`a ${ type } title is counted against 120${ search ? ' with the 60 note' : ', with no 60 note' }, and one over 120 saves as a draft`,
+				`40: "${ seen[ 'under-60' ]?.text }"; 90: "${ seen[ 'between-60-and-120' ]?.text }"; 125: "${ seen[ 'over-120' ]?.text }"; Save Draft ${ drafted ? 'saved' : 'NOT SAVED' } (${ row.status }, ${ Array.from( row.title ?? '' ).length } characters); reloaded "${ after?.text }"`
 			);
-			result( errors.length === 0, `no console errors on the ${ type } title check`, `${ errors.length } errors` );
+			result( errors.length === 0, `no console errors on the ${ type } title count`, `${ errors.length } errors` );
 			errors.slice( 0, 10 ).forEach( info );
 			await close( page );
 		}
 	}
-	// ── 9. The topic name limit (admin/topic-name-limit.js) ────────────────────────────────────
+	// ── 9. The topic name's count (admin/character-count.js) ──────────────────────────────────
+	// "N / 120" on the term add and edit screens of a topics taxonomy and of posts' categories
+	// (labelled Topics); a name over 120 is added and updated. No count in the Topics box's own
+	// "add new" form, which adds an over-long name too, or in quick edit.
 	{
-		const message = ( n ) => `The topic name is ${ n } characters long. Shorten it to 120 characters or fewer.`;
 		const termCount = ( name, taxonomy ) =>
 			Number( execFileSync( php, [ path.join( here, 'php/meta.php' ), '--term-name', name, taxonomy ], { encoding: 'utf8' } ) );
-		// A unique name of exactly n code points, the rest two-byte.
-		const nameOf = ( taxonomy, n ) => Array.from( `${ taxonomy } ${ Date.now() } ${ 'é'.repeat( n ) }` ).slice( 0, n ).join( '' );
-		const said = ( p ) => p.evaluate( () => document.querySelector( '#salt-topic-name-limit' )?.textContent.trim() ?? '' );
 
-		// The term add and edit screens.
-		{
-			const taxonomy = 'service_category';
-			const { page, errors } = await open( `/wp-admin/edit-tags.php?taxonomy=${ taxonomy }&post_type=service` );
-			await page.waitForFunction( () => window.saltTopicNameLimit && document.readyState === 'complete' );
-			const long = nameOf( taxonomy, 121 );
+		for ( const [ taxonomy, query ] of [ [ 'service_category', 'taxonomy=service_category&post_type=service' ], [ 'category', 'taxonomy=category' ] ] ) {
+			const { page, errors } = await open( `/wp-admin/edit-tags.php?${ query }` );
+			await page.waitForFunction( () => window.saltCharacterCount && document.readyState === 'complete' );
+			const empty = await countOf( page, 'tag-name' );
+			await page.fill( '#tag-name', textOf( taxonomy, 80 ) );
+			const under = await countOf( page, 'tag-name' );
+			await shot( page, '.form-field.term-name-wrap', `topic-${ taxonomy }-add-under-120` );
+			const long = textOf( taxonomy, 125 );
 			await page.fill( '#tag-name', long );
-			await page.click( '#submit' );
-			await page.waitForTimeout( 1500 );
-			const addRefused = await said( page );
-			const addNotSaved = termCount( long, taxonomy ) === 0;
-			const fits = nameOf( taxonomy, 120 );
-			await page.fill( '#tag-name', fits );
+			const over = await countOf( page, 'tag-name' );
+			await shot( page, '.form-field.term-name-wrap', `topic-${ taxonomy }-add-over-120` );
 			await Promise.all( [
 				page.waitForResponse( ( r ) => r.url().includes( 'admin-ajax.php' ) && ( r.request().postData() ?? '' ).includes( 'action=add-tag' ) ),
 				page.click( '#submit' ),
 			] );
-			const addAccepted = await said( page );
-			const addSaved = termCount( fits, taxonomy ) === 1;
+			await page.waitForTimeout( 500 );
+			const added = termCount( long, taxonomy ) === 1;
+			const cleared = await countOf( page, 'tag-name' );
+			// Quick edit on the new row: no count there.
+			const row = page.locator( '#the-list tr', { hasText: long.slice( 0, 30 ) } ).first();
+			await row.hover();
+			await row.locator( 'button.editinline' ).click( { force: true } );
+			await page.waitForSelector( '#the-list .inline-edit-row' );
+			const quick = await page.locator( '#the-list .inline-edit-row .salt-character-count' ).count();
+			const editHref = await page.locator( '#the-list a.row-title', { hasText: long.slice( 0, 30 ) } ).first().getAttribute( 'href' );
 			result(
-				addRefused === message( 121 ) && addNotSaved && addAccepted === '' && addSaved,
-				'a topic name of 121 characters is refused on the term add screen and 120 is not',
-				`121 two-byte: "${ addRefused }", ${ addNotSaved ? 'not saved' : 'SAVED' }; 120 two-byte: ${ addAccepted === '' ? 'no message' : `"${ addAccepted }"` }, ${ addSaved ? 'saved' : 'NOT SAVED' }`
+				empty?.text === counts( 0, 120 ) && under?.text === counts( 80, 120 ) && ! under.over && over?.text === counts( 125, 120, OVER( 120 ) ) && over.over && added && cleared?.text === counts( 0, 120 ) && quick === 0,
+				`a ${ taxonomy } name is counted on the add screen and one over 120 is added`,
+				`empty "${ empty?.text }"; 80 two-byte "${ under?.text }"; 125 two-byte "${ over?.text }"; ${ added ? 'added' : 'NOT ADDED' }; after adding "${ cleared?.text }"; counts in quick edit ${ quick }`
 			);
-			const editHref = await page.locator( '#the-list a.row-title', { hasText: fits.slice( 0, 30 ) } ).first().getAttribute( 'href' );
-			result( errors.length === 0, 'no console errors on the term add screen', `${ errors.length } errors` );
+			result( errors.length === 0, `no console errors on the ${ taxonomy } add screen`, `${ errors.length } errors` );
 			errors.slice( 0, 10 ).forEach( info );
 			await close( page );
 
 			const edit = await open( editHref.replace( url, '' ) );
-			await edit.page.waitForFunction( () => window.saltTopicNameLimit && document.readyState === 'complete' );
-			const longer = nameOf( taxonomy, 121 );
+			await edit.page.waitForFunction( () => window.saltCharacterCount && document.readyState === 'complete' );
+			const loaded = await countOf( edit.page, 'name' );
+			const longer = textOf( `${ taxonomy } renamed`, 130 );
 			await edit.page.fill( '#name', longer );
-			await Promise.all( [ edit.page.waitForURL( /message=\d+/, { timeout: 3000 } ).catch( () => null ), edit.page.click( '#edittag [type="submit"]' ) ] );
-			await edit.page.waitForTimeout( 800 );
-			const editRefused = await said( edit.page );
-			const editNotSaved = termCount( longer, taxonomy ) === 0 && termCount( fits, taxonomy ) === 1;
-			const renamed = nameOf( taxonomy, 120 );
-			await edit.page.fill( '#name', renamed );
-			await Promise.all( [ edit.page.waitForURL( /message=\d+/, { timeout: 60000 } ), edit.page.click( '#edittag [type="submit"]' ) ] );
-			const editAccepted = await said( edit.page );
-			const editSaved = termCount( renamed, taxonomy ) === 1;
+			const typed = await countOf( edit.page, 'name' );
+			const updated = await Promise.all( [ edit.page.waitForURL( /message=\d+/, { timeout: 60000 } ).then( () => true ).catch( () => false ), edit.page.click( '#edittag [type="submit"]' ) ] );
+			const saved = termCount( longer, taxonomy ) === 1;
 			result(
-				editRefused === message( 121 ) && editNotSaved && editAccepted === '' && editSaved,
-				'a topic name of 121 characters is refused on the term edit screen and 120 is not',
-				`121 two-byte: "${ editRefused }", ${ editNotSaved ? 'not saved' : 'SAVED' }; 120 two-byte: ${ editAccepted === '' ? 'no message' : `"${ editAccepted }"` }, ${ editSaved ? 'saved' : 'NOT SAVED' }`
+				loaded?.text === counts( 125, 120, OVER( 120 ) ) && loaded.over && typed?.text === counts( 130, 120, OVER( 120 ) ) && updated[ 0 ] && saved,
+				`a ${ taxonomy } name is counted on the edit screen and one over 120 is updated`,
+				`loaded "${ loaded?.text }"; 130 two-byte "${ typed?.text }"; Update ${ updated[ 0 ] ? 'returned' : 'DID NOT RETURN' }, ${ saved ? 'saved' : 'NOT SAVED' }`
 			);
-			result( edit.errors.length === 0, 'no console errors on the term edit screen', `${ edit.errors.length } errors` );
+			result( edit.errors.length === 0, `no console errors on the ${ taxonomy } edit screen`, `${ edit.errors.length } errors` );
 			edit.errors.slice( 0, 10 ).forEach( info );
 			await close( edit.page );
 		}
 
-		// The Topics box's "add new" form on each post type that has one.
-		for ( const [ type, taxonomy ] of [ [ 'service', 'service_category' ], [ 'work', 'work_type' ], [ 'faq', 'faq_category' ], [ 'location', 'location_area' ] ] ) {
+		// The Topics box's "add new" form: no count, and an over-long name is added.
+		for ( const [ type, taxonomy ] of [ [ 'service', 'service_category' ], [ 'post', 'category' ] ] ) {
 			const { page, errors } = await open( `/wp-admin/post-new.php?post_type=${ type }` );
-			await page.waitForFunction( () => window.saltTopicNameLimit && document.readyState === 'complete' );
+			await page.waitForFunction( () => window.saltCharacterCount && document.readyState === 'complete' );
 			await page.click( `#${ taxonomy }-add-toggle` );
-			const field = `#new${ taxonomy }`;
-			const tryAdd = async ( value, how ) => {
-				await page.fill( field, value );
-				if ( how === 'enter' ) {
-					await page.press( field, 'Enter' );
-				} else {
-					await page.click( `#${ taxonomy }-add-submit` );
-				}
-				await page.waitForTimeout( 1500 );
-				return said( page );
-			};
-			const long = nameOf( taxonomy, 121 );
-			const clickRefused = await tryAdd( long, 'click' );
-			const enterRefused = await tryAdd( long, 'enter' );
-			// WordPress makes a topic of each comma-separated part; one over-long part refuses them all.
-			const short = `${ taxonomy } short ${ Date.now() }`;
-			const listRefused = await tryAdd( `${ short }, ${ long }`, 'click' );
-			const notSaved = termCount( long, taxonomy ) === 0 && termCount( short, taxonomy ) === 0;
-			const fits = nameOf( taxonomy, 120 );
-			await page.fill( field, fits );
+			const long = textOf( `${ taxonomy } box`, 125 );
+			await page.fill( `#new${ taxonomy }`, long );
+			const inBox = await page.locator( `#${ taxonomy }div .salt-character-count` ).count();
 			await Promise.all( [
 				page.waitForResponse( ( r ) => r.url().includes( 'admin-ajax.php' ) && ( r.request().postData() ?? '' ).includes( `action=add-${ taxonomy }` ) ),
 				page.click( `#${ taxonomy }-add-submit` ),
 			] );
-			const accepted = await said( page );
-			const saved = termCount( fits, taxonomy ) === 1;
+			const added = termCount( long, taxonomy ) === 1;
 			result(
-				clickRefused === message( 121 ) && enterRefused === message( 121 ) && listRefused === message( 121 ) && notSaved && accepted === '' && saved,
-				`a topic name of 121 characters is refused in the ${ type } Topics box and 120 is not`,
-				`121 two-byte by the button: "${ clickRefused }", by Enter: "${ enterRefused }", in a list: "${ listRefused }", ${ notSaved ? 'none saved' : 'SAVED' }; 120 two-byte: ${ accepted === '' ? 'no message' : `"${ accepted }"` }, ${ saved ? 'saved' : 'NOT SAVED' }`
+				inBox === 0 && added,
+				`the ${ type } Topics box's add-new form has no count and adds a name over 120`,
+				`counts in the box ${ inBox }; ${ added ? 'added' : 'NOT ADDED' }`
 			);
-			result( errors.length === 0, `no console errors on the ${ type } Topics box check`, `${ errors.length } errors` );
+			result( errors.length === 0, `no console errors in the ${ type } Topics box`, `${ errors.length } errors` );
 			errors.slice( 0, 10 ).forEach( info );
 			await close( page );
 		}
