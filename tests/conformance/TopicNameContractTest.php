@@ -3,7 +3,7 @@
  * The topic name's target against the pinned salt-contract's.
  *
  * SALT_TOPIC_NAME_TARGET_LENGTH (inc/cpt/topics.php), the length the topic
- * screens count a name against, is the maxLength of the name in
+ * screens count a name against, is the target of the name in
  * contract/collections/_topic.json. This reads the installed
  * contract package, so it lives in the conformance suite, the only one that
  * reads node_modules (phpunit.xml.dist).
@@ -26,6 +26,6 @@ final class TopicNameContractTest extends SaltTestCase {
 		$name  = array_values( array_filter( $topic['fields'], static fn( array $field ): bool => 'title' === $field['name'] ) )[0] ?? array();
 
 		$this->assertSame( 'title', $name['platforms']['wordpress']['native'] ?? null, 'The name is the term\'s own (native), so the theme counts it.' );
-		$this->assertSame( $name['maxLength'] ?? null, SALT_TOPIC_NAME_TARGET_LENGTH );
+		$this->assertSame( $name['target'] ?? null, SALT_TOPIC_NAME_TARGET_LENGTH );
 	}
 }

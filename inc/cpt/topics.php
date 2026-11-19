@@ -134,8 +134,8 @@ function salt_topic_insert_flat( $term_id, $tt_id, $taxonomy ): void {
 add_action( 'created_term', 'salt_topic_insert_flat', 10, 3 );
 
 /**
- * The suggested longest topic name, in characters (salt-contract rc.7:
- * contract/collections/_topic.json, the name, maxLength 120). A target,
+ * The suggested longest topic name, in characters (salt-contract rc.8:
+ * contract/collections/_topic.json, the name, target 120). A target,
  * never a limit (the founder's ruling of 19/11/2026): WordPress keeps it as
  * the term's name (native), and the topic screens show a count against it.
  */

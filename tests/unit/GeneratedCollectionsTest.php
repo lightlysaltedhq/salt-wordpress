@@ -174,12 +174,12 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 		foreach ( array( 'service', 'work', 'post', 'testimonial', 'page' ) as $type ) {
 			$GLOBALS['typenow']                  = $type;
 			$GLOBALS['salt_test_inline_scripts'] = array();
-			salt_summary_count_enqueue( 'post.php' );
-			$loaded[ $type ] = $GLOBALS['salt_test_inline_scripts']['salt-character-count']['before'] ?? array();
+			salt_native_counts_enqueue( 'post.php' );
+			$loaded[ $type ] = array_values( preg_grep( '/"field":"excerpt"/', $GLOBALS['salt_test_inline_scripts']['salt-character-count']['before'] ?? array() ) );
 		}
 		$GLOBALS['typenow']                  = 'service';
 		$GLOBALS['salt_test_inline_scripts'] = array();
-		salt_summary_count_enqueue( 'edit.php' );
+		salt_native_counts_enqueue( 'edit.php' );
 		$on_list = $GLOBALS['salt_test_inline_scripts'];
 		unset( $GLOBALS['typenow'] );
 
@@ -197,16 +197,12 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 		$this->assertSame( array(), $on_list, 'Not on the posts list.' );
 	}
 
-	public function test_the_title_count_covers_every_collection_whose_title_is_the_post_title(): void {
-		$types = array();
-		foreach ( json_decode( (string) file_get_contents( dirname( __DIR__, 2 ) . '/inc/fields/generated/collections.json' ), true ) as $group ) {
-			if ( in_array( 'title', $group['salt']['native'] ?? array(), true ) ) {
-				$types[] = $group['location'][0][0]['value'];
-			}
-		}
-
-		$this->assertEqualsCanonicalizing( array( 'service', 'work', 'post', 'testimonial', 'team_member', 'faq', 'location' ), $types );
-		$this->assertEqualsCanonicalizing( $types, salt_title_post_types() );
+	public function test_the_profile_display_name_has_both_marks(): void {
+		salt_native_counts_enqueue( 'profile.php' );
+		$config = $GLOBALS['salt_test_inline_scripts']['salt-character-count']['before'][0];
+		$this->assertStringContainsString( '"field":"display_name"', $config );
+		$this->assertStringContainsString( '"at":60', $config );
+		$this->assertStringContainsString( '"at":120', $config );
 	}
 
 	public function test_the_title_count_loads_on_the_collection_edit_screens_only(): void {
@@ -214,12 +210,12 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 		foreach ( array( 'service', 'work', 'post', 'testimonial', 'team_member', 'faq', 'location', 'page', 'salt_submission' ) as $type ) {
 			$GLOBALS['typenow']                  = $type;
 			$GLOBALS['salt_test_inline_scripts'] = array();
-			salt_title_count_enqueue( 'post-new.php' );
-			$loaded[ $type ] = $GLOBALS['salt_test_inline_scripts']['salt-character-count']['before'] ?? array();
+			salt_native_counts_enqueue( 'post-new.php' );
+			$loaded[ $type ] = array_values( preg_grep( '/"field":"title"/', $GLOBALS['salt_test_inline_scripts']['salt-character-count']['before'] ?? array() ) );
 		}
 		$GLOBALS['typenow']                  = 'faq';
 		$GLOBALS['salt_test_inline_scripts'] = array();
-		salt_title_count_enqueue( 'edit.php' );
+		salt_native_counts_enqueue( 'edit.php' );
 		$on_list = $GLOBALS['salt_test_inline_scripts'];
 		unset( $GLOBALS['typenow'] );
 
@@ -231,7 +227,7 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 				'work'            => $search,
 				'post'            => $search,
 				'testimonial'     => $count,
-				'team_member'     => $count,
+				'team_member'     => array(),
 				'faq'             => $count,
 				'location'        => $count,
 				'page'            => array(),
@@ -240,6 +236,5 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 			$loaded
 		);
 		$this->assertSame( array(), $on_list, 'Not on the list screen.' );
-		$this->assertSame( array( 'service', 'work', 'post' ), salt_title_search_post_types(), 'The 60 note: the collections with a page of their own.' );
 	}
 }

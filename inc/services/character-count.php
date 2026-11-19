@@ -66,18 +66,7 @@ function salt_character_count_over( int $target ): string {
  * @return void
  */
 function salt_character_count( string $field, int $target, array $notes = array() ): void {
-	$src = salt_asset_optional( 'admin/character-count.js' );
-	if ( null === $src ) {
-		salt_log( 'salt_character_count: no manifest entry for "admin/character-count.js" — no count is shown beside "' . $field . '". Re-run the asset build.' );
-		return;
-	}
-	wp_enqueue_script(
-		'salt-character-count',
-		$src,
-		array(),
-		null, // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Content hash in the dist filename is the cache-buster (ARCH03).
-		array( 'in_footer' => true )
-	);
+	salt_enqueue_counts();
 	ksort( $notes );
 	$marks = array();
 	foreach ( $notes as $at => $note ) {
@@ -92,18 +81,45 @@ function salt_character_count( string $field, int $target, array $notes = array(
 		'note'   => salt_character_count_over( $target ),
 		'strong' => true,
 	);
-	wp_add_inline_script(
+	$config  = array(
+		'field'  => $field,
+		'target' => $target,
+		'marks'  => $marks,
+	);
+	wp_add_inline_script( 'salt-character-count', 'window.saltCharacterCount = ( window.saltCharacterCount || [] ).concat( ' . wp_json_encode( array( $config ), JSON_HEX_TAG ) . ' );', 'before' );
+}
+
+/** Load the counter on native edit screens and screens containing ACF fields. */
+function salt_enqueue_counts(): void {
+	$src = salt_asset_optional( 'admin/character-count.js' );
+	if ( null === $src ) {
+		salt_log( 'No manifest entry for admin/character-count.js. Re-run the asset build.' );
+		return;
+	}
+	wp_enqueue_script(
 		'salt-character-count',
-		'window.saltCharacterCount = ( window.saltCharacterCount || [] ).concat( ' . wp_json_encode(
-			array(
-				array(
-					'field'  => $field,
-					'target' => $target,
-					'marks'  => $marks,
-				),
-			),
-			JSON_HEX_TAG
-		) . ' );',
-		'before'
+		$src,
+		array(),
+		null, // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Content hash in the dist filename is the cache-buster (ARCH03).
+		array( 'in_footer' => true )
 	);
 }
+add_action( 'acf/input/admin_enqueue_scripts', 'salt_enqueue_counts' );
+
+/**
+ * Put each emitted target on its own ACF wrapper (including the clone template).
+ *
+ * @param array $wrapper HTML attributes.
+ * @param array $field   Prepared ACF field.
+ * @return array
+ */
+function salt_target_attributes( array $wrapper, array $field ): array {
+	$target = $field['salt']['target'] ?? null;
+	if ( is_int( $target ) ) {
+		$wrapper['data-salt-target'] = $target;
+		/* translators: %d: suggested number of items in a list. */
+		$wrapper['data-salt-over'] = in_array( $field['type'], array( 'text', 'textarea' ), true ) ? salt_character_count_over( $target ) : sprintf( __( 'Over the suggested %d items', 'salt' ), $target );
+	}
+	return $wrapper;
+}
+add_filter( 'acf/field_wrapper_attributes', 'salt_target_attributes', 10, 2 );
