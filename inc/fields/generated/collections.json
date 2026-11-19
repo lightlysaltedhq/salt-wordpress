@@ -68,10 +68,9 @@
         "label": "Benefits",
         "name": "benefits",
         "type": "repeater",
-        "instructions": "Optional. When given, one to 12.",
+        "instructions": "Optional. When given, at least one; aim for no more than 12.",
         "layout": "block",
         "min": 1,
-        "max": 12,
         "button_label": "Add benefit",
         "collapsed": "field_salt_collection_services_benefits_text",
         "sub_fields": [
@@ -84,6 +83,7 @@
           }
         ],
         "salt": {
+          "target": 12,
           "rowLabel": "text",
           "itemLabel": "Benefit"
         }
@@ -100,7 +100,7 @@
         "label": "Related services",
         "name": "relatedServices",
         "type": "relationship",
-        "instructions": "Optional. Up to six other services, never this one.",
+        "instructions": "Optional. Other services, never this one; aim for no more than six.",
         "post_type": [
           "service"
         ],
@@ -108,8 +108,8 @@
         "filters": [
           "search"
         ],
-        "max": 6,
         "salt": {
+          "target": 6,
           "to": "services"
         }
       },
@@ -207,6 +207,13 @@
         "summary": "excerpt",
         "intro": "body",
         "featuredImage": "featured-image"
+      },
+      "targets": {
+        "title": [
+          60,
+          120
+        ],
+        "summary": 300
       }
     }
   },
@@ -226,10 +233,12 @@
         "label": "Gallery",
         "name": "gallery",
         "type": "gallery",
-        "instructions": "Optional. When given, one to 24 images.",
+        "instructions": "Optional. When given, at least one image; aim for no more than 24.",
         "return_format": "id",
         "min": 1,
-        "max": 24
+        "salt": {
+          "target": 24
+        }
       },
       {
         "key": "field_salt_collection_case_studies_challenge",
@@ -278,10 +287,9 @@
         "label": "Results",
         "name": "results",
         "type": "repeater",
-        "instructions": "Optional. When given, one to six, each a figure and what it measures.",
+        "instructions": "Optional. When given, at least one, each a figure and what it measures; aim for no more than six.",
         "layout": "block",
         "min": 1,
-        "max": 6,
         "button_label": "Add result",
         "collapsed": "field_salt_collection_case_studies_results_label",
         "sub_fields": [
@@ -302,6 +310,7 @@
           }
         ],
         "salt": {
+          "target": 6,
           "rowLabel": "label",
           "itemLabel": "Result"
         }
@@ -311,9 +320,8 @@
         "label": "Project details",
         "name": "details",
         "type": "repeater",
-        "instructions": "Optional. Up to 12, such as Location: Cumbria.",
+        "instructions": "Optional. Such as Location: Cumbria; aim for no more than 12.",
         "layout": "block",
-        "max": 12,
         "button_label": "Add detail",
         "collapsed": "field_salt_collection_case_studies_details_label",
         "sub_fields": [
@@ -333,6 +341,7 @@
           }
         ],
         "salt": {
+          "target": 12,
           "rowLabel": "label",
           "itemLabel": "Detail"
         }
@@ -381,6 +390,13 @@
         "topics": "categories",
         "summary": "excerpt",
         "featuredImage": "featured-image"
+      },
+      "targets": {
+        "title": [
+          60,
+          120
+        ],
+        "summary": 300
       }
     }
   },
@@ -401,7 +417,9 @@
         "name": "role",
         "type": "text",
         "instructions": "Optional. Shown beside the company.",
-        "maxlength": 80
+        "salt": {
+          "target": 80
+        }
       },
       {
         "key": "field_salt_collection_testimonials_company",
@@ -435,6 +453,9 @@
       "native": {
         "name": "title",
         "photo": "featured-image"
+      },
+      "targets": {
+        "name": 120
       }
     }
   },
@@ -442,21 +463,6 @@
     "key": "group_salt_collection_posts",
     "title": "Post",
     "fields": [
-      {
-        "key": "field_salt_collection_posts_author",
-        "label": "Author",
-        "name": "author",
-        "type": "post_object",
-        "instructions": "Optional. The team member credited with the post, who needs no account.",
-        "post_type": [
-          "team_member"
-        ],
-        "return_format": "id",
-        "allow_null": 1,
-        "salt": {
-          "to": "team"
-        }
-      },
       {
         "key": "field_salt_collection_posts_primary_topic",
         "label": "Primary topic",
@@ -1163,7 +1169,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_collection_posts_layout_gallery_layout",
@@ -1822,7 +1830,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_collection_posts_layout_faq_query",
@@ -2190,10 +2200,18 @@
       "collection": "posts",
       "native": {
         "title": "title",
+        "author": "post_author",
         "topics": "categories",
         "summary": "excerpt",
         "featuredImage": "featured-image",
         "publishedAt": "date"
+      },
+      "targets": {
+        "title": [
+          60,
+          120
+        ],
+        "summary": 300
       }
     }
   },
@@ -2207,7 +2225,9 @@
         "name": "role",
         "type": "text",
         "instructions": "Shown beneath the name.",
-        "maxlength": 80
+        "salt": {
+          "target": 80
+        }
       },
       {
         "key": "field_salt_collection_team_bio",
@@ -2215,14 +2235,23 @@
         "name": "bio",
         "type": "textarea",
         "instructions": "A few sentences, shown on the team card and in the author box.",
-        "maxlength": 600
+        "salt": {
+          "target": 600
+        }
       },
       {
-        "key": "field_salt_collection_team_email",
+        "key": "field_salt_collection_team_photo",
+        "label": "Photo",
+        "name": "photo",
+        "type": "image",
+        "return_format": "id"
+      },
+      {
+        "key": "field_salt_collection_team_public_email",
         "label": "Public email",
-        "name": "email",
+        "name": "publicEmail",
         "type": "text",
-        "instructions": "Optional. Shown on the team card. Leave it empty to keep the address off the site.",
+        "instructions": "Optional public contact address. If empty, draw nothing; never use the login email instead.",
         "salt": {
           "format": "email"
         }
@@ -2239,9 +2268,8 @@
         "label": "Social profiles",
         "name": "socials",
         "type": "repeater",
-        "instructions": "Up to 10. The network is worked out from the address, so a known one draws its own icon.",
+        "instructions": "Aim for no more than 10. The network is worked out from the address, so a known one draws its own icon.",
         "layout": "block",
-        "max": 10,
         "button_label": "Add profile",
         "collapsed": "field_salt_collection_team_socials_name",
         "sub_fields": [
@@ -2265,25 +2293,48 @@
           }
         ],
         "salt": {
+          "target": 10,
           "rowLabel": "name",
           "itemLabel": "Profile"
         }
+      },
+      {
+        "key": "field_salt_collection_team_show_on_website",
+        "label": "Team member",
+        "name": "showOnWebsite",
+        "type": "true_false",
+        "instructions": "Include this user in team selections and give them a public profile. This neither grants admin access nor changes post credit.",
+        "ui": 1,
+        "default_value": 0
+      },
+      {
+        "key": "field_salt_collection_team_slug",
+        "label": "Public profile slug",
+        "name": "slug",
+        "type": "text",
+        "instructions": "The unique public slug for /team/{slug}/. A ticked user needs one. It is independent of the login and stays the same when the display name changes."
       }
     ],
     "location": [
       [
         {
-          "param": "post_type",
+          "param": "user_form",
           "operator": "==",
-          "value": "team_member"
+          "value": "edit"
         }
       ]
     ],
     "salt": {
       "collection": "team",
+      "userTick": "showOnWebsite",
       "native": {
-        "name": "title",
-        "photo": "featured-image"
+        "name": "display_name"
+      },
+      "targets": {
+        "name": [
+          60,
+          120
+        ]
       }
     }
   },
@@ -2326,6 +2377,9 @@
       "native": {
         "question": "title",
         "topics": "categories"
+      },
+      "targets": {
+        "question": 120
       }
     }
   },
@@ -2428,9 +2482,8 @@
         "label": "Opening hours",
         "name": "hours",
         "type": "repeater",
-        "instructions": "Optional. Up to 14 rows; give a day two rows for a break at lunch.",
+        "instructions": "Optional. Give a day two rows for a break at lunch; aim for no more than 14 rows.",
         "layout": "block",
-        "max": 14,
         "button_label": "Add row",
         "collapsed": "field_salt_collection_locations_hours_day",
         "sub_fields": [
@@ -2495,6 +2548,7 @@
           }
         ],
         "salt": {
+          "target": 14,
           "rowLabel": "day",
           "itemLabel": "Row"
         }
@@ -2514,6 +2568,9 @@
       "native": {
         "title": "title",
         "topics": "categories"
+      },
+      "targets": {
+        "title": 120
       }
     }
   }

@@ -114,6 +114,25 @@ if ( ! function_exists( 'get_the_date' ) ) {
 	}
 }
 
+if ( ! function_exists( 'get_post_timestamp' ) ) {
+	/**
+	 * get_post_timestamp shim — the fixture WP_Post's post_date (or
+	 * post_modified) read in the site timezone.
+	 *
+	 * @param int|WP_Post|null $post  Post ID or object.
+	 * @param string           $field 'date' or 'modified'.
+	 * @return int|false
+	 */
+	function get_post_timestamp( $post = null, string $field = 'date' ) {
+		if ( is_int( $post ) ) {
+			$post = get_post( $post );
+		}
+		$value = $post instanceof WP_Post ? (string) ( 'modified' === $field ? ( $post->post_modified ?? '' ) : ( $post->post_date ?? '' ) ) : '';
+		$date  = '' !== $value ? date_create_immutable( $value, wp_timezone() ) : false;
+		return false === $date ? false : $date->getTimestamp();
+	}
+}
+
 if ( ! function_exists( 'get_the_excerpt' ) ) {
 	/**
 	 * get_the_excerpt shim — returns the fixture WP_Post's post_excerpt.

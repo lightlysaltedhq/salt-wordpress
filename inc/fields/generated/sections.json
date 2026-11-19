@@ -1465,7 +1465,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_features_columns",
@@ -1797,7 +1799,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_stats_columns",
@@ -2112,7 +2116,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_logos_columns",
@@ -2402,7 +2408,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_gallery_layout",
@@ -2711,7 +2719,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_process_layout",
@@ -3114,7 +3124,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_faq_query",
@@ -3458,6 +3470,1376 @@
             ]
           },
           {
+            "key": "layout_salt_collection_showcase",
+            "name": "collection-showcase",
+            "label": "Collection showcase",
+            "display": "block",
+            "sub_fields": [
+              {
+                "key": "field_salt_collection_showcase_eyebrow",
+                "label": "Eyebrow",
+                "name": "eyebrow",
+                "type": "text",
+                "instructions": "A short label above the heading. Drawn as a paragraph, never a heading."
+              },
+              {
+                "key": "field_salt_collection_showcase_heading",
+                "label": "Heading",
+                "name": "heading",
+                "type": "text"
+              },
+              {
+                "key": "field_salt_collection_showcase_intro",
+                "label": "Intro",
+                "name": "intro",
+                "type": "textarea",
+                "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
+                "salt": {
+                  "target": 300
+                }
+              },
+              {
+                "key": "field_salt_collection_showcase_source",
+                "label": "Show",
+                "name": "source",
+                "type": "select",
+                "instructions": "Only the collections the site has installed are offered.",
+                "required": 1,
+                "choices": {
+                  "services": "Services",
+                  "case-studies": "Case studies",
+                  "testimonials": "Testimonials",
+                  "posts": "Posts",
+                  "team": "Team"
+                },
+                "allow_null": 1
+              },
+              {
+                "key": "field_salt_collection_showcase_layout",
+                "label": "Layout",
+                "name": "layout",
+                "type": "select",
+                "instructions": "Index is offered only for a collection whose items have their own pages.",
+                "choices": {
+                  "grid": "Grid",
+                  "list": "List",
+                  "featured": "Featured (the first card leads)",
+                  "accordion": "Accordion (each title opens in place)",
+                  "index": "Index (a list of links)"
+                },
+                "default_value": "grid"
+              },
+              {
+                "key": "field_salt_collection_showcase_columns",
+                "label": "Columns",
+                "name": "columns",
+                "type": "select",
+                "instructions": "The most items across. Fewer fit on narrow screens.",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "grid"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "featured"
+                    }
+                  ]
+                ],
+                "choices": {
+                  "2": "2 across",
+                  "3": "3 across",
+                  "4": "4 across"
+                },
+                "default_value": "3"
+              },
+              {
+                "key": "field_salt_collection_showcase_query",
+                "label": "Which items to show",
+                "name": "query",
+                "type": "group",
+                "layout": "block",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_collection_showcase_query_mode",
+                    "label": "Mode",
+                    "name": "mode",
+                    "type": "select",
+                    "choices": {
+                      "automatic": "Automatic (the collection’s usual order)",
+                      "by-category": "By category",
+                      "manual": "Chosen by hand"
+                    },
+                    "default_value": "automatic",
+                    "salt": {
+                      "modeRequires": {
+                        "by-category": [
+                          "services",
+                          "case-studies",
+                          "posts"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "field_salt_collection_showcase_query_categories",
+                    "label": "Categories",
+                    "name": "categories",
+                    "type": "select",
+                    "conditional_logic": [
+                      [
+                        {
+                          "field": "field_salt_collection_showcase_query_mode",
+                          "operator": "==",
+                          "value": "by-category"
+                        },
+                        {
+                          "field": "field_salt_collection_showcase_source",
+                          "operator": "==",
+                          "value": "services"
+                        }
+                      ],
+                      [
+                        {
+                          "field": "field_salt_collection_showcase_query_mode",
+                          "operator": "==",
+                          "value": "by-category"
+                        },
+                        {
+                          "field": "field_salt_collection_showcase_source",
+                          "operator": "==",
+                          "value": "case-studies"
+                        }
+                      ],
+                      [
+                        {
+                          "field": "field_salt_collection_showcase_query_mode",
+                          "operator": "==",
+                          "value": "by-category"
+                        },
+                        {
+                          "field": "field_salt_collection_showcase_source",
+                          "operator": "==",
+                          "value": "posts"
+                        }
+                      ]
+                    ],
+                    "return_format": "value",
+                    "filters": [
+                      "search"
+                    ],
+                    "choices": {},
+                    "multiple": 1,
+                    "ui": 1,
+                    "ajax": 1,
+                    "allow_null": 1,
+                    "salt": {
+                      "taxonomies": [
+                        "service_category",
+                        "work_type",
+                        "category"
+                      ],
+                      "categoriesFor": [
+                        "services",
+                        "case-studies",
+                        "posts"
+                      ]
+                    }
+                  },
+                  {
+                    "key": "field_salt_collection_showcase_query_items",
+                    "label": "Items",
+                    "name": "items",
+                    "type": "select",
+                    "conditional_logic": [
+                      [
+                        {
+                          "field": "field_salt_collection_showcase_query_mode",
+                          "operator": "==",
+                          "value": "manual"
+                        }
+                      ]
+                    ],
+                    "return_format": "value",
+                    "multiple": 1,
+                    "ui": 1,
+                    "ajax": 1,
+                    "choices": {},
+                    "salt": {
+                      "sourceField": "source",
+                      "postSources": {
+                        "services": "service",
+                        "case-studies": "work",
+                        "testimonials": "testimonial",
+                        "posts": "post"
+                      },
+                      "userTick": "showOnWebsite"
+                    }
+                  },
+                  {
+                    "key": "field_salt_collection_showcase_query_order",
+                    "label": "Order",
+                    "name": "order",
+                    "type": "select",
+                    "conditional_logic": [
+                      [
+                        {
+                          "field": "field_salt_collection_showcase_query_mode",
+                          "operator": "==",
+                          "value": "automatic"
+                        }
+                      ],
+                      [
+                        {
+                          "field": "field_salt_collection_showcase_query_mode",
+                          "operator": "==",
+                          "value": "by-category"
+                        }
+                      ]
+                    ],
+                    "choices": {
+                      "default": "The collection’s usual order",
+                      "newest": "Newest first",
+                      "title": "Title (A to Z)"
+                    },
+                    "default_value": "default"
+                  },
+                  {
+                    "key": "field_salt_collection_showcase_query_count",
+                    "label": "How many",
+                    "name": "count",
+                    "type": "number",
+                    "instructions": "0 uses the section’s default. At most 24.",
+                    "conditional_logic": [
+                      [
+                        {
+                          "field": "field_salt_collection_showcase_query_mode",
+                          "operator": "==",
+                          "value": "automatic"
+                        }
+                      ],
+                      [
+                        {
+                          "field": "field_salt_collection_showcase_query_mode",
+                          "operator": "==",
+                          "value": "by-category"
+                        }
+                      ]
+                    ],
+                    "default_value": 0,
+                    "min": 0,
+                    "max": 24,
+                    "step": 1
+                  }
+                ],
+                "salt": {
+                  "sourceField": "source",
+                  "userTick": "showOnWebsite"
+                }
+              },
+              {
+                "key": "field_salt_collection_showcase_show_icons",
+                "label": "Show each service's icon",
+                "name": "showIcons",
+                "type": "true_false",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "services"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "grid"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "services"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "featured"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "services"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "list"
+                    }
+                  ]
+                ],
+                "ui": 1,
+                "default_value": 1
+              },
+              {
+                "key": "field_salt_collection_showcase_show_ratings",
+                "label": "Show star ratings",
+                "name": "showRatings",
+                "type": "true_false",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "testimonials"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "grid"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "testimonials"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "featured"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "testimonials"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "list"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "testimonials"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "accordion"
+                    }
+                  ]
+                ],
+                "ui": 1,
+                "default_value": 1
+              },
+              {
+                "key": "field_salt_collection_showcase_show_tags",
+                "label": "Show each card's categories",
+                "name": "showTags",
+                "type": "true_false",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "services"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "grid"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "services"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "featured"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "services"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "list"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "case-studies"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "grid"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "case-studies"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "featured"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "case-studies"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "list"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "posts"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "grid"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "posts"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "featured"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "posts"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "list"
+                    }
+                  ]
+                ],
+                "ui": 1,
+                "default_value": 0
+              },
+              {
+                "key": "field_salt_collection_showcase_group_by_category",
+                "label": "Group the links under their categories",
+                "name": "groupByCategory",
+                "type": "true_false",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "services"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "index"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "case-studies"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "index"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_source",
+                      "operator": "==",
+                      "value": "posts"
+                    },
+                    {
+                      "field": "field_salt_collection_showcase_layout",
+                      "operator": "==",
+                      "value": "index"
+                    }
+                  ]
+                ],
+                "ui": 1,
+                "default_value": 0
+              },
+              {
+                "key": "field_salt_collection_showcase_view_all",
+                "label": "Link to the full list",
+                "name": "viewAll",
+                "type": "true_false",
+                "instructions": "Shown only where the collection has an index page; team has none. Sections never paginate.",
+                "ui": 1,
+                "default_value": 1
+              },
+              {
+                "key": "field_salt_collection_showcase_view_all_label",
+                "label": "Link text",
+                "name": "viewAllLabel",
+                "type": "text",
+                "instructions": "Optional. Leave empty for the default wording.",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_collection_showcase_view_all",
+                      "operator": "==",
+                      "value": "1"
+                    }
+                  ]
+                ]
+              },
+              {
+                "key": "field_salt_collection_showcase_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
+                "key": "field_salt_collection_showcase_settings",
+                "label": "Section settings",
+                "name": "settings",
+                "type": "group",
+                "layout": "block",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_collection_showcase_settings_spacing",
+                    "label": "Spacing",
+                    "name": "spacing",
+                    "type": "select",
+                    "instructions": "Space above and below the section.",
+                    "choices": {
+                      "none": "None (flush against its neighbours)",
+                      "sm": "Small",
+                      "md": "Medium",
+                      "lg": "Large"
+                    },
+                    "default_value": "md"
+                  },
+                  {
+                    "key": "field_salt_collection_showcase_settings_tone",
+                    "label": "Tone",
+                    "name": "tone",
+                    "type": "select",
+                    "instructions": "The section's background and text colour roles.",
+                    "choices": {
+                      "surface": "Surface (the page background)",
+                      "surface-alt": "Surface, alternate (a subtle step away from it)",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse (light on dark)"
+                    },
+                    "default_value": "surface"
+                  },
+                  {
+                    "key": "field_salt_collection_showcase_settings_tone_dark",
+                    "label": "Dark mode tone",
+                    "name": "toneDark",
+                    "type": "select",
+                    "instructions": "The tone in dark mode. Automatic keeps the tone above, and the dark palette draws it in its dark form.",
+                    "choices": {
+                      "auto": "Automatic (the tone above, in its dark form)",
+                      "surface": "Surface",
+                      "surface-alt": "Surface, alternate",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse"
+                    },
+                    "default_value": "auto"
+                  },
+                  {
+                    "key": "field_salt_collection_showcase_settings_width",
+                    "label": "Width",
+                    "name": "width",
+                    "type": "select",
+                    "instructions": "How wide the section's content runs.",
+                    "choices": {
+                      "full": "Full (edge to edge)",
+                      "wide": "Wide",
+                      "default": "Default",
+                      "narrow": "Narrow (reading measure)"
+                    },
+                    "default_value": "default"
+                  },
+                  {
+                    "key": "field_salt_collection_showcase_settings_background_image",
+                    "label": "Background image",
+                    "name": "backgroundImage",
+                    "type": "group",
+                    "layout": "block",
+                    "sub_fields": [
+                      {
+                        "key": "field_salt_collection_showcase_settings_background_image_image",
+                        "label": "Image",
+                        "name": "image",
+                        "type": "image",
+                        "instructions": "Decorative: hidden from screen readers, with empty alternative text.",
+                        "return_format": "id"
+                      },
+                      {
+                        "key": "field_salt_collection_showcase_settings_background_image_fit",
+                        "label": "Fit",
+                        "name": "fit",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_showcase_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "cover": "Cover (fill the section, cropping as needed)",
+                          "contain": "Contain (fit the whole image in)"
+                        },
+                        "default_value": "cover"
+                      },
+                      {
+                        "key": "field_salt_collection_showcase_settings_background_image_position",
+                        "label": "Position",
+                        "name": "position",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_showcase_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "focal-point": "Focal point (from the image)",
+                          "top-left": "Top left",
+                          "top": "Top",
+                          "top-right": "Top right",
+                          "left": "Left",
+                          "centre": "Centre",
+                          "right": "Right",
+                          "bottom-left": "Bottom left",
+                          "bottom": "Bottom",
+                          "bottom-right": "Bottom right"
+                        },
+                        "default_value": "focal-point"
+                      },
+                      {
+                        "key": "field_salt_collection_showcase_settings_background_image_scrim",
+                        "label": "Tint the image with the section's colour behind the text",
+                        "name": "scrim",
+                        "type": "true_false",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_showcase_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "ui": 1,
+                        "default_value": 1
+                      },
+                      {
+                        "key": "field_salt_collection_showcase_settings_background_image_scrim_strength",
+                        "label": "Tint strength",
+                        "name": "scrimStrength",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_collection_showcase_settings_background_image_image",
+                              "operator": "!=empty"
+                            },
+                            {
+                              "field": "field_salt_collection_showcase_settings_background_image_scrim",
+                              "operator": "==",
+                              "value": "1"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "subtle": "Subtle",
+                          "standard": "Standard",
+                          "strong": "Strong"
+                        },
+                        "default_value": "strong"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "field_salt_collection_showcase_settings_anchor_id",
+                    "label": "Anchor",
+                    "name": "anchorId",
+                    "type": "text",
+                    "instructions": "Optional, for links to this section. Saved as a slug of lower-case letters, digits and single hyphens: accented letters become plain ones as the site's language writes them, punctuation is dropped, and spaces, underscores and encoded characters become hyphens. We're hiring gives were-hiring, Straße gives strase (strasse on a German site), contact__form gives contact-form. An anchor that leaves nothing (日本語) counts as none. On the page, an anchor that is one of the landmark ids main, content, header, footer, nav, site-navigation, search or skip-link becomes <anchor>-section, and one an earlier section has taken takes the next free -2, -3. Ids the page draws itself contain __, so they never meet yours. Nothing is added on save. The slug is applied again on the page, to whatever is stored.",
+                    "salt": {
+                      "format": "anchor"
+                    }
+                  },
+                  {
+                    "key": "field_salt_collection_showcase_settings_first_page_only",
+                    "label": "First page only",
+                    "name": "firstPageOnly",
+                    "type": "true_false",
+                    "instructions": "On a paginated index, hide this section after the first page.",
+                    "ui": 1,
+                    "default_value": 0
+                  },
+                  {
+                    "key": "field_salt_collection_showcase_settings_divider",
+                    "label": "Rule above this section",
+                    "name": "divider",
+                    "type": "true_false",
+                    "instructions": "A hairline rule between this section and the one before. It also stops two sections of the same tone running together.",
+                    "ui": 1,
+                    "default_value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "layout_salt_carousel",
+            "name": "carousel",
+            "label": "Carousel",
+            "display": "block",
+            "sub_fields": [
+              {
+                "key": "field_salt_carousel_eyebrow",
+                "label": "Eyebrow",
+                "name": "eyebrow",
+                "type": "text",
+                "instructions": "A short label above the heading. Drawn as a paragraph, never a heading."
+              },
+              {
+                "key": "field_salt_carousel_heading",
+                "label": "Heading",
+                "name": "heading",
+                "type": "text"
+              },
+              {
+                "key": "field_salt_carousel_intro",
+                "label": "Intro",
+                "name": "intro",
+                "type": "textarea",
+                "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
+                "salt": {
+                  "target": 300
+                }
+              },
+              {
+                "key": "field_salt_carousel_label",
+                "label": "Carousel name",
+                "name": "label",
+                "type": "text",
+                "instructions": "Names the carousel for screen readers when there is no heading. Never shown. Without either, two or more cards are drawn as a grid.",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_carousel_heading",
+                      "operator": "==empty"
+                    }
+                  ]
+                ]
+              },
+              {
+                "key": "field_salt_carousel_source",
+                "label": "Show",
+                "name": "source",
+                "type": "select",
+                "instructions": "Only the collections the site has installed are offered.",
+                "required": 1,
+                "choices": {
+                  "inline": "Cards written here",
+                  "services": "Services",
+                  "case-studies": "Case studies",
+                  "testimonials": "Testimonials",
+                  "posts": "Posts",
+                  "team": "Team"
+                },
+                "default_value": "inline"
+              },
+              {
+                "key": "field_salt_carousel_card_style",
+                "label": "Card style",
+                "name": "cardStyle",
+                "type": "select",
+                "instructions": "How each card you add here is drawn.",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_carousel_source",
+                      "operator": "==",
+                      "value": "inline"
+                    }
+                  ]
+                ],
+                "choices": {
+                  "generic": "Card: an image, a title and text",
+                  "quote": "Quote: the words, and who said them"
+                },
+                "default_value": "generic"
+              },
+              {
+                "key": "field_salt_carousel_cards",
+                "label": "Cards",
+                "name": "cards",
+                "type": "repeater",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_carousel_source",
+                      "operator": "==",
+                      "value": "inline"
+                    }
+                  ]
+                ],
+                "layout": "block",
+                "button_label": "Add card",
+                "collapsed": "field_salt_carousel_cards_title",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_carousel_cards_image",
+                    "label": "Image",
+                    "name": "image",
+                    "type": "image",
+                    "instructions": "Optional image or portrait.",
+                    "return_format": "id"
+                  },
+                  {
+                    "key": "field_salt_carousel_cards_title",
+                    "label": "Title",
+                    "name": "title",
+                    "type": "text",
+                    "instructions": "The card's heading; on a quote, who said it.",
+                    "required": 1
+                  },
+                  {
+                    "key": "field_salt_carousel_cards_role",
+                    "label": "Role",
+                    "name": "role",
+                    "type": "text",
+                    "instructions": "Used by quote cards only."
+                  },
+                  {
+                    "key": "field_salt_carousel_cards_text",
+                    "label": "Text",
+                    "name": "text",
+                    "type": "textarea",
+                    "instructions": "On a quote, the words; a quote with none is skipped."
+                  }
+                ],
+                "salt": {
+                  "rowLabel": "title",
+                  "itemLabel": "Card"
+                }
+              },
+              {
+                "key": "field_salt_carousel_query",
+                "label": "Which items to show",
+                "name": "query",
+                "type": "group",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_carousel_source",
+                      "operator": "==",
+                      "value": "services"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_carousel_source",
+                      "operator": "==",
+                      "value": "case-studies"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_carousel_source",
+                      "operator": "==",
+                      "value": "testimonials"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_carousel_source",
+                      "operator": "==",
+                      "value": "posts"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_carousel_source",
+                      "operator": "==",
+                      "value": "team"
+                    }
+                  ]
+                ],
+                "layout": "block",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_carousel_query_mode",
+                    "label": "Mode",
+                    "name": "mode",
+                    "type": "select",
+                    "choices": {
+                      "automatic": "Automatic (the collection’s usual order)",
+                      "by-category": "By category",
+                      "manual": "Chosen by hand"
+                    },
+                    "default_value": "automatic",
+                    "salt": {
+                      "modeRequires": {
+                        "by-category": [
+                          "services",
+                          "case-studies",
+                          "posts"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "key": "field_salt_carousel_query_categories",
+                    "label": "Categories",
+                    "name": "categories",
+                    "type": "select",
+                    "conditional_logic": [
+                      [
+                        {
+                          "field": "field_salt_carousel_query_mode",
+                          "operator": "==",
+                          "value": "by-category"
+                        },
+                        {
+                          "field": "field_salt_carousel_source",
+                          "operator": "==",
+                          "value": "services"
+                        }
+                      ],
+                      [
+                        {
+                          "field": "field_salt_carousel_query_mode",
+                          "operator": "==",
+                          "value": "by-category"
+                        },
+                        {
+                          "field": "field_salt_carousel_source",
+                          "operator": "==",
+                          "value": "case-studies"
+                        }
+                      ],
+                      [
+                        {
+                          "field": "field_salt_carousel_query_mode",
+                          "operator": "==",
+                          "value": "by-category"
+                        },
+                        {
+                          "field": "field_salt_carousel_source",
+                          "operator": "==",
+                          "value": "posts"
+                        }
+                      ]
+                    ],
+                    "return_format": "value",
+                    "filters": [
+                      "search"
+                    ],
+                    "choices": {},
+                    "multiple": 1,
+                    "ui": 1,
+                    "ajax": 1,
+                    "allow_null": 1,
+                    "salt": {
+                      "taxonomies": [
+                        "service_category",
+                        "work_type",
+                        "category"
+                      ],
+                      "categoriesFor": [
+                        "services",
+                        "case-studies",
+                        "posts"
+                      ]
+                    }
+                  },
+                  {
+                    "key": "field_salt_carousel_query_items",
+                    "label": "Items",
+                    "name": "items",
+                    "type": "select",
+                    "conditional_logic": [
+                      [
+                        {
+                          "field": "field_salt_carousel_query_mode",
+                          "operator": "==",
+                          "value": "manual"
+                        }
+                      ]
+                    ],
+                    "return_format": "value",
+                    "multiple": 1,
+                    "ui": 1,
+                    "ajax": 1,
+                    "choices": {},
+                    "salt": {
+                      "sourceField": "source",
+                      "postSources": {
+                        "services": "service",
+                        "case-studies": "work",
+                        "testimonials": "testimonial",
+                        "posts": "post"
+                      },
+                      "userTick": "showOnWebsite"
+                    }
+                  },
+                  {
+                    "key": "field_salt_carousel_query_order",
+                    "label": "Order",
+                    "name": "order",
+                    "type": "select",
+                    "conditional_logic": [
+                      [
+                        {
+                          "field": "field_salt_carousel_query_mode",
+                          "operator": "==",
+                          "value": "automatic"
+                        }
+                      ],
+                      [
+                        {
+                          "field": "field_salt_carousel_query_mode",
+                          "operator": "==",
+                          "value": "by-category"
+                        }
+                      ]
+                    ],
+                    "choices": {
+                      "default": "The collection’s usual order",
+                      "newest": "Newest first",
+                      "title": "Title (A to Z)"
+                    },
+                    "default_value": "default"
+                  },
+                  {
+                    "key": "field_salt_carousel_query_count",
+                    "label": "How many",
+                    "name": "count",
+                    "type": "number",
+                    "instructions": "0 uses the section’s default. At most 24.",
+                    "conditional_logic": [
+                      [
+                        {
+                          "field": "field_salt_carousel_query_mode",
+                          "operator": "==",
+                          "value": "automatic"
+                        }
+                      ],
+                      [
+                        {
+                          "field": "field_salt_carousel_query_mode",
+                          "operator": "==",
+                          "value": "by-category"
+                        }
+                      ]
+                    ],
+                    "default_value": 0,
+                    "min": 0,
+                    "max": 24,
+                    "step": 1
+                  }
+                ],
+                "salt": {
+                  "sourceField": "source",
+                  "userTick": "showOnWebsite"
+                }
+              },
+              {
+                "key": "field_salt_carousel_show_tags",
+                "label": "Show each card's categories",
+                "name": "showTags",
+                "type": "true_false",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_carousel_source",
+                      "operator": "==",
+                      "value": "services"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_carousel_source",
+                      "operator": "==",
+                      "value": "case-studies"
+                    }
+                  ],
+                  [
+                    {
+                      "field": "field_salt_carousel_source",
+                      "operator": "==",
+                      "value": "posts"
+                    }
+                  ]
+                ],
+                "ui": 1,
+                "default_value": 0
+              },
+              {
+                "key": "field_salt_carousel_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
+                "key": "field_salt_carousel_settings",
+                "label": "Section settings",
+                "name": "settings",
+                "type": "group",
+                "layout": "block",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_carousel_settings_spacing",
+                    "label": "Spacing",
+                    "name": "spacing",
+                    "type": "select",
+                    "instructions": "Space above and below the section.",
+                    "choices": {
+                      "none": "None (flush against its neighbours)",
+                      "sm": "Small",
+                      "md": "Medium",
+                      "lg": "Large"
+                    },
+                    "default_value": "md"
+                  },
+                  {
+                    "key": "field_salt_carousel_settings_tone",
+                    "label": "Tone",
+                    "name": "tone",
+                    "type": "select",
+                    "instructions": "The section's background and text colour roles.",
+                    "choices": {
+                      "surface": "Surface (the page background)",
+                      "surface-alt": "Surface, alternate (a subtle step away from it)",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse (light on dark)"
+                    },
+                    "default_value": "surface"
+                  },
+                  {
+                    "key": "field_salt_carousel_settings_tone_dark",
+                    "label": "Dark mode tone",
+                    "name": "toneDark",
+                    "type": "select",
+                    "instructions": "The tone in dark mode. Automatic keeps the tone above, and the dark palette draws it in its dark form.",
+                    "choices": {
+                      "auto": "Automatic (the tone above, in its dark form)",
+                      "surface": "Surface",
+                      "surface-alt": "Surface, alternate",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse"
+                    },
+                    "default_value": "auto"
+                  },
+                  {
+                    "key": "field_salt_carousel_settings_width",
+                    "label": "Width",
+                    "name": "width",
+                    "type": "select",
+                    "instructions": "How wide the section's content runs.",
+                    "choices": {
+                      "full": "Full (edge to edge)",
+                      "wide": "Wide",
+                      "default": "Default",
+                      "narrow": "Narrow (reading measure)"
+                    },
+                    "default_value": "default"
+                  },
+                  {
+                    "key": "field_salt_carousel_settings_background_image",
+                    "label": "Background image",
+                    "name": "backgroundImage",
+                    "type": "group",
+                    "layout": "block",
+                    "sub_fields": [
+                      {
+                        "key": "field_salt_carousel_settings_background_image_image",
+                        "label": "Image",
+                        "name": "image",
+                        "type": "image",
+                        "instructions": "Decorative: hidden from screen readers, with empty alternative text.",
+                        "return_format": "id"
+                      },
+                      {
+                        "key": "field_salt_carousel_settings_background_image_fit",
+                        "label": "Fit",
+                        "name": "fit",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_carousel_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "cover": "Cover (fill the section, cropping as needed)",
+                          "contain": "Contain (fit the whole image in)"
+                        },
+                        "default_value": "cover"
+                      },
+                      {
+                        "key": "field_salt_carousel_settings_background_image_position",
+                        "label": "Position",
+                        "name": "position",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_carousel_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "focal-point": "Focal point (from the image)",
+                          "top-left": "Top left",
+                          "top": "Top",
+                          "top-right": "Top right",
+                          "left": "Left",
+                          "centre": "Centre",
+                          "right": "Right",
+                          "bottom-left": "Bottom left",
+                          "bottom": "Bottom",
+                          "bottom-right": "Bottom right"
+                        },
+                        "default_value": "focal-point"
+                      },
+                      {
+                        "key": "field_salt_carousel_settings_background_image_scrim",
+                        "label": "Tint the image with the section's colour behind the text",
+                        "name": "scrim",
+                        "type": "true_false",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_carousel_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "ui": 1,
+                        "default_value": 1
+                      },
+                      {
+                        "key": "field_salt_carousel_settings_background_image_scrim_strength",
+                        "label": "Tint strength",
+                        "name": "scrimStrength",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_carousel_settings_background_image_image",
+                              "operator": "!=empty"
+                            },
+                            {
+                              "field": "field_salt_carousel_settings_background_image_scrim",
+                              "operator": "==",
+                              "value": "1"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "subtle": "Subtle",
+                          "standard": "Standard",
+                          "strong": "Strong"
+                        },
+                        "default_value": "strong"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "field_salt_carousel_settings_anchor_id",
+                    "label": "Anchor",
+                    "name": "anchorId",
+                    "type": "text",
+                    "instructions": "Optional, for links to this section. Saved as a slug of lower-case letters, digits and single hyphens: accented letters become plain ones as the site's language writes them, punctuation is dropped, and spaces, underscores and encoded characters become hyphens. We're hiring gives were-hiring, Straße gives strase (strasse on a German site), contact__form gives contact-form. An anchor that leaves nothing (日本語) counts as none. On the page, an anchor that is one of the landmark ids main, content, header, footer, nav, site-navigation, search or skip-link becomes <anchor>-section, and one an earlier section has taken takes the next free -2, -3. Ids the page draws itself contain __, so they never meet yours. Nothing is added on save. The slug is applied again on the page, to whatever is stored.",
+                    "salt": {
+                      "format": "anchor"
+                    }
+                  },
+                  {
+                    "key": "field_salt_carousel_settings_first_page_only",
+                    "label": "First page only",
+                    "name": "firstPageOnly",
+                    "type": "true_false",
+                    "instructions": "On a paginated index, hide this section after the first page.",
+                    "ui": 1,
+                    "default_value": 0
+                  },
+                  {
+                    "key": "field_salt_carousel_settings_divider",
+                    "label": "Rule above this section",
+                    "name": "divider",
+                    "type": "true_false",
+                    "instructions": "A hairline rule between this section and the one before. It also stops two sections of the same tone running together.",
+                    "ui": 1,
+                    "default_value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "key": "layout_salt_contact",
             "name": "contact",
             "label": "Contact form",
@@ -3476,7 +4858,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_contact_show_phone",

@@ -11,8 +11,13 @@
  * labels it Topics, takes away every place an editor could pick a parent
  * (the box's "add new" form and the term add and edit screens; quick edit
  * has none), and stores every term at the top level whatever is sent.
+ * The term add and edit screens show a count of a topic's name against
+ * _topic.json's 120 characters, a target, never a limit (the founder's
+ * ruling of 19/11/2026).
  *
- * Posts' categories are ID-3952's (unit 10) and are not touched here.
+ * Posts' categories are ID-3952's (unit 10, inc/cpt/post.php). Only the
+ * name's count reaches them from here: they are labelled Topics, so their
+ * screens count a name as the other topics' do.
  *
  * @package Salt
  */
@@ -127,3 +132,43 @@ function salt_topic_insert_flat( $term_id, $tt_id, $taxonomy ): void {
 	}
 }
 add_action( 'created_term', 'salt_topic_insert_flat', 10, 3 );
+
+/**
+ * The suggested longest topic name, in characters (salt-contract rc.8:
+ * contract/collections/_topic.json, the name, target 120). A target,
+ * never a limit (the founder's ruling of 19/11/2026): WordPress keeps it as
+ * the term's name (native), and the topic screens show a count against it.
+ */
+const SALT_TOPIC_NAME_TARGET_LENGTH = 120;
+
+/**
+ * The taxonomies whose add and edit screens count a topic's name: the four
+ * topics taxonomies and posts' categories, which are labelled Topics too
+ * (inc/cpt/post.php).
+ *
+ * @return string[]
+ */
+function salt_topic_name_count_taxonomies(): array {
+	return array_merge( salt_topic_taxonomies(), array( 'category' ) );
+}
+
+/**
+ * Show a count beside a topic's name against the suggested 120 characters
+ * ('admin_enqueue_scripts' on the term add and edit screens of a topics
+ * taxonomy or posts' categories). It never refuses a save
+ * (salt_character_count()). The Topics box's own "add new" form and quick
+ * edit have no count.
+ *
+ * @param string $hook_suffix The admin screen.
+ * @return void
+ */
+function salt_topic_name_count_enqueue( string $hook_suffix ): void {
+	$fields = array(
+		'edit-tags.php' => 'tag-name',
+		'term.php'      => 'name',
+	);
+	if ( isset( $fields[ $hook_suffix ] ) && in_array( (string) ( $GLOBALS['taxnow'] ?? '' ), salt_topic_name_count_taxonomies(), true ) ) {
+		salt_character_count( $fields[ $hook_suffix ], SALT_TOPIC_NAME_TARGET_LENGTH );
+	}
+}
+add_action( 'admin_enqueue_scripts', 'salt_topic_name_count_enqueue' );

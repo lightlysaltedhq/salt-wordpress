@@ -133,7 +133,7 @@ final class SmokeRenderTest extends SaltTestCase {
 					'fields' => array( 'content' => '<p>Saved before 6.0.0.</p>' ),
 				),
 				array(
-					'layout' => 'blog_teaser',
+					'layout' => 'never_registered',
 					'fields' => array(),
 				),
 			)
@@ -144,7 +144,7 @@ final class SmokeRenderTest extends SaltTestCase {
 
 		$this->assertStringContainsString( 'salt: section unavailable', $html, 'A legacy rich_text row is not resolved as an empty rich-text section.' );
 		$this->assertStringContainsString( 'section layout "rich_text" has no template', $logs );
-		$this->assertStringNotContainsString( '"blog_teaser" has no template', $logs, 'Layouts still registered with underscores keep mapping to their template.' );
+		$this->assertStringContainsString( 'section layout "never-registered" has no template', $logs, 'A name that never existed maps to its hyphenated slug and takes the fallback too.' );
 	}
 
 	public function test_no_third_party_origin_anywhere_in_rendered_output(): void {

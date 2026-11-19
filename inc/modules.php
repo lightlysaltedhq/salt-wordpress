@@ -69,7 +69,6 @@ function salt_module_cpts(): array {
 	return array(
 		'service'     => 'service',
 		'testimonial' => 'testimonial',
-		'team_member' => 'team_member',
 		'work'        => 'work',
 		'faq'         => 'faq',
 		'location'    => 'location',

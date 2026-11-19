@@ -8,14 +8,15 @@
     },
     "scripts": {
         "build": "node bin/build-assets.mjs",
-        "conformance:contract": "salt-conformance --platform wordpress --adapter 'php tests/contract-adapter/adapter.php' --not-shipped tabs,listing,pricing --partial --acf-snapshot inc/fields/generated/sections.json --fields-options inc/fields/generated/sections.options.json --styles assets/dist/salt.*/salt.css --implementation-version $(sed -n 's/^Version: *//p' style.css) --out tests/contract-adapter/baseline",
+        "conformance:harness": "tests/real-acf/run.sh --conformance",
+        "conformance:contract": "salt-conformance --platform wordpress --adapter 'php tests/contract-adapter/adapter.php' --not-shipped tabs,listing,pricing --partial --acf-snapshot inc/fields/generated/sections.json --fields-options inc/fields/generated/sections.options.json --styles assets/dist/salt.*/salt.css --implementation-version $(sed -n 's/^Version: *//p' style.css) --out tests/contract-adapter/report",
         "lint:js": "eslint .",
         "lint:css": "stylelint \"assets/src/**/*.css\""
     },
     "devDependencies": {
         "@eslint/js": "^9.30.0",
         "@lightlysaltedhq/design-foundations": "3.0.1",
-        "@lightlysaltedhq/salt-contract": "file:vendor-contract/lightlysaltedhq-salt-contract-1.0.0-rc.7.tgz",
+        "@lightlysaltedhq/salt-contract": "file:vendor-contract/lightlysaltedhq-salt-contract-1.0.0-rc.8.tgz",
         "@tailwindcss/cli": "^4.1.0",
         "esbuild": "^0.25.0",
         "eslint": "^9.30.0",

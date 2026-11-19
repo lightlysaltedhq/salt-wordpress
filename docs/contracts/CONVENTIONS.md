@@ -126,32 +126,24 @@ until they are folded. Every renamed slug and field is listed in
 | `hero` | `hero.json` | contract |
 | `intro` | `rich-text.json` (folds into rich-text) | WordPress-local — no fold here |
 | `rich-text` | `rich-text.json` | contract |
-| `services` | `collection-showcase.json` (folds) | WordPress-local — no fold here |
 | `features` | `features.json` | contract |
 | `media-text` | `media-text.json` | contract |
 | `stats` | `stats.json` | contract |
-| `testimonials` | `collection-showcase.json` (grid rows) / `carousel.json` (slider rows), decided per row by the Layout field (folds) | WordPress-local — no fold here |
 | `logos` | `logos.json` | contract |
 | `call-to-action` | `call-to-action.json` | contract |
 | `pricing` | `pricing.json` | contract |
-| `team` | `collection-showcase.json` (folds) | WordPress-local — no fold here |
 | `faq` | `faq.json` | contract |
 | `process` | `process.json` | contract |
-| `work` | `collection-showcase.json` (folds) | WordPress-local — no fold here |
 | `gallery` | `gallery.json` | contract |
-| `blog-teaser` | `collection-showcase.json` (folds) | WordPress-local — no fold here |
-| `scroll-carousel` | `carousel.json` (folds) | WordPress-local — no fold here |
+| `collection-showcase` | `collection-showcase.json` | contract (unit 8) |
+| `carousel` | `carousel.json` | contract (unit 8) |
 | `contact` | `contact.json` | contract, except the service and form props (below) |
 | `locations` | `locations.json` | contract |
 
 The same mapping, from contract section id to layout slugs, is code:
 `salt_contract_section_layouts()` in `inc/overrides.php`, which reads a
-child theme's `salt-overrides.json` by contract id. Testimonials is the
-one layout whose contract section depends on its row:
-`salt_contract_section_conditions()` maps a `grid` row to
-collection-showcase and a `slider` row to carousel, normalising the field
-with `salt_testimonials_layout()`, which the testimonials resolver uses
-too. A new layout or a new
+child theme's `salt-overrides.json` by contract id. Since unit 8 every
+layout is exactly one contract section. A new layout or a new
 contract section adds a row to both (OverridesDeclarationTest fails on a
 parent layout with no contract section).
 
@@ -258,9 +250,9 @@ array(
   output or passes them to a component that does.
 - **Images:** a validated (resolvable) attachment ID, `0` for none,
   passed to x-image by the view, where the pre-split code validated it.
-  Where it did not (scroll-carousel cards; work and blog-teaser
-  thumbnails), the unvalidated ID is passed through as before and x-image
-  decides (rule 2 wins).
+  collection-showcase and carousel resolve images to the contract's
+  resolved image instead (`salt_image_contract()`, `inc/media.php`), drawn
+  with `salt_image_contract_html()`.
 - **Components are never props** (rule 3): the view renders cards,
   images and every other component itself.
 
@@ -410,17 +402,17 @@ proposed new Work Item.
 
 #### Rule 3 — Components: the resolver returns data, the view renders components
 
-A template that pre-renders components above `salt_section()` (e.g.
-`testimonials.php` builds `$salt_cards` with `salt_get_component(
-'image' … )` and `salt_get_component( 'card-testimonial' … )`) moves those
-calls into the view; the resolver returns the data the components need
-(`quote`, `author`, `role`, `company`, `rating`, `logo_id`). This cannot
+A template that pre-renders components above `salt_section()` (e.g. the
+pre-split `gallery.php` built each figure with `salt_get_component(
+'image' … )` before the wrapper) moves those calls into the view; the
+resolver returns the data the components need (`gallery.php`'s `items`,
+each an `image_id` and a `caption`). This cannot
 change output or any side effect that matters: no component touches the
 H1 claim, the section index, anchors, schema or enqueues (only
 `components/section.php`, the wrapper, uses render state); a component's
 output depends only on its args (the icon cache in `inc/services/svg.php`
-is a pure cache); the resolver still clamps ratings and skips empty
-quotes first, so the cards' own clamp/empty logs stay silent as before.
+is a pure cache); the resolver still validates the images and drops
+the unresolvable ones first, so x-image's own logs stay silent as before.
 The only difference is that a component's log line (e.g. an unresolvable
 logo) is written after the wrapper's own log lines instead of before.
 That is accepted; there is no exception to this rule.

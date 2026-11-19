@@ -11,8 +11,9 @@
  *   ref:term/{tax}/{slug}   url:page/{slug}   url:archive/{cpt}
  *
  * §6 (one owner per URL): there are NO 'services' or 'work' builder pages —
- * CPT sections use view_all => 1 to link to the native archives via
- * url:archive/service and url:archive/work.
+ * collection-showcase rows set viewAll => 1 and the theme links them to the
+ * collection's own index page, the post type archive
+ * (salt_collection_index_url()).
  *
  * Every section row carries the contract's section settings in its
  * `settings` group (spacing, tone, width, anchorId, divider);
@@ -108,17 +109,20 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'services',
+				'acf_fc_layout' => 'collection-showcase',
+				'source'        => 'services',
 				'layout'        => 'grid',
 				'columns'       => '3',
 				'eyebrow'       => 'What we do',
 				'heading'       => 'Services built around your goals',
-				'view_all'      => 1,
-				'source'        => 'manual',
-				'manual'        => array(
-					'ref:service/brand-identity',
-					'ref:service/web-design',
-					'ref:service/seo-content',
+				'viewAll'       => 1,
+				'query'         => array(
+					'mode'  => 'manual',
+					'items' => array(
+						'ref:service/brand-identity',
+						'ref:service/web-design',
+						'ref:service/seo-content',
+					),
 				),
 				'settings'      => array(
 					'spacing'  => 'lg',
@@ -195,12 +199,14 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'testimonials',
-				'layout'        => 'slider',
+				'acf_fc_layout' => 'carousel',
+				'source'        => 'testimonials',
 				'heading'       => 'Kind words',
 				'eyebrow'       => 'Client stories',
-				'source'        => 'default',
-				'count'         => 6,
+				'query'         => array(
+					'mode'  => 'automatic',
+					'count' => 6,
+				),
 				'settings'      => array(
 					'spacing'  => 'lg',
 					'tone'     => 'surface-alt',
@@ -211,13 +217,17 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'work',
+				'acf_fc_layout' => 'collection-showcase',
+				'source'        => 'case-studies',
+				'layout'        => 'grid',
 				'eyebrow'       => 'Portfolio',
 				'heading'       => 'Selected work',
 				'columns'       => '2',
-				'view_all'      => 1,
-				'source'        => 'default',
-				'count'         => 4,
+				'viewAll'       => 1,
+				'query'         => array(
+					'mode'  => 'automatic',
+					'count' => 4,
+				),
 				'settings'      => array(
 					'spacing'  => 'lg',
 					'tone'     => 'surface',
@@ -265,12 +275,17 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'team',
+				'acf_fc_layout' => 'collection-showcase',
+				'source'        => 'team',
+				'layout'        => 'grid',
 				'eyebrow'       => 'The people',
 				'heading'       => 'Meet the team',
 				'columns'       => '4',
-				'source'        => 'default',
-				'count'         => 4,
+				'viewAll'       => 0,
+				'query'         => array(
+					'mode'  => 'automatic',
+					'count' => 4,
+				),
 				'settings'      => array(
 					'spacing'  => 'lg',
 					'tone'     => 'surface',
@@ -402,12 +417,17 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'team',
+				'acf_fc_layout' => 'collection-showcase',
+				'source'        => 'team',
+				'layout'        => 'grid',
 				'eyebrow'       => 'The people',
 				'heading'       => 'Everyone you will actually work with',
 				'columns'       => '3',
-				'source'        => 'default',
-				'count'         => 0,
+				'viewAll'       => 0,
+				'query'         => array(
+					'mode'  => 'automatic',
+					'count' => 0,
+				),
 				'settings'      => array(
 					'spacing'  => 'lg',
 					'tone'     => 'surface',
@@ -450,10 +470,11 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'scroll_carousel',
+				'acf_fc_layout' => 'carousel',
+				'source'        => 'inline',
 				'eyebrow'       => 'Studio life',
 				'heading'       => 'What it is like to work with us',
-				'card_type'     => 'generic',
+				'cardStyle'     => 'generic',
 				'cards'         => array(
 					array(
 						'image' => 'ref:image/team-amelia',
@@ -645,12 +666,17 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'testimonials',
+				'acf_fc_layout' => 'collection-showcase',
+				'source'        => 'testimonials',
 				'layout'        => 'grid',
+				'columns'       => '3',
 				'heading'       => 'Proof it works',
 				'eyebrow'       => 'In their words',
-				'source'        => 'default',
-				'count'         => 3,
+				'viewAll'       => 0,
+				'query'         => array(
+					'mode'  => 'automatic',
+					'count' => 3,
+				),
 				'settings'      => array(
 					'spacing'  => 'lg',
 					'tone'     => 'surface',
@@ -760,12 +786,17 @@ return array(
 			),
 
 			array(
-				'acf_fc_layout' => 'team',
+				'acf_fc_layout' => 'collection-showcase',
+				'source'        => 'team',
+				'layout'        => 'grid',
 				'eyebrow'       => '',
 				'heading'       => 'Everyone at Northbeam',
 				'columns'       => '3',
-				'source'        => 'default',
-				'count'         => 0,
+				'viewAll'       => 0,
+				'query'         => array(
+					'mode'  => 'automatic',
+					'count' => 0,
+				),
 				'settings'      => array(
 					'spacing'  => 'lg',
 					'tone'     => 'surface-alt',

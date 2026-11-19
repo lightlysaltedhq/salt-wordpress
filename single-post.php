@@ -4,11 +4,11 @@
  * H1 → author/date/updated/reading-time meta), featured image, content,
  * share row, author box, prev/next navigation + BlogPosting schema.
  *
- * The author box pulls the display name + bio straight from the WordPress
- * user, and the avatar from the ACF profile_photo user field, drawn only
- * when there is one: salt-contract 1.0.0-rc.7 dropped the Gravatar
- * fallback (collections/team.json). The credited author as a team member
- * is ID-3952.
+ * The body is the post's layout (salt_the_post_layout()): prose in the
+ * reading column, every other section as a band. The badge is the primary
+ * topic, and the tags are its topics, primary first then A–Z. The native
+ * author is credited whether or not they publish a profile. An unticked
+ * author has plain text credit: no author box, profile link or Gravatar.
  *
  * @package Salt
  */
@@ -31,22 +31,17 @@ while ( have_posts() ) {
 	// — same-day touch-ups aren't an update worth announcing.
 	$salt_show_modified = get_the_modified_date( 'Ymd' ) !== get_the_date( 'Ymd' );
 
-	$salt_minutes = salt_reading_time_minutes( (string) get_post_field( 'post_content', $salt_post_id ) );
+	$salt_minutes = salt_reading_time_minutes( salt_post_reading_text( $salt_post_id ) );
 
-	$salt_author_id   = (int) get_the_author_meta( 'ID' );
-	$salt_author_name = (string) get_the_author();
-	$salt_author_bio  = (string) get_the_author_meta( 'description' );
-	$salt_author_url  = (string) get_author_posts_url( $salt_author_id );
-
-	// Avatar: the ACF profile_photo user field, or none (no Gravatar).
+	// The credited author: a team member, or no one.
+	$salt_author      = salt_post_credited_author( $salt_post_id );
 	$salt_avatar_html = '';
-	$salt_photo_id    = function_exists( 'get_field' ) ? (int) get_field( 'profile_photo', 'user_' . $salt_author_id ) : 0;
-	if ( $salt_photo_id > 0 ) {
+	if ( null !== $salt_author && $salt_author['photo'] > 0 ) {
 		$salt_avatar_html = salt_get_component(
 			'image',
 			array(
-				'image_id' => $salt_photo_id,
-				'alt'      => $salt_author_name,
+				'image_id' => $salt_author['photo'],
+				'alt'      => '', // Stored attachment alt wins (x-image precedence).
 				'classes'  => 'size-full object-cover',
 			)
 		);
@@ -70,21 +65,27 @@ while ( have_posts() ) {
 
 	echo '<div class="x-post-meta mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-muted">';
 
-	echo '<span class="x-post-meta-author inline-flex items-center gap-2">';
-	if ( '' !== $salt_avatar_html ) {
-		echo '<span class="size-8 shrink-0 overflow-hidden rounded-full">' . $salt_avatar_html . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- x-image markup, escaped internally.
+	if ( null !== $salt_author ) {
+		echo '<span class="x-post-meta-author inline-flex items-center gap-2">';
+		if ( '' !== $salt_avatar_html ) {
+			echo '<span class="size-8 shrink-0 overflow-hidden rounded-full">' . $salt_avatar_html . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- x-image markup, escaped internally.
+		}
+		if ( '' !== $salt_author['url'] ) {
+			printf(
+				'<a class="font-medium text-ink hover:text-brand" href="%s">%s</a>',
+				esc_url( $salt_author['url'] ),
+				esc_html( $salt_author['name'] )
+			);
+		} else {
+			printf( '<span class="font-medium text-ink">%s</span>', esc_html( $salt_author['name'] ) );
+		}
+		echo '</span>';
 	}
-	printf(
-		'<a class="font-medium text-ink hover:text-brand" href="%s">%s</a>',
-		esc_url( $salt_author_url ),
-		esc_html( $salt_author_name )
-	);
-	echo '</span>';
 
 	printf(
 		'<time datetime="%s">%s</time>',
 		esc_attr( (string) get_the_date( 'c' ) ),
-		esc_html( (string) get_the_date() )
+		esc_html( salt_post_date_text( $salt_post_id ) )
 	);
 
 	if ( $salt_show_modified ) {
@@ -92,7 +93,7 @@ while ( have_posts() ) {
 			'<span class="x-post-meta-updated">%s <time datetime="%s">%s</time></span>',
 			esc_html__( 'Updated', 'salt' ),
 			esc_attr( (string) get_the_modified_date( 'c' ) ),
-			esc_html( (string) get_the_modified_date() )
+			esc_html( salt_post_date_text( $salt_post_id, 'modified' ) )
 		);
 	}
 
@@ -142,16 +143,17 @@ while ( have_posts() ) {
 	}
 
 	// ------------------------------------------------------------------
-	// Content.
+	// Content: the post's layout, prose and bands in stored order.
 	// ------------------------------------------------------------------
-	echo '<div class="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
-	echo '<div class="x-prose">';
-	the_content();
+	echo '<div class="x-post-body pt-14 md:pt-20">';
+	salt_the_post_layout( $salt_post_id );
 	echo '</div>';
 
-	// Tag list (when tagged).
-	$salt_tags = get_the_tags( $salt_post_id );
-	if ( is_array( $salt_tags ) && array() !== $salt_tags ) {
+	echo '<div class="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
+
+	// Tag list: the post's topics (never the default category).
+	$salt_tags = salt_post_topics( $salt_post_id );
+	if ( array() !== $salt_tags ) {
 		echo '<ul class="x-post-tags mt-10 flex flex-wrap gap-2">';
 		foreach ( $salt_tags as $salt_tag ) {
 			printf(
@@ -175,17 +177,20 @@ while ( have_posts() ) {
 	);
 	echo '</div>';
 
-	// Author box — name + bio from the WP user.
-	salt_component(
-		'author-box',
-		array(
-			'name'    => $salt_author_name,
-			'bio'     => $salt_author_bio,
-			'url'     => $salt_author_url,
-			'media'   => $salt_avatar_html,
-			'classes' => 'mt-10',
-		)
-	);
+	// Author box: the credited team member, when they have a profile to show.
+	if ( null !== $salt_author && '' !== $salt_author['url'] ) {
+		salt_component(
+			'author-box',
+			array(
+				'name'    => $salt_author['name'],
+				'role'    => $salt_author['role'],
+				'bio'     => $salt_author['bio'],
+				'url'     => $salt_author['url'],
+				'media'   => $salt_avatar_html,
+				'classes' => 'mt-10',
+			)
+		);
+	}
 
 	// Previous / next post navigation.
 	$salt_prev = get_previous_post();
@@ -225,14 +230,18 @@ while ( have_posts() ) {
 		'url'              => $salt_permalink,
 		'datePublished'    => (string) get_the_date( 'c' ),
 		'dateModified'     => (string) get_the_modified_date( 'c' ),
-		'author'           => array(
-			'@type' => 'Person',
-			'name'  => $salt_author_name,
-			'url'   => $salt_author_url,
-		),
 		'publisher'        => array( '@id' => home_url( '/' ) . '#organization' ),
 		'mainEntityOfPage' => array( '@id' => $salt_permalink . '#webpage' ),
 	);
+	if ( null !== $salt_author ) {
+		$salt_article['author'] = array_filter(
+			array(
+				'@type' => 'Person',
+				'name'  => $salt_author['name'],
+				'url'   => $salt_author['url'],
+			)
+		);
+	}
 	if ( null !== $salt_category ) {
 		$salt_article['articleSection'] = $salt_category->name;
 	}

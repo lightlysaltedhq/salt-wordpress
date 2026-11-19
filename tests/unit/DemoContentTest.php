@@ -118,13 +118,13 @@ final class DemoContentTest extends SaltTestCase {
 		$group_key = array(
 			'service'     => 'group_salt_collection_services',
 			'testimonial' => 'group_salt_collection_testimonials',
-			'team_member' => 'group_salt_collection_team',
+			'team'        => 'group_salt_collection_team',
 			'work'        => 'group_salt_collection_case_studies',
 			'faq'         => 'group_salt_collection_faqs',
 			'location'    => 'group_salt_collection_locations',
 		);
 
-		foreach ( self::$data['cpts'] as $cpt => $items ) {
+		foreach ( self::$data['cpts'] + array( 'team' => self::$data['team'] ) as $cpt => $items ) {
 			if ( 'post' === $cpt || ! isset( $group_key[ $cpt ] ) ) {
 				continue; // Core post uses no ACF fields.
 			}

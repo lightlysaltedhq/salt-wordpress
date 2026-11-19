@@ -143,7 +143,13 @@ function salt_component( string $name, array $args = array(), array $slots = arr
  * @param string      $op    'get'|'set'|'reset'.
  * @param string|null $key   Key when setting.
  * @param mixed       $value Value when setting.
- * @return array{h1_claimed: bool, h1_source: string, section_index: int, anchors: array<string,bool>, last_background: string, last_divider: bool}
+ * Since unit 8 it also holds what the contract's wrapper (salt_section()
+ * with `contract`) needs of the page so far: each section id's count for
+ * data-track (`tracks`), the previous band's dark tone, background image
+ * and spacing for the adjacency collapse, and whether a section has taken
+ * the page's priority image (`priority_media`).
+ *
+ * @return array{h1_claimed: bool, h1_source: string, section_index: int, anchors: array<string,bool>, last_background: string, last_divider: bool, last_tone_dark: string, last_media: bool, last_spacing: string, tracks: array<string,int>, priority_media: bool}
  */
 function salt_render_state( string $op = 'get', ?string $key = null, $value = null ): array {
 	static $state = null;
@@ -156,6 +162,11 @@ function salt_render_state( string $op = 'get', ?string $key = null, $value = nu
 			'anchors'         => array(),
 			'last_background' => '',
 			'last_divider'    => false,
+			'last_tone_dark'  => '',
+			'last_media'      => false,
+			'last_spacing'    => '',
+			'tracks'          => array(),
+			'priority_media'  => false,
 		);
 	}
 
@@ -285,47 +296,90 @@ function salt_anchor_id( string $raw ): string {
  * H1 when this section is the page's designated primary heading, then
  * renders the body inside the wrapper component.
  *
+ * The contract's wrapper (salt-contract markup/section.json) is drawn
+ * instead of x-section when `contract` is true: the sections whose markup
+ * is the contract's (collection-showcase and carousel since unit 8) pass
+ * it; every other section keeps x-section until it moves (M4). With it:
+ *  - the band is a section named by its heading (aria-labelledby
+ *    <anchor>__heading) when it has one, otherwise a div (section#labelled-by);
+ *  - every band has an id: the anchor, or, with none, one minted from the
+ *    section id as salt_anchor_id() settles any other (section#anchors;
+ *    the contract's two-pass settlement is the wrapper's M4 work);
+ *  - data-track is <name>-<n>, n counting that section id on the page from
+ *    1 (section#data-track);
+ *  - the top space collapses as section#adjacent-collapse says: the
+ *    previous band shares the tone and dark tone, neither has a background
+ *    image, this band has no divider (the stylesheet draws it as this
+ *    band's top border) and neither spacing is none.
+ *
+ * The content callback receives the heading level and the settled id:
+ * function( int $heading_level, string $anchor ): void.
+ *
  * @param array<string,mixed> $args    Wrapper args: name (required), spacing,
  *                                     background, container, anchor, divider,
- *                                     is_primary, has_heading, flush_top.
- * @param callable            $content function( int $heading_level ): void — echoes the body.
+ *                                     is_primary, has_heading, flush_top; and
+ *                                     for the contract's wrapper: contract,
+ *                                     tone, tone_dark, background_image
+ *                                     (salt_section_background()) and
+ *                                     background_priority.
+ * @param callable            $content function( int $heading_level, string $anchor ): void — echoes the body.
  * @return void
  */
 function salt_section( array $args, callable $content ): void {
 	$contract = array(
-		'name'        => array(
+		'name'                => array(
 			'type'     => 'string',
 			'required' => true,
 		),
-		'spacing'     => array(
+		'spacing'             => array(
 			'type'    => 'string',
 			'default' => 'md',
 		),
-		'background'  => array(
+		'background'          => array(
 			'type'    => 'string',
 			'default' => 'surface',
 		),
-		'container'   => array(
+		'container'           => array(
 			'type'    => 'string',
 			'default' => 'default',
 		),
-		'anchor'      => array(
+		'anchor'              => array(
 			'type'    => 'string',
 			'default' => '',
 		),
-		'divider'     => array(
+		'divider'             => array(
 			'type'    => 'bool',
 			'default' => false,
 		),
-		'is_primary'  => array(
+		'is_primary'          => array(
 			'type'    => 'bool',
 			'default' => false,
 		),
-		'has_heading' => array(
+		'has_heading'         => array(
 			'type'    => 'bool',
 			'default' => true,
 		),
-		'flush_top'   => array(
+		'flush_top'           => array(
+			'type'    => 'bool',
+			'default' => false,
+		),
+		'contract'            => array(
+			'type'    => 'bool',
+			'default' => false,
+		),
+		'tone'                => array(
+			'type'    => 'string',
+			'default' => 'surface',
+		),
+		'tone_dark'           => array(
+			'type'    => 'string',
+			'default' => '',
+		),
+		'background_image'    => array(
+			'type'    => 'mixed',
+			'default' => null,
+		),
+		'background_priority' => array(
 			'type'    => 'bool',
 			'default' => false,
 		),
@@ -345,24 +399,76 @@ function salt_section( array $args, callable $content ): void {
 	$index = $state['section_index'];
 	salt_render_state( 'set', 'section_index', $index + 1 );
 
-	// Same-background adjacency collapse: two neighbouring sections sharing a
-	// background have no visual boundary, so their paddings stack into a dead
-	// zone (pb + pt of the same colour). The later section drops its top
-	// padding — ONE unit of spacing between them, not two. A divider on the
-	// previous section is a boundary and keeps the full gap. A section may
-	// also force the collapse itself (flush_top — e.g. the full-bleed hero
-	// banner meeting the header).
-	$collapse_top = $args['flush_top']
-		|| ( 'none' !== $args['spacing']
-			&& '' !== $state['last_background']
+	// The id is settled before the body draws, so the body can name its
+	// heading <anchor>__heading (SC-012).
+	$anchor = salt_anchor_id( $args['anchor'] );
+	if ( $args['contract'] && '' === $anchor ) {
+		$anchor = salt_anchor_id( $args['name'] );
+	}
+
+	$tracks                  = $state['tracks'];
+	$tracks[ $args['name'] ] = ( $tracks[ $args['name'] ] ?? 0 ) + 1;
+	salt_render_state( 'set', 'tracks', $tracks );
+
+	// The dark tone in the state's vocabulary (x-section's inverse), so a
+	// contract band and an x-section band compare alike.
+	$tone_dark = '' === $args['tone_dark'] ? $args['background'] : ( 'surface-inverse' === $args['tone_dark'] ? 'inverse' : $args['tone_dark'] );
+	$has_media = is_array( $args['background_image'] );
+
+	if ( $args['contract'] ) {
+		$last_dark    = '' !== $state['last_tone_dark'] ? $state['last_tone_dark'] : $state['last_background'];
+		$collapse_top = '' !== $state['last_background']
 			&& $state['last_background'] === $args['background']
-			&& ! $state['last_divider'] );
+			&& $last_dark === $tone_dark
+			&& ! $state['last_media']
+			&& ! $has_media
+			&& ! $args['divider']
+			&& 'none' !== $args['spacing']
+			&& 'none' !== $state['last_spacing'];
+	} else {
+		// Same-background adjacency collapse: two neighbouring sections sharing a
+		// background have no visual boundary, so their paddings stack into a dead
+		// zone (pb + pt of the same colour). The later section drops its top
+		// padding — ONE unit of spacing between them, not two. A divider on the
+		// previous section is a boundary and keeps the full gap. A section may
+		// also force the collapse itself (flush_top — e.g. the full-bleed hero
+		// banner meeting the header).
+		$collapse_top = $args['flush_top']
+			|| ( 'none' !== $args['spacing']
+				&& '' !== $state['last_background']
+				&& $state['last_background'] === $args['background']
+				&& ! $state['last_divider'] );
+	}
 	salt_render_state( 'set', 'last_background', $args['background'] );
 	salt_render_state( 'set', 'last_divider', $args['divider'] );
+	salt_render_state( 'set', 'last_tone_dark', $tone_dark );
+	salt_render_state( 'set', 'last_media', $has_media );
+	salt_render_state( 'set', 'last_spacing', $args['spacing'] );
 
 	ob_start();
-	$content( $level );
+	$content( $level, $anchor );
 	$body = (string) ob_get_clean();
+
+	if ( $args['contract'] ) {
+		salt_component(
+			'contract-section',
+			array(
+				'anchor'              => $anchor,
+				'labelled'            => $args['has_heading'],
+				'tone'                => $args['tone'],
+				'tone_dark'           => '' !== $args['tone_dark'] ? $args['tone_dark'] : $args['tone'],
+				'spacing'             => $args['spacing'],
+				'width'               => $args['container'],
+				'track'               => $args['name'] . '-' . $tracks[ $args['name'] ],
+				'collapse_top'        => $collapse_top,
+				'divider'             => $args['divider'],
+				'background_image'    => $has_media ? $args['background_image'] : null,
+				'background_priority' => $args['background_priority'],
+			),
+			array( 'default' => $body )
+		);
+		return;
+	}
 
 	salt_component(
 		'section',
@@ -371,7 +477,7 @@ function salt_section( array $args, callable $content ): void {
 			'spacing'      => $args['spacing'],
 			'background'   => $args['background'],
 			'container'    => $args['container'],
-			'anchor'       => salt_anchor_id( $args['anchor'] ),
+			'anchor'       => $anchor,
 			'divider'      => $args['divider'],
 			'index'        => $index,
 			'collapse_top' => $collapse_top,
@@ -413,6 +519,83 @@ function salt_section_wrapper_args( string $name, array $context = array() ): ar
 		'anchor'     => $setting( 'anchorId', '' ),
 		'divider'    => (bool) ( $settings['divider'] ?? false ),
 		'is_primary' => (bool) ( $context['is_primary'] ?? false ),
+	);
+}
+
+/**
+ * The contract wrapper's args for the current row (salt_section() with
+ * `contract`): salt_section_wrapper_args() plus the tone in the contract's
+ * vocabulary, the dark tone resolved (auto is the tone itself, SC-016) and
+ * the background image (salt_section_background()).
+ *
+ * @param string              $name    Contract section id.
+ * @param array<string,mixed> $context Loop context: index, is_primary.
+ * @return array<string,mixed>
+ */
+function salt_section_contract_args( string $name, array $context = array() ): array {
+	$settings = salt_section_settings();
+	$args     = salt_section_wrapper_args( $name, $context );
+	$tones    = array( 'surface', 'surface-alt', 'brand-tint', 'surface-inverse' );
+	$tone     = in_array( $settings['tone'] ?? null, $tones, true ) ? (string) $settings['tone'] : 'surface';
+	$dark     = in_array( $settings['toneDark'] ?? null, $tones, true ) ? (string) $settings['toneDark'] : $tone;
+
+	if ( ! in_array( $args['spacing'], array( 'none', 'sm', 'md', 'lg' ), true ) ) {
+		$args['spacing'] = 'md';
+	}
+	if ( ! in_array( $args['container'], array( 'full', 'wide', 'default', 'narrow' ), true ) ) {
+		$args['container'] = 'default';
+	}
+
+	return array_merge(
+		$args,
+		array(
+			'contract'         => true,
+			'background'       => 'surface-inverse' === $tone ? 'inverse' : $tone,
+			'tone'             => $tone,
+			'tone_dark'        => $dark,
+			'background_image' => salt_section_background( $settings ),
+		)
+	);
+}
+
+/**
+ * Whether the page plan grants this band the page's priority image
+ * (section#priority-media, view-props/_shared.json plan.priorityMedia).
+ *
+ * Granted to the first band on the page (index 0) only, as the hero's
+ * resolver has it. The contract grants it to the first band that HAS a
+ * principal image, so a page that opens with a text band gives it to the
+ * first image below (SC-026); that page-plan pass is the wrapper's M4 work.
+ *
+ * @param array<string,mixed> $context Loop context: index.
+ * @return bool
+ */
+function salt_section_plan_priority( array $context ): bool {
+	return 0 === (int) ( $context['index'] ?? -1 );
+}
+
+/**
+ * The settings' background image as the contract's background
+ * (view-props/_shared.json background), or null unless an image is set and
+ * resolves. Its image is the full slot's (sizes 100vw).
+ *
+ * @param array<string,mixed> $settings The row's settings group.
+ * @return array{image: array<string,mixed>, fit: string, position: string, scrim: bool, scrimStrength: string}|null
+ */
+function salt_section_background( array $settings ): ?array {
+	$background = is_array( $settings['backgroundImage'] ?? null ) ? $settings['backgroundImage'] : array();
+	$image      = salt_image_contract( (int) ( $background['image'] ?? 0 ), salt_image_slot_sizes( 'full' ) );
+	if ( null === $image ) {
+		return null;
+	}
+	$pick = static fn( string $key, array $allowed, string $fallback ): string => in_array( $background[ $key ] ?? null, $allowed, true ) ? (string) $background[ $key ] : $fallback;
+
+	return array(
+		'image'         => $image,
+		'fit'           => $pick( 'fit', array( 'cover', 'contain' ), 'cover' ),
+		'position'      => $pick( 'position', array( 'focal-point', 'top-left', 'top', 'top-right', 'left', 'centre', 'right', 'bottom-left', 'bottom', 'bottom-right' ), 'focal-point' ),
+		'scrim'         => (bool) ( $background['scrim'] ?? true ),
+		'scrimStrength' => $pick( 'scrimStrength', array( 'subtle', 'standard', 'strong' ), 'strong' ),
 	);
 }
 
@@ -478,12 +661,12 @@ function salt_contract_link( $link ): ?array {
 /**
  * A contract `buttons` list (rows of { link, style }) as x-button args, in
  * row order: rows that do not make a usable link are skipped and logged,
- * an unknown style becomes $default_style, and rows past $max are dropped
- * and logged.
+ * an unknown style becomes $default_style. A draft can exceed the publish
+ * limit: still draw every usable button.
  *
  * @param mixed  $rows          The stored list.
  * @param string $where         Log prefix, e.g. 'section hero'.
- * @param int    $max           Most buttons drawn (the contract's limit).
+ * @param int    $max           Publish limit (retained for call compatibility).
  * @param string $default_style The list's default style.
  * @return array<int, array{label: string, url: string, style: string, target: string}>
  */
@@ -511,8 +694,7 @@ function salt_contract_buttons( $rows, string $where, int $max, string $default_
 	}
 
 	if ( count( $buttons ) > $max ) {
-		salt_log( sprintf( '%s: %d buttons given — only the first %d render.', $where, count( $buttons ), $max ) );
-		$buttons = array_slice( $buttons, 0, $max );
+		salt_log( sprintf( '%s: %d buttons exceed the publish limit of %d; rendered in full.', $where, count( $buttons ), $max ) );
 	}
 
 	return $buttons;
@@ -713,7 +895,8 @@ function salt_render_replaced_section( string $layout, string $view, array $cont
  *  - plan:    optional — the contract plan keys only the section can know
  *             (today: priorityMedia).
  * The view is then loaded INSIDE the wrapper with
- * $args = array{ props: array, plan: array{ index: int, headingLevel: int, priorityMedia: bool } }
+ * $args = array{ props: array, plan: array{ index: int, anchor: string, headingLevel: int, priorityMedia: bool } }
+ * (anchor: the band's settled id, '' when it has none)
  * and only draws markup.
  *
  * A section that is not split (no inc/sections/{layout}.php — not yet
@@ -736,7 +919,7 @@ function salt_render_resolved_section( string $layout, string $view, array $cont
 		return;
 	}
 
-	if ( null !== salt_overrides() && 'logic' === salt_override_tier( $layout, salt_contract_section_variant( $layout ) ) ) {
+	if ( null !== salt_overrides() && 'logic' === salt_override_tier( $layout ) ) {
 		salt_render_replaced_section( $layout, $view, $context );
 		return;
 	}
@@ -773,7 +956,7 @@ function salt_render_resolved_section( string $layout, string $view, array $cont
 
 	salt_section(
 		$resolved['section'],
-		static function ( int $level ) use ( $layout, $view, $props, $index, $priority_media ): void {
+		static function ( int $level, string $anchor = '' ) use ( $layout, $view, $props, $index, $priority_media ): void {
 			$before = salt_render_state()['section_index'];
 
 			load_template(
@@ -783,6 +966,7 @@ function salt_render_resolved_section( string $layout, string $view, array $cont
 					'props' => $props,
 					'plan'  => array(
 						'index'         => $index,
+						'anchor'        => $anchor,
 						'headingLevel'  => $level,
 						'priorityMedia' => $priority_media,
 					),

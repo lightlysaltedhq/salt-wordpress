@@ -18,3 +18,6 @@ Thumbs.db
 .phpunit.cache/
 .stylelintcache
 .eslintcache
+
+# A conformance run's report; only run.sh --conformance copies it to tests/contract-adapter/baseline/.
+/tests/contract-adapter/report/

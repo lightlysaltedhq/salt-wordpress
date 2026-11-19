@@ -20,14 +20,20 @@
  *    salt_render_section(): the theme's resolver and view for that section;
  *  - a chrome case (site-header, site-footer): the case's `site` is seeded
  *    into the theme's options and bloginfo, and the template part rendered;
- *  - a view or the page: not rendered yet (they need WordPress's loop and
- *    document head); the case fails with exit 4 and says so.
+ *  - a view or the page: these need WordPress's loop and document head, so
+ *    they are rendered by the real-ACF harness's running WordPress when one
+ *    is up (tests/real-acf/run.sh --conformance sets SALT_HARNESS_WP and
+ *    SALT_HARNESS_URL): the case goes to tests/real-acf/php/view.php, which
+ *    seeds it into the site, requests its path and writes main#main, or the
+ *    whole document for the page; its output and exit status are this
+ *    adapter's. Without the harness, the case fails with exit 4 and says so.
  *
- * Exit codes: 0 rendered; 2 the input is not a case; 3 the theme does not
- * ship the section (or has no section for the case's source); 4 the adapter
- * cannot render this kind of case yet; 70 the render raised a PHP error,
- * warning, notice or deprecation, or threw. Diagnostics go to stderr, never
- * stdout, so no PHP diagnostic can pass as markup.
+ * Exit codes: 0 rendered; 1 the harness's site answered the wrong status;
+ * 2 the input is not a case; 3 the theme does not ship the section (or has
+ * no section for the case's source); 4 the adapter cannot render this kind
+ * of case without the harness; 70 the render raised a PHP error, warning,
+ * notice or deprecation, or threw. Diagnostics go to stderr, never stdout,
+ * so no PHP diagnostic can pass as markup.
  *
  * Usage: php tests/contract-adapter/adapter.php < fixtures/hero/empty.json
  *
@@ -88,7 +94,8 @@ function salt_adapter_stop( int $code, string $message ) {
  * theme draws as one of several former sections, a map from the case's
  * `values.source` to that slug. From contract/sections.json, each
  * section's former WordPress names (`formerly`); the theme's layouts have
- * since taken the contract's ids where one exists (cta is call-to-action).
+ * since taken the contract's ids where one exists (cta is call-to-action;
+ * collection-showcase and carousel since unit 8).
  * tabs and listing are owed: the theme has no section for them.
  *
  * @return array<string,string|array<string,string>|null>
@@ -106,17 +113,8 @@ function salt_adapter_sections(): array {
 		'process'             => 'process',
 		'faq'                 => 'faq',
 		'tabs'                => null,
-		'collection-showcase' => array(
-			'services'     => 'services',
-			'case-studies' => 'work',
-			'team'         => 'team',
-			'testimonials' => 'testimonials',
-			'posts'        => 'blog-teaser',
-		),
-		'carousel'            => array(
-			'testimonials' => 'testimonials',
-			''             => 'scroll-carousel',
-		),
+		'collection-showcase' => 'collection-showcase',
+		'carousel'            => 'carousel',
 		'listing'             => null,
 		'contact'             => 'contact',
 		'locations'           => 'locations',
@@ -133,7 +131,6 @@ function salt_adapter_post_types(): array {
 	return array(
 		'services'     => 'service',
 		'case-studies' => 'work',
-		'team'         => 'team_member',
 		'testimonials' => 'testimonial',
 		'posts'        => 'post',
 		'faqs'         => 'faq',
@@ -164,7 +161,9 @@ function salt_adapter_contract_json( string $path ): array {
  */
 function salt_adapter_boot(): void {
 	require SALT_ADAPTER_THEME . '/tests/bootstrap.php';
-	foreach ( array( 'acf', 'media', 'blog', 'nav', 'service', 'work', 'team', 'testimonial', 'faq', 'gallery', 'location', 'http' ) as $shim ) {
+	// The contract renders same-site links relative to the site root.
+	$GLOBALS['salt_test_schema']['home_url'] = '';
+	foreach ( array( 'acf', 'media', 'blog', 'nav', 'service', 'work', 'team', 'testimonial', 'faq', 'gallery', 'location', 'http', 'terms' ) as $shim ) {
 		require_once SALT_ADAPTER_THEME . '/tests/shims/' . $shim . '.php';
 	}
 	foreach ( array(
@@ -174,7 +173,7 @@ function salt_adapter_boot(): void {
 		'/inc/services/display-preferences.php',
 		'/inc/cpt/service.php',
 		'/inc/cpt/work.php',
-		'/inc/cpt/team-member.php',
+		'/inc/services/post-author.php',
 		'/inc/cpt/testimonial.php',
 		'/inc/cpt/faq.php',
 		'/inc/cpt/location.php',
@@ -224,11 +223,26 @@ function salt_adapter_seed_media( array $media ): array {
 		$candidate = array_filter( salt_adapter_core_widths(), static fn( int $w ): bool => $w < $width );
 		$srcset    = array_map( static fn( int $w ): string => $url( $w ) . ' ' . $w . 'w', array_merge( $candidate, array( $width ) ) );
 
+		$height = (int) ( $record['height'] ?? 0 );
+		// The contract's candidate widths WordPress makes for the upload (the
+		// theme's salt-<width> sizes), for the sections drawn to the contract.
+		$sizes = array();
+		foreach ( salt_image_candidates() as $w ) {
+			if ( $w < $width ) {
+				$sizes[ 'salt-' . $w ] = array(
+					'width'  => $w,
+					'height' => (int) round( $height * $w / max( 1, $width ) ),
+					'url'    => $url( $w ),
+				);
+			}
+		}
+
 		$GLOBALS['salt_test_attachments'][ $next ] = array(
 			'src'     => $url( $width ),
 			'width'   => $width,
-			'height'  => (int) ( $record['height'] ?? 0 ),
+			'height'  => $height,
 			'srcset'  => implode( ', ', $srcset ),
+			'sizes'   => $sizes,
 			'alt'     => (string) ( $record['alt'] ?? '' ),
 			'caption' => (string) ( $record['caption'] ?? '' ),
 		);
@@ -293,9 +307,27 @@ function salt_adapter_seed_collections( array $collections, array $media ): arra
 	$next   = 1001;
 	$types  = salt_adapter_post_types();
 	$places = salt_adapter_native_places();
+	$terms  = array();
 	foreach ( $collections as $collection => $items ) {
 		$native = $places[ (string) $collection ] ?? array();
+		$parts  = salt_adapter_card_parts( (string) $collection );
+		$tax    = function_exists( 'salt_collection_sources' ) ? ( salt_collection_sources()[ (string) $collection ]['taxonomy'] ?? null ) : null;
 		foreach ( array_values( (array) $items ) as $order => $item ) {
+			if ( 'team' === $collection ) {
+				$GLOBALS['salt_test_users'][]                   = new WP_User( $next, (string) ( $item['name'] ?? $item['title'] ) );
+				$GLOBALS['salt_test_fields'][ 'user_' . $next ] = array(
+					'showOnWebsite' => (int) ( $item['showOnWebsite'] ?? true ),
+					'slug'          => $item['slug'] ?? basename( $item['href'] ?? $item['id'] ),
+					'role'          => $item['role'] ?? $item['meta'] ?? '',
+					'bio'           => $item['bio'] ?? $item['text'] ?? '',
+					'publicEmail'   => $item['publicEmail'] ?? $item['email'] ?? '',
+					'phone'         => $item['phone'] ?? '',
+					'socials'       => $item['socials'] ?? array(),
+					'photo'         => $media[ $item['photo'] ?? $item['image'] ?? '' ] ?? 0,
+				);
+				$ids['team'][ $item['id'] ]                     = $next++;
+				continue;
+			}
 			$post = new WP_Post(
 				array(
 					'ID'           => $next,
@@ -312,8 +344,29 @@ function salt_adapter_seed_collections( array $collections, array $media ): arra
 				$post->salt_thumbnail_id = $media[ (string) $item['image'] ];
 			}
 			foreach ( $item as $key => $value ) {
-				if ( in_array( $key, array( 'id', 'title', 'text', 'href', 'image', 'date' ), true ) ) {
+				if ( in_array( $key, array( 'id', 'title', 'href', 'image', 'date' ), true ) ) {
 					continue;
+				}
+				// An item's topics, as the fixtures give them ({ title }), are terms in the source's taxonomy.
+				if ( in_array( $key, array( 'tags', 'categories' ), true ) ) {
+					foreach ( (array) $value as $topic ) {
+						$title             = (string) ( $topic['title'] ?? '' );
+						$terms[ $title ] ??= 9001 + count( $terms );
+						$GLOBALS['salt_test_post_terms'][ $next ][ (string) $tax ][] = new WP_Term(
+							array(
+								'term_id'  => $terms[ $title ],
+								'name'     => $title,
+								'taxonomy' => (string) $tax,
+							)
+						);
+					}
+					continue;
+				}
+				// A resolved card key is stored where the collection's approved
+				// display reads it from (the first field of a joined part).
+				$key = $parts[ $key ] ?? $key;
+				if ( 'text' === $key ) {
+					continue; // Already the body and the excerpt.
 				}
 				switch ( $native[ $key ] ?? null ) {
 					case 'title':
@@ -343,6 +396,49 @@ function salt_adapter_seed_collections( array $collections, array $media ): arra
 		}
 	}
 	return $ids;
+}
+
+/**
+ * A collection's card display, inverted: each resolved card key to the
+ * field it is read from (contract/collections/<collection>.json `display`,
+ * `as: card` only; the first field of a joined part).
+ *
+ * @param string $collection Contract collection id.
+ * @return array<string,string>
+ */
+function salt_adapter_card_parts( string $collection ): array {
+	$file = SALT_ADAPTER_CONTRACT . '/contract/collections/' . $collection . '.json';
+	if ( ! is_readable( $file ) ) {
+		return array();
+	}
+	$display = (array) ( salt_adapter_contract_json( 'contract/collections/' . $collection . '.json' )['display'] ?? array() );
+	if ( 'card' !== ( $display['as'] ?? null ) ) {
+		return array();
+	}
+	$parts = array();
+	foreach ( (array) ( $display['parts'] ?? array() ) as $key => $part ) {
+		$from = $part['from'] ?? null;
+		$from = is_array( $from ) ? ( $from[0] ?? null ) : $from;
+		if ( is_string( $from ) && $from !== $key ) {
+			$parts[ (string) $key ] = $from;
+		}
+	}
+	return $parts;
+}
+
+/**
+ * Feed the theme's pending-ruling seams the case's site data: the
+ * collection's index page (site.collectionIndexes), the labels
+ * (site.labels) and the arrow (site.arrow), so conformance is proved
+ * against the contract whatever the founder rules for the live sources.
+ *
+ * @param array<string,mixed> $site The case's `site`.
+ * @return void
+ */
+function salt_adapter_seed_site( array $site ): void {
+	add_filter( 'salt_collection_index_url', static fn( $url, string $source ) => $site['collectionIndexes'][ $source ] ?? null, 10, 2 );
+	add_filter( 'salt_contract_labels', static fn() => (array) ( $site['labels'] ?? array() ) );
+	add_filter( 'salt_contract_arrow', static fn() => $site['arrow'] ?? null );
 }
 
 /**
@@ -476,6 +572,10 @@ function salt_adapter_render_section( array $input, array $ids ): string {
 	if ( ! empty( $context['headingRendered'] ) ) {
 		salt_claim_h1( 'contract-adapter: a heading earlier on the page' );
 	}
+	// data-track counts the section on the page: the case's track gives the count before it.
+	if ( 1 === preg_match( '/^(.+)-(\d+)$/', (string) ( $context['track'] ?? '' ), $track ) ) {
+		salt_render_state( 'set', 'tracks', array( $track[1] => (int) $track[2] - 1 ) );
+	}
 	if ( ! empty( $context['collapseTop'] ) ) {
 		salt_render_state( 'set', 'last_background', salt_section_wrapper_args( $slug )['background'] );
 	}
@@ -544,6 +644,22 @@ if ( ! is_array( $salt_adapter_input ) ) {
 	salt_adapter_stop( 2, 'salt adapter: stdin is not a fixture case.' );
 }
 
+$salt_adapter_wp = (string) getenv( 'SALT_HARNESS_WP' );
+if ( ( isset( $salt_adapter_input['view'] ) || isset( $salt_adapter_input['page'] ) ) && '' !== $salt_adapter_wp && '' !== (string) getenv( 'SALT_HARNESS_URL' ) && is_file( $salt_adapter_wp . '/wp-load.php' ) ) {
+	// The harness's site renders it: the case on stdin, its stdout and stderr passed through.
+	$salt_adapter_view = proc_open( // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- CLI tooling: the harness's own script.
+		array( PHP_BINARY, SALT_ADAPTER_THEME . '/tests/real-acf/php/view.php' ),
+		array(
+			0 => array( 'pipe', 'r' ),
+			1 => STDOUT,
+			2 => STDERR,
+		),
+		$salt_adapter_pipes
+	);
+	fwrite( $salt_adapter_pipes[0], (string) json_encode( $salt_adapter_input ) );
+	fclose( $salt_adapter_pipes[0] );
+	exit( proc_close( $salt_adapter_view ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- An exit status, not output.
+}
 if ( isset( $salt_adapter_input['view'] ) || isset( $salt_adapter_input['page'] ) ) {
 	salt_adapter_stop(
 		4,
@@ -560,6 +676,7 @@ if ( ! isset( $salt_adapter_input['section'] ) && ! isset( $salt_adapter_input['
 
 try {
 	salt_adapter_boot();
+	salt_adapter_seed_site( (array) ( $salt_adapter_input['site'] ?? array() ) );
 	$salt_adapter_ids          = array(
 		'media'     => salt_adapter_seed_media( (array) ( $salt_adapter_input['media'] ?? array() ) ),
 		'documents' => salt_adapter_seed_documents( (array) ( $salt_adapter_input['documents'] ?? array() ) ),

@@ -2,7 +2,7 @@
   "format": "salt-conformance/1",
   "contract": {
     "package": "@lightlysaltedhq/salt-contract",
-    "version": "1.0.0-rc.7"
+    "version": "1.0.0-rc.8"
   },
   "platform": "wordpress",
   "implementation": {
@@ -16,8 +16,8 @@
   "partial": true,
   "problems": [],
   "summary": {
-    "pass": 0,
-    "fail": 14,
+    "pass": 2,
+    "fail": 12,
     "incomplete": 0,
     "notShipped": 3,
     "files": {
@@ -35,7 +35,7 @@
   "stylesheets": {
     "served": "assets/dist/salt.4f3bca2639/salt.css",
     "bundle": "styles/salt.css",
-    "contract": "1.0.0-rc.7",
+    "contract": "1.0.0-rc.8",
     "ok": true,
     "status": "identical"
   },
@@ -599,81 +599,16 @@
     },
     {
       "id": "collection-showcase",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 8,
-        "passed": 1,
-        "failed": 7,
-        "failures": [
-          {
-            "case": "accordion-testimonials",
-            "kind": "mismatch",
-            "difference": "missing",
-            "path": "section.salt-section",
-            "expected": "<section aria-labelledby=\"kind-words__heading\" class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"collection-showcase-4\" data-width=\"defaul…",
-            "found": null
-          },
-          {
-            "case": "featured-case-studies",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "recent-work__heading",
-            "found": null
-          },
-          {
-            "case": "grid-services-first",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "services-grid__heading",
-            "found": null
-          },
-          {
-            "case": "grid-team-contacts",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "the-team__heading",
-            "found": null
-          },
-          {
-            "case": "index-posts-grouped",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "journal-index__heading",
-            "found": null
-          },
-          {
-            "case": "index-posts-ungrouped",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "journal-all__heading",
-            "found": null
-          },
-          {
-            "case": "list-posts-dated",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "latest-posts__heading",
-            "found": null
-          }
-        ]
+        "passed": 8,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
-        "status": "fail",
-        "problems": [
-          "collection-showcase is not in the field snapshot"
-        ]
+        "status": "pass",
+        "problems": []
       },
       "classes": {
         "status": "pass",
@@ -685,61 +620,16 @@
     },
     {
       "id": "carousel",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 6,
-        "passed": 1,
-        "failed": 5,
-        "failures": [
-          {
-            "case": "inline-generic-heading",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "recent-gardens__heading",
-            "found": null
-          },
-          {
-            "case": "inline-no-name-list",
-            "kind": "mismatch",
-            "difference": "element",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"none\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"carousel-3\" data-width=\"narrow\" id=\"two-steps\">",
-            "found": "<section class=\"bg-surface section-scroll-carousel text-ink x-section\" data-section=\"scroll-carousel\" id=\"two-steps\">"
-          },
-          {
-            "case": "inline-one-card",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "our-base__heading",
-            "found": null
-          },
-          {
-            "case": "inline-quote-label-inverse",
-            "kind": "mismatch",
-            "difference": "element",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"carousel-2\" data-width=\"default\" id=\"client-quotes\" style=\"--salt-section-space:var…",
-            "found": "<section class=\"bg-surface-inverse md:py-20 py-14 section-scroll-carousel text-ink-inverse x-section\" data-section=\"scroll-carousel\" id=\"client-quotes\">"
-          },
-          {
-            "case": "testimonials-source",
-            "kind": "mismatch",
-            "difference": "missing",
-            "path": "section.salt-section",
-            "expected": "<section aria-labelledby=\"kind-words-carousel__heading\" class=\"salt-section\" data-spacing=\"md\" data-tone=\"brand-tint\" data-tone-dark=\"brand-tint\" data-track=\"carousel-5\" data-width=\"default\" id=\"kind-…",
-            "found": null
-          }
-        ]
+        "passed": 6,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
-        "status": "fail",
-        "problems": [
-          "carousel is not in the field snapshot"
-        ]
+        "status": "pass",
+        "problems": []
       },
       "classes": {
         "status": "pass",
@@ -1007,27 +897,35 @@
         "failures": [
           {
             "case": "fallback-heading",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "html > head > noscript",
+            "expected": "<noscript>",
+            "found": null
           },
           {
             "case": "header-section-footer",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "html > head > noscript",
+            "expected": "<noscript>",
+            "found": null
           },
           {
             "case": "hero-minimal-centre",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "html > head > noscript",
+            "expected": "<noscript>",
+            "found": null
           },
           {
             "case": "hero-split-image",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "missing",
+            "path": "html > head > noscript",
+            "expected": "<noscript>",
+            "found": null
           }
         ]
       },
@@ -1047,39 +945,57 @@
         "failures": [
           {
             "case": "band-call-to-action",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "band-faq",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "band-gallery-one-image",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "band-media-text",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "full",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "minimal",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           }
         ]
       },
@@ -1099,15 +1015,21 @@
         "failures": [
           {
             "case": "full",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view service is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "minimal",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view service is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           }
         ]
       },
@@ -1127,27 +1049,39 @@
         "failures": [
           {
             "case": "aside",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "band",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "full",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "minimal",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           }
         ]
       },
@@ -1161,21 +1095,36 @@
       "kind": "view",
       "status": "fail",
       "fixtures": {
-        "total": 2,
+        "total": 3,
         "passed": 0,
-        "failed": 2,
+        "failed": 3,
         "failures": [
           {
+            "case": "author-no-posts",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
+          },
+          {
             "case": "author",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view archive is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "topic",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view archive is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           }
         ]
       },
@@ -1195,21 +1144,30 @@
         "failures": [
           {
             "case": "no-query",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "no-results",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "results",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           }
         ]
       },
@@ -1229,15 +1187,21 @@
         "failures": [
           {
             "case": "minimal",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view not-found is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           },
           {
             "case": "with-search",
-            "kind": "adapter",
-            "error": "the adapter exited 4",
-            "stderr": "salt adapter: the view not-found is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).\n"
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
           }
         ]
       },

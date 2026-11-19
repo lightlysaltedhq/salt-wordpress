@@ -38,11 +38,6 @@ if ( ! function_exists( 'salt_query_default_args' ) ) {
 				'order'   => 'ASC',
 				'count'   => -1,
 			),
-			'team_member' => array(
-				'orderby' => 'menu_order',
-				'order'   => 'ASC',
-				'count'   => -1,
-			),
 			'faq'         => array(
 				'orderby' => 'menu_order',
 				'order'   => 'ASC',
@@ -219,37 +214,6 @@ if ( ! function_exists( 'salt_resolve_query' ) ) {
 }
 
 /**
- * Read the shared query-control sub-fields of the CURRENT Flexible Content
- * row into a salt_resolve_query() controls array (§10a).
- *
- * The single reader all seven CPT-backed sections use — section partials
- * never touch control sub-fields directly.
- *
- * @return array<string,mixed>
- */
-function salt_query_controls_from_row(): array {
-	if ( ! function_exists( 'get_sub_field' ) ) {
-		return array();
-	}
-
-	$source  = get_sub_field( 'source' );
-	$manual  = get_sub_field( 'manual' );
-	$terms   = get_sub_field( 'taxonomy_terms' );
-	$orderby = get_sub_field( 'orderby' );
-	$order   = get_sub_field( 'order' );
-	$count   = get_sub_field( 'count' );
-
-	return array(
-		'source'         => is_string( $source ) && '' !== $source ? $source : 'default',
-		'manual'         => array_map( 'intval', is_array( $manual ) ? $manual : array() ),
-		'taxonomy_terms' => array_map( 'intval', is_array( $terms ) ? $terms : array() ),
-		'orderby'        => is_string( $orderby ) ? $orderby : '',
-		'order'          => is_string( $order ) ? $order : '',
-		'count'          => (int) $count,
-	);
-}
-
-/**
  * Read the contract's collection-query group of the CURRENT Flexible
  * Content row (contract field type `collection-query`: mode, categories,
  * items, order, count) into a salt_resolve_query() controls array — the
@@ -261,7 +225,7 @@ function salt_query_controls_from_row(): array {
  *   mode manual      => the items, in the order picked; order and count
  *                       are hidden for it, so they are not read;
  *   order default|newest|title => the source's order | date DESC | title ASC;
- *   count 0 => the source's default; capped at the contract's 24.
+ *   count 0 => the source's default; 24 is checked on write, not on read.
  *
  * Unknown values fall back to automatic / default, logged.
  *
@@ -310,6 +274,6 @@ function salt_query_controls_from_query( string $field = 'query' ): array {
 		'taxonomy_terms' => 'by-category' === $mode ? $ids( $query['categories'] ?? null ) : array(),
 		'orderby'        => $by[ $order ][0],
 		'order'          => $by[ $order ][1],
-		'count'          => min( 24, max( 0, (int) ( $query['count'] ?? 0 ) ) ),
+		'count'          => (int) ( $query['count'] ?? 0 ),
 	);
 }

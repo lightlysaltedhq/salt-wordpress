@@ -259,18 +259,18 @@ return array(
 	),
 
 	// -- Team members (5) ---------------------------------------------------
-	'team_member' => array(
+	'team'        => array(
 		array(
 			'slug'       => 'amelia',
 			'title'      => 'Amelia Hart',
 			'menu_order' => 1,
 			'thumbnail'  => 'ref:image/team-amelia',
 			'fields'     => array(
-				'role'    => 'Founder & Creative Director',
-				'bio'     => 'Founder and creative director; ten years leading brand and product teams before Northbeam.',
-				'email'   => 'amelia@northbeam.studio',
-				'phone'   => '+44 20 7946 0124',
-				'socials' => array(
+				'role'        => 'Founder & Creative Director',
+				'bio'         => 'Founder and creative director; ten years leading brand and product teams before Northbeam.',
+				'publicEmail' => 'amelia@northbeam.studio',
+				'phone'       => '+44 20 7946 0124',
+				'socials'     => array(
 					array(
 						'name' => 'LinkedIn',
 						'url'  => 'https://www.linkedin.com/in/amelia-hart',
@@ -288,11 +288,11 @@ return array(
 			'menu_order' => 2,
 			'thumbnail'  => 'ref:image/team-marcus',
 			'fields'     => array(
-				'role'    => 'Design Lead',
-				'bio'     => 'Leads design; a systems thinker with a healthy obsession for accessibility.',
-				'email'   => 'marcus@northbeam.studio',
-				'phone'   => '+44 20 7946 0125',
-				'socials' => array(
+				'role'        => 'Design Lead',
+				'bio'         => 'Leads design; a systems thinker with a healthy obsession for accessibility.',
+				'publicEmail' => 'marcus@northbeam.studio',
+				'phone'       => '+44 20 7946 0125',
+				'socials'     => array(
 					array(
 						'name' => 'LinkedIn',
 						'url'  => 'https://www.linkedin.com/in/marcus-bell',
@@ -306,11 +306,11 @@ return array(
 			'menu_order' => 3,
 			'thumbnail'  => 'ref:image/team-priya',
 			'fields'     => array(
-				'role'    => 'Engineering Lead',
-				'bio'     => 'Heads engineering; champion of performance budgets and clean, maintainable code.',
-				'email'   => 'priya@northbeam.studio',
-				'phone'   => '+44 20 7946 0126',
-				'socials' => array(
+				'role'        => 'Engineering Lead',
+				'bio'         => 'Heads engineering; champion of performance budgets and clean, maintainable code.',
+				'publicEmail' => 'priya@northbeam.studio',
+				'phone'       => '+44 20 7946 0126',
+				'socials'     => array(
 					array(
 						'name' => 'LinkedIn',
 						'url'  => 'https://www.linkedin.com/in/priya-nadar',
@@ -328,11 +328,11 @@ return array(
 			'menu_order' => 4,
 			'thumbnail'  => 'ref:image/team-tom',
 			'fields'     => array(
-				'role'    => 'Growth Lead',
-				'bio'     => 'Runs growth and SEO; treats search as an engineering problem first.',
-				'email'   => 'tom@northbeam.studio',
-				'phone'   => '+44 161 496 0127',
-				'socials' => array(
+				'role'        => 'Growth Lead',
+				'bio'         => 'Runs growth and SEO; treats search as an engineering problem first.',
+				'publicEmail' => 'tom@northbeam.studio',
+				'phone'       => '+44 161 496 0127',
+				'socials'     => array(
 					array(
 						'name' => 'LinkedIn',
 						'url'  => 'https://www.linkedin.com/in/tom-okafor',
@@ -350,11 +350,11 @@ return array(
 			'menu_order' => 5,
 			'thumbnail'  => 'ref:image/team-sofia',
 			'fields'     => array(
-				'role'    => 'UX Research Lead',
-				'bio'     => 'Leads UX research; turns honest user feedback into decisions teams rally behind.',
-				'email'   => 'sofia@northbeam.studio',
-				'phone'   => '+44 20 7946 0128',
-				'socials' => array(
+				'role'        => 'UX Research Lead',
+				'bio'         => 'Leads UX research; turns honest user feedback into decisions teams rally behind.',
+				'publicEmail' => 'sofia@northbeam.studio',
+				'phone'       => '+44 20 7946 0128',
+				'socials'     => array(
 					array(
 						'name' => 'LinkedIn',
 						'url'  => 'https://www.linkedin.com/in/sofia-lindqvist',

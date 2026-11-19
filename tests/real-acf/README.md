@@ -2,7 +2,7 @@
 
 Proves the Salt contract's field shape works natively on real ACF Pro. The field shape is the pinned
 `@lightlysaltedhq/salt-contract` emitter's `acfSnapshot` output. On ACF Pro 6.8.11 and WordPress
-7.1.4 (the latest release), the harness checks that it registers, saves, reads back, edits and
+7.1.5 (the latest release), the harness checks that it registers, saves, reads back, edits and
 re-saves. The theme's hand-written ACF stand-in (`tests/shims/acf.php`) can then be checked against real ACF behaviour.
 Dev only: nothing here ships, and the theme's own `composer install` and `npm ci` do not touch it.
 
@@ -17,6 +17,29 @@ Options: `--no-browser` skips the editor checks, `--keep` keeps the site and dat
 inspection (it prints how to drop them), `--offline` skips the latest-release check (below) and
 reports it as `STALENESS NOT CHECKED`, `--report <file>` copies the report. The script exits 0
 only when every check passes.
+
+`--limits` runs just the ID-3971 phases (outside ACF PHP writes, the core REST
+post/page routes and the classic editor in Chromium). Set `SALT_HARNESS_SCREENSHOTS`
+to a directory to keep the rendered states. ACF's PHP row helpers return success
+even if an update filter returns an error: importers should catch `DomainException`
+and report its message. Salt does not expose its generated groups through the ACF
+REST API and does not ship a WXR importer. These checks do not cover raw SQL or
+code which writes private ACF metadata without going through ACF.
+
+`--conformance` runs none of the checks below. It builds the same site, keeps it up and runs the
+contract's conformance runner against it, so the view and page cases render on real WordPress and
+ACF Pro (`npm run conformance:harness`; see `tests/contract-adapter/README.md`). After the install
+phase, `php/view.php setup` sets the routes the cases' paths take, removes WordPress's sample
+content, adds the menus and snapshots the database. Then the built-in server starts, and `npm run
+conformance:contract` runs with the chosen PHP first on `PATH`. For each view or page case, the
+adapter calls `php/view.php`, which restores that snapshot, seeds the case and requests its path.
+`php/conformance.php` then fails the phase when any case did not render. As in every phase, any
+entry in `debug.log` fails it too. The site's address is `http://salt-harness.test`, whatever port
+the server takes, so the report is the same on every run. It does not need Playwright.
+
+The phases share their seeding helpers in `php/seed.php`: the contract phase's section values to
+ACF, and the singles phase's service, case-study and post documents, images, related services,
+menus and HTTP GET. `php/view.php` uses the same ones.
 
 It needs:
 
@@ -38,7 +61,7 @@ It needs:
 
   Never commit the zip, `auth.json` or the credentials. `.gitignore` here covers the first two.
 
-On first use it installs its own locked dependencies: WordPress 7.1.4 (`roots/wordpress-no-content`
+On first use it installs its own locked dependencies: WordPress 7.1.5 (`roots/wordpress-no-content`
 in `composer.json`, pinned exactly) and Playwright 1.65.1 with its headless Chromium
 (`package.json`). It reinstalls WordPress when the installed copy differs from `composer.lock`.
 
@@ -56,9 +79,10 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    has the salt theme active (symlinked to this checkout), ACF Pro activated, `WP_DEBUG_LOG` on
    and outbound HTTP blocked.
 2. **The theme's own groups.** It loads every field group the theme registers through ACF. That
-   is 24 groups. The page sections group holds the 12 layouts generated from the contract
-   (`inc/fields/generated/sections.json`) and the 6 hand-written collection layouts. The 7
-   collection groups, one per post type, are generated too (`inc/fields/generated/collections.json`).
+   includes one group on the user edit form: team (no old `profile_photo` field).
+   The page sections group holds the 14 layouts generated from the contract
+   (`inc/fields/generated/sections.json`); none is hand-written since unit 8. The 7
+   collection groups are generated too (`inc/fields/generated/collections.json`).
    Any PHP notice, warning, deprecation or `salt_log` line in `debug.log` fails the phase. This
    applies to every phase.
 3. **The contract's field shape.** `emit.mjs` writes `acfSnapshot()` from the theme's pinned
@@ -86,47 +110,77 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    band, and the page must have one H1.
 5. **The collection fields.** `php/collections.php` checks that the theme registers the 7
    collection groups verbatim from `inc/fields/generated/collections.json`, each located on its
-   post type (services on `service`, case studies on `work`, testimonials, posts, team on
-   `team_member`, faqs and locations). It makes a post of each type and seeds a value for every
+   native object: six post types and the team user form. It creates each object and seeds every
    generated field through `update_field()`, including a post's layout with a row of every section
    it offers. Each value is read back with `get_field()` and compared, and every meta path must
    carry its field key. The places WordPress keeps natively (`salt.native`: the title, the
    excerpt, the body and the featured image) are set the WordPress way and read back through the
-   theme's own readers. The post fields unit 10 wires (`author`, `primaryTopic`, `layout`) must be
-   hidden from the editor by `acf/prepare_field` and still store, and every topic must be stored
-   flat, whatever parent is asked for on insert or update.
+   theme's own readers. Posts keep the native Author control; `layout` is drawn in its group and
+   `primaryTopic` only in the Topics box; posts must have no classic editor and no Tags box, and
+   their categories must be labelled Topics. Every topic, posts' categories included, must be
+   stored flat, whatever parent is asked for on insert or update.
 6. **The single templates over HTTP.** PHP's built-in server starts here (with or without
    `--no-browser`). `php/singles.php` seeds one document each from the pinned contract's
    `fixtures/service/full.json`, `fixtures/case-study/full.json` and `fixtures/post/full.json`:
    each `document` value goes to its native place or, through `update_field()`, to its generated
    field; named media become attachments with the fixture's alt text, and related or listed
-   services become services. It requests `single-service.php`, `single-work.php` and
-   `single-post.php` and checks each answers 200 and draws every seeded value the template draws.
-   It also checks the service intro runs no shortcode or embed, and that a testimonial rated 4.5
-   draws 90% of five stars on a page. Known fixture mismatch, pending the contract's EP-70
-   correction: rc.7's service intro holds an `<h3>` its own list does not allow, so the intro's
-   heading is stripped to text; the phase checks the intro's two paragraphs and that no `<h2>` or
-   `<h3>` comes from it, not the heading. This is a smoke render, not conformance: the view cases'
+   services become services. The post's body is its `layout`'s first row (prose), its author a
+   native user with a profile under the author's href slug (`seed.php`, `salt_harness_team_member()`),
+   and its category its `primaryTopic`. Fields are seeded by key: `update_field()` looks a name up
+   loosely, and the page gallery's `layout` select shares the post's `layout` name. It requests
+   `single-service.php`, `single-work.php` and `single-post.php` and checks each answers 200 and
+   draws every seeded value the template draws: for the post, the primary topic as the badge and
+   the team member's name, role and photo.
+   It also checks the post's date follows the site's language ("12 March 2026" on en-GB, "March
+   12, 2026" on en-US) on the post, its topic's archive and a search; that the "Uncategorised"
+   archive answers 404 while a topic's archive answers 200; that a published team member with no
+   posts has an author page; that the service intro runs no shortcode or embed; and that a
+   testimonial rated 4.5 draws 90% of five stars on a page. The rc.8 service intro draws both
+   fixture paragraphs without a heading. This is a smoke render, not conformance: the view cases'
    markup is a later unit.
 7. **The editor, in headless Chromium** against the same server (`browser.mjs`):
    - the fixtures page's classic edit screen renders every row and layout with no console errors;
    - the faq section's collection query mode shows categories or items, and order and count unless
      the mode is manual;
+   - on collection-showcase and carousel rows, the categories picker follows both the source select
+     and the mode (shown for services, case studies and posts at by-category, hidden for team and
+     testimonials), and carousel's query and inline cards follow its source;
+   - publishing with by-category on a source without categories is refused with a message on each
+     mode field (`salt.modeRequires`, `inc/fields/collection-query.php`), and publishes once the
+     sources have categories;
    - an empty required field (a features item's title) blocks publishing, and filling it lets the
      page publish;
    - re-saving the fixtures page from the browser changes nothing unexplained. Every meta row is
      diffed before and after, and each change is put in a named class or failed;
    - each rich-text editor offers only its field's contract list;
    - the Topics box and the topic screens offer no parent; the service editor has no Add Media
-     button and Text tab buttons for its list alone; a summary of 301 two-byte characters is
-     refused with the editor message on a service and a post, and 300 is accepted; the hidden post
-     fields are not drawn;
+     button and Text tab buttons for its list alone; a summary shows "N / 300" as it is typed and
+     "Over the suggested 300 characters" past it, and a service summary over 300 saves as a
+     draft; a post with a title over 120 and a summary over 300 saves as a draft, publishes and
+     updates with both counts showing; a post's editor is the section builder with the credited
+     author, no classic editor and no Tags box, and its Topics box has no parent and holds the
+     primary topic;
    - a url that is not absolute http, https, mailto or tel is refused on save: a service's external
      cta refuses `/contact`, `#pricing`, `//x.example`, `javascript:` and `ftp:` and takes https and
      mailto, and a case study's `externalUrl` refuses a path and takes https;
-   - on each collection's edit screen, a title of 121 two-byte characters is refused with the
-     editor message and 120 is not.
-8. Prints a summary, drops the database and removes the temporary directory, whether the run
+   - on each collection's edit screen, the title shows "N / 120": past 60, "Search results may
+     shorten a title over about 60 characters" on services, case studies and posts only; past 120,
+     "Over the suggested 120 characters"; and a title over 120 saves as a draft. Nothing refuses
+     a save (`admin/character-count.js`);
+   - on the term add and edit screens of service topics and of posts' categories (labelled
+     Topics), the name shows "N / 120" and the note past it, and a name over 120 is added and
+     updated; quick edit and the Topics box's "add new" form have no count, and the box adds a
+     name over 120 too.
+
+   With `SALT_HARNESS_SCREENSHOTS` set to a directory, this phase saves pictures of the counts
+   there.
+8. **Native profiles and credits.** With pretty permalinks, `php/profiles.php` requests the
+   public profile, redirects, sitemap, manual Index, automatic team cards and both bylines over
+   HTTP. Real editor and subscriber sessions exercise the allowlisted form handler and ACF's
+   items search. The browser signs in as an Editor, saves a role, and checks it on the public page.
+   Set `SALT_HARNESS_SCREENSHOTS` to an existing directory for pictures of those views; setting it
+   with `--no-browser` runs just the focused profile browser check, not the full classic editor suite.
+9. Prints a summary, drops the database and removes the temporary directory, whether the run
    passed, failed or was interrupted.
 
 ## Reading the re-save diff
@@ -156,11 +210,13 @@ These changes are expected and reported, not failed:
 ## What it does not prove
 
 - **Rendered markup.** The render phase checks the resolvers read the shape and draw; it does
-  not compare markup with the contract's fixtures (that is M4). Collection-showcase, carousel,
-  tabs and listing are not registered yet (unit 8 and later), so their fixtures are not seeded.
-- **Picker filling.** The multi-taxonomy category select (`choices` filled by the site) and
-  `salt.modeRequires` server validation are not built yet. They are only stored and read back.
+  not compare markup with the contract's fixtures (that is M4; collection-showcase and carousel
+  are proved by `npm run conformance:contract`). Tabs and listing are not registered yet, so their
+  fixtures are not seeded. Collection-showcase rows draw nothing here: the harness creates no posts
+  for their queries.
+- **The categories search.** The picker's ajax search, filtered to the chosen source's taxonomy,
+  is not exercised in the browser; only its visibility and the save check are.
 - **Licensing.** It does not cover ACF Pro licence activation or updates. Pro field types work on
   this unlicensed local site.
-- **Other environments.** It covers ACF Pro 6.8.11 and WordPress 7.1.4 only, and does not check
+- **Other environments.** It covers ACF Pro 6.8.11 and WordPress 7.1.5 only, and does not check
   the block editor (the theme turns it off) or browsers other than Chromium.

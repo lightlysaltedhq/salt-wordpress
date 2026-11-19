@@ -20,6 +20,8 @@ require_once dirname( __DIR__, 2 ) . '/inc/cpt/service.php';
 require_once dirname( __DIR__, 2 ) . '/inc/cpt/work.php';
 require_once dirname( __DIR__, 2 ) . '/inc/cpt/faq.php';
 require_once dirname( __DIR__, 2 ) . '/inc/cpt/location.php';
+require_once dirname( __DIR__, 2 ) . '/inc/fields/collections.php';
+require_once dirname( __DIR__, 2 ) . '/inc/cpt/post.php';
 
 final class TopicsTest extends SaltTestCase {
 
@@ -58,6 +60,77 @@ final class TopicsTest extends SaltTestCase {
 		foreach ( salt_topic_taxonomies() as $taxonomy ) {
 			$this->assertSame( 0, salt_topic_update_parent( 12, 34, $taxonomy ), $taxonomy );
 		}
-		$this->assertSame( 12, salt_topic_update_parent( 12, 34, 'category' ), 'Posts\' categories are ID-3952\'s and keep their parent.' );
+		$this->assertSame( 12, salt_topic_update_parent( 12, 34, 'category' ), 'Posts\' categories are inc/cpt/post.php\'s.' );
+	}
+
+	public function test_a_post_topic_never_takes_a_parent_on_update(): void {
+		$this->assertSame( 0, salt_post_topic_update_parent( 12, 34, 'category' ) );
+		$this->assertSame( 12, salt_post_topic_update_parent( 12, 34, 'service_category' ), 'Another taxonomy is topics.php\'s.' );
+	}
+
+	public function test_post_categories_are_labelled_topics_and_drawn_by_the_topics_box(): void {
+		$args = salt_post_topics_taxonomy_args( array( 'hierarchical' => true ), 'category' );
+		$this->assertSame( salt_topic_labels(), $args['labels'] );
+		$this->assertSame( 'salt_post_topics_meta_box', $args['meta_box_cb'] );
+		$this->assertTrue( $args['hierarchical'], 'Hierarchical only to keep the checkbox box.' );
+		$this->assertSame( array( 'hierarchical' => false ), salt_post_topics_taxonomy_args( array( 'hierarchical' => false ), 'post_tag' ) );
+	}
+
+	public function test_the_default_category_is_not_found_and_off_the_sitemap(): void {
+		$GLOBALS['salt_test_options']['default_category'] = 1;
+
+		$this->assertTrue( salt_post_topic_is_default( 1 ), '"Uncategorised" answers 404.' );
+		$this->assertFalse( salt_post_topic_is_default( 2 ) );
+		$this->assertSame( array( 'exclude' => array( 3, 1 ) ), salt_post_default_topic_off_sitemap( array( 'exclude' => array( 3 ) ), 'category' ) );
+		$this->assertSame( array(), salt_post_default_topic_off_sitemap( array(), 'service_category' ) );
+		$this->assertSame( array( 'exclude' => array( 1 ) ), salt_post_primary_topic_choices( array() ), 'Never offered as a primary topic.' );
+
+		$GLOBALS['salt_test_options']['default_category'] = 0;
+		$this->assertFalse( salt_post_topic_is_default( 0 ), 'No default category, nothing is refused.' );
+	}
+
+	public function test_the_topic_name_count_loads_on_the_topic_screens_only(): void {
+		$loaded  = array();
+		$screens = array(
+			'edit-tags.php service_category' => array( 'edit-tags.php', 'taxnow', 'service_category' ),
+			'term.php work_type'             => array( 'term.php', 'taxnow', 'work_type' ),
+			'edit-tags.php faq_category'     => array( 'edit-tags.php', 'taxnow', 'faq_category' ),
+			'term.php location_area'         => array( 'term.php', 'taxnow', 'location_area' ),
+			'edit-tags.php category'         => array( 'edit-tags.php', 'taxnow', 'category' ),
+			'term.php category'              => array( 'term.php', 'taxnow', 'category' ),
+			'term.php post_tag'              => array( 'term.php', 'taxnow', 'post_tag' ),
+			'post-new.php service'           => array( 'post-new.php', 'typenow', 'service' ),
+			'post.php work'                  => array( 'post.php', 'typenow', 'work' ),
+			'post-new.php post'              => array( 'post-new.php', 'typenow', 'post' ),
+			'edit.php service'               => array( 'edit.php', 'typenow', 'service' ),
+		);
+		foreach ( $screens as $label => list( $hook, $global, $value ) ) {
+			unset( $GLOBALS['taxnow'], $GLOBALS['typenow'] );
+			$GLOBALS['salt_test_inline_scripts'] = array();
+			$GLOBALS[ $global ]                  = $value;
+			salt_topic_name_count_enqueue( $hook );
+			$loaded[ $label ] = $GLOBALS['salt_test_inline_scripts']['salt-character-count']['before'] ?? array();
+		}
+		unset( $GLOBALS['taxnow'], $GLOBALS['typenow'] );
+
+		$add  = array( 'window.saltCharacterCount = ( window.saltCharacterCount || [] ).concat( [{"field":"tag-name","target":120,"marks":[{"at":120,"note":"Over the suggested 120 characters","strong":true}]}] );' );
+		$edit = array( 'window.saltCharacterCount = ( window.saltCharacterCount || [] ).concat( [{"field":"name","target":120,"marks":[{"at":120,"note":"Over the suggested 120 characters","strong":true}]}] );' );
+		$this->assertSame(
+			array(
+				'edit-tags.php service_category' => $add,
+				'term.php work_type'             => $edit,
+				'edit-tags.php faq_category'     => $add,
+				'term.php location_area'         => $edit,
+				'edit-tags.php category'         => $add,
+				'term.php category'              => $edit,
+				'term.php post_tag'              => array(),
+				'post-new.php service'           => array(),
+				'post.php work'                  => array(),
+				'post-new.php post'              => array(),
+				'edit.php service'               => array(),
+			),
+			$loaded,
+			'The term add and edit screens of the topics taxonomies and posts\' categories; not the Topics box on a post screen.'
+		);
 	}
 }

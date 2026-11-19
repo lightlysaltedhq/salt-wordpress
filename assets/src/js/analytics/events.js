@@ -2,8 +2,10 @@
  * Rich salt-instrumented events adapter.
  *
  * Pure DOM delegation over the section markup contracts (x-button,
- * x-accordion-item, x-contact-form, [data-section], [data-salt-carousel],
- * [data-salt-testimonials]) — NO section-file changes, passive listeners,
+ * x-accordion-item, x-contact-form, [data-section], [data-salt-carousel])
+ * and, for bands drawn to the salt-contract's markup, their equivalents
+ * ([data-track], [data-track-control="cta"], details.salt-accordion__item,
+ * [data-track-control^="carousel-"]) — NO section-file changes, passive listeners,
  * requestIdleCallback-wrapped setup. Every event fans out to BOTH providers
  * when present (window.salt.posthog + window.gtag) and window.salt.track()
  * is exposed for child themes.
@@ -36,14 +38,28 @@
 	window.salt.track = track;
 
 	/**
-	 * The [data-section] slug an element belongs to.
+	 * The section a band is: its data-section, or for a band drawn to the
+	 * contract's markup its data-track ("<section id>-<n>") without the -<n>.
+	 *
+	 * @param {Element} host A band.
+	 * @return {string} Section slug.
+	 */
+	const sectionName = (host) => {
+		if (host.hasAttribute('data-section')) {
+			return host.getAttribute('data-section') || '';
+		}
+		return (host.getAttribute('data-track') || '').replace(/-\d+(@.*)?$/, '');
+	};
+
+	/**
+	 * The section slug an element belongs to.
 	 *
 	 * @param {Element} el Element inside a section.
 	 * @return {string} Section slug ('' when outside any section).
 	 */
 	const sectionOf = (el) => {
-		const host = el.closest('[data-section]');
-		return host ? host.getAttribute('data-section') || '' : '';
+		const host = el.closest('[data-section]') || el.closest('[data-track]');
+		return host ? sectionName(host) : '';
 	};
 
 	const setup = () => {
@@ -56,8 +72,8 @@
 					return;
 				}
 
-				const cta = target.closest('.x-button');
-				if (cta && cta.closest('[data-section]')) {
+				const cta = target.closest('.x-button, [data-track-control="cta"]');
+				if (cta && cta.closest('[data-section], [data-track]')) {
 					track('cta_click', {
 						section: sectionOf(cta),
 						label: (cta.textContent || '').trim(),
@@ -67,7 +83,7 @@
 				}
 
 				const carouselButton = target.closest(
-					'[data-salt-carousel] [class*="-button"], [data-salt-testimonials] [class*="-button"]'
+					'[data-salt-carousel] [class*="-button"], [data-track-control^="carousel-"]'
 				);
 				if (carouselButton) {
 					track('carousel_interact', { section: sectionOf(carouselButton) });
@@ -81,7 +97,7 @@
 			'toggle',
 			(event) => {
 				const item = event.target;
-				if (item instanceof HTMLElement && item.matches('details.x-accordion-item') && item.open) {
+				if (item instanceof HTMLElement && item.matches('details.x-accordion-item, details.salt-accordion__item') && item.open) {
 					track('accordion_open', { section: sectionOf(item) });
 				}
 			},
@@ -126,14 +142,14 @@
 							seen.add(entry.target);
 							observer.unobserve(entry.target);
 							track('section_view', {
-								section: entry.target.getAttribute('data-section') || '',
+								section: sectionName(entry.target),
 							});
 						}
 					}
 				},
 				{ threshold: 0.5 }
 			);
-			document.querySelectorAll('[data-section]').forEach((el) => observer.observe(el));
+			document.querySelectorAll('[data-section], [data-track]').forEach((el) => observer.observe(el));
 		}
 	};
 

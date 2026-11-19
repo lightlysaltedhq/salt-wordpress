@@ -8,7 +8,55 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
+### Breaking: native team profiles (salt-contract rc.8)
+
+Team is no longer a `team_member` post type. Publish a native user's profile in **Tools → Team profiles**; this never grants account privileges. The public address is `/team/{slug}/`. Only the separate public email field is shown. Posts credit `post_author`, not the removed ACF `author` relationship. Before upgrading a populated site, map former team records and manual selections to the intended users, set their public slugs, and verify native post authors. Old post IDs are not user IDs; no automatic account creation or data migration runs.
+
 ### Added
+
+- **Editor targets and publish limits (ID-3971, contract rc.8).** Text fields
+  and suggested list sizes now show a live count, including fields added to
+  section layouts. Exceeding a target never cuts pasted text or refuses a save.
+  The public display name on a ticked user profile shows the same 60- and
+  120-character notes as a post title. Opening times accept draft text and
+  require a 24-hour time on publication. Drafts can retain out-of-range values;
+  publication checks the retained ranges, steps, list limits and address lines.
+  A collection query cannot publish with topics left over from another source.
+  Importers using ACF receive a `DomainException` explaining an invalid limit
+  rather than an apparent success. Rendering no longer trims extra buttons or
+  street lines, or clamps a stored rating or collection count.
+
+- **Collection showcase and carousel, to salt-contract 1.0.0-rc.7 (ID-3600,
+  EP-72 M3 unit 8).** Both sections' fields are generated from the pinned
+  emitter. Resolvers return the contract's view props; views draw
+  `markup/collection-showcase.json`, `markup/carousel.json`,
+  `markup/carousel-track.json` and `markup/card.json` inside the contract's
+  section wrapper (`template-parts/components/contract-section.php`).
+  Showcase layouts are grid, list, featured, accordion and index (grouped
+  by category or not). Sources are services, case studies, team,
+  testimonials and posts, each card per its collection's approved
+  `display`. The carousel takes inline cards (generic or quote) or a
+  collection, and `sections/carousel.js` mounts the previous and next
+  controls (`aria-disabled` at the edges, instant under reduced motion).
+  Images use the contract's slots and srcset (`inc/media.php`: a
+  `salt-<width>` size per candidate, kept out of every other srcset).
+  WordPress makes those sizes only for new uploads: regenerate thumbnails
+  (for example `wp media regenerate`) for uploads made before this
+  version, or their srcset lists only the upload's own width.
+  Editor: by-category is refused on publication for a source without categories
+  (`salt.modeRequires`), and the categories picker's choices and search
+  come from the chosen source's taxonomy (`inc/fields/collection-query.php`).
+  All 14 fixture cases pass `npm run conformance:contract`. As the founder
+  ruled, "view all" goes to the collection's own index page and is left
+  out where there is none (`salt_collection_index_url`: the post type
+  archive; for posts the posts page, or the home page only when it lists
+  the posts), and the labels are translatable theme strings in the
+  fixtures' English (`salt_contract_labels`, with "%1$s of %2$d" after a
+  slide or rating label). The arrow (`salt_contract_arrow()`, →) is a
+  translatable theme string too (the founder's ruling of 19/11/2026; see
+  Changed). The analytics events adapter now also counts
+  section views, CTA clicks, accordion opens and carousel controls on the
+  bands drawn to the contract's markup (`data-track`).
 
 - **A PHP fixture adapter and a partial contract conformance baseline
   (ID-3626, EP-72 M3 unit 5).** `tests/contract-adapter/adapter.php` is
@@ -24,6 +72,43 @@ markup granularity (cross-reference your site's override manifest).
   The baseline report against salt-contract 1.0.0-rc.6 is committed in
   `tests/contract-adapter/baseline/` as M4's worklist. Views and the page
   are not rendered yet. See `tests/contract-adapter/README.md`.
+- **The contract's view and page cases render on the real-ACF harness's
+  WordPress (ID-3626, EP-72 M3 unit 5b).** `npm run conformance:harness`
+  (`tests/real-acf/run.sh --conformance`) builds the harness's site with
+  ACF Pro, keeps it up and runs `npm run conformance:contract` against it.
+  With the site up, the adapter hands each view and page case to
+  `tests/real-acf/php/view.php`. That script resets the site, seeds the
+  case's document, site, route, media and documents into posts, terms,
+  options and routes, requests `context.path` (a search at WordPress's own
+  `/?s=`), and returns `main#main`, or the whole document for the page.
+  Without the harness, those cases still exit 4. All 23 view and page cases in salt-contract 1.0.0-rc.7 now render
+  with no PHP diagnostic and differ only in their markup. Any PHP notice,
+  warning, deprecation or error fails the case (exit 70) and the run. The
+  committed baseline is regenerated from this run, and it is the same byte
+  for byte on PHP 8.2 and 8.5. The harness's phases now share their seeding
+  helpers in `tests/real-acf/php/seed.php`, and `db.php` can snapshot and
+  restore the site's tables. No theme code changed.
+- **Posts on the section builder, credited to a native user, filed under
+  topics (ID-3952, EP-72 M3 unit 10; the founder's rulings of 18/11/2026).**
+  A post's body is its generated `layout` field: `single-post.php` draws a
+  rich-text section that is prose alone as the post's prose and every other
+  section as a band, in stored order (`salt_the_post_layout()`,
+  section#sections-in-a-post). The byline credits the native WordPress author.
+  For a ticked user, the byline and author box link to `/team/{slug}/`;
+  an unticked user keeps plain-text credit without a public profile. A profile
+  shows the member's public details, even without posts, and lists their
+  authored posts only when there are some. Categories are the posts' topics
+  (`inc/cpt/post.php`): labelled Topics, no parent control, stored flat,
+  with the `primaryTopic` field under the box's checklist; the badge is the
+  primary topic, the tags row is the post's topics, and the default
+  category is never drawn. The archive still draws a topic's description.
+  Reading time counts the post's own text, not the site's header or footer
+  (the founder's ruling of 19/11/2026; `salt_post_reading_text()`): every
+  row of its layout, markup stripped, by key: each row's headings,
+  eyebrows, intros, bodies and button labels (not its settings or link
+  urls), the question and answer of each FAQ an FAQ row draws, and a
+  gallery's captions when they are on. Before, only rich-text bodies
+  counted.
 - **The contract's token layer and stylesheet, beside Tailwind (ID-3611,
   EP-72 M3 unit 9).** `assets/src/css/app.css` now emits every token
   salt-contract 1.0.0-rc.6's `contract/token-layer.json` asks of a theme
@@ -185,8 +270,39 @@ markup granularity (cross-reference your site's override manifest).
 
 ### Changed
 
+- **Dates follow the site's language (the founder's ruling of
+  19/11/2026).** A site set to en-GB draws "12 March 2026", not "March
+  12, 2026": the post's date and its Updated date (`single-post.php`), the
+  date on archive and search result cards (`content/card-post.php`), and
+  post cards in collection-showcase and carousel. All go through
+  `salt_date_text()` (`inc/query/cards.php`), drawn by `wp_date()` in the
+  site's timezone with the month in the site's language. The format is,
+  in order: the site's Date Format setting (Settings > General) unless it
+  is WordPress's stock "F j, Y" (so a language pack's own format, en_GB's
+  "j F Y", or one the owner chose, is kept); otherwise WordPress's own
+  translation of "F j, Y" for the site's language; otherwise PHP intl's
+  long date for the locale; otherwise "F j, Y". The `datetime` attributes
+  are unchanged.
+- **The built-in "Uncategorised" topic's archive answers 404 (the
+  founder's ruling of 19/11/2026)** with the theme's not-found page
+  (`salt_post_default_topic_not_found()`, `inc/cpt/post.php`), even when
+  posts are filed in it, and it is left out of WordPress's sitemap. It is
+  still never offered as a primary topic.
+- **The arrow is a translatable theme string (the founder's ruling of
+  19/11/2026).** `salt_contract_arrow()` draws `__( '→', 'salt' )`, with a
+  translators comment, so a site's language can give its own; the
+  `salt_contract_arrow` filter is unchanged.
+- **A published team member's author page answers even with no posts**
+  (kept, now the founder's ruling of 19/11/2026). What it draws is
+  unchanged.
+
 - **Version `6.0.0-dev`** in `style.css` and `SALT_VERSION` (founder
   decision D11). No tag and no release.
+- **Requires WordPress 7.1** (the founder's ruling of 18/11/2026).
+  `style.css` says `Requires at least: 7.1` (was 6.5) and `Tested up to:
+  7.1`, and phpcs checks against `minimum_wp_version` 7.1; it flags
+  nothing new. The real-ACF harness moves to WordPress 7.1.5, the latest
+  release.
 - **Resolvers read the contract's field names and shapes.** View props and
   view markup are unchanged (that is M4) except where the new shape
   forces it; see BREAKING for the visible changes.
@@ -256,6 +372,39 @@ markup granularity (cross-reference your site's override manifest).
   contract has no rule for, in every display mode.
 
 ### BREAKING
+- **The `profile_photo` user field is removed (the founder's ruling of
+  19/11/2026).** It was no longer drawn: the post's byline and author box
+  take the credited team member's photo. The `group_salt_user` group ("Author
+  profile" on the user screens) and `inc/fields/user.php` go with it, and
+  the field leaves `docs/contracts/slug-registry.json` (`field:profile_photo`;
+  a major release, so the slug check allows it with this entry). The demo
+  seed no longer writes it. Nothing on WordPress is in use, so no content is
+  migrated; any stored `profile_photo` user meta is left unread.
+- **The six collection layouts are gone; collection-showcase and carousel
+  replace them (ID-3600, EP-72 M3 unit 8).** Layouts `services`, `work`,
+  `team`, `testimonials`, `blog_teaser` and `scroll_carousel` are removed,
+  with their field files (`inc/fields/layouts/`), resolvers, views,
+  scripts (`sections/testimonials.js`, `sections/scroll-carousel.js`),
+  tests and snapshots, and with `inc/query/controls.php`
+  (`salt_query_control_fields()`), `salt_query_controls_from_row()`,
+  `salt_section_settings_fields()`, `salt_testimonials_layout()` and the
+  per-row section lookup (`salt_contract_section_conditions()`,
+  `salt_contract_section_variant()`, `salt_contract_layout_label()`;
+  `salt_override_tier()` takes no `$variant`). The components
+  `x-card-team` and `x-card-testimonial`
+  (`template-parts/components/card-team.php`, `card-testimonial.php`) go
+  too: nothing draws them. No
+  site uses them, so there is no migration. A child theme's
+  `template-parts/sections/{services,work,team,testimonials,blog-teaser,scroll-carousel}.php`
+  is no longer loaded; declare `collection-showcase` or `carousel` in
+  `salt-overrides.json` instead.
+- **Posts (ID-3952).** Posts have no classic editor and no Tags box: the
+  body is the `layout` field, and `post_content` and `post_tag` are no
+  longer read or drawn. A legacy author address redirects with a 301 to the
+  user's public team profile; it returns 404 for an unticked user. The
+  `profile_photo` user field is removed (see above). Posts'
+  categories cannot take a parent. Nothing on WordPress is in use, so no
+  content is migrated.
 - **Rich-text allow-list widened, and narrowed per field (salt-contract
   1.0.0-rc.7, ID-3950; security-reviewed on PR #26).** `salt_allowed_html()`
   is the superset and now holds h2 to h6 (still no attribute on any of them;
@@ -302,7 +451,7 @@ markup granularity (cross-reference your site's override manifest).
   - **Dropped from WordPress:** the `industry` taxonomy on work and the
     `department` taxonomy on team members; the body (editor) of work and
     team members; the location's featured image; the Gravatar fallback for
-    a post author (the avatar is the user's `profile_photo` or nothing).
+    a post author (the photo is the credited team member's).
   - **Renamed fields:** work `live_url` → `externalUrl`; service
     `price_from` (a number) → `priceFrom` (text, drawn as written),
     `related_services` → `relatedServices`, benefit row `benefit` → `text`,
@@ -332,19 +481,29 @@ markup granularity (cross-reference your site's override manifest).
     form (`salt_topic_meta_box()`) and not on the term add or edit screens.
     Every term is stored at the top level, whatever parent is sent
     (`inc/cpt/topics.php`). Posts' categories are ID-3952's.
-  - **The summary is checked on save (services, case studies, posts).** An
-    excerpt over 300 characters is refused in the editor
-    (`admin/summary-limit.js`) with "The summary (the Excerpt box) is N
-    characters long. Shorten it to 300 characters or fewer". Characters are
-    counted as Unicode code points (`mb_strlen`, a CRLF as one; the
-    founder's ruling).
-  - **The title is checked on save (every collection; the founder's
-    ruling).** The post title of a service, case study, post, testimonial
-    (name), team member (name), FAQ (question) and location (name) over the
-    contract's 120 characters is refused in the editor
-    (`admin/title-limit.js`, the same way as the summary) with "The title is
-    N characters long. Shorten it to 120 characters or fewer", counted as
-    the summary is.
+  - **Character counts, never limits (the founder's rulings of
+    19/11/2026).** The editor shows a count beside a field as it is typed,
+    "N / 120" or "N / 300", counted in Unicode code points with a CRLF as
+    one (`mb_strlen`, as ACF counts). It is grey within the target and
+    turns red and bold past it, with "Over the suggested 120 characters"
+    (or 300). Nothing is refused: Save Draft, Publish and Update work
+    whatever the length. One script draws every count
+    (`admin/character-count.js`, from `salt_character_count()` in
+    `inc/services/character-count.php`); it replaces `admin/title-limit.js`,
+    `admin/summary-limit.js` and `admin/topic-name-limit.js`, which refused
+    a save, and their messages ("… Shorten it to N characters or fewer").
+    - **The title** of a service, case study, post, testimonial (name),
+      team member (name), FAQ (question) and location (name): "N / 120".
+      On a service, case study or post (a page of its own), past 60 it
+      also says, in dark amber, "Search results may shorten a title over
+      about 60 characters", until the 120 note takes over.
+    - **The summary** (the Excerpt box) of a service, case study or post:
+      "N / 300".
+    - **A topic's name** on the term add and edit screens of service, case
+      study, FAQ and location topics, and of posts' categories (labelled
+      Topics): "N / 120". The Topics box's "add new" form and quick edit
+      have no count and no check.
+    - No ACF field's `maxlength` or other limit changes.
   - **Other checks on save the contract asks for** (`inc/fields/checks.php`):
     a field with the email format (a team member's and a location's
     `email`) must be one @, a domain with a dot and no spaces; a location's
@@ -356,10 +515,8 @@ markup granularity (cross-reference your site's override manifest).
     `cta`, the sections' buttons and links). A path such as `/contact`, an
     anchor such as `#pricing`, `//x.example`, `javascript:` and `ftp:` are
     refused with a message naming the four schemes.
-  - **Post fields hidden until unit 10.** `author`, `primaryTopic` and
-    `layout` stay in the generated posts group (so the drift check holds and
-    they store and read), but `acf/prepare_field` keeps them out of the
-    editor until ID-3952 wires them.
+  - **Post fields.** `author` and `layout` are drawn in the post's group, and
+    `primaryTopic` in the Topics box (ID-3952, under Added).
   - **The service intro (the founder's ruling).** `single-service.php` draws
     the stored body with paragraphs added (`wpautop()`) and sanitised to the
     intro's list, with no shortcode, oEmbed or other `the_content` filter
@@ -377,10 +534,11 @@ markup granularity (cross-reference your site's override manifest).
     author with no profile photo has no avatar; a testimonial rated 4.5
     draws four and a half stars (the star markup is now an empty row with a
     clipped filled row over it); the topics taxonomies are labelled Topics
-    with no parent; the service intro draws no shortcode, embed or media;
-    an FAQ answer loses h3, h4, blockquote and code, a features item's text
-    loses its headings, and a case study's challenge and solution narrow
-    from `wp_kses_post()` to their lists (see the rich-text entry above).
+    with no parent and refuse a name over 120 characters; the service intro
+    draws no shortcode, embed or media; an FAQ answer loses h3, h4,
+    blockquote and code, a features item's text loses its headings, and a
+    case study's challenge and solution narrow from `wp_kses_post()` to
+    their lists (see the rich-text entry above).
   - **Removed field slugs in the registry:** `appointment_only`, `benefit`,
     `city`, `geo`, `headline`, `line1`, `line2`, `live_url`, `logo`,
     `opening_hours`, `platform`, `postcode`, `price_from`,

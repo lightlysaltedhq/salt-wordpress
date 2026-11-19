@@ -1,6 +1,6 @@
-# Salt conformance: wordpress 6.0.0-dev against @lightlysaltedhq/salt-contract 1.0.0-rc.7
+# Salt conformance: wordpress 6.0.0-dev against @lightlysaltedhq/salt-contract 1.0.0-rc.8
 
-**Partial, not conforming.** 0 section(s) pass, 14 fail, 0 incomplete, 3 not shipped. Chrome, views and page: 0 pass, 9 fail, 0 not shipped. Adapter: command `php tests/contract-adapter/adapter.php`.
+**Partial, not conforming.** 2 section(s) pass, 12 fail, 0 incomplete, 3 not shipped. Chrome, views and page: 0 pass, 9 fail, 0 not shipped. Adapter: command `php tests/contract-adapter/adapter.php`.
 
 | Section | Fixtures | Field parity | Classes | Stylesheet pin |
 | --- | --- | --- | --- | --- |
@@ -15,8 +15,8 @@
 | process | 1/4 | pass | pass | pass |
 | faq | 1/3 | pass | pass | pass |
 | tabs | not shipped | not shipped | not shipped | not shipped |
-| collection-showcase | 1/8 | fail (1) | pass | pass |
-| carousel | 1/6 | fail (1) | pass | pass |
+| collection-showcase | 8/8 | pass | pass | pass |
+| carousel | 6/6 | pass | pass | pass |
 | listing | not shipped | not shipped | not shipped | not shipped |
 | contact | 0/5 | pass | pass | pass |
 | locations | 1/3 | pass | pass | pass |
@@ -30,13 +30,13 @@
 | post | view | 0/6 | pass |
 | service | view | 0/2 | pass |
 | case-study | view | 0/4 | pass |
-| archive | view | 0/2 | pass |
+| archive | view | 0/3 | pass |
 | search | view | 0/3 | pass |
 | not-found | view | 0/2 | pass |
 
 ## Stylesheet pin
 
-Pass: `assets/dist/salt.4f3bca2639/salt.css` against this contract's `styles/salt.css` (1.0.0-rc.7): identical.
+Pass: `assets/dist/salt.4f3bca2639/salt.css` against this contract's `styles/salt.css` (1.0.0-rc.8): identical.
 
 ## Field parity
 
@@ -112,26 +112,6 @@ acf snapshot `inc/fields/generated/sections.json` with options `inc/fields/gener
 - `faq/many`: attribute `aria-labelledby` at `section.salt-section`: expected `faq-help__heading`, found nothing
 - `faq/one-inverse`: attribute `aria-labelledby` at `section.salt-section`: expected `faq-one__heading`, found nothing
 
-### collection-showcase
-
-- `collection-showcase/accordion-testimonials`: missing at `section.salt-section`: expected `<section aria-labelledby="kind-words__heading" class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="collection-showcase-4" data-width="defaul…`, found nothing
-- `collection-showcase/featured-case-studies`: attribute `aria-labelledby` at `section.salt-section`: expected `recent-work__heading`, found nothing
-- `collection-showcase/grid-services-first`: attribute `aria-labelledby` at `section.salt-section`: expected `services-grid__heading`, found nothing
-- `collection-showcase/grid-team-contacts`: attribute `aria-labelledby` at `section.salt-section`: expected `the-team__heading`, found nothing
-- `collection-showcase/index-posts-grouped`: attribute `aria-labelledby` at `section.salt-section`: expected `journal-index__heading`, found nothing
-- `collection-showcase/index-posts-ungrouped`: attribute `aria-labelledby` at `section.salt-section`: expected `journal-all__heading`, found nothing
-- `collection-showcase/list-posts-dated`: attribute `aria-labelledby` at `section.salt-section`: expected `latest-posts__heading`, found nothing
-- fields: collection-showcase is not in the field snapshot
-
-### carousel
-
-- `carousel/inline-generic-heading`: attribute `aria-labelledby` at `section.salt-section`: expected `recent-gardens__heading`, found nothing
-- `carousel/inline-no-name-list`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="none" data-tone="surface" data-tone-dark="surface" data-track="carousel-3" data-width="narrow" id="two-steps">`, found `<section class="bg-surface section-scroll-carousel text-ink x-section" data-section="scroll-carousel" id="two-steps">`
-- `carousel/inline-one-card`: attribute `aria-labelledby` at `section.salt-section`: expected `our-base__heading`, found nothing
-- `carousel/inline-quote-label-inverse`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="carousel-2" data-width="default" id="client-quotes" style="--salt-section-space:var…`, found `<section class="bg-surface-inverse md:py-20 py-14 section-scroll-carousel text-ink-inverse x-section" data-section="scroll-carousel" id="client-quotes">`
-- `carousel/testimonials-source`: missing at `section.salt-section`: expected `<section aria-labelledby="kind-words-carousel__heading" class="salt-section" data-spacing="md" data-tone="brand-tint" data-tone-dark="brand-tint" data-track="carousel-5" data-width="default" id="kind-…`, found nothing
-- fields: carousel is not in the field snapshot
-
 ### contact
 
 - `contact/closed-details-hidden-inverse`: missing at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface-inverse" data-tone-dark="surface-inverse" data-track="contact-1" data-width="default" id="contact-closed" style="--salt-section-space:var…`, found nothing
@@ -164,44 +144,45 @@ acf snapshot `inc/fields/generated/sections.json` with options `inc/fields/gener
 
 ### page
 
-- `page/fallback-heading`: the adapter exited 4; stderr: `salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `page/header-section-footer`: the adapter exited 4; stderr: `salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `page/hero-minimal-centre`: the adapter exited 4; stderr: `salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `page/hero-split-image`: the adapter exited 4; stderr: `salt adapter: the page page is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `page/fallback-heading`: missing at `html > head > noscript`: expected `<noscript>`, found nothing
+- `page/header-section-footer`: missing at `html > head > noscript`: expected `<noscript>`, found nothing
+- `page/hero-minimal-centre`: missing at `html > head > noscript`: expected `<noscript>`, found nothing
+- `page/hero-split-image`: missing at `html > head > noscript`: expected `<noscript>`, found nothing
 
 ### post
 
-- `post/band-call-to-action`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `post/band-faq`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `post/band-gallery-one-image`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `post/band-media-text`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `post/full`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `post/minimal`: the adapter exited 4; stderr: `salt adapter: the view post is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `post/band-call-to-action`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `post/band-faq`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `post/band-gallery-one-image`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `post/band-media-text`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `post/full`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `post/minimal`: attribute `tabindex` at `main`: expected `-1`, found nothing
 
 ### service
 
-- `service/full`: the adapter exited 4; stderr: `salt adapter: the view service is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `service/minimal`: the adapter exited 4; stderr: `salt adapter: the view service is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `service/full`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `service/minimal`: attribute `tabindex` at `main`: expected `-1`, found nothing
 
 ### case-study
 
-- `case-study/aside`: the adapter exited 4; stderr: `salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `case-study/band`: the adapter exited 4; stderr: `salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `case-study/full`: the adapter exited 4; stderr: `salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `case-study/minimal`: the adapter exited 4; stderr: `salt adapter: the view case-study is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `case-study/aside`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `case-study/band`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `case-study/full`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `case-study/minimal`: attribute `tabindex` at `main`: expected `-1`, found nothing
 
 ### archive
 
-- `archive/author`: the adapter exited 4; stderr: `salt adapter: the view archive is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `archive/topic`: the adapter exited 4; stderr: `salt adapter: the view archive is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `archive/author-no-posts`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `archive/author`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `archive/topic`: attribute `tabindex` at `main`: expected `-1`, found nothing
 
 ### search
 
-- `search/no-query`: the adapter exited 4; stderr: `salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `search/no-results`: the adapter exited 4; stderr: `salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `search/results`: the adapter exited 4; stderr: `salt adapter: the view search is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `search/no-query`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `search/no-results`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `search/results`: attribute `tabindex` at `main`: expected `-1`, found nothing
 
 ### not-found
 
-- `not-found/minimal`: the adapter exited 4; stderr: `salt adapter: the view not-found is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
-- `not-found/with-search`: the adapter exited 4; stderr: `salt adapter: the view not-found is not rendered by this adapter yet: it needs WordPress's loop and document head, which the shims do not provide (M4).`
+- `not-found/minimal`: attribute `tabindex` at `main`: expected `-1`, found nothing
+- `not-found/with-search`: attribute `tabindex` at `main`: expected `-1`, found nothing

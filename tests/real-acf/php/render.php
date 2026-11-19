@@ -40,18 +40,23 @@ ob_start();
 get_template_part( 'template-parts/flexible-content' );
 $html = (string) ob_get_clean();
 
-preg_match_all( '/<section\b[^>]*\bdata-section="([a-z0-9-]+)"/', $html, $drawn );
-$counts = array_count_values( $drawn[1] );
+// x-section bands name their section in data-section; a band drawn to the
+// contract's markup (collection-showcase and carousel since unit 8) in its
+// block's data-block.
+preg_match_all( '/<section\b[^>]*\bdata-section="([a-z0-9-]+)"|<div class="salt-block" data-block="([a-z0-9-]+)"/', $html, $drawn );
+$drawn[1] = array_map( static fn( string $a, string $b ): string => '' !== $a ? $a : $b, $drawn[1], $drawn[2] );
+$counts   = array_count_values( $drawn[1] );
 salt_harness_info( sprintf( '%d section bands drawn from %d rows: %s', count( $drawn[1] ), count( $state['rows'] ), wp_json_encode( $counts ) ) );
 
-// faq and locations query posts the harness does not create (fixtures carry
-// their collections only as data), so they correctly draw nothing (COMPL02).
-$need    = array_diff( $state['layouts'], array( 'faq', 'locations' ) );
+// faq, locations and collection-showcase query posts the harness does not
+// create (fixtures carry their collections only as data), so they correctly
+// draw nothing (COMPL02); carousel draws its inline cases.
+$need    = array_diff( $state['layouts'], array( 'faq', 'locations', 'collection-showcase' ) );
 $missing = array_values( array_diff( $need, array_keys( $counts ) ) );
 salt_harness_result(
 	array() === $missing,
 	'every generated section with content draws from real ACF values',
-	array() === $missing ? sprintf( '%d of %d layouts drew (faq and locations have no posts to query here)', count( $need ), count( $state['layouts'] ) ) : 'no band for: ' . implode( ', ', $missing )
+	array() === $missing ? sprintf( '%d of %d layouts drew (faq, locations and collection-showcase have no posts to query here)', count( $need ), count( $state['layouts'] ) ) : 'no band for: ' . implode( ', ', $missing )
 );
 
 $contact = (string) get_permalink( (int) get_page_by_path( 'contact' )?->ID );

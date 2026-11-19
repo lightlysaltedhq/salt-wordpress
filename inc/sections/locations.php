@@ -130,10 +130,7 @@ function salt_resolve_section_locations( array $context ): ?array {
 		// The street holds up to two lines, one each; then the other parts.
 		$street_lines  = preg_split( '/\R/', (string) ( $address['street'] ?? '' ) );
 		$street_lines  = array_values( array_filter( array_map( 'trim', false === $street_lines ? array() : $street_lines ), static fn( string $line ): bool => '' !== $line ) );
-		$address_lines = array();
-		foreach ( array_slice( $street_lines, 0, 2 ) as $index => $line ) {
-			$address_lines[ 'street' . $index ] = $line;
-		}
+		$address_lines = $street_lines;
 		foreach ( array( 'locality', 'region', 'postalCode', 'country' ) as $part ) {
 			$value = trim( (string) ( $address[ $part ] ?? '' ) );
 			if ( '' !== $value ) {
@@ -156,7 +153,7 @@ function salt_resolve_section_locations( array $context ): ?array {
 
 		if ( array() !== $address_lines ) {
 			$postal = array( '@type' => 'PostalAddress' );
-			$street = implode( ', ', array_filter( array( $address_lines['street0'] ?? '', $address_lines['street1'] ?? '' ) ) );
+			$street = implode( ', ', $street_lines );
 			if ( '' !== $street ) {
 				$postal['streetAddress'] = $street;
 			}

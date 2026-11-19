@@ -44,6 +44,15 @@ salt_demo_refs( 'reset' );
 salt_demo_purge( $salt_demo_post_types, $salt_demo['menus'] );
 
 if ( getenv( 'SALT_DEMO_PURGE' ) ) {
+	// Unpublish only our own demo profiles. Never delete or repurpose accounts.
+	foreach ( get_users(
+		array(
+			'meta_key' => '_salt_demo_person',
+			'fields'   => 'ID',
+		)
+	) as $id ) {
+		update_field( 'field_salt_collection_team_show_on_website', false, 'user_' . $id );
+	}
 	update_option( 'show_on_front', 'posts' );
 	set_theme_mod( 'nav_menu_locations', array() );
 	delete_option( 'salt_demo_seeded' );
@@ -76,11 +85,43 @@ foreach ( $salt_demo['terms'] as $taxonomy => $terms ) {
 salt_demo_seed_images( $salt_demo['images'] );
 
 // 4. CPT posts (create bare; stash deferred field/term/thumbnail data).
-// Everything is authored by the demo author (first administrator) — under
-// `wp eval-file` there is no current user, and post_author 0 would break
-// the single-post byline/author box.
-$salt_demo_author   = salt_demo_author_id();
+// Use a dedicated demo account, never the site's administrator.
+$salt_demo_author   = 0;
 $salt_demo_deferred = array();
+
+foreach ( $salt_demo['team'] as $person ) {
+	$found = get_users(
+		array(
+			'meta_key'   => '_salt_demo_person',
+			'meta_value' => $person['slug'],
+			'fields'     => 'ID',
+			'number'     => 1,
+		)
+	);
+	$id    = $found[0] ?? wp_insert_user(
+		array(
+			'user_login'   => 'demo-' . wp_generate_uuid4(),
+			'user_pass'    => wp_generate_password(),
+			'role'         => 'subscriber',
+			'display_name' => $person['title'],
+		)
+	);
+	if ( is_wp_error( $id ) ) {
+		salt_demo_log( 'Could not create demo team member.' );
+		continue;
+	}
+	update_user_meta( $id, '_salt_demo_person', $person['slug'] );
+	$object = 'user_' . $id;
+	foreach ( $person['fields'] as $name => $value ) {
+		update_field( 'field_salt_collection_team_' . ( 'publicEmail' === $name ? 'public_email' : $name ), $value, $object );
+	}
+	update_field( 'field_salt_collection_team_photo', salt_demo_resolve_refs( $person['thumbnail'] ), $object );
+	update_field( 'field_salt_collection_team_slug', $person['slug'], $object );
+	update_field( 'field_salt_collection_team_show_on_website', true, $object );
+	if ( ! $salt_demo_author ) {
+		$salt_demo_author = $id;
+	}
+}
 
 foreach ( $salt_demo['cpts'] as $cpt => $items ) {
 	foreach ( $items as $item ) {
@@ -180,23 +221,6 @@ foreach ( $salt_demo['options'] as $name => $value ) {
 	update_field( $name, salt_demo_resolve_refs( $value ), 'option' );
 }
 
-// 7.5 Blog author profile — display name + bio (WP user) and the ACF
-// profile_photo user field feed the single-post byline/author box.
-if ( isset( $salt_demo['author'] ) && $salt_demo_author > 0 ) {
-	wp_update_user(
-		array(
-			'ID'           => $salt_demo_author,
-			'display_name' => (string) ( $salt_demo['author']['display_name'] ?? '' ),
-			'description'  => (string) ( $salt_demo['author']['description'] ?? '' ),
-		)
-	);
-	$salt_demo_photo = salt_demo_resolve_refs( $salt_demo['author']['photo'] ?? null );
-	if ( is_int( $salt_demo_photo ) && $salt_demo_photo > 0 ) {
-		update_field( 'profile_photo', $salt_demo_photo, 'user_' . $salt_demo_author );
-	}
-	salt_demo_log( sprintf( 'author profile set on user %d.', $salt_demo_author ) );
-}
-
 // 7.6 Permalinks: /blog/%postname%/ (fleet best practice — category-less
 // post slugs under a /blog/ prefix; CPTs are unaffected, with_front false).
 update_option( 'permalink_structure', '/blog/%postname%/' );
@@ -275,23 +299,4 @@ function salt_demo_purge( array $post_types, array $menus ): void {
 	if ( array() !== $posts ) {
 		salt_demo_log( sprintf( 'purged %d prior demo objects.', count( $posts ) ) );
 	}
-}
-
-/**
- * The demo author: the first administrator by ID.
- *
- * @return int User ID (0 when no administrator exists).
- */
-function salt_demo_author_id(): int {
-	$admins = get_users(
-		array(
-			'role'    => 'administrator',
-			'orderby' => 'ID',
-			'order'   => 'ASC',
-			'number'  => 1,
-			'fields'  => 'ID',
-		)
-	);
-
-	return array() !== $admins ? (int) $admins[0] : 0;
 }

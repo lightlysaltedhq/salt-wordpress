@@ -15,115 +15,19 @@
  * and draws every seeded value the template draws. PHP diagnostics on the
  * server are caught by run.sh's debug.log check, as in every phase.
  *
- * Also over HTTP: a service whose body holds a shortcode and a video address
- * (the intro runs no the_content filter), and a page whose testimonials
- * section holds a 4.5 rating (the half star).
+ * Also over HTTP: the post's date in the site's language (en-GB "12 March
+ * 2026", en-US "March 12, 2026") on the post, its topic's archive and a
+ * search; the "Uncategorised" archive answering 404; a published team member
+ * with no posts having an author page; a service whose body holds a
+ * shortcode and a video address (the intro runs no the_content filter), and
+ * a page whose testimonials showcase holds a 4.5 rating (the half star;
+ * labels.rating then "{n} of {N}", markup/card.json).
  *
  * @package Salt\Tests\RealAcf
  */
 
 require __DIR__ . '/wp.php';
-
-/**
- * A fixture case from the pinned contract.
- *
- * @param string $name e.g. 'service/full'.
- * @return array<string,mixed>
- */
-function salt_harness_fixture( string $name ): array {
-	return (array) json_decode( (string) file_get_contents( getenv( 'SALT_HARNESS_FIXTURES' ) . '/' . $name . '.json' ), true );
-}
-
-/**
- * A real 1x1 PNG attachment per fixture media name, with its alt text.
- *
- * @param string              $name  Media name.
- * @param array<string,mixed> $media The case's media.
- * @return int Attachment ID.
- */
-function salt_harness_single_image( string $name, array $media ): int {
-	static $ids = array();
-	if ( isset( $ids[ $name ] ) ) {
-		return $ids[ $name ];
-	}
-	$uploads = wp_upload_dir();
-	$file    = $uploads['path'] . '/single-' . $name . '.png';
-	file_put_contents( $file, base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- A fixed 1x1 PNG.
-	$id = (int) wp_insert_attachment(
-		array(
-			'post_title'     => $name,
-			'post_mime_type' => 'image/png',
-			'post_status'    => 'inherit',
-			'guid'           => $uploads['url'] . '/single-' . $name . '.png',
-		),
-		$file
-	);
-	wp_update_attachment_metadata(
-		$id,
-		array(
-			'width'  => (int) ( $media[ $name ]['width'] ?? 1 ),
-			'height' => (int) ( $media[ $name ]['height'] ?? 1 ),
-			'file'   => _wp_relative_upload_path( $file ),
-			'sizes'  => array(),
-		)
-	);
-	update_post_meta( $id, '_wp_attachment_image_alt', (string) ( $media[ $name ]['alt'] ?? '' ) );
-	$ids[ $name ] = $id;
-	return $id;
-}
-
-/**
- * A published service per fixture id, made once (a related or listed one).
- *
- * @param array<string,mixed> $item  The fixture's card: id, title, text, image.
- * @param array<string,mixed> $media The case's media.
- * @return int Post ID.
- */
-function salt_harness_single_service( array $item, array $media ): int {
-	static $ids = array();
-	$slug       = (string) $item['id'];
-	if ( ! isset( $ids[ $slug ] ) ) {
-		$ids[ $slug ] = (int) wp_insert_post(
-			array(
-				'post_type'    => 'service',
-				'post_status'  => 'publish',
-				'post_name'    => 'single-' . $slug,
-				'post_title'   => (string) $item['title'],
-				'post_excerpt' => (string) ( $item['text'] ?? '' ),
-			)
-		);
-		if ( isset( $item['image'] ) ) {
-			set_post_thumbnail( $ids[ $slug ], salt_harness_single_image( (string) $item['image'], $media ) );
-		}
-	}
-	return $ids[ $slug ];
-}
-
-/**
- * GET a URL from the harness server: the status and the body.
- *
- * @param string $url URL.
- * @return array{int,string}
- */
-function salt_harness_get( string $url ): array {
-	$context = stream_context_create(
-		array(
-			'http' => array(
-				'ignore_errors' => true,
-				'timeout'       => 120,
-			),
-		)
-	);
-	$body    = (string) file_get_contents( $url, false, $context ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- The harness's own local server.
-	$headers = function_exists( 'http_get_last_response_headers' ) ? (array) http_get_last_response_headers() : ( $http_response_header ?? array() );
-	$status  = 0;
-	foreach ( $headers as $header ) {
-		if ( 1 === preg_match( '#^HTTP/\S+\s+(\d{3})#', (string) $header, $m ) ) {
-			$status = (int) $m[1];
-		}
-	}
-	return array( $status, $body );
-}
+require __DIR__ . '/seed.php';
 
 /**
  * Request a page and check it answers 200 and draws every expected fragment.
@@ -155,59 +59,16 @@ function salt_harness_single_check( string $what, int $id, array $expect, array 
 	return $body;
 }
 
-// A site has its menus: the chrome logs a theme location with none, as it should.
-foreach ( array( 'primary', 'footer' ) as $location ) {
-	$menu = wp_create_nav_menu( 'Harness ' . $location );
-	wp_update_nav_menu_item(
-		(int) $menu,
-		0,
-		array(
-			'menu-item-title'  => 'Home',
-			'menu-item-url'    => home_url( '/' ),
-			'menu-item-status' => 'publish',
-		)
-	);
-	$locations              = (array) get_theme_mod( 'nav_menu_locations', array() );
-	$locations[ $location ] = (int) $menu;
-	set_theme_mod( 'nav_menu_locations', $locations );
-}
+salt_harness_seed_menus();
 
 // ── The service (fixtures/service/full.json) ─────────────────────────────────────────────────
 $case    = salt_harness_fixture( 'service/full' );
 $doc     = $case['document'];
 $media   = (array) ( $case['media'] ?? array() );
-$enquire = (int) wp_insert_post(
-	array(
-		'post_type'   => 'page',
-		'post_status' => 'publish',
-		'post_title'  => (string) $case['documents'][ $doc['cta']['document'] ]['title'],
-	)
-);
-$related = array_map( static fn( array $item ): int => salt_harness_single_service( $item, $media ), $doc['related'] );
-$service = (int) wp_insert_post(
-	array(
-		'post_type'    => 'service',
-		'post_status'  => 'publish',
-		'post_title'   => (string) $doc['title'],
-		'post_excerpt' => (string) $doc['summary'],
-		'post_content' => (string) $doc['intro'],
-	)
-);
-update_field( 'benefits', array_map( static fn( string $text ): array => array( 'text' => $text ), $doc['benefits'] ), $service );
-update_field( 'priceFrom', (string) $doc['priceFrom'], $service );
-update_field( 'relatedServices', $related, $service );
-update_field(
-	'cta',
-	array(
-		'label'    => (string) $doc['cta']['label'],
-		'type'     => (string) $doc['cta']['type'],
-		'document' => $enquire,
-		'url'      => '',
-		'newTab'   => (bool) $doc['cta']['newTab'],
-	),
-	$service
-);
-$expect = array(
+$seeded  = salt_harness_seed_service( $case );
+$service = $seeded['id'];
+$enquire = $seeded['enquire'];
+$expect  = array(
 	'title'               => '>' . esc_html( $doc['title'] ) . '</h1>',
 	'summary'             => esc_html( $doc['summary'] ),
 	'price'               => esc_html( $doc['priceFrom'] ),
@@ -229,11 +90,7 @@ $body = salt_harness_single_check(
 	$service,
 	$expect
 );
-// KNOWN FIXTURE MISMATCH, pending the EP-70 correction of the contract's example: rc.7's
-// fixtures/service/full.json puts an <h3> in the intro, but the intro's own list (services.json
-// intro) has no heading, and the founder ruled the intro stays restricted. The theme strips the
-// heading to text; this checks the two paragraphs and that no h2 or h3 comes from the intro, and
-// deliberately does not check the heading's text.
+// The rc.8 service/full intro contains two paragraphs and no heading.
 $intro      = (string) strstr( (string) substr( $body, (int) strpos( $body, '<div class="x-prose">' ) ), '</div>', true );
 $paragraphs = array( $expect['intro paragraph 1'], $expect['intro paragraph 2'] );
 $drawn      = count( array_filter( $paragraphs, static fn( string $p ): bool => str_contains( $intro, $p ) ) );
@@ -251,7 +108,7 @@ $probe = (int) wp_insert_post(
 		'post_type'    => 'service',
 		'post_status'  => 'publish',
 		'post_title'   => 'Harness intro probe',
-		'post_content' => "First paragraph with <strong>bold</strong>.\n\n[gallery ids=\"{$related[0]}\"]\n\nhttps://www.youtube.com/watch?v=abc123\n\n<img src=\"x.jpg\" alt=\"\">",
+		'post_content' => "First paragraph with <strong>bold</strong>.\n\n[gallery ids=\"{$seeded['related'][0]}\"]\n\nhttps://www.youtube.com/watch?v=abc123\n\n<img src=\"x.jpg\" alt=\"\">",
 	)
 );
 salt_harness_single_check(
@@ -270,26 +127,10 @@ salt_harness_single_check(
 );
 
 // ── The case study (fixtures/case-study/full.json) ───────────────────────────────────────────
-$case  = salt_harness_fixture( 'case-study/full' );
-$doc   = $case['document'];
-$media = (array) ( $case['media'] ?? array() );
-$work  = (int) wp_insert_post(
-	array(
-		'post_type'    => 'work',
-		'post_status'  => 'publish',
-		'post_title'   => (string) $doc['title'],
-		'post_excerpt' => (string) $doc['summary'],
-	)
-);
-set_post_thumbnail( $work, salt_harness_single_image( (string) $doc['image'], $media ) );
-update_field( 'client', (string) $doc['client'], $work );
-update_field( 'challenge', (string) $doc['challenge'], $work );
-update_field( 'solution', (string) $doc['solution'], $work );
-update_field( 'results', $doc['results'], $work );
-update_field( 'details', $doc['details'], $work );
-update_field( 'gallery', array_map( static fn( string $name ): int => salt_harness_single_image( $name, $media ), $doc['gallery'] ), $work );
-update_field( 'externalUrl', (string) $doc['externalUrl'], $work );
-update_field( 'services', array_map( static fn( array $item ): int => salt_harness_single_service( $item, $media ), $doc['services'] ), $work );
+$case   = salt_harness_fixture( 'case-study/full' );
+$doc    = $case['document'];
+$media  = (array) ( $case['media'] ?? array() );
+$work   = salt_harness_seed_case_study( $case );
 $expect = array(
 	'title'          => '>' . esc_html( $doc['title'] ) . '</h1>',
 	'summary'        => esc_html( $doc['summary'] ),
@@ -318,51 +159,95 @@ salt_harness_info( 'details is stored but not drawn (M4): get_field returns ' . 
 $case   = salt_harness_fixture( 'post/full' );
 $doc    = $case['document'];
 $media  = (array) ( $case['media'] ?? array() );
-$topics = array();
-foreach ( $doc['topics'] as $topic ) {
-	$term     = wp_insert_term( (string) $topic['title'], 'category' );
-	$topics[] = is_array( $term ) ? (int) $term['term_id'] : 0;
-}
-$post = (int) wp_insert_post(
-	array(
-		'post_type'     => 'post',
-		'post_status'   => 'publish',
-		'post_title'    => (string) $doc['title'],
-		'post_content'  => (string) $doc['body'],
-		'post_date'     => $doc['date'] . ' 09:00:00',
-		'post_category' => $topics,
-		'post_author'   => 1,
-	)
-);
-set_post_thumbnail( $post, salt_harness_single_image( (string) $doc['featuredImage'], $media ) );
-// The credited author is a team member (ID-3952 draws it); stored, as the contract shapes it.
-$member = (int) wp_insert_post(
-	array(
-		'post_type'   => 'team_member',
-		'post_status' => 'publish',
-		'post_title'  => (string) $doc['author']['name'],
-	)
-);
-update_field( 'role', (string) $doc['author']['role'], $member );
-update_field( 'bio', (string) $doc['author']['bio'], $member );
-set_post_thumbnail( $member, salt_harness_single_image( (string) $doc['author']['photo'], $media ) );
-update_field( 'author', $member, $post );
-update_field( 'primaryTopic', $topics[0], $post );
+$seeded = salt_harness_seed_post( $case );
+$post   = $seeded['id'];
+$member = $seeded['member'];
 salt_harness_single_check(
 	'single-post.php draws the contract\'s post/full',
 	$post,
 	array(
-		'title'          => '>' . esc_html( $doc['title'] ) . '</h1>',
-		'date'           => 'datetime="' . $doc['date'] . 'T09:00:00',
-		// Which topic the badge shows is primaryTopic's, which ID-3952 draws; today it is one of them.
-		'a topic badge'  => 'class="x-post-category',
-		'featured image' => 'alt="' . esc_attr( $media[ $doc['featuredImage'] ]['alt'] ) . '"',
-		'body'           => 'Most gardeners reach for a bottle of feed',
-		'body h3'        => '<h3>Why compost does the heavy lifting</h3>',
-		'body bold'      => '<strong>well-rotted</strong>',
+		'title'           => '>' . esc_html( $doc['title'] ) . '</h1>',
+		'date'            => 'datetime="' . $doc['date'] . 'T09:00:00',
+		// The badge is the primary topic (the fixture's category), not merely the first topic.
+		'primary topic'   => esc_html( $doc['category']['title'] ) . '</a></p>',
+		'credited author' => '>' . esc_html( $doc['author']['name'] ) . '</a>',
+		'author role'     => esc_html( $doc['author']['role'] ),
+		'author photo'    => 'alt="' . esc_attr( $media[ $doc['author']['photo'] ]['alt'] ) . '"',
+		'featured image'  => 'alt="' . esc_attr( $media[ $doc['featuredImage'] ]['alt'] ) . '"',
+		'body'            => 'Most gardeners reach for a bottle of feed',
+		'body h3'         => '<h3>Why compost does the heavy lifting</h3>',
+		'body bold'       => '<strong>well-rotted</strong>',
 	)
 );
-salt_harness_info( 'author and primaryTopic are stored, not drawn until ID-3952: author ' . (int) get_field( 'author', $post ) . ' (team member ' . $member . '), primaryTopic ' . (int) get_field( 'primaryTopic', $post ) );
+salt_harness_result( (int) get_post_field( 'post_author', $post ) === $member, 'credit is the native post author' );
+
+// ── Dates follow the site's language (the founder's ruling of 19/11/2026) ────────────────────
+// The site keeps WordPress's stock Date Format setting ("F j, Y"), so the theme takes the
+// language's long date (salt_date_format()): on the post, its topic's archive and a search.
+global $wpdb;
+update_option( 'WPLANG', '' ); // Makes sure the row exists.
+$day     = date_create_immutable( $doc['date'] . ' 09:00:00', wp_timezone() );
+$archive = (string) get_term_link( (int) get_field( 'primaryTopic', $post ), 'category' );
+$search  = add_query_arg( 's', rawurlencode( (string) $doc['title'] ), home_url( '/' ) );
+foreach ( array(
+	'en_GB' => $day->format( 'j F Y' ),
+	''      => $day->format( 'F j, Y' ),
+) as $salt_harness_locale => $salt_harness_text ) {
+	// update_option() refuses a language with no installed pack, and the harness cannot download
+	// one, so the row is written as-is: get_locale() then reads it, and the theme takes the long
+	// date from PHP intl (with the pack, WordPress's own en_GB format, "j F Y", says the same).
+	$wpdb->update( $wpdb->options, array( 'option_value' => $salt_harness_locale ), array( 'option_name' => 'WPLANG' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The harness's own throwaway site.
+	wp_cache_delete( 'alloptions', 'options' );
+	$drawn = array();
+	foreach ( array(
+		'the post'          => (string) get_permalink( $post ),
+		'its topic archive' => $archive,
+		'a search'          => $search,
+	) as $where => $address ) {
+		list( $status, $body ) = salt_harness_get( $address );
+		$drawn[ $where ]       = 200 === $status && str_contains( $body, '>' . $salt_harness_text . '</time>' );
+	}
+	salt_harness_result(
+		! in_array( false, $drawn, true ),
+		sprintf( 'an %s site draws the post\'s date as "%s"', '' === $salt_harness_locale ? 'en-US' : 'en-GB', $salt_harness_text ),
+		implode( '; ', array_map( static fn( string $where, bool $ok ): string => $where . ( $ok ? ' draws it' : ' DOES NOT' ), array_keys( $drawn ), $drawn ) )
+	);
+}
+$wpdb->update( $wpdb->options, array( 'option_value' => '' ), array( 'option_name' => 'WPLANG' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- As above.
+wp_cache_delete( 'alloptions', 'options' );
+
+// ── The built-in "Uncategorised" topic's archive is not found (the founder's ruling) ─────────
+$default                = (int) get_option( 'default_category' );
+$filed                  = (int) wp_insert_post(
+	array(
+		'post_type'     => 'post',
+		'post_status'   => 'publish',
+		'post_title'    => 'Harness: filed under the default category',
+		'post_category' => array( $default ),
+	)
+);
+list( $default_status ) = salt_harness_get( (string) get_term_link( $default, 'category' ) );
+list( $topic_status )   = salt_harness_get( $archive );
+salt_harness_result(
+	404 === $default_status && 200 === $topic_status && $filed > 0,
+	'the "Uncategorised" archive answers 404 and a topic\'s archive 200',
+	sprintf( '%s answered %d, with a post in it; %s answered %d', str_replace( home_url(), '', (string) get_term_link( $default, 'category' ) ), $default_status, str_replace( home_url(), '', $archive ), $topic_status )
+);
+
+// ── A published team member's author page answers with no posts (kept) ──────────────────────
+$lonely                              = salt_harness_team_member(
+	array(
+		'name' => 'Harness Nobody-Wrote',
+		'href' => '/team/harness-nobody-wrote/',
+	),
+	array()
+);
+list( $lonely_status, $lonely_body ) = salt_harness_get( salt_team_profile_url( $lonely ) );
+salt_harness_result(
+	200 === $lonely_status && str_contains( $lonely_body, 'Harness Nobody-Wrote' ) && ! str_contains( $lonely_body, 'Latest posts' ),
+	'a published team member with no posts has an author page',
+	str_replace( home_url(), '', salt_team_profile_url( $lonely ) ) . ' answered ' . $lonely_status
+);
 
 // ── Half stars (testimonials.json rating, step 0.5) ──────────────────────────────────────────
 $testimonial = (int) wp_insert_post(
@@ -385,8 +270,9 @@ update_field(
 	'sections',
 	array(
 		array(
-			'acf_fc_layout' => 'testimonials',
+			'acf_fc_layout' => 'collection-showcase',
 			'heading'       => 'What clients say',
+			'source'        => 'testimonials',
 			'layout'        => 'grid',
 		),
 	),
@@ -398,7 +284,7 @@ salt_harness_single_check(
 	array(
 		'the quote'                              => 'Half a star short of perfect.',
 		'90% of five stars filled'               => 'style="--salt-rating-fill: 90%"',
-		'the label (4.5, the founder\'s ruling)' => 'aria-label="Rated 4.5 out of 5 stars"',
+		'the label (4.5, the founder\'s ruling)' => 'aria-label="Rated 4.5 of 5"',
 	)
 );
 

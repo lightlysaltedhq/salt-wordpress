@@ -57,7 +57,6 @@ require_once $salt_root . '/inc/helpers.php';
 require_once $salt_root . '/inc/modules.php';
 require_once $salt_root . '/inc/acf.php';
 require_once $salt_root . '/inc/query/resolver.php';
-require_once $salt_root . '/inc/query/controls.php';
 
 $salt_fields_files = glob( $salt_root . '/inc/fields/*.php' );
 foreach ( false === $salt_fields_files ? array() : $salt_fields_files as $salt_fields_file ) {

@@ -19,7 +19,7 @@ final class GeneratedSectionsTest extends SaltTestCase {
 	/**
 	 * The sections the theme renders, in the contract's order.
 	 */
-	private const GENERATED = array( 'hero', 'rich-text', 'call-to-action', 'media-text', 'features', 'stats', 'logos', 'gallery', 'process', 'faq', 'contact', 'locations' );
+	private const GENERATED = array( 'hero', 'rich-text', 'call-to-action', 'media-text', 'features', 'stats', 'logos', 'gallery', 'process', 'faq', 'collection-showcase', 'carousel', 'contact', 'locations' );
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -35,12 +35,8 @@ final class GeneratedSectionsTest extends SaltTestCase {
 		$names = array_column( salt_section_layouts(), 'name' );
 
 		$this->assertSame( self::GENERATED, array_slice( $names, 0, count( self::GENERATED ) ) );
-		$this->assertSame(
-			array( 'blog_teaser', 'scroll_carousel', 'services', 'team', 'testimonials', 'work' ),
-			array_slice( $names, count( self::GENERATED ) ),
-			'Only the six collection layouts unit 8 folds stay hand-written.'
-		);
-		foreach ( array( 'intro', 'pricing', 'tabs', 'listing', 'collection-showcase', 'carousel' ) as $absent ) {
+		$this->assertSame( array(), array_slice( $names, count( self::GENERATED ) ), 'No layout is hand-written since unit 8.' );
+		foreach ( array( 'intro', 'pricing', 'tabs', 'listing', 'blog_teaser', 'scroll_carousel', 'services', 'team', 'testimonials', 'work' ) as $absent ) {
 			$this->assertNotContains( $absent, $names );
 		}
 	}
@@ -55,12 +51,17 @@ final class GeneratedSectionsTest extends SaltTestCase {
 	}
 
 	public function test_a_hand_written_layout_for_a_generated_section_is_refused(): void {
-		$file = dirname( __DIR__, 2 ) . '/inc/fields/layouts/zz-test-hero.php';
+		$dir  = dirname( __DIR__, 2 ) . '/inc/fields/layouts';
+		$made = ! is_dir( $dir ) && mkdir( $dir );
+		$file = $dir . '/zz-test-hero.php';
 		file_put_contents( $file, "<?php\nreturn array( 'key' => 'layout_salt_hero', 'name' => 'hero', 'label' => 'Hero', 'sub_fields' => array() );\n" );
 		try {
 			$layouts = salt_section_layouts();
 		} finally {
 			unlink( $file );
+			if ( $made ) {
+				rmdir( $dir );
+			}
 		}
 
 		$this->assertSame( 1, count( array_keys( array_column( $layouts, 'name' ), 'hero', true ) ) );
@@ -74,16 +75,6 @@ final class GeneratedSectionsTest extends SaltTestCase {
 		$this->assertNull( salt_generated_sections_decode( '[{"key":"group_other","fields":[]}]' ), 'Another group.' );
 		$this->assertNull( salt_generated_sections_decode( '[{"key":"group_salt_sections","fields":[{"key":"field_salt_sections_container"}]}]' ), 'No layouts.' );
 		$this->assertIsArray( salt_generated_sections_decode( '[{"key":"group_salt_sections","fields":[{"key":"field_salt_sections_container","layouts":[]}]}]' ) );
-	}
-
-	public function test_the_hand_written_settings_group_is_the_contracts_rekeyed(): void {
-		$settings = salt_section_settings_fields( 'work' );
-
-		$this->assertCount( 1, $settings );
-		$this->assertSame( 'settings', $settings[0]['name'] );
-		$this->assertSame( 'field_salt_work_settings', $settings[0]['key'] );
-		$this->assertSame( 'field_salt_work_settings_background_image_image', $settings[0]['sub_fields'][4]['sub_fields'][0]['key'] );
-		$this->assertStringNotContainsString( 'field_salt_rich_text', (string) wp_json_encode( $settings ), 'Conditions point at the new keys too.' );
 	}
 
 	// -----------------------------------------------------------------

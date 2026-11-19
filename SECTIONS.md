@@ -11,10 +11,7 @@ release requirement ("SECTIONS.md current" checklist line).
   view and fields files use it as it is (`rich-text.php`). Only the
   resolver's function name writes `-` as `_`
   (`salt_section_resolver_function()`; CONVENTIONS.md, "The hyphen
-  rule"). Layouts the contract folds into another section, not yet
-  folded (`blog_teaser`, `scroll_carousel`), keep their underscored slug;
-  the loop maps `str_replace('_','-')` for them. One layout ↔ one file,
-  always.
+  rule"). One layout ↔ one file, always.
 - Components are `x-{name}` ↔ `template-parts/components/{name}.php`.
 - Field keys: `field_salt_{scope}_{name}`; groups `group_salt_{scope}`
   (DATA02). Layout slugs, field names and field storage paths are
@@ -29,10 +26,9 @@ release requirement ("SECTIONS.md current" checklist line).
    the contract's section settings in a group named `settings`, read only
    by `salt_section_wrapper_args()`; a section built on the contract's
    collection query reads its `query` group with
-   `salt_query_controls_from_query()`. (`inc/fields/layouts/*.php` holds
-   only the six collection layouts not yet folded into collection-showcase
-   and carousel; `bin/check-fields-from-contract.php` refuses a
-   hand-written copy of a generated section.)
+   `salt_query_controls_from_query()`. No layout is hand-written since
+   unit 8 (`inc/fields/layouts/` is gone; `bin/check-fields-from-contract.php`
+   refuses a hand-written copy of a generated section if one returns.)
 2. Logic and view, split (docs/contracts/CONVENTIONS.md, "Sections:
    logic and view"):
    - `inc/sections/{name}.php` — the resolver
@@ -63,27 +59,29 @@ end-to-end — copy it.
 |---|---|---|---|---|---|
 | 1 | Hero | `hero` | inline | — | Image only in v1 (video absent this build); LCP image eager |
 | 3 | Rich Text | `rich-text` | inline | — | The §17 exemplar; intro folded in (6.0.0) |
-| 4 | Services | `services` | `service` ✦ | Service | Default = legacy parity (DATA04) |
 | 5 | Feature Grid | `features` | inline repeater | — | |
 | 6 | Media + Text | `media-text` | inline repeater | — | Alternating mode auto-flips |
 | 7 | Stats | `stats` | inline repeater | — | `x-stat`; no count-up JS (INP) |
-| 8 | Testimonials | `testimonials` | `testimonial` ✦ | Review (itemReviewed = related Service, SEO02) | Slider = scroll-snap base + JS enhancement; no AggregateRating in v1 |
 | 9 | Logo Strip | `logos` | inline repeater | — | Also the "as featured in" home |
 | 10 | Call to Action | `call-to-action` | inline | — | Newsletter variant deferred (compliance phase) |
-| 12 | Team | `team` | `team_member` ✦ | Person (no PII in graph) | CPT not public in v1 |
 | 13 | FAQ | `faq` | `faq` ✦ (contract `query`) | FAQPage (merged once per page, SEO03) | Native `<details>`, zero JS |
 | 14 | Process | `process` | inline repeater | HowTo (opt-in toggle, AEO) | `<ol>` semantics |
-| 15 | Portfolio / Work | `work` | `work` ✦ | CreativeWork | Client-side filtering not in v1 |
 | 16 | Gallery | `gallery` | inline | — | Carousel = scroll-snap base + JS enhancement (FAIL02) |
-| 17 | Blog Teaser | `blog_teaser` | `post` ✦ | — | Never paginates (§6 teaser rule) |
-| 18 | Scroll Carousel | `scroll_carousel` | inline repeater | — | Scroll-snap base + JS enhancement |
+| 17 | Collection showcase | `collection-showcase` | services, case studies, team, testimonials or posts ✦ (contract `query`) | Service / CreativeWork / Person (no PII) | Layouts grid, list, featured, accordion, index; cards per each collection's approved `display`; in place of services, work, team, testimonials (grid) and blog_teaser (unit 8) |
+| 18 | Carousel | `carousel` | inline cards, or a collection ✦ (contract `query`) | as collection-showcase | Generic or quote cards; scroll-snap track, previous and next mounted by `sections/carousel.js`; in place of scroll_carousel and testimonials (slider) (unit 8) |
 | 19 | Contact | `contact` | inline + options | ContactPoint | **LIVE (v2)**: REST + no-JS paths, honeypot/time-trap/rate-limit/CAPTCHA (SEC01/02), privacy link at collection; goes live when a recipient is configured (`salt_contact_form_enabled` kill-switch remains) |
 | 20 | Locations | `locations` | `location` ✦ (contract `query`) | LocalBusiness (+ OpeningHoursSpecification; `parentOrganization` linked, SEO01) | Zero-JS accordion; status pill via `salt_location_status`; OSM directions link; no map in v1 |
 
-✦ = CPT-backed; all seven resolve through `salt_resolve_query()`. FAQ and
-Locations read the contract's `query` group
-(`salt_query_controls_from_query()`); the five collection layouts still
-embed `salt_query_control_fields($cpt)` until unit 8 folds them (SCOPE01).
+✦ = CPT-backed; all resolve through `salt_resolve_query()` from the
+contract's `query` group (`salt_query_controls_from_query()`, SCOPE01).
+The six collection layouts (services, work, team, testimonials,
+blog_teaser, scroll_carousel) and `salt_query_control_fields()` were
+removed in unit 8 (EP-72 M3).
+A post's body is the same builder (its `layout` field, ID-3952 unit 10),
+limited by salt-contract rc.7 to rich-text, media-text, gallery,
+call-to-action and faq: a rich-text row that is prose alone is drawn as the
+post's prose, every other row as a band (`salt_the_post_layout()`).
+Collection showcase and carousel are page sections only.
 Intro (folded into Rich Text) and Pricing (a Grain for WordPress recipe,
 SC-006) were removed in 6.0.0.
 
@@ -109,7 +107,7 @@ docblock at the top of its partial (enforced at runtime by
 | x-map | components/map.php | Click-to-load facade; consent-gated (v2) |
 | x-booking | components/booking.php | Provider facade; plain link until consent (v2) |
 | x-share-links | components/share-links.php | Social share intents (x/facebook/linkedin/whatsapp/bluesky/reddit/email + pinterest opt-in); copy-link button `hidden` until sections/share.js activates it (FAIL02) |
-| x-author-box | components/author-box.php | Post author attribution (name/bio from the WP user; avatar slot) |
+| x-author-box | components/author-box.php | Post author attribution (name, role, bio and photo from the credited team member, never the WordPress user; ID-3952) |
 
 Changing any args signature or markup structure = MAJOR (RELEASE-POLICY.md;
 snapshot diff is the trigger).

@@ -99,7 +99,8 @@ final class LocationCptTest extends SaltTestCase {
 		// Opening hours: the storage behind the status pill.
 		$hours = $fields['hours'];
 		$this->assertSame( 'repeater', $hours['type'] );
-		$this->assertSame( 14, $hours['max'] );
+		$this->assertSame( 14, $hours['salt']['target'] );
+		$this->assertArrayNotHasKey( 'max', $hours );
 
 		$sub = array_column( $hours['sub_fields'], null, 'name' );
 		$this->assertSame( array( 'day', 'open', 'close', 'appointment' ), array_keys( $sub ) );

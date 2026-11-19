@@ -11,7 +11,7 @@
 	<arg value="ps"/>
 	<arg name="parallel" value="8"/>
 
-	<config name="minimum_wp_version" value="6.5"/>
+	<config name="minimum_wp_version" value="7.1"/>
 
 	<!-- Errors block CI; warnings are printed but advisory. The security
 	     sniffs below are forced to error type so they always block (SEC08). -->

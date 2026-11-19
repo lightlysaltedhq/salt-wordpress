@@ -287,9 +287,19 @@ function salt_generated_collections_decode( ?string $json ): ?array {
 			! is_array( $group )
 			|| ! str_starts_with( (string) ( $group['key'] ?? '' ), 'group_salt_collection_' )
 			|| ! is_array( $group['fields'] ?? null )
-			|| 'post_type' !== ( $group['location'][0][0]['param'] ?? null )
 			|| ! is_string( $group['salt']['collection'] ?? null )
 		) {
+			return null;
+		}
+		$rule = $group['location'][0][0] ?? null;
+		if ( ! is_array( $rule ) || array( array( $rule ) ) !== $group['location'] || '==' !== ( $rule['operator'] ?? null ) ) {
+			return null;
+		}
+		if ( 'team' === $group['salt']['collection'] ) {
+			if ( 'user_form' !== ( $rule['param'] ?? null ) || 'edit' !== ( $rule['value'] ?? null ) ) {
+				return null;
+			}
+		} elseif ( 'post_type' !== ( $rule['param'] ?? null ) || empty( $rule['value'] ) ) {
 			return null;
 		}
 	}
@@ -350,36 +360,7 @@ function salt_field_allowed( string $key, bool $reset = false ): array {
  * @return string
  */
 function salt_collection_group_post_type( array $group ): string {
-	return (string) ( $group['location'][0][0]['value'] ?? '' );
-}
-
-/**
- * The contract's section settings as a field list for a hand-written
- * layout: the generated rich-text layout's `settings` group, re-keyed to
- * the layout's own scope (field_salt_{scope}_settings_*), so every layout
- * stores its wrapper settings in a group named `settings`, as the contract
- * does, and salt_section_wrapper_args() reads one shape.
- *
- * Only the six collection layouts the contract folds into
- * collection-showcase and carousel still need this (unit 8 removes them).
- *
- * @param string $scope Layout key scope (snake_case), e.g. 'blog_teaser'.
- * @return array<int,array<string,mixed>> The settings group, or none when the generated file is unusable.
- */
-function salt_section_settings_fields( string $scope ): array {
-	$group = salt_generated_sections_group();
-	foreach ( null === $group ? array() : $group['fields'][0]['layouts'] as $layout ) {
-		if ( 'rich-text' !== ( $layout['name'] ?? '' ) ) {
-			continue;
-		}
-		foreach ( $layout['sub_fields'] as $field ) {
-			if ( 'settings' === ( $field['name'] ?? '' ) ) {
-				$json = str_replace( '"field_salt_rich_text_settings', '"field_salt_' . $scope . '_settings', (string) wp_json_encode( $field ) );
-				return array( json_decode( $json, true ) );
-			}
-		}
-	}
-	return array();
+	return 'post_type' === ( $group['location'][0][0]['param'] ?? null ) ? (string) $group['location'][0][0]['value'] : '';
 }
 
 /**

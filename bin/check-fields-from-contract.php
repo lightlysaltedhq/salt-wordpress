@@ -118,7 +118,6 @@ require_once $salt_root . '/inc/helpers.php';
 require_once $salt_root . '/inc/modules.php';
 require_once $salt_root . '/inc/acf.php';
 require_once $salt_root . '/inc/query/resolver.php';
-require_once $salt_root . '/inc/query/controls.php';
 
 $salt_generated = json_decode( (string) file_get_contents( $salt_root . '/inc/fields/generated/sections.json' ), true )[0]['fields'][0]['layouts'] ?? array();
 $salt_names     = array_column( $salt_generated, 'name' );
@@ -153,9 +152,9 @@ foreach ( false === $salt_files ? array() : $salt_files as $salt_file ) {
 salt_test_do_action( 'acf/init' );
 
 $salt_registered_groups = array_column( $GLOBALS['salt_check_groups'], null, 'key' );
-$salt_post_types        = array();
+$salt_locations         = array();
 foreach ( $salt_collections as $salt_group ) {
-	$salt_post_types[ salt_collection_group_post_type( $salt_group ) ] = $salt_group['key'];
+	$salt_locations[ $salt_group['location'][0][0]['param'] . ':' . $salt_group['location'][0][0]['value'] ] = $salt_group['key'];
 	if ( ( $salt_registered_groups[ $salt_group['key'] ] ?? null ) !== $salt_group ) {
 		$salt_problems[] = sprintf( 'the collection group %s is not registered verbatim from inc/fields/generated/collections.json', $salt_group['key'] );
 	}
@@ -163,9 +162,9 @@ foreach ( $salt_collections as $salt_group ) {
 foreach ( $GLOBALS['salt_check_groups'] as $salt_group ) {
 	foreach ( (array) ( $salt_group['location'] ?? array() ) as $salt_rules ) {
 		foreach ( (array) $salt_rules as $salt_rule ) {
-			$salt_owner = $salt_post_types[ (string) ( $salt_rule['value'] ?? '' ) ] ?? null;
-			if ( 'post_type' === ( $salt_rule['param'] ?? null ) && null !== $salt_owner && $salt_owner !== $salt_group['key'] ) {
-				$salt_problems[] = sprintf( 'group %s is located on the post type %s, whose fields are the generated %s', $salt_group['key'], $salt_rule['value'], $salt_owner );
+			$salt_owner = $salt_locations[ ( $salt_rule['param'] ?? '' ) . ':' . ( $salt_rule['value'] ?? '' ) ] ?? null;
+			if ( null !== $salt_owner && $salt_owner !== $salt_group['key'] ) {
+				$salt_problems[] = sprintf( 'group %s is located on %s:%s, whose fields are the generated %s', $salt_group['key'], $salt_rule['param'], $salt_rule['value'], $salt_owner );
 			}
 		}
 	}
@@ -183,5 +182,5 @@ if ( array() !== $salt_problems ) {
 	exit( 1 );
 }
 
-fwrite( STDOUT, sprintf( "Fields from contract OK: %d generated layouts from salt-contract %s, registered verbatim; %d hand-written layouts beside them; %d generated collection groups registered verbatim (%s).\n", count( $salt_generated ), $salt_version, count( $salt_registered ) - count( $salt_generated ), count( $salt_collections ), implode( ', ', array_keys( $salt_post_types ) ) ) );
+fwrite( STDOUT, sprintf( "Fields from contract OK: %d generated layouts from salt-contract %s, registered verbatim; %d hand-written layouts beside them; %d generated collection groups registered verbatim (%s).\n", count( $salt_generated ), $salt_version, count( $salt_registered ) - count( $salt_generated ), count( $salt_collections ), implode( ', ', array_keys( $salt_locations ) ) ) );
 exit( 0 );

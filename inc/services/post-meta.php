@@ -1,6 +1,6 @@
 <?php
 /**
- * Post meta services: reading time, share links, primary category
+ * Post meta services: reading time, share links, topics, a post's layout
  * (blog single build-out — spec §6 extension).
  *
  * Pure string/array builders live here so they unit-test without WP;
@@ -148,26 +148,263 @@ function salt_share_links( string $url, string $title, array $services = array()
 }
 
 /**
- * The post's primary category term.
+ * A post's topics as drawn: its categories in WordPress's order, without
+ * the default category ("Uncategorised"), which is never drawn as a topic
+ * (salt-contract rc.7 contract/collections/_topic.json).
  *
- * First assigned category wins, except the default "Uncategorized" term,
- * which only wins when it is the ONLY category.
+ * @param int $post_id Post ID (0 = current post).
+ * @return WP_Term[]
+ */
+function salt_post_topics( int $post_id = 0 ): array {
+	$post_id = $post_id > 0 ? $post_id : (int) get_the_ID();
+	$terms   = get_the_terms( $post_id, 'category' );
+	if ( ! is_array( $terms ) ) {
+		return array();
+	}
+
+	$default_id = (int) get_option( 'default_category' );
+	$terms      = array_filter( $terms, static fn( $term ): bool => $term instanceof WP_Term && $term->term_id !== $default_id );
+	$primary    = function_exists( 'get_field' ) ? (int) get_field( 'field_salt_collection_posts_primary_topic', $post_id, false ) : 0;
+	usort(
+		$terms,
+		static function ( $a, $b ) use ( $primary ) {
+			if ( $a->term_id === $primary || $b->term_id === $primary ) {
+				return (int) ( $b->term_id === $primary ) <=> (int) ( $a->term_id === $primary );
+			}
+			return strcasecmp( $a->name, $b->name );
+		}
+	);
+	return $terms;
+}
+
+/**
+ * The topic a post shows above its title (salt-contract rc.7
+ * contract/collections/posts.json `primaryTopic`).
+ *
+ * Its primary topic when that is one of its topics; otherwise its first
+ * topic; null when it has none. The default category is never one
+ * (salt_post_topics()).
  *
  * @param int $post_id Post ID (0 = current post).
  * @return WP_Term|null
  */
 function salt_post_primary_category( int $post_id = 0 ): ?WP_Term {
-	$terms = get_the_category( $post_id );
-	if ( ! is_array( $terms ) || array() === $terms ) {
+	$topics = salt_post_topics( $post_id );
+	if ( array() === $topics ) {
 		return null;
 	}
 
-	$default_id = (int) get_option( 'default_category' );
-	foreach ( $terms as $term ) {
-		if ( $term instanceof WP_Term && $term->term_id !== $default_id ) {
-			return $term;
+	return $topics[0];
+}
+
+/**
+ * The values a rich-text section in a post's layout has when an editor has
+ * left them alone: its eyebrow, heading and alignment, and its section
+ * settings, from the generated posts group (each field's default_value; ''
+ * where there is none).
+ *
+ * @return array<string,mixed>
+ */
+function salt_post_prose_defaults(): array {
+	static $defaults = null;
+	if ( null !== $defaults ) {
+		return $defaults;
+	}
+
+	$walk     = static function ( array $fields ) use ( &$walk ): array {
+		$out = array();
+		foreach ( $fields as $field ) {
+			if ( '' === (string) ( $field['name'] ?? '' ) ) {
+				continue;
+			}
+			$out[ (string) $field['name'] ] = 'group' === ( $field['type'] ?? '' ) ? $walk( (array) ( $field['sub_fields'] ?? array() ) ) : ( $field['default_value'] ?? '' );
+		}
+		return $out;
+	};
+	$defaults = array();
+	foreach ( salt_generated_collection_groups() as $group ) {
+		foreach ( 'posts' === ( $group['salt']['collection'] ?? '' ) ? $group['fields'] : array() as $field ) {
+			foreach ( 'layout' === $field['name'] ? (array) $field['layouts'] : array() as $layout ) {
+				if ( 'rich-text' === $layout['name'] ) {
+					$defaults = $walk( (array) $layout['sub_fields'] );
+				}
+			}
+		}
+	}
+	return $defaults;
+}
+
+/**
+ * Whether a rich-text row of a post's layout is prose alone, drawn as the
+ * post's own prose rather than as a band (salt-contract rc.7
+ * section#sections-in-a-post): no eyebrow, no heading, the default
+ * alignment, and the default spacing, tone, dark tone, width and divider,
+ * no background image and no anchor (PURE).
+ *
+ * A value that is unset (null, '' or false) counts as the default.
+ *
+ * @param array<string,mixed> $row      The row's eyebrow, heading, alignment and settings.
+ * @param array<string,mixed> $defaults salt_post_prose_defaults().
+ * @return bool
+ */
+function salt_post_row_is_prose( array $row, array $defaults ): bool {
+	$untouched = static function ( $value, $preset_value ): bool {
+		if ( null === $value || '' === $value || false === $value ) {
+			return true;
+		}
+		return is_scalar( $value ) && is_scalar( $preset_value ) && (string) $value === (string) $preset_value;
+	};
+	$settings  = is_array( $row['settings'] ?? null ) ? $row['settings'] : array();
+	$preset    = is_array( $defaults['settings'] ?? null ) ? $defaults['settings'] : array();
+
+	if ( '' !== trim( (string) ( $row['eyebrow'] ?? '' ) ) || '' !== trim( (string) ( $row['heading'] ?? '' ) ) ) {
+		return false;
+	}
+	if ( ! $untouched( $row['alignment'] ?? null, $defaults['alignment'] ?? '' ) ) {
+		return false;
+	}
+	foreach ( array( 'spacing', 'tone', 'toneDark', 'width', 'divider' ) as $name ) {
+		if ( ! $untouched( $settings[ $name ] ?? null, $preset[ $name ] ?? '' ) ) {
+			return false;
+		}
+	}
+	$background = is_array( $settings['backgroundImage'] ?? null ) ? $settings['backgroundImage'] : array();
+	return empty( $background['image'] ) && '' === trim( (string) ( $settings['anchorId'] ?? '' ) );
+}
+
+/**
+ * The text a post's reading time counts: all the text a reader reads in the
+ * post's own sections, every row of its layout (the founder's ruling of
+ * 19/11/2026: the post's text, not the site's header or footer, which are
+ * never read here). Markup is stripped.
+ *
+ * Read by key from the stored rows, as the rest of this file does. A row's
+ * text is each text, textarea and wysiwyg field the posts group generates
+ * for its layout (headings, eyebrows, intros, bodies, button labels), in
+ * repeaters and groups too, but not its settings, a link's url or a select.
+ * An FAQ row adds the question and answer of each FAQ its query draws (the
+ * FAQ section's own query, salt_query_controls_from_query()), and a gallery
+ * row with captions on adds each image's caption.
+ *
+ * @param int $post_id Post ID.
+ * @return string
+ */
+function salt_post_reading_text( int $post_id ): string {
+	$rows = function_exists( 'get_field' ) ? get_field( 'field_salt_collection_posts_layout', $post_id, false ) : null;
+	$rows = is_array( $rows ) ? array_values( $rows ) : array();
+
+	// The layout's fields by key, from the generated posts group; a row's settings are not read.
+	$fields = array();
+	$index  = static function ( array $group_fields ) use ( &$index, &$fields ): void {
+		foreach ( $group_fields as $field ) {
+			if ( ! is_array( $field ) || 'settings' === ( $field['name'] ?? '' ) ) {
+				continue;
+			}
+			$fields[ (string) ( $field['key'] ?? '' ) ] = $field;
+			$index( (array) ( $field['sub_fields'] ?? array() ) );
+			foreach ( (array) ( $field['layouts'] ?? array() ) as $layout ) {
+				$index( (array) ( $layout['sub_fields'] ?? array() ) );
+			}
+		}
+	};
+	foreach ( salt_generated_collection_groups() as $group ) {
+		if ( 'posts' === ( $group['salt']['collection'] ?? '' ) ) {
+			$index( (array) ( $group['fields'] ?? array() ) );
 		}
 	}
 
-	return $terms[0] instanceof WP_Term ? $terms[0] : null;
+	$parts = array();
+	$read  = static function ( array $value ) use ( &$read, &$parts, $fields ): void {
+		foreach ( $value as $key => $item ) {
+			$field = $fields[ (string) $key ] ?? null;
+			if ( null === $field ) {
+				continue;
+			}
+			$type = (string) ( $field['type'] ?? '' );
+			if ( in_array( $type, array( 'text', 'textarea', 'wysiwyg' ), true ) && ! in_array( $field['name'] ?? '', array( 'url', 'anchorId' ), true ) && is_scalar( $item ) ) {
+				$parts[] = wp_strip_all_tags( (string) $item );
+			} elseif ( 'group' === $type && is_array( $item ) ) {
+				$read( $item );
+			} elseif ( 'repeater' === $type && is_array( $item ) ) {
+				foreach ( $item as $sub_row ) {
+					$read( is_array( $sub_row ) ? $sub_row : array() );
+				}
+			}
+		}
+	};
+
+	$i = 0;
+	while ( function_exists( 'have_rows' ) && have_rows( 'field_salt_collection_posts_layout', $post_id ) ) {
+		the_row();
+		$row = is_array( $rows[ $i ] ?? null ) ? $rows[ $i ] : array();
+		++$i;
+		$read( $row );
+		$layout = (string) get_row_layout();
+		if ( 'faq' === $layout && salt_module_enabled( 'faq' ) ) {
+			foreach ( salt_resolve_query( salt_query_controls_from_query(), 'faq' ) as $faq ) {
+				$parts[] = (string) $faq->post_title;
+				$parts[] = wp_strip_all_tags( (string) get_field( 'answer', $faq->ID ) );
+			}
+		}
+		if ( 'gallery' === $layout && ! empty( $row['field_salt_collection_posts_layout_gallery_captions'] ) && function_exists( 'wp_get_attachment_caption' ) ) {
+			foreach ( (array) ( $row['field_salt_collection_posts_layout_gallery_images'] ?? array() ) as $image ) {
+				$parts[] = (string) wp_get_attachment_caption( (int) $image );
+			}
+		}
+	}
+	return implode( ' ', array_filter( array_map( 'trim', $parts ), 'strlen' ) );
+}
+
+/**
+ * Draw a post's layout (salt-contract rc.7 section#sections-in-a-post), in
+ * stored order: a rich-text row that is prose alone as the post's own
+ * prose, in the reading column; every other row as a band, through the
+ * section's resolver and view, as on a page. Every drawn row counts in the
+ * plan's index, as the contract's post/band-* cases number them. The post's title holds the h1
+ * (salt_the_document_h1()), so no band claims it. A band straight after
+ * prose keeps its top spacing.
+ *
+ * @param int $post_id The post.
+ * @return void
+ */
+function salt_the_post_layout( int $post_id ): void {
+	// By key: a page section's gallery has a `layout` select of the same name.
+	if ( ! function_exists( 'have_rows' ) || ! have_rows( 'field_salt_collection_posts_layout', $post_id ) ) {
+		return;
+	}
+	$defaults = salt_post_prose_defaults();
+	$index    = 0;
+	while ( have_rows( 'field_salt_collection_posts_layout', $post_id ) ) {
+		the_row();
+		if ( salt_section_hidden_on_this_page() ) {
+			continue;
+		}
+		$layout = (string) get_row_layout();
+		$row    = array(
+			'eyebrow'   => get_sub_field( 'eyebrow' ),
+			'heading'   => get_sub_field( 'heading' ),
+			'alignment' => get_sub_field( 'alignment' ),
+			'settings'  => salt_section_settings(),
+		);
+		if ( 'rich-text' === $layout && salt_post_row_is_prose( $row, $defaults ) ) {
+			$body = (string) get_sub_field( 'body' );
+			if ( '' !== trim( $body ) ) {
+				printf(
+					'<div class="x-post-prose mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8"><div class="x-prose">%s</div></div>',
+					salt_sanitize_html( $body, salt_field_allowed( 'field_salt_collection_posts_layout_rich_text_body' ) ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised through salt_sanitize_html(), constrained to the field's contract list (§16a).
+				);
+				salt_render_state( 'set', 'last_background', '' );
+				++$index;
+			}
+			continue;
+		}
+		salt_render_section(
+			salt_section_slug_for_layout( $layout ),
+			array(
+				'index'      => $index,
+				'is_primary' => false,
+			)
+		);
+		++$index;
+	}
 }

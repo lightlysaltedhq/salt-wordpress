@@ -4,8 +4,10 @@
 # contract fixture, checks storage paths, drives the classic editor in a real browser, prints
 # a pass/fail report and removes everything it made. See tests/real-acf/README.md.
 #
-# usage: tests/real-acf/run.sh [--php 8.2|8.5|<binary>] [--no-browser] [--keep] [--offline] [--report <file>]
+# usage: tests/real-acf/run.sh [--php 8.2|8.5|<binary>] [--no-browser] [--keep] [--offline] [--report <file>] [--conformance|--limits]
 # --offline skips the check that the pinned WordPress is the latest release (reported as not checked).
+# --conformance builds the site, keeps it up and runs salt-conformance against it instead of the checks:
+#   the adapter sends the contract's view and page cases here (tests/contract-adapter/README.md).
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,8 +18,10 @@ KEEP=0
 BROWSER=1
 OFFLINE=0
 REPORT=""
+CONFORMANCE=0
+LIMITS=0
 
-usage() { sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; }
 
 while [ $# -gt 0 ]; do
 	case "$1" in
@@ -26,6 +30,8 @@ while [ $# -gt 0 ]; do
 		--keep) KEEP=1; shift ;;
 		--offline) OFFLINE=1; shift ;;
 		--report) REPORT="${2:?--report needs a file}"; shift 2 ;;
+		--conformance) CONFORMANCE=1; BROWSER=0; shift ;;
+		--limits) LIMITS=1; shift ;;
 		-h|--help) usage; exit 0 ;;
 		*) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
 	esac
@@ -120,7 +126,11 @@ trap cleanup EXIT
 trap 'exit 130' INT TERM
 
 PORT="$("$PHP" -r '$s = stream_socket_server("tcp://127.0.0.1:0"); $n = stream_socket_get_name($s, false); echo substr($n, strrpos($n, ":") + 1);')"
-URL="http://127.0.0.1:$PORT"
+SERVER="http://127.0.0.1:$PORT"
+URL="$SERVER"
+# A conformance run's site has a fixed address, so its links, and so its report, are the same
+# on every run; requests reach the server at SERVER and name the site in their Host header.
+[ "$CONFORMANCE" = 0 ] || URL="http://salt-harness.test"
 
 cp -R "$WP_CORE" "$WP"
 mkdir -p "$WP/wp-content/themes" "$WP/wp-content/plugins" "$WP/wp-content/mu-plugins" "$WP/wp-content/uploads"
@@ -175,8 +185,14 @@ PHP
 
 export SALT_HARNESS_WP="$WP"
 export SALT_HARNESS_URL="$URL"
+export SALT_HARNESS_SERVER="$SERVER"
+export SALT_HARNESS_DB="$DB"
+export SALT_HARNESS_LOG="$TMP/debug.log"
+export SALT_HARNESS_LOCK="$TMP/view.lock"
 SALT_HARNESS_ADMIN_PASS="$("$PHP" -r 'echo bin2hex(random_bytes(12));')"
 export SALT_HARNESS_ADMIN_PASS
+SALT_HARNESS_EDITOR_PASS="$("$PHP" -r 'echo bin2hex(random_bytes(12));')"
+export SALT_HARNESS_EDITOR_PASS
 export SALT_HARNESS_ACF_VERSION="$ACF_VERSION"
 export SALT_HARNESS_ACF_JSON="$ACF_JSON"
 export SALT_HARNESS_FIXTURES="$REPO/node_modules/@lightlysaltedhq/salt-contract/fixtures"
@@ -208,6 +224,7 @@ phase() {
 	echo "  contract   $EMIT_LINE"
 	echo "  database   $DB on $SALT_HARNESS_DB_HOST"
 	echo "  site       $URL in $TMP"
+	[ "$CONFORMANCE" = 0 ] || echo "  mode       conformance (server $SERVER)"
 } | tee -a "$OUT"
 
 # Clients run the latest WordPress: a pinned release that has fallen behind fails the run.
@@ -228,6 +245,33 @@ fi
 DB_CREATED=1
 
 phase "install" "$PHP" "$HERE/php/install.php"
+
+# The conformance run: the site serves the contract's view and page cases while salt-conformance runs.
+# Its timeout is per case and includes the wait for view.php's lock (the cases take the one site in
+# turn), so it is ten minutes, not the runner's default minute. The report goes to report/ like any
+# run's, and is copied to the committed baseline only when every case rendered.
+conformance() {
+	local status=0
+	(cd "$REPO" && PATH="$(dirname "$PHP"):$PATH" npm run --silent conformance:contract -- --timeout 600000 >"$TMP/conformance.md") || status=$?
+	# The runner exits 1 on every partial run by design (SC-017); 2 or more is a usage error.
+	if [ "$status" -gt 1 ]; then cat "$TMP/conformance.md"; return 1; fi
+	"$PHP" "$HERE/php/conformance.php" "$REPO/tests/contract-adapter/report/conformance.json" || return 1
+	mkdir -p "$REPO/tests/contract-adapter/baseline"
+	cp "$REPO/tests/contract-adapter/report/conformance.json" "$REPO/tests/contract-adapter/report/conformance.md" "$REPO/tests/contract-adapter/baseline/"
+	echo "PASS the report is copied to tests/contract-adapter/baseline/"
+}
+if [ "$CONFORMANCE" = 1 ]; then
+	phase "the site for the view and page cases" "$PHP" "$HERE/php/view.php" setup
+	PHP_CLI_SERVER_WORKERS=4 "$PHP" -S "127.0.0.1:$PORT" -t "$WP" >"$TMP/server.log" 2>&1 &
+	SERVER_PID=$!
+	for _ in $(seq 1 50); do
+		curl -fs -o /dev/null "$SERVER/wp-login.php" && break
+		sleep 0.2
+	done
+	phase "salt-conformance with the view and page cases on this site (tests/contract-adapter/baseline)" conformance
+else
+# Every check below is the harness's own run; --conformance runs none of them.
+if [ "$LIMITS" = 0 ]; then
 phase "theme's field groups" "$PHP" "$HERE/php/theme-groups.php"
 
 # The theme registers the generated JSON itself (inc/acf.php); the contract phase checks it.
@@ -235,25 +279,39 @@ phase "contract field shape: register, seed, read back, storage" "$PHP" "$HERE/p
 phase "the theme renders it (resolvers on real ACF values)" "$PHP" "$HERE/php/render.php"
 # After the render, so the posts it makes are not in the page's FAQ and locations queries.
 phase "collection fields: seed every post type, read back, storage" "$PHP" "$HERE/php/collections.php"
+fi
 
 # The site's own server, for the single templates over HTTP and the browser.
 # PHP's default max_input_vars (1000) truncates the re-save of a page holding every fixture
 # case; browser.mjs reports how many variables the form posts against this limit.
 export SALT_HARNESS_MAX_INPUT_VARS="${SALT_HARNESS_MAX_INPUT_VARS:-20000}"
 # A browser save of that page also outlasts the default 30-second max_execution_time.
-PHP_CLI_SERVER_WORKERS=4 "$PHP" -d max_input_vars="$SALT_HARNESS_MAX_INPUT_VARS" -d max_execution_time=600 -S "127.0.0.1:$PORT" -t "$WP" >"$TMP/server.log" 2>&1 &
+PHP_CLI_SERVER_WORKERS=4 "$PHP" -d max_input_vars="$SALT_HARNESS_MAX_INPUT_VARS" -d max_execution_time=600 -S "127.0.0.1:$PORT" -t "$WP" "$HERE/php/router.php" >"$TMP/server.log" 2>&1 &
 SERVER_PID=$!
 for _ in $(seq 1 50); do
 	curl -fs -o /dev/null "$URL/wp-login.php" && break
 	sleep 0.2
 done
 
+if [ "$LIMITS" = 0 ]; then
 phase "single templates over HTTP (the contract's service, case-study and post fixtures)" "$PHP" "$HERE/php/singles.php"
-
 if [ "$BROWSER" = 1 ]; then
 	phase "editor in a real browser (Chromium)" node "$HERE/browser.mjs"
 else
 	PHASES+=("SKIP  editor in a real browser (--no-browser)")
+fi
+# Last: these tests switch the site to pretty permalinks and enable its public sitemap.
+phase "public profiles, native credits, permissions and picker over HTTP" "$PHP" "$HERE/php/profiles.php"
+if [ "$BROWSER" = 1 ] || [ -n "${SALT_HARNESS_SCREENSHOTS:-}" ]; then
+	phase "profile editorial form in Chromium" node "$HERE/profile-screenshots.mjs"
+fi
+fi
+
+# Last: the limits fixtures add published services and topics to this site.
+phase "limits and targets: outside writes" "$PHP" "$HERE/php/limits.php"
+if [ "$BROWSER" = 1 ]; then
+	phase "limits and targets: editor" node "$HERE/limits.mjs"
+fi
 fi
 
 echo | tee -a "$OUT"

@@ -69,7 +69,7 @@ final class FieldChecksTest extends SaltTestCase {
 
 	#[DataProvider( 'email_provider' )]
 	public function test_the_email_format( string $value, bool $valid ): void {
-		$field  = self::field( 'field_salt_collection_team_email' );
+		$field  = self::field( 'field_salt_collection_team_public_email' );
 		$result = salt_validate_contract_value( true, $value, $field );
 
 		$this->assertSame( 'email', $field['salt']['format'] );
@@ -165,5 +165,18 @@ final class FieldChecksTest extends SaltTestCase {
 
 		$this->assertSame( 'A service cannot be related to itself. Remove it from the list.', $self );
 		$this->assertTrue( $other );
+	}
+
+	public function test_publishing_checks_half_steps_and_24_hour_times(): void {
+		$rating = self::field( 'field_salt_collection_testimonials_rating' );
+		$this->assertIsString( salt_check_limit( $rating, '3.1', true ) );
+		$this->assertTrue( salt_check_limit( $rating, '3.5', true ) );
+		$time = self::field( 'field_salt_collection_locations_hours_open' );
+		foreach ( array( '00:00', '23:59', '12:15:00' ) as $valid ) {
+			$this->assertTrue( salt_check_limit( $time, $valid, true ) );
+		}
+		foreach ( array( '24:00', '2:30', '14:60', 'not yet set' ) as $invalid ) {
+			$this->assertIsString( salt_check_limit( $time, $invalid, true ) );
+		}
 	}
 }

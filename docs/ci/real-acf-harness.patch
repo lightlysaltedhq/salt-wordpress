@@ -8,7 +8,7 @@ index 6646bf0..8336136 100644
    
 +  real-acf:
 +    name: Real ACF Pro harness (PHP ${{ matrix.php }})
-+    # The contract's field shape on real ACF Pro 6.8.11 and WordPress 7.1.4 (tests/real-acf/README.md).
++    # The contract's field shape on real ACF Pro 6.8.11 and WordPress 7.1.5 (tests/real-acf/README.md).
 +    # ACF Pro comes from ACF's private Composer repository, so this job needs two repository
 +    # secrets: ACF_PRO_KEY (the licence key, Composer's username) and ACF_PRO_SITE_URL (a site
 +    # URL already activated on the licence, with https://, Composer's password). It fails, never

@@ -41,7 +41,7 @@ $salt_modules = array(
 	'/inc/modules.php',
 	'/inc/sanitization.php',
 	'/inc/query/resolver.php',
-	'/inc/query/controls.php',
+	'/inc/query/cards.php',
 	'/inc/services/consent.php',
 	'/inc/services/location-status.php',
 	'/inc/services/updater.php',
@@ -58,6 +58,7 @@ $salt_modules = array(
 	'/inc/render.php',
 	'/inc/overrides.php',
 	'/inc/acf.php',
+	'/inc/services/character-count.php',
 	'/inc/cpt/topics.php',
 	'/inc/security.php',
 );
