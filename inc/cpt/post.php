@@ -15,9 +15,10 @@
  *   category), is drawn in the Topics box, under its checklist, not in the
  *   post's field group.
  *
- * Only the parent and the labels are shared with inc/cpt/topics.php: the
- * category taxonomy is not one of salt_topic_taxonomies(), so nothing else
- * that file does to topics reaches posts' categories.
+ * Only the parent, the labels and the name's count are shared with
+ * inc/cpt/topics.php (salt_topic_name_count_taxonomies()): the category
+ * taxonomy is not one of salt_topic_taxonomies(), so nothing else that file
+ * does to topics reaches posts' categories.
  *
  * @package Salt
  */

@@ -50,6 +50,7 @@ require_once SALT_DIR . '/inc/services/fonts.php';
 require_once SALT_DIR . '/inc/services/chrome.php';
 require_once SALT_DIR . '/inc/services/display-preferences.php';
 require_once SALT_DIR . '/inc/services/contrast-checker.php';
+require_once SALT_DIR . '/inc/services/character-count.php';
 require_once SALT_DIR . '/inc/class-salt-nav-walker.php';
 require_once SALT_DIR . '/inc/cpt/submission.php';
 require_once SALT_DIR . '/inc/security.php';

@@ -58,6 +58,7 @@ $salt_modules = array(
 	'/inc/render.php',
 	'/inc/overrides.php',
 	'/inc/acf.php',
+	'/inc/services/character-count.php',
 	'/inc/cpt/topics.php',
 	'/inc/security.php',
 );

@@ -11,8 +11,6 @@
 
 declare(strict_types=1);
 
-use PHPUnit\Framework\Attributes\DataProvider;
-
 require_once __DIR__ . '/../shims/acf.php';
 require_once __DIR__ . '/../shims/service.php';
 require_once __DIR__ . '/../shims/work.php';
@@ -166,92 +164,35 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 		salt_post_drawing_topics_box( false );
 	}
 
-	/**
-	 * Excerpt, whether the save is refused.
-	 *
-	 * @return array<string,array{string,bool}>
-	 */
-	public static function summary_provider(): array {
-		return array(
-			'300 characters: saved'                 => array( str_repeat( 'a', 300 ), false ),
-			'301 characters: refused'               => array( str_repeat( 'a', 301 ), true ),
-			'300 two-byte characters: saved'        => array( str_repeat( 'é', 300 ), false ),
-			'301 two-byte characters: refused'      => array( str_repeat( 'é', 301 ), true ),
-			'300 with a CRLF counted as one: saved' => array( str_repeat( 'a', 298 ) . "\r\n" . 'a', false ),
-		);
-	}
-
-	#[DataProvider( 'summary_provider' )]
-	public function test_the_summary_limit_counts_characters( string $excerpt, bool $refused ): void {
-		$error = salt_summary_error( $excerpt );
-
-		$refused
-			? $this->assertSame( 'The summary (the Excerpt box) is 301 characters long. Shorten it to 300 characters or fewer.', $error )
-			: $this->assertNull( $error );
-	}
-
-	public function test_the_summary_check_loads_on_the_three_edit_screens_only(): void {
-		require_once __DIR__ . '/../shims/admin.php';
-		$GLOBALS['salt_test_enqueued']  = array();
-		$GLOBALS['salt_test_localized'] = array();
-		$loaded                         = array();
+	public function test_the_summary_count_loads_on_the_three_edit_screens_only(): void {
+		$loaded = array();
 		foreach ( array( 'service', 'work', 'post', 'testimonial', 'page' ) as $type ) {
-			$GLOBALS['typenow'] = $type;
-			unset( $GLOBALS['salt_test_enqueued']['scripts']['salt-summary-limit'] );
-			salt_summary_limit_enqueue( 'post.php' );
-			$loaded[ $type ] = isset( $GLOBALS['salt_test_enqueued']['scripts']['salt-summary-limit'] );
+			$GLOBALS['typenow']                  = $type;
+			$GLOBALS['salt_test_inline_scripts'] = array();
+			salt_summary_count_enqueue( 'post.php' );
+			$loaded[ $type ] = $GLOBALS['salt_test_inline_scripts']['salt-character-count']['before'] ?? array();
 		}
-		$GLOBALS['typenow'] = 'service';
-		unset( $GLOBALS['salt_test_enqueued']['scripts']['salt-summary-limit'] );
-		salt_summary_limit_enqueue( 'edit.php' );
-		$on_list = isset( $GLOBALS['salt_test_enqueued']['scripts']['salt-summary-limit'] );
+		$GLOBALS['typenow']                  = 'service';
+		$GLOBALS['salt_test_inline_scripts'] = array();
+		salt_summary_count_enqueue( 'edit.php' );
+		$on_list = $GLOBALS['salt_test_inline_scripts'];
 		unset( $GLOBALS['typenow'] );
 
+		$count = array( 'window.saltCharacterCount = ( window.saltCharacterCount || [] ).concat( [{"field":"excerpt","target":300,"marks":[{"at":300,"note":"Over the suggested 300 characters","strong":true}]}] );' );
 		$this->assertSame(
 			array(
-				'service'     => true,
-				'work'        => true,
-				'post'        => true,
-				'testimonial' => false,
-				'page'        => false,
+				'service'     => $count,
+				'work'        => $count,
+				'post'        => $count,
+				'testimonial' => array(),
+				'page'        => array(),
 			),
 			$loaded
 		);
-		$this->assertFalse( $on_list, 'Not on the posts list.' );
-		$this->assertSame(
-			array(
-				'max'     => 300,
-				'message' => 'The summary (the Excerpt box) is {length} characters long. Shorten it to 300 characters or fewer.',
-			),
-			$GLOBALS['salt_test_localized']['salt-summary-limit']['saltSummaryLimit']
-		);
+		$this->assertSame( array(), $on_list, 'Not on the posts list.' );
 	}
 
-	/**
-	 * Title, whether the 120-character limit refuses it.
-	 *
-	 * @return array<string,array{string,bool}>
-	 */
-	public static function title_provider(): array {
-		return array(
-			'120 characters: saved'            => array( str_repeat( 'a', 120 ), false ),
-			'121 characters: refused'          => array( str_repeat( 'a', 121 ), true ),
-			'120 two-byte characters: saved'   => array( str_repeat( 'é', 120 ), false ),
-			'121 two-byte characters: refused' => array( str_repeat( 'é', 121 ), true ),
-			'120 four-byte characters: saved'  => array( str_repeat( '🌱', 120 ), false ),
-		);
-	}
-
-	#[DataProvider( 'title_provider' )]
-	public function test_the_title_limit_counts_characters( string $title, bool $refused ): void {
-		$error = salt_title_error( $title );
-
-		$refused
-			? $this->assertSame( 'The title is 121 characters long. Shorten it to 120 characters or fewer.', $error )
-			: $this->assertNull( $error );
-	}
-
-	public function test_the_title_limit_covers_every_collection_whose_title_is_the_post_title(): void {
+	public function test_the_title_count_covers_every_collection_whose_title_is_the_post_title(): void {
 		$types = array();
 		foreach ( json_decode( (string) file_get_contents( dirname( __DIR__, 2 ) . '/inc/fields/generated/collections.json' ), true ) as $group ) {
 			if ( in_array( 'title', $group['salt']['native'] ?? array(), true ) ) {
@@ -263,44 +204,37 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 		$this->assertEqualsCanonicalizing( $types, salt_title_post_types() );
 	}
 
-	public function test_the_title_check_loads_on_the_collection_edit_screens_only(): void {
-		require_once __DIR__ . '/../shims/admin.php';
-		$GLOBALS['salt_test_enqueued']  = array();
-		$GLOBALS['salt_test_localized'] = array();
-		$loaded                         = array();
+	public function test_the_title_count_loads_on_the_collection_edit_screens_only(): void {
+		$loaded = array();
 		foreach ( array( 'service', 'work', 'post', 'testimonial', 'team_member', 'faq', 'location', 'page', 'salt_submission' ) as $type ) {
-			$GLOBALS['typenow'] = $type;
-			unset( $GLOBALS['salt_test_enqueued']['scripts']['salt-title-limit'] );
-			salt_title_limit_enqueue( 'post-new.php' );
-			$loaded[ $type ] = isset( $GLOBALS['salt_test_enqueued']['scripts']['salt-title-limit'] );
+			$GLOBALS['typenow']                  = $type;
+			$GLOBALS['salt_test_inline_scripts'] = array();
+			salt_title_count_enqueue( 'post-new.php' );
+			$loaded[ $type ] = $GLOBALS['salt_test_inline_scripts']['salt-character-count']['before'] ?? array();
 		}
-		$GLOBALS['typenow'] = 'faq';
-		unset( $GLOBALS['salt_test_enqueued']['scripts']['salt-title-limit'] );
-		salt_title_limit_enqueue( 'edit.php' );
-		$on_list = isset( $GLOBALS['salt_test_enqueued']['scripts']['salt-title-limit'] );
+		$GLOBALS['typenow']                  = 'faq';
+		$GLOBALS['salt_test_inline_scripts'] = array();
+		salt_title_count_enqueue( 'edit.php' );
+		$on_list = $GLOBALS['salt_test_inline_scripts'];
 		unset( $GLOBALS['typenow'] );
 
+		$count  = array( 'window.saltCharacterCount = ( window.saltCharacterCount || [] ).concat( [{"field":"title","target":120,"marks":[{"at":120,"note":"Over the suggested 120 characters","strong":true}]}] );' );
+		$search = array( 'window.saltCharacterCount = ( window.saltCharacterCount || [] ).concat( [{"field":"title","target":120,"marks":[{"at":60,"note":"Search results may shorten a title over about 60 characters","strong":false},{"at":120,"note":"Over the suggested 120 characters","strong":true}]}] );' );
 		$this->assertSame(
 			array(
-				'service'         => true,
-				'work'            => true,
-				'post'            => true,
-				'testimonial'     => true,
-				'team_member'     => true,
-				'faq'             => true,
-				'location'        => true,
-				'page'            => false,
-				'salt_submission' => false,
+				'service'         => $search,
+				'work'            => $search,
+				'post'            => $search,
+				'testimonial'     => $count,
+				'team_member'     => $count,
+				'faq'             => $count,
+				'location'        => $count,
+				'page'            => array(),
+				'salt_submission' => array(),
 			),
 			$loaded
 		);
-		$this->assertFalse( $on_list, 'Not on the list screen.' );
-		$this->assertSame(
-			array(
-				'max'     => 120,
-				'message' => 'The title is {length} characters long. Shorten it to 120 characters or fewer.',
-			),
-			$GLOBALS['salt_test_localized']['salt-title-limit']['saltTitleLimit']
-		);
+		$this->assertSame( array(), $on_list, 'Not on the list screen.' );
+		$this->assertSame( array( 'service', 'work', 'post' ), salt_title_search_post_types(), 'The 60 note: the collections with a page of their own.' );
 	}
 }

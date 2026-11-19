@@ -1,9 +1,10 @@
 <?php
 /**
- * The topic name limit against the pinned salt-contract's.
+ * The topic name's target against the pinned salt-contract's.
  *
- * SALT_TOPIC_NAME_MAX_LENGTH (inc/cpt/topics.php) is the maxLength of the
- * name in contract/collections/_topic.json. This reads the installed
+ * SALT_TOPIC_NAME_TARGET_LENGTH (inc/cpt/topics.php), the length the topic
+ * screens count a name against, is the maxLength of the name in
+ * contract/collections/_topic.json. This reads the installed
  * contract package, so it lives in the conformance suite, the only one that
  * reads node_modules (phpunit.xml.dist).
  *
@@ -20,11 +21,11 @@ final class TopicNameContractTest extends SaltTestCase {
 
 	private const TOPIC = __DIR__ . '/../../node_modules/@lightlysaltedhq/salt-contract/contract/collections/_topic.json';
 
-	public function test_the_topic_name_limit_is_the_contracts(): void {
+	public function test_the_topic_name_target_is_the_contracts(): void {
 		$topic = json_decode( (string) file_get_contents( self::TOPIC ), true );
 		$name  = array_values( array_filter( $topic['fields'], static fn( array $field ): bool => 'title' === $field['name'] ) )[0] ?? array();
 
-		$this->assertSame( 'title', $name['platforms']['wordpress']['native'] ?? null, 'The name is the term\'s own (native), so the theme checks it.' );
-		$this->assertSame( $name['maxLength'] ?? null, SALT_TOPIC_NAME_MAX_LENGTH );
+		$this->assertSame( 'title', $name['platforms']['wordpress']['native'] ?? null, 'The name is the term\'s own (native), so the theme counts it.' );
+		$this->assertSame( $name['maxLength'] ?? null, SALT_TOPIC_NAME_TARGET_LENGTH );
 	}
 }

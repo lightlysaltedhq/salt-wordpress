@@ -39,16 +39,18 @@ function salt_register_collection_fields(): void {
 add_action( 'acf/init', 'salt_register_collection_fields' );
 
 /**
- * The longest summary, in characters (salt-contract rc.7: summary,
- * maxLength 300, on services, case studies and posts). WordPress keeps the
- * summary in the excerpt (salt.native), so no ACF field carries the limit
- * and the theme checks it on save.
+ * The suggested longest summary, in characters (salt-contract rc.7:
+ * summary, maxLength 300, on services, case studies and posts). A target,
+ * never a limit (the founder's ruling of 19/11/2026): WordPress keeps the
+ * summary in the excerpt (salt.native), and the editor shows a count
+ * against it.
  */
-const SALT_SUMMARY_MAX_LENGTH = 300;
+const SALT_SUMMARY_TARGET_LENGTH = 300;
 
 /**
- * The post types whose summary is the excerpt with a 300-character check
- * (the rc.7 owes on services.json, case-studies.json and posts.json).
+ * The post types whose summary is the excerpt, counted against 300
+ * characters (the rc.7 owes on services.json, case-studies.json and
+ * posts.json).
  *
  * @return string[]
  */
@@ -57,99 +59,34 @@ function salt_summary_post_types(): array {
 }
 
 /**
- * A summary's length in characters.
- *
- * Counted in Unicode code points (mb_strlen), with a CRLF line break as
- * one character, so "é" is one character, not two bytes (the founder's
- * ruling on PR #26; the same as ACF counts its own maxlength limits).
- *
- * @param string $summary The excerpt, unslashed.
- * @return int
- */
-function salt_summary_length( string $summary ): int {
-	return mb_strlen( str_replace( "\r\n", "\n", $summary ) );
-}
-
-/**
- * The editor's message for a summary of a given length.
- *
- * @param string $length The length, or the script's {length} placeholder.
- * @return string
- */
-function salt_summary_message( string $length ): string {
-	return sprintf(
-		/* translators: 1: the summary's length in characters. 2: the most it may hold. */
-		__( 'The summary (the Excerpt box) is %1$s characters long. Shorten it to %2$d characters or fewer.', 'salt' ),
-		$length,
-		SALT_SUMMARY_MAX_LENGTH
-	);
-}
-
-/**
- * The editor's message for a summary over the limit, or null.
- *
- * @param string $summary The excerpt, unslashed.
- * @return string|null
- */
-function salt_summary_error( string $summary ): ?string {
-	$length = salt_summary_length( $summary );
-	return $length > SALT_SUMMARY_MAX_LENGTH ? salt_summary_message( (string) $length ) : null;
-}
-
-/**
- * Refuse, in the editor, a save whose summary is over the limit
+ * Show a count beside the Excerpt box against the suggested 300 characters
  * ('admin_enqueue_scripts' on a service, case study or post edit screen).
- *
- * admin/summary-limit.js checks the Excerpt box when the form is submitted
- * (Publish, Update or Save Draft), counting as salt_summary_length() does,
- * and if it is over the limit stops the save and shows the message above
- * the form. It is the theme's own check, not ACF's: the excerpt is not an
- * ACF field, so ACF's validation never sees it.
+ * It never refuses a save (salt_character_count()).
  *
  * @param string $hook_suffix The admin screen.
  * @return void
  */
-function salt_summary_limit_enqueue( string $hook_suffix ): void {
-	if ( ! in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true ) || ! in_array( (string) ( $GLOBALS['typenow'] ?? '' ), salt_summary_post_types(), true ) ) {
-		return;
+function salt_summary_count_enqueue( string $hook_suffix ): void {
+	if ( in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true ) && in_array( (string) ( $GLOBALS['typenow'] ?? '' ), salt_summary_post_types(), true ) ) {
+		salt_character_count( 'excerpt', SALT_SUMMARY_TARGET_LENGTH );
 	}
-	$src = salt_asset_optional( 'admin/summary-limit.js' );
-	if ( null === $src ) {
-		salt_log( 'salt_summary_limit: no manifest entry for "admin/summary-limit.js" — the summary is not checked on save. Re-run the asset build.' );
-		return;
-	}
-	wp_enqueue_script(
-		'salt-summary-limit',
-		$src,
-		array(),
-		null, // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Content hash in the dist filename is the cache-buster (ARCH03).
-		array( 'in_footer' => true )
-	);
-	wp_localize_script(
-		'salt-summary-limit',
-		'saltSummaryLimit',
-		array(
-			'max'     => SALT_SUMMARY_MAX_LENGTH,
-			'message' => salt_summary_message( '{length}' ),
-		)
-	);
 }
-add_action( 'admin_enqueue_scripts', 'salt_summary_limit_enqueue' );
+add_action( 'admin_enqueue_scripts', 'salt_summary_count_enqueue' );
 
 /**
- * The longest collection title, in characters (salt-contract rc.7: the
- * title, name or question of every collection, maxLength 120; the owes'
- * "120-character limit"). WordPress keeps it in the post title
- * (salt.native), so no ACF field carries the limit and the theme checks it
- * in the editor.
+ * The suggested longest collection title, in characters (salt-contract
+ * rc.7: the title, name or question of every collection, maxLength 120).
+ * A target, never a limit (the founder's ruling of 19/11/2026): WordPress
+ * keeps it in the post title (salt.native), and the editor shows a count
+ * against it.
  */
-const SALT_TITLE_MAX_LENGTH = 120;
+const SALT_TITLE_TARGET_LENGTH = 120;
 
 /**
  * The post types whose title is a collection's title, name or question,
- * with the 120-character check (the founder's ruling on PR #26): services,
- * case studies, posts, testimonials (name), team members (name), FAQs
- * (question) and locations (name).
+ * counted against 120 characters: services, case studies, posts,
+ * testimonials (name), team members (name), FAQs (question) and locations
+ * (name).
  *
  * @return string[]
  */
@@ -158,77 +95,43 @@ function salt_title_post_types(): array {
 }
 
 /**
- * A title's length in characters, counted as a summary is
- * (salt_summary_length()): Unicode code points, a CRLF as one.
- *
- * @param string $title The title, unslashed.
- * @return int
+ * The length past which search results may shorten a title, in characters
+ * (about 60): a softer note on the title of a collection with a page of its
+ * own (the founder's ruling of 19/11/2026).
  */
-function salt_title_length( string $title ): int {
-	return salt_summary_length( $title );
+const SALT_TITLE_SEARCH_LENGTH = 60;
+
+/**
+ * The post types whose title also has the softer note past about 60
+ * characters: the collections with a page of their own (services, case
+ * studies and posts). FAQs, testimonials, team members and locations have
+ * the 120 note only.
+ *
+ * @return string[]
+ */
+function salt_title_search_post_types(): array {
+	return array( 'service', 'work', 'post' );
 }
 
 /**
- * The editor's message for a title of a given length.
- *
- * @param string $length The length, or a placeholder for the script.
- * @return string
- */
-function salt_title_message( string $length ): string {
-	return sprintf(
-		/* translators: 1: the title's length in characters. 2: the most it may hold. */
-		__( 'The title is %1$s characters long. Shorten it to %2$d characters or fewer.', 'salt' ),
-		$length,
-		SALT_TITLE_MAX_LENGTH
-	);
-}
-
-/**
- * The editor's message for a title over the limit, or null.
- *
- * @param string $title The title, unslashed.
- * @return string|null
- */
-function salt_title_error( string $title ): ?string {
-	$length = salt_title_length( $title );
-	return $length > SALT_TITLE_MAX_LENGTH ? salt_title_message( (string) $length ) : null;
-}
-
-/**
- * Refuse, in the editor, a save whose title is over the limit
+ * Show a count beside the title against the suggested 120 characters, with
+ * the softer note past about 60 on a service, case study or post
  * ('admin_enqueue_scripts' on the edit screen of a collection's post type).
- *
- * admin/title-limit.js checks the title when the form is submitted
- * (Publish, Update or Save Draft), counting as salt_title_length() does,
- * and if it is over the limit stops the save and shows the message above
- * the form: the same way as the summary (salt_summary_limit_enqueue()).
+ * It never refuses a save (salt_character_count()).
  *
  * @param string $hook_suffix The admin screen.
  * @return void
  */
-function salt_title_limit_enqueue( string $hook_suffix ): void {
-	if ( ! in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true ) || ! in_array( (string) ( $GLOBALS['typenow'] ?? '' ), salt_title_post_types(), true ) ) {
+function salt_title_count_enqueue( string $hook_suffix ): void {
+	$type = (string) ( $GLOBALS['typenow'] ?? '' );
+	if ( ! in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true ) || ! in_array( $type, salt_title_post_types(), true ) ) {
 		return;
 	}
-	$src = salt_asset_optional( 'admin/title-limit.js' );
-	if ( null === $src ) {
-		salt_log( 'salt_title_limit: no manifest entry for "admin/title-limit.js" — the title is not checked on save. Re-run the asset build.' );
-		return;
+	$notes = array();
+	if ( in_array( $type, salt_title_search_post_types(), true ) ) {
+		/* translators: %d: the length, in characters, past which search results may shorten a title. */
+		$notes[ SALT_TITLE_SEARCH_LENGTH ] = sprintf( __( 'Search results may shorten a title over about %d characters', 'salt' ), SALT_TITLE_SEARCH_LENGTH );
 	}
-	wp_enqueue_script(
-		'salt-title-limit',
-		$src,
-		array(),
-		null, // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Content hash in the dist filename is the cache-buster (ARCH03).
-		array( 'in_footer' => true )
-	);
-	wp_localize_script(
-		'salt-title-limit',
-		'saltTitleLimit',
-		array(
-			'max'     => SALT_TITLE_MAX_LENGTH,
-			'message' => salt_title_message( '{length}' ),
-		)
-	);
+	salt_character_count( 'title', SALT_TITLE_TARGET_LENGTH, $notes );
 }
-add_action( 'admin_enqueue_scripts', 'salt_title_limit_enqueue' );
+add_action( 'admin_enqueue_scripts', 'salt_title_count_enqueue' );

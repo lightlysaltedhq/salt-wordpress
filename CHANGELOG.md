@@ -426,28 +426,29 @@ markup granularity (cross-reference your site's override manifest).
     form (`salt_topic_meta_box()`) and not on the term add or edit screens.
     Every term is stored at the top level, whatever parent is sent
     (`inc/cpt/topics.php`). Posts' categories are ID-3952's.
-  - **The summary is checked on save (services, case studies, posts).** An
-    excerpt over 300 characters is refused in the editor
-    (`admin/summary-limit.js`) with "The summary (the Excerpt box) is N
-    characters long. Shorten it to 300 characters or fewer". Characters are
-    counted as Unicode code points (`mb_strlen`, a CRLF as one; the
-    founder's ruling).
-  - **The title is checked on save (every collection; the founder's
-    ruling).** The post title of a service, case study, post, testimonial
-    (name), team member (name), FAQ (question) and location (name) over the
-    contract's 120 characters is refused in the editor
-    (`admin/title-limit.js`, the same way as the summary) with "The title is
-    N characters long. Shorten it to 120 characters or fewer", counted as
-    the summary is.
-  - **A topic's name is checked on save (`_topic.json`, maxLength 120; the
-    founder's ruling of 18/11/2026).** A service, case study, FAQ or
-    location topic named over 120 characters is refused in the editor
-    (`admin/topic-name-limit.js`, the same way as the title) with "The topic
-    name is N characters long. Shorten it to 120 characters or fewer",
-    counted as the title is: on the term add screen, the term edit screen,
-    and the Topics box's "add new" form, where each comma-separated name is
-    checked and one over-long name refuses them all. Posts' categories are
-    ID-3952's.
+  - **Character counts, never limits (the founder's rulings of
+    19/11/2026).** The editor shows a count beside a field as it is typed,
+    "N / 120" or "N / 300", counted in Unicode code points with a CRLF as
+    one (`mb_strlen`, as ACF counts). It is grey within the target and
+    turns red and bold past it, with "Over the suggested 120 characters"
+    (or 300). Nothing is refused: Save Draft, Publish and Update work
+    whatever the length. One script draws every count
+    (`admin/character-count.js`, from `salt_character_count()` in
+    `inc/services/character-count.php`); it replaces `admin/title-limit.js`,
+    `admin/summary-limit.js` and `admin/topic-name-limit.js`, which refused
+    a save, and their messages ("… Shorten it to N characters or fewer").
+    - **The title** of a service, case study, post, testimonial (name),
+      team member (name), FAQ (question) and location (name): "N / 120".
+      On a service, case study or post (a page of its own), past 60 it
+      also says, in dark amber, "Search results may shorten a title over
+      about 60 characters", until the 120 note takes over.
+    - **The summary** (the Excerpt box) of a service, case study or post:
+      "N / 300".
+    - **A topic's name** on the term add and edit screens of service, case
+      study, FAQ and location topics, and of posts' categories (labelled
+      Topics): "N / 120". The Topics box's "add new" form and quick edit
+      have no count and no check.
+    - No ACF field's `maxlength` or other limit changes.
   - **Other checks on save the contract asks for** (`inc/fields/checks.php`):
     a field with the email format (a team member's and a location's
     `email`) must be one @, a domain with a dot and no spaces; a location's
