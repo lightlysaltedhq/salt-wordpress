@@ -2,7 +2,7 @@
   "format": "salt-conformance/1",
   "contract": {
     "package": "@lightlysaltedhq/salt-contract",
-    "version": "1.0.0-rc.7"
+    "version": "1.0.0-rc.8"
   },
   "platform": "wordpress",
   "implementation": {
@@ -35,7 +35,7 @@
   "stylesheets": {
     "served": "assets/dist/salt.4f3bca2639/salt.css",
     "bundle": "styles/salt.css",
-    "contract": "1.0.0-rc.7",
+    "contract": "1.0.0-rc.8",
     "ok": true,
     "status": "identical"
   },
@@ -1095,10 +1095,19 @@
       "kind": "view",
       "status": "fail",
       "fixtures": {
-        "total": 2,
+        "total": 3,
         "passed": 0,
-        "failed": 2,
+        "failed": 3,
         "failures": [
+          {
+            "case": "author-no-posts",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "main",
+            "name": "tabindex",
+            "expected": "-1",
+            "found": null
+          },
           {
             "case": "author",
             "kind": "mismatch",

@@ -87,7 +87,7 @@ real-ACF harness's WordPress (below).
   - every name is as the contract writes it, settings included under `settings`;
   - a field the case leaves out takes its contract default;
   - an image is an attachment ID, and a gallery is a list of them;
-  - a link's `document` and a collection query's `items` are post IDs.
+  - a link's `document` is a post ID. Manual collection selections are post IDs, or user IDs for team.
 
   Nothing is renamed to the theme's hand-written field names. Where the theme still reads its own
   names, the gap shows in the report, which is the point. The row is rendered through
@@ -105,7 +105,7 @@ real-ACF harness's WordPress (below).
     seeded as attachment metadata. Each URL comes from the record's `{width}` template, as an
     upload URL filter would give it.
   - `documents` become pages whose permalink is the case's `href`.
-  - `collections` become posts of the theme's post types, in the order given. A field WordPress
+  - `collections` become posts of the theme's post types, or native users for team, in the order given. A field WordPress
     keeps natively (named under `salt.native` in `inc/fields/generated/collections.json`) goes to
     its place: `title` is the post's title, `text` its body and excerpt, and `image` its featured
     image. A resolved card key is stored where the collection's approved `display` reads it from
@@ -145,15 +145,14 @@ real-ACF harness's WordPress (below).
     `document.sections` the rows after it, its author a team member and its category its primary
     topic. Its `adjacent` newer and older posts
     are dated a day after and before it. The case's `collections` become posts of their types.
-  - An archive's topic becomes a category with its description. Its author becomes a published
-    team member whose slug is the href's and whose name is the title, with the strapline as its
-    role, the biography as its bio and the photo as its featured image (the theme's provisional
-    mapping, ID-3952). `route.cards` become posts in the topic or crediting the team member.
+  - An archive's topic becomes a category with its description. Its author becomes a ticked
+    user with the fixture's public slug, name, role, bio, photo and optional public contacts.
+    `route.cards` become posts in the topic or crediting that user through `post_author`.
   - Each search result becomes a document of its kind (`Post`, `Service`, `Page`). The search is
     requested at WordPress's own address, `/?s=<query>`, since routing stays native (SC-003); the
     theme registers no `/search/` route. A not-found case seeds nothing and expects a 404.
   - The routes the paths take are set once: posts at `/journal/<slug>/`, topics at
-    `/journal/topic/<slug>/`, authors at `/journal/author/<slug>/`, services at
+    `/journal/topic/<slug>/`, public team profiles at `/team/<slug>/`, services at
     `/services/<slug>/` and case studies at `/work/<slug>/`.
 
   A site answering another status (200, or 404 for not-found) fails the case with exit 1. Any

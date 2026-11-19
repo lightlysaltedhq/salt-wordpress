@@ -1,4 +1,4 @@
-# Salt conformance: wordpress 6.0.0-dev against @lightlysaltedhq/salt-contract 1.0.0-rc.7
+# Salt conformance: wordpress 6.0.0-dev against @lightlysaltedhq/salt-contract 1.0.0-rc.8
 
 **Partial, not conforming.** 2 section(s) pass, 12 fail, 0 incomplete, 3 not shipped. Chrome, views and page: 0 pass, 9 fail, 0 not shipped. Adapter: command `php tests/contract-adapter/adapter.php`.
 
@@ -30,13 +30,13 @@
 | post | view | 0/6 | pass |
 | service | view | 0/2 | pass |
 | case-study | view | 0/4 | pass |
-| archive | view | 0/2 | pass |
+| archive | view | 0/3 | pass |
 | search | view | 0/3 | pass |
 | not-found | view | 0/2 | pass |
 
 ## Stylesheet pin
 
-Pass: `assets/dist/salt.4f3bca2639/salt.css` against this contract's `styles/salt.css` (1.0.0-rc.7): identical.
+Pass: `assets/dist/salt.4f3bca2639/salt.css` against this contract's `styles/salt.css` (1.0.0-rc.8): identical.
 
 ## Field parity
 
@@ -172,6 +172,7 @@ acf snapshot `inc/fields/generated/sections.json` with options `inc/fields/gener
 
 ### archive
 
+- `archive/author-no-posts`: attribute `tabindex` at `main`: expected `-1`, found nothing
 - `archive/author`: attribute `tabindex` at `main`: expected `-1`, found nothing
 - `archive/topic`: attribute `tabindex` at `main`: expected `-1`, found nothing
 

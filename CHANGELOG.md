@@ -43,7 +43,7 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
   WordPress makes those sizes only for new uploads: regenerate thumbnails
   (for example `wp media regenerate`) for uploads made before this
   version, or their srcset lists only the upload's own width.
-  Editor: by-category is refused on save for a source without categories
+  Editor: by-category is refused on publication for a source without categories
   (`salt.modeRequires`), and the categories picker's choices and search
   come from the chosen source's taxonomy (`inc/fields/collection-query.php`).
   All 14 fixture cases pass `npm run conformance:contract`. As the founder
@@ -88,18 +88,16 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
   for byte on PHP 8.2 and 8.5. The harness's phases now share their seeding
   helpers in `tests/real-acf/php/seed.php`, and `db.php` can snapshot and
   restore the site's tables. No theme code changed.
-- **Posts on the section builder, credited to a team member, filed under
+- **Posts on the section builder, credited to a native user, filed under
   topics (ID-3952, EP-72 M3 unit 10; the founder's rulings of 18/11/2026).**
   A post's body is its generated `layout` field: `single-post.php` draws a
   rich-text section that is prose alone as the post's prose and every other
   section as a band, in stored order (`salt_the_post_layout()`,
-  section#sections-in-a-post). The byline and the author box are the
-  `author` team member's name, role, bio and featured image
-  (`salt_post_credited_author()`), never the WordPress user; a post that
-  credits no one draws neither. The author archive is a team member's: the
-  author address takes a published team member's slug and lists the posts
-  crediting them, with the member's photo, role and bio as the profile
-  (`inc/services/post-author.php`). Categories are the posts' topics
+  section#sections-in-a-post). The byline credits the native WordPress author.
+  For a ticked user, the byline and author box link to `/team/{slug}/`;
+  an unticked user keeps plain-text credit without a public profile. A profile
+  shows the member's public details, even without posts, and lists their
+  authored posts only when there are some. Categories are the posts' topics
   (`inc/cpt/post.php`): labelled Topics, no parent control, stored flat,
   with the `primaryTopic` field under the box's checklist; the badge is the
   primary topic, the tags row is the post's topics, and the default
@@ -402,10 +400,9 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
   `salt-overrides.json` instead.
 - **Posts (ID-3952).** Posts have no classic editor and no Tags box: the
   body is the `layout` field, and `post_content` and `post_tag` are no
-  longer read or drawn. The byline, the author box, BlogPosting's `author`
-  and the author archive are the credited team member's, so a WordPress
-  user's archive address (`?author=<id>`, or a user's slug) is now not
-  found, and the `profile_photo` user field is removed (BREAKING). Posts'
+  longer read or drawn. A legacy author address redirects with a 301 to the
+  user's public team profile; it returns 404 for an unticked user. The
+  `profile_photo` user field is removed (see above). Posts'
   categories cannot take a parent. Nothing on WordPress is in use, so no
   content is migrated.
 - **Rich-text allow-list widened, and narrowed per field (salt-contract
