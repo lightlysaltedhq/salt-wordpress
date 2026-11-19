@@ -661,12 +661,12 @@ function salt_contract_link( $link ): ?array {
 /**
  * A contract `buttons` list (rows of { link, style }) as x-button args, in
  * row order: rows that do not make a usable link are skipped and logged,
- * an unknown style becomes $default_style, and rows past $max are dropped
- * and logged.
+ * an unknown style becomes $default_style. A draft can exceed the publish
+ * limit: still draw every usable button.
  *
  * @param mixed  $rows          The stored list.
  * @param string $where         Log prefix, e.g. 'section hero'.
- * @param int    $max           Most buttons drawn (the contract's limit).
+ * @param int    $max           Publish limit (retained for call compatibility).
  * @param string $default_style The list's default style.
  * @return array<int, array{label: string, url: string, style: string, target: string}>
  */
@@ -694,8 +694,7 @@ function salt_contract_buttons( $rows, string $where, int $max, string $default_
 	}
 
 	if ( count( $buttons ) > $max ) {
-		salt_log( sprintf( '%s: %d buttons given — only the first %d render.', $where, count( $buttons ), $max ) );
-		$buttons = array_slice( $buttons, 0, $max );
+		salt_log( sprintf( '%s: %d buttons exceed the publish limit of %d; rendered in full.', $where, count( $buttons ), $max ) );
 	}
 
 	return $buttons;

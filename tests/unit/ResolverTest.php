@@ -396,7 +396,7 @@ final class ResolverTest extends SaltTestCase {
 		);
 	}
 
-	public function test_query_title_order_caps_count_and_unknown_values_fall_back(): void {
+	public function test_query_title_order_keeps_count_and_unknown_values_fall_back(): void {
 		$controls = $this->controls_from(
 			array(
 				'mode'  => 'sideways',
@@ -406,7 +406,7 @@ final class ResolverTest extends SaltTestCase {
 		);
 		$this->assertSame( 'default', $controls['source'] );
 		$this->assertSame( array( 'title', 'ASC' ), array( $controls['orderby'], $controls['order'] ) );
-		$this->assertSame( 24, $controls['count'], 'The contract caps count at 24.' );
+		$this->assertSame( 99, $controls['count'], 'Draft values are not clamped when rendered.' );
 		$this->assertStringContainsString( 'unknown mode "sideways"', implode( ' ', $this->logs() ) );
 
 		$controls = $this->controls_from( array( 'order' => 'random' ) );

@@ -225,7 +225,7 @@ if ( ! function_exists( 'salt_resolve_query' ) ) {
  *   mode manual      => the items, in the order picked; order and count
  *                       are hidden for it, so they are not read;
  *   order default|newest|title => the source's order | date DESC | title ASC;
- *   count 0 => the source's default; capped at the contract's 24.
+ *   count 0 => the source's default; 24 is checked on write, not on read.
  *
  * Unknown values fall back to automatic / default, logged.
  *
@@ -274,6 +274,6 @@ function salt_query_controls_from_query( string $field = 'query' ): array {
 		'taxonomy_terms' => 'by-category' === $mode ? $ids( $query['categories'] ?? null ) : array(),
 		'orderby'        => $by[ $order ][0],
 		'order'          => $by[ $order ][1],
-		'count'          => min( 24, max( 0, (int) ( $query['count'] ?? 0 ) ) ),
+		'count'          => (int) ( $query['count'] ?? 0 ),
 	);
 }

@@ -291,7 +291,7 @@ function salt_collection_card( WP_Post|WP_User $post, string $source, array $opt
 			$card['meta']   = array() !== $meta ? implode( ', ', $meta ) : null;
 			$card['text']   = $quote;
 			$rating         = get_field( 'rating', $id );
-			$card['rating'] = ! empty( $options['ratings'] ) && is_numeric( $rating ) ? max( 0.0, min( 5.0, (float) $rating ) ) : null;
+			$card['rating'] = ! empty( $options['ratings'] ) && is_numeric( $rating ) ? (float) $rating : null;
 			break;
 	}
 

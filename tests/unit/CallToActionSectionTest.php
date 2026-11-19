@@ -115,7 +115,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$this->assertStringContainsString( 'x-button-secondary', $html );
 	}
 
-	public function test_malformed_and_overflow_buttons_are_skipped_and_logged(): void {
+	public function test_malformed_buttons_are_skipped_but_usable_overflow_buttons_render(): void {
 		$html = $this->render_cta_section(
 			array(
 				'heading' => 'Ready?',
@@ -124,18 +124,18 @@ final class CallToActionSectionTest extends SaltTestCase {
 					'not-a-row',
 					salt_test_button( 'No URL', '' ),
 					salt_test_button( 'Also kept', 'https://example.test/2/', 'wobbly' ),
-					salt_test_button( 'Third — dropped', 'https://example.test/3/' ),
+					salt_test_button( 'Third', 'https://example.test/3/' ),
 				),
 			)
 		);
 
-		$this->assertSame( 2, preg_match_all( '/<a\b/', $html ), 'Max 2 valid buttons render.' );
-		$this->assertStringNotContainsString( 'Third', $html );
+		$this->assertSame( 3, preg_match_all( '/<a\b/', $html ) );
+		$this->assertStringContainsString( 'Third', $html );
 		$logs = implode( ' ', $this->logs() );
 		$this->assertStringContainsString( 'call-to-action section: button 1 has no label or no address', $logs );
 		$this->assertStringContainsString( 'call-to-action section: button 2 has no label or no address', $logs );
 		$this->assertStringContainsString( 'unknown style "wobbly"', $logs );
-		$this->assertStringContainsString( 'only the first 2 render', $logs );
+		$this->assertStringContainsString( 'rendered in full', $logs );
 	}
 
 	// -----------------------------------------------------------------
@@ -335,14 +335,14 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$this->assertSame( 'surface-alt', $resolved['section']['background'] );
 	}
 
-	public function test_resolver_drops_buttons_beyond_two(): void {
+	public function test_resolver_keeps_buttons_beyond_two(): void {
 		$buttons = array();
 		foreach ( array( 'a', 'b', 'c' ) as $key ) {
 			$buttons[] = salt_test_button( $key, '/' . $key );
 		}
 		$resolved = $this->resolve_cta( array( 'buttons' => $buttons ) );
 
-		$this->assertCount( 2, $resolved['props']['buttons'] );
+		$this->assertCount( 3, $resolved['props']['buttons'] );
 	}
 
 	public function test_view_draws_from_props_alone(): void {

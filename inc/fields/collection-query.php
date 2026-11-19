@@ -44,14 +44,15 @@ function salt_query_source_key( string $key ): ?string {
  *
  * @param string $input       The validated field's input name.
  * @param string $sibling_key The sibling's key.
+ * @param int    $levels      Path segments to replace, including the field itself.
  * @return mixed Null when it was not submitted.
  */
-function salt_query_submitted_sibling( string $input, string $sibling_key ) {
-	if ( preg_match_all( '/\[([^\]]*)\]/', $input, $parts ) < 2 ) {
+function salt_query_submitted_sibling( string $input, string $sibling_key, int $levels = 2 ) {
+	if ( preg_match_all( '/\[([^\]]*)\]/', $input, $parts ) < $levels ) {
 		return null;
 	}
 	$path = $parts[1];
-	array_splice( $path, -2, 2, array( $sibling_key ) );
+	array_splice( $path, -$levels, $levels, array( $sibling_key ) );
 	// ACF verified the nonce before validating; the value is only compared with a fixed list.
 	$value = isset( $_POST['acf'] ) ? wp_unslash( $_POST['acf'] ) : null; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 	foreach ( $path as $step ) {
@@ -117,6 +118,50 @@ function salt_query_source_list( array $sources ): string {
 	);
 }
 add_filter( 'acf/validate_value', 'salt_validate_query_mode', 10, 4 );
+
+/**
+ * Refuse stale picks after a source switch, only in by-category mode. The
+ * picker allows all saved choices so the editor can see which to remove.
+ *
+ * @param bool|string $valid Existing validation result.
+ * @param mixed       $value Submitted term IDs.
+ * @param array       $field Categories picker.
+ * @param string      $input Nested ACF input path.
+ * @return bool|string
+ */
+function salt_validate_query_categories( $valid, $value, $field, $input ) {
+	if ( true !== $valid || empty( $field['salt']['categoriesFor'] ) || empty( $value ) ) {
+		return $valid;
+	}
+	$key = salt_query_source_key( $field['key'] );
+	if ( ! $key ) {
+		return $valid;
+	}
+	$mode   = salt_query_submitted_sibling( $input, str_replace( '_query_categories', '_query_mode', $field['key'] ), 1 );
+	$source = salt_query_submitted_sibling( $input, $key );
+	return salt_check_topic_source( $source, $mode, $value );
+}
+add_filter( 'acf/validate_value', 'salt_validate_query_categories', 10, 4 );
+
+/**
+ * Shared by the classic editor, a stored layout on REST publication and an import.
+ *
+ * @param mixed $source Collection slug.
+ * @param mixed $mode   Query mode.
+ * @param mixed $value  Term IDs.
+ * @return bool|string
+ */
+function salt_check_topic_source( $source, $mode, $value ) {
+	$taxonomy = is_string( $source ) ? ( salt_collection_sources()[ $source ]['taxonomy'] ?? null ) : null;
+	if ( 'by-category' === $mode && $taxonomy ) {
+		foreach ( (array) $value as $id ) {
+			if ( ! ctype_digit( (string) $id ) || ! term_exists( (int) $id, $taxonomy ) ) {
+				return __( 'Choose topics belonging to the selected collection, or remove the other topics.', 'salt' );
+			}
+		}
+	}
+	return true;
+}
 
 /**
  * A categories picker's terms: every term of the given taxonomies, keyed

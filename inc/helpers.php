@@ -91,5 +91,5 @@ function salt_post_summary( $post ): string {
  * @return string CSS percentage.
  */
 function salt_rating_fill( float $rating ): string {
-	return (string) round( max( 0.0, min( 5.0, $rating ) ) / 5 * 100, 2 ) . '%';
+	return (string) round( $rating / 5 * 100, 2 ) . '%';
 }
