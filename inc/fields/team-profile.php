@@ -50,7 +50,7 @@ function salt_team_editor(): void {
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		wp_nonce_field( 'salt_profile_' . $id );
 		printf( '<input type="hidden" name="action" value="salt_profile"><input type="hidden" name="member" value="%d">', (int) $id );
-		printf( '<label>%s <input required name="display_name" value="%s"></label>', esc_html__( 'Public name', 'salt' ), esc_attr( get_userdata( $id )->display_name ) );
+		printf( '<label for="display_name">%s</label> <input required id="display_name" name="display_name" value="%s">', esc_html__( 'Public name', 'salt' ), esc_attr( get_userdata( $id )->display_name ) );
 		acf_render_fields( acf_get_fields( 'group_salt_collection_team' ), 'user_' . $id );
 		submit_button();
 		echo '</form>';

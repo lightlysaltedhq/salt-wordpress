@@ -45,7 +45,7 @@ add_action( 'acf/init', 'salt_register_collection_fields' );
  * @return void
  */
 function salt_native_counts_enqueue( string $hook_suffix ): void {
-	$profile = in_array( $hook_suffix, array( 'profile.php', 'user-edit.php' ), true );
+	$profile = in_array( $hook_suffix, array( 'profile.php', 'user-edit.php', 'tools_page_salt-team' ), true );
 	if ( ! $profile && ! in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true ) ) {
 		return;
 	}

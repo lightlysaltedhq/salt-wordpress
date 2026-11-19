@@ -116,6 +116,6 @@ function scan(root) {
 	root.querySelectorAll('[data-salt-target]').forEach(mountAcf);
 }
 scan(document);
-window.acf?.addAction('append', ($el) => scan($el[0]));
+window.acf?.addAction('append', ($el) => $el.each((_, el) => scan(el)));
 // Native constraint validation (for example a number above max) must not intercept Save Draft.
 document.getElementById('save-post')?.setAttribute('formnovalidate', '');

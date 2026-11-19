@@ -41,7 +41,8 @@ function salt_profile_session( int $id ): string {
 
 $wp_rewrite->set_permalink_structure( '/journal/%postname%/' );
 update_option( 'blog_public', 1 );
-flush_rewrite_rules( false );
+// The post types registered before the permalink change; let the next request build their rules.
+delete_option( 'rewrite_rules' );
 $case = salt_harness_fixture( 'post/full' );
 $post = get_page_by_path( salt_harness_slug( $case['document']['href'] ), OBJECT, 'post' );
 $id   = (int) $post->post_author;
