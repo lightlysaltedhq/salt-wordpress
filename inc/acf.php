@@ -287,9 +287,19 @@ function salt_generated_collections_decode( ?string $json ): ?array {
 			! is_array( $group )
 			|| ! str_starts_with( (string) ( $group['key'] ?? '' ), 'group_salt_collection_' )
 			|| ! is_array( $group['fields'] ?? null )
-			|| 'post_type' !== ( $group['location'][0][0]['param'] ?? null )
 			|| ! is_string( $group['salt']['collection'] ?? null )
 		) {
+			return null;
+		}
+		$rule = $group['location'][0][0] ?? null;
+		if ( ! is_array( $rule ) || array( array( $rule ) ) !== $group['location'] || '==' !== ( $rule['operator'] ?? null ) ) {
+			return null;
+		}
+		if ( 'team' === $group['salt']['collection'] ) {
+			if ( 'user_form' !== ( $rule['param'] ?? null ) || 'edit' !== ( $rule['value'] ?? null ) ) {
+				return null;
+			}
+		} elseif ( 'post_type' !== ( $rule['param'] ?? null ) || empty( $rule['value'] ) ) {
 			return null;
 		}
 	}
@@ -350,7 +360,7 @@ function salt_field_allowed( string $key, bool $reset = false ): array {
  * @return string
  */
 function salt_collection_group_post_type( array $group ): string {
-	return (string) ( $group['location'][0][0]['value'] ?? '' );
+	return 'post_type' === ( $group['location'][0][0]['param'] ?? null ) ? (string) $group['location'][0][0]['value'] : '';
 }
 
 /**

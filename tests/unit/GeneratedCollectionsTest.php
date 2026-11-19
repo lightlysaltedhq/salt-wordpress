@@ -35,7 +35,7 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 		'case-studies' => 'work',
 		'testimonials' => 'testimonial',
 		'posts'        => 'post',
-		'team'         => 'team_member',
+		'team'         => '', // A user form, not a post type.
 		'faqs'         => 'faq',
 		'locations'    => 'location',
 	);
@@ -96,6 +96,11 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 		$this->assertNull( salt_generated_collections_decode( '[' . str_replace( '"layouts":[]', '"layouts":[{}]', $page ) . ',' . $ok . ']' ), 'Page sections belong in sections.json.' );
 		$this->assertNull( salt_generated_collections_decode( '[' . $page . ',' . str_replace( 'group_salt_collection_faqs', 'group_salt_faq', $ok ) . ']' ), 'A hand-named group.' );
 		$this->assertSame( 'faq', salt_collection_group_post_type( salt_generated_collections_decode( '[' . $page . ',' . $ok . ']' )[0] ) );
+		$team = str_replace( array( 'faqs', 'post_type', '"faq"' ), array( 'team', 'user_form', '"edit"' ), $ok );
+		$this->assertNotNull( salt_generated_collections_decode( '[' . $page . ',' . $team . ']' ) );
+		foreach ( array( str_replace( 'team', 'posts', $team ), str_replace( 'edit', 'add', $team ), str_replace( '==', '!=', $team ), str_replace( 'faqs', 'team', $ok ) ) as $wrong ) {
+			$this->assertNull( salt_generated_collections_decode( '[' . $page . ',' . $wrong . ']' ) );
+		}
 	}
 
 	public function test_a_broken_file_registers_nothing_and_logs(): void {
@@ -128,7 +133,7 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 
 		foreach ( array_slice( self::committed(), 1 ) as $group ) {
 			$post_type = salt_collection_group_post_type( $group );
-			if ( 'post' === $post_type ) {
+			if ( 'post' === $post_type || 'team' === $group['salt']['collection'] ) {
 				continue; // Core's post type: WordPress's own supports and the category taxonomy.
 			}
 			$args = $registered[ $post_type ] ?? null;
@@ -157,7 +162,7 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 		$posts   = array_values( array_filter( salt_generated_collection_groups( true ), static fn( array $group ): bool => 'posts' === $group['salt']['collection'] ) )[0];
 		$primary = array_column( $posts['fields'], null, 'key' )[ SALT_POST_PRIMARY_TOPIC_FIELD ];
 
-		$this->assertSame( array( 'field_salt_collection_posts_author', SALT_POST_PRIMARY_TOPIC_FIELD, 'field_salt_collection_posts_layout' ), array_column( $posts['fields'], 'key' ), 'author, primaryTopic and layout, kept in the group verbatim.' );
+		$this->assertSame( array( SALT_POST_PRIMARY_TOPIC_FIELD, 'field_salt_collection_posts_layout' ), array_column( $posts['fields'], 'key' ) );
 		$this->assertFalse( salt_post_primary_topic_in_box( $primary ), 'Not drawn in the post\'s field group.' );
 		salt_post_drawing_topics_box( true );
 		$this->assertSame( $primary, salt_post_primary_topic_in_box( $primary ), 'Drawn in the Topics box.' );
