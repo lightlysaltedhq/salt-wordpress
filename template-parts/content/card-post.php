@@ -20,7 +20,7 @@ salt_component(
 	array(
 		'title'    => (string) get_the_title(),
 		'url'      => (string) get_the_permalink( $salt_post_id ),
-		'date'     => (string) get_the_date( '', $salt_post_id ),
+		'date'     => salt_post_date_text( $salt_post_id ),
 		'datetime' => (string) get_the_date( 'c', $salt_post_id ),
 		'excerpt'  => (string) get_the_excerpt( $salt_post_id ),
 		'image_id' => (int) get_post_thumbnail_id( $salt_post_id ),

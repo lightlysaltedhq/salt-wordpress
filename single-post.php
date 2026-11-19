@@ -88,7 +88,7 @@ while ( have_posts() ) {
 	printf(
 		'<time datetime="%s">%s</time>',
 		esc_attr( (string) get_the_date( 'c' ) ),
-		esc_html( (string) get_the_date() )
+		esc_html( salt_post_date_text( $salt_post_id ) )
 	);
 
 	if ( $salt_show_modified ) {
@@ -96,7 +96,7 @@ while ( have_posts() ) {
 			'<span class="x-post-meta-updated">%s <time datetime="%s">%s</time></span>',
 			esc_html__( 'Updated', 'salt' ),
 			esc_attr( (string) get_the_modified_date( 'c' ) ),
-			esc_html( (string) get_the_modified_date() )
+			esc_html( salt_post_date_text( $salt_post_id, 'modified' ) )
 		);
 	}
 

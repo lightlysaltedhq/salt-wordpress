@@ -36,8 +36,9 @@ markup granularity (cross-reference your site's override manifest).
   archive; for posts the posts page, or the home page only when it lists
   the posts), and the labels are translatable theme strings in the
   fixtures' English (`salt_contract_labels`, with "%1$s of %2$d" after a
-  slide or rating label). **Pending the founder's ruling:** the arrow
-  (`salt_contract_arrow`; →). The analytics events adapter now also counts
+  slide or rating label). The arrow (`salt_contract_arrow()`, →) is a
+  translatable theme string too (the founder's ruling of 19/11/2026; see
+  Changed). The analytics events adapter now also counts
   section views, CTA clicks, accordion opens and carousel controls on the
   bands drawn to the contract's markup (`data-track`).
 
@@ -255,6 +256,32 @@ markup granularity (cross-reference your site's override manifest).
 
 ### Changed
 
+- **Dates follow the site's language (the founder's ruling of
+  19/11/2026).** A site set to en-GB draws "12 March 2026", not "March
+  12, 2026": the post's date and its Updated date (`single-post.php`), the
+  date on archive and search result cards (`content/card-post.php`), and
+  post cards in collection-showcase and carousel. All go through
+  `salt_date_text()` (`inc/query/cards.php`), drawn by `wp_date()` in the
+  site's timezone with the month in the site's language. The format is,
+  in order: the site's Date Format setting (Settings > General) unless it
+  is WordPress's stock "F j, Y" (so a language pack's own format, en_GB's
+  "j F Y", or one the owner chose, is kept); otherwise WordPress's own
+  translation of "F j, Y" for the site's language; otherwise PHP intl's
+  long date for the locale; otherwise "F j, Y". The `datetime` attributes
+  are unchanged.
+- **The built-in "Uncategorised" topic's archive answers 404 (the
+  founder's ruling of 19/11/2026)** with the theme's not-found page
+  (`salt_post_default_topic_not_found()`, `inc/cpt/post.php`), even when
+  posts are filed in it, and it is left out of WordPress's sitemap. It is
+  still never offered as a primary topic.
+- **The arrow is a translatable theme string (the founder's ruling of
+  19/11/2026).** `salt_contract_arrow()` draws `__( '→', 'salt' )`, with a
+  translators comment, so a site's language can give its own; the
+  `salt_contract_arrow` filter is unchanged.
+- **A published team member's author page answers even with no posts**
+  (kept, now the founder's ruling of 19/11/2026). What it draws is
+  unchanged.
+
 - **Version `6.0.0-dev`** in `style.css` and `SALT_VERSION` (founder
   decision D11). No tag and no release.
 - **Requires WordPress 7.1** (the founder's ruling of 18/11/2026).
@@ -331,6 +358,14 @@ markup granularity (cross-reference your site's override manifest).
   contract has no rule for, in every display mode.
 
 ### BREAKING
+- **The `profile_photo` user field is removed (the founder's ruling of
+  19/11/2026).** It was no longer drawn: the post's byline and author box
+  take the credited team member's photo. The `group_salt_user` group ("Author
+  profile" on the user screens) and `inc/fields/user.php` go with it, and
+  the field leaves `docs/contracts/slug-registry.json` (`field:profile_photo`;
+  a major release, so the slug check allows it with this entry). The demo
+  seed no longer writes it. Nothing on WordPress is in use, so no content is
+  migrated; any stored `profile_photo` user meta is left unread.
 - **The six collection layouts are gone; collection-showcase and carousel
   replace them (ID-3600, EP-72 M3 unit 8).** Layouts `services`, `work`,
   `team`, `testimonials`, `blog_teaser` and `scroll_carousel` are removed,
@@ -354,7 +389,7 @@ markup granularity (cross-reference your site's override manifest).
   longer read or drawn. The byline, the author box, BlogPosting's `author`
   and the author archive are the credited team member's, so a WordPress
   user's archive address (`?author=<id>`, or a user's slug) is now not
-  found, and the `profile_photo` user field is no longer drawn. Posts'
+  found, and the `profile_photo` user field is removed (BREAKING). Posts'
   categories cannot take a parent. Nothing on WordPress is in use, so no
   content is migrated.
 - **Rich-text allow-list widened, and narrowed per field (salt-contract
@@ -403,7 +438,7 @@ markup granularity (cross-reference your site's override manifest).
   - **Dropped from WordPress:** the `industry` taxonomy on work and the
     `department` taxonomy on team members; the body (editor) of work and
     team members; the location's featured image; the Gravatar fallback for
-    a post author (the avatar is the user's `profile_photo` or nothing).
+    a post author (the photo is the credited team member's).
   - **Renamed fields:** work `live_url` → `externalUrl`; service
     `price_from` (a number) → `priceFrom` (text, drawn as written),
     `related_services` → `relatedServices`, benefit row `benefit` → `text`,

@@ -180,8 +180,7 @@ foreach ( $salt_demo['options'] as $name => $value ) {
 	update_field( $name, salt_demo_resolve_refs( $value ), 'option' );
 }
 
-// 7.5 Blog author profile — display name + bio (WP user) and the ACF
-// profile_photo user field feed the single-post byline/author box.
+// 7.5 Blog author profile — display name + bio on the WP user.
 if ( isset( $salt_demo['author'] ) && $salt_demo_author > 0 ) {
 	wp_update_user(
 		array(
@@ -190,10 +189,6 @@ if ( isset( $salt_demo['author'] ) && $salt_demo_author > 0 ) {
 			'description'  => (string) ( $salt_demo['author']['description'] ?? '' ),
 		)
 	);
-	$salt_demo_photo = salt_demo_resolve_refs( $salt_demo['author']['photo'] ?? null );
-	if ( is_int( $salt_demo_photo ) && $salt_demo_photo > 0 ) {
-		update_field( 'profile_photo', $salt_demo_photo, 'user_' . $salt_demo_author );
-	}
 	salt_demo_log( sprintf( 'author profile set on user %d.', $salt_demo_author ) );
 }
 

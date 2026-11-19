@@ -7,7 +7,7 @@
  *   title     string  required  Post title (escaped by x-card).
  *   url       string  ''        Permalink; non-empty makes the title a
  *                               stretched link (x-card behaviour).
- *   date      string  ''        Human-readable date (site date_format).
+ *   date      string  ''        Human-readable date (salt_post_date_text()).
  *   datetime  string  ''        Machine-readable ISO 8601 date for the
  *                               <time datetime> attribute. The <time>
  *                               element renders only when BOTH date and

@@ -129,15 +129,16 @@ function salt_contract_labels(): array {
 /**
  * The site's arrow glyph (the contract's `site.arrow`), or null for none.
  *
- * PENDING the founder's ruling: the contract does not say where WordPress
- * takes it from. Provisionally the arrow the theme's
- * link buttons draw today (→). The `salt_contract_arrow` filter is this one
- * seam; the contract adapter feeds it the case's site.arrow.
+ * A translatable theme string, as the labels are (the founder's ruling of
+ * 19/11/2026), so a site's language can give its own (for example ← in a
+ * right-to-left language). The `salt_contract_arrow` filter is the seam
+ * beside it; the contract adapter feeds it the case's site.arrow.
  *
  * @return string|null
  */
 function salt_contract_arrow(): ?string {
-	$arrow = apply_filters( 'salt_contract_arrow', '→' );
+	/* translators: The arrow drawn after a card's or a carousel's link text. A right-to-left language may use ←; leave it empty for none. */
+	$arrow = apply_filters( 'salt_contract_arrow', __( '→', 'salt' ) );
 	return is_string( $arrow ) && '' !== $arrow ? $arrow : null;
 }
 
@@ -392,27 +393,78 @@ function salt_collection_schema( string $source, array $cards ): void {
 }
 
 /**
- * A date's text in the site's locale's long form (section#display-forms:
- * en-GB "12 March 2026", Intl's dateStyle long), from YYYY-MM-DD. Through
- * PHP's intl when the host has it; otherwise WordPress's own day, month
- * name and year ("12 March 2026" in English).
+ * The PHP date format the theme draws dates in, or '' when WordPress has
+ * none for the site's language (the founder's ruling of 19/11/2026: dates
+ * follow the site's language, so a site set to en-GB draws "12 March 2026").
+ *
+ * 1. The site's Date Format setting (Settings > General), unless it is
+ *    WordPress's stock "F j, Y". A language pack sets its own at install
+ *    (en_GB's is "j F Y"), and an owner may choose another; either is kept.
+ * 2. Otherwise WordPress's own translation of that stock format for the
+ *    site's language, from its language pack (en_GB "j F Y", de_DE "j. F Y").
+ * 3. Otherwise '': salt_date_text() asks PHP's intl for the language's long
+ *    date, or falls back to "F j, Y".
+ *
+ * @return string
+ */
+function salt_date_format(): string {
+	$setting = (string) get_option( 'date_format' );
+	if ( '' !== $setting && 'F j, Y' !== $setting ) {
+		return $setting;
+	}
+	// phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- WordPress core's own string, translated by its language pack.
+	$translated = __( 'F j, Y' );
+	return 'F j, Y' !== $translated ? $translated : '';
+}
+
+/**
+ * A date's text in the site's language (salt_date_format()), drawn by
+ * wp_date(), which also writes the month in that language. With no format
+ * from WordPress, PHP intl's long date for the site's locale
+ * (IntlDateFormatter::LONG, the contract's dateStyle long; en_GB
+ * "12 March 2026"), and without intl "F j, Y".
+ *
+ * Every post, card and result date the theme draws comes through here.
+ *
+ * @param int               $timestamp The moment, a Unix timestamp.
+ * @param DateTimeZone|null $timezone  The zone to draw it in; the site's by default.
+ * @return string
+ */
+function salt_date_text( int $timestamp, ?DateTimeZone $timezone = null ): string {
+	$timezone = $timezone ?? wp_timezone();
+	$format   = salt_date_format();
+	if ( '' === $format && class_exists( 'IntlDateFormatter' ) ) {
+		$formatter = new IntlDateFormatter( get_locale(), IntlDateFormatter::LONG, IntlDateFormatter::NONE, $timezone );
+		$text      = $formatter->format( $timestamp );
+		if ( is_string( $text ) && '' !== $text ) {
+			return $text;
+		}
+	}
+	return (string) wp_date( '' !== $format ? $format : 'F j, Y', $timestamp, $timezone );
+}
+
+/**
+ * A post's published (or modified) date's text (salt_date_text()).
+ *
+ * @param int|WP_Post $post  The post.
+ * @param string      $field 'date' or 'modified'.
+ * @return string '' when the post has no such date.
+ */
+function salt_post_date_text( $post, string $field = 'date' ): string {
+	$timestamp = get_post_timestamp( $post, $field );
+	return false === $timestamp ? '' : salt_date_text( (int) $timestamp );
+}
+
+/**
+ * A card's date's text (section#display-forms), from YYYY-MM-DD, as a day:
+ * drawn in UTC so the day never moves (salt_date_text()).
  *
  * @param string $ymd The date, YYYY-MM-DD.
  * @return string
  */
 function salt_contract_date_text( string $ymd ): string {
 	$date = date_create_immutable( $ymd . ' 00:00:00', new DateTimeZone( 'UTC' ) );
-	if ( false === $date ) {
-		return $ymd;
-	}
-	if ( class_exists( 'IntlDateFormatter' ) ) {
-		$formatter = new IntlDateFormatter( get_locale(), IntlDateFormatter::LONG, IntlDateFormatter::NONE, 'UTC' );
-		$text      = $formatter->format( $date );
-		if ( is_string( $text ) && '' !== $text ) {
-			return $text;
-		}
-	}
-	return function_exists( 'date_i18n' ) ? date_i18n( 'j F Y', $date->getTimestamp(), true ) : $date->format( 'j F Y' );
+	return false === $date ? $ymd : salt_date_text( $date->getTimestamp(), new DateTimeZone( 'UTC' ) );
 }
 
 /**

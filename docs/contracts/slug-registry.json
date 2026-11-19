@@ -289,9 +289,6 @@
 			"viewAll",
 			"viewAllLabel",
 			"width"
-		],
-		"group_salt_user": [
-			"profile_photo"
 		]
 	},
 	"paths": {
@@ -965,9 +962,6 @@
 			"sections_N_settings_tone",
 			"sections_N_settings_toneDark",
 			"sections_N_settings_width"
-		],
-		"group_salt_user": [
-			"profile_photo"
 		]
 	}
 }

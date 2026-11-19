@@ -461,12 +461,10 @@ return array(
 	),
 
 	// Blog author profile — written onto the first administrator (WP display
-	// name + bio, ACF profile_photo) so the single-post byline/author box
-	// renders with real data.
+	// name + bio).
 	'author'  => array(
 		'display_name' => 'Amelia Hart',
 		'description'  => 'Founder and creative director at Northbeam. Amelia has spent ten years helping ambitious brands look the part and perform online.',
-		'photo'        => 'ref:image/team-amelia',
 	),
 
 	// Bulk content (authored against the ref namespace above).

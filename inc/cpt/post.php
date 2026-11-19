@@ -127,6 +127,53 @@ function salt_post_primary_topic_choices( array $args ): array {
 add_filter( 'acf/fields/taxonomy/query/key=' . SALT_POST_PRIMARY_TOPIC_FIELD, 'salt_post_primary_topic_choices' );
 
 /**
+ * Whether a category is WordPress's built-in default ("Uncategorised").
+ *
+ * @param int $term_id The category.
+ * @return bool
+ */
+function salt_post_topic_is_default( int $term_id ): bool {
+	$default = (int) get_option( 'default_category' );
+	return $default > 0 && $default === $term_id;
+}
+
+/**
+ * The default category's archive is not found (the founder's ruling of
+ * 19/11/2026): a post's topics never include "Uncategorised", so its
+ * archive answers 404 with the theme's not-found page
+ * ('template_redirect', before the template is chosen).
+ *
+ * @return void
+ */
+function salt_post_default_topic_not_found(): void {
+	$term = is_category() ? get_queried_object() : null;
+	if ( ! $term instanceof WP_Term || ! salt_post_topic_is_default( (int) $term->term_id ) ) {
+		return;
+	}
+	global $wp_query;
+	$wp_query->set_404();
+	status_header( 404 );
+	nocache_headers();
+}
+add_action( 'template_redirect', 'salt_post_default_topic_not_found', 0 );
+
+/**
+ * Leave the default category out of WordPress's sitemap
+ * ('wp_sitemaps_taxonomies_query_args'), since its archive is not found.
+ *
+ * @param array<string,mixed> $args     The get_terms() arguments.
+ * @param string              $taxonomy The taxonomy.
+ * @return array<string,mixed>
+ */
+function salt_post_default_topic_off_sitemap( array $args, string $taxonomy ): array {
+	if ( 'category' === $taxonomy ) {
+		$args['exclude'] = array_merge( (array) ( $args['exclude'] ?? array() ), array( (int) get_option( 'default_category' ) ) );
+	}
+	return $args;
+}
+add_filter( 'wp_sitemaps_taxonomies_query_args', 'salt_post_default_topic_off_sitemap', 10, 2 );
+
+/**
  * On the category add and edit screens, treat categories as flat, so
  * WordPress draws no Parent field ('load-edit-tags.php', 'load-term.php').
  *

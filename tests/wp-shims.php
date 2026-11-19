@@ -523,6 +523,21 @@ if ( ! function_exists( 'get_locale' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_date' ) ) {
+	/**
+	 * wp_date shim — formats a timestamp in the given zone (the site's by
+	 * default), with PHP's English month names.
+	 *
+	 * @param string            $format    PHP date format.
+	 * @param int|null          $timestamp Unix timestamp; now when null.
+	 * @param DateTimeZone|null $timezone  Zone.
+	 * @return string|false
+	 */
+	function wp_date( string $format, ?int $timestamp = null, ?DateTimeZone $timezone = null ) {
+		return ( new DateTimeImmutable( '@' . ( $timestamp ?? time() ) ) )->setTimezone( $timezone ?? wp_timezone() )->format( $format );
+	}
+}
+
 if ( ! function_exists( 'wp_timezone' ) ) {
 	/**
 	 * wp_timezone shim — reads the timezone_string option, defaults UTC.
