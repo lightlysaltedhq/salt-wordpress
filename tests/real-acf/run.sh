@@ -4,7 +4,7 @@
 # contract fixture, checks storage paths, drives the classic editor in a real browser, prints
 # a pass/fail report and removes everything it made. See tests/real-acf/README.md.
 #
-# usage: tests/real-acf/run.sh [--php 8.2|8.5|<binary>] [--no-browser] [--keep] [--offline] [--report <file>] [--conformance]
+# usage: tests/real-acf/run.sh [--php 8.2|8.5|<binary>] [--no-browser] [--keep] [--offline] [--report <file>] [--conformance|--limits]
 # --offline skips the check that the pinned WordPress is the latest release (reported as not checked).
 # --conformance builds the site, keeps it up and runs salt-conformance against it instead of the checks:
 #   the adapter sends the contract's view and page cases here (tests/contract-adapter/README.md).
@@ -19,6 +19,7 @@ BROWSER=1
 OFFLINE=0
 REPORT=""
 CONFORMANCE=0
+LIMITS=0
 
 usage() { sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; }
 
@@ -30,6 +31,7 @@ while [ $# -gt 0 ]; do
 		--offline) OFFLINE=1; shift ;;
 		--report) REPORT="${2:?--report needs a file}"; shift 2 ;;
 		--conformance) CONFORMANCE=1; BROWSER=0; shift ;;
+		--limits) LIMITS=1; shift ;;
 		-h|--help) usage; exit 0 ;;
 		*) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
 	esac
@@ -269,6 +271,7 @@ if [ "$CONFORMANCE" = 1 ]; then
 	phase "salt-conformance with the view and page cases on this site (tests/contract-adapter/baseline)" conformance
 else
 # Every check below is the harness's own run; --conformance runs none of them.
+if [ "$LIMITS" = 0 ]; then
 phase "theme's field groups" "$PHP" "$HERE/php/theme-groups.php"
 
 # The theme registers the generated JSON itself (inc/acf.php); the contract phase checks it.
@@ -276,6 +279,7 @@ phase "contract field shape: register, seed, read back, storage" "$PHP" "$HERE/p
 phase "the theme renders it (resolvers on real ACF values)" "$PHP" "$HERE/php/render.php"
 # After the render, so the posts it makes are not in the page's FAQ and locations queries.
 phase "collection fields: seed every post type, read back, storage" "$PHP" "$HERE/php/collections.php"
+fi
 
 # The site's own server, for the single templates over HTTP and the browser.
 # PHP's default max_input_vars (1000) truncates the re-save of a page holding every fixture
@@ -289,6 +293,7 @@ for _ in $(seq 1 50); do
 	sleep 0.2
 done
 
+if [ "$LIMITS" = 0 ]; then
 phase "single templates over HTTP (the contract's service, case-study and post fixtures)" "$PHP" "$HERE/php/singles.php"
 if [ "$BROWSER" = 1 ]; then
 	phase "editor in a real browser (Chromium)" node "$HERE/browser.mjs"
@@ -299,6 +304,13 @@ fi
 phase "public profiles, native credits, permissions and picker over HTTP" "$PHP" "$HERE/php/profiles.php"
 if [ "$BROWSER" = 1 ] || [ -n "${SALT_HARNESS_SCREENSHOTS:-}" ]; then
 	phase "profile editorial form in Chromium" node "$HERE/profile-screenshots.mjs"
+fi
+fi
+
+# Last: the limits fixtures add published services and topics to this site.
+phase "limits and targets: outside writes" "$PHP" "$HERE/php/limits.php"
+if [ "$BROWSER" = 1 ]; then
+	phase "limits and targets: editor" node "$HERE/limits.mjs"
 fi
 fi
 

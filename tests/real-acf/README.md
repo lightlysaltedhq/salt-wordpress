@@ -18,6 +18,14 @@ inspection (it prints how to drop them), `--offline` skips the latest-release ch
 reports it as `STALENESS NOT CHECKED`, `--report <file>` copies the report. The script exits 0
 only when every check passes.
 
+`--limits` runs just the ID-3971 phases (outside ACF PHP writes, the core REST
+post/page routes and the classic editor in Chromium). Set `SALT_HARNESS_SCREENSHOTS`
+to a directory to keep the rendered states. ACF's PHP row helpers return success
+even if an update filter returns an error: importers should catch `DomainException`
+and report its message. Salt does not expose its generated groups through the ACF
+REST API and does not ship a WXR importer. These checks do not cover raw SQL or
+code which writes private ACF metadata without going through ACF.
+
 `--conformance` runs none of the checks below. It builds the same site, keeps it up and runs the
 contract's conformance runner against it, so the view and page cases render on real WordPress and
 ACF Pro (`npm run conformance:harness`; see `tests/contract-adapter/README.md`). After the install

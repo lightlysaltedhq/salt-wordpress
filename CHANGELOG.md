@@ -14,6 +14,18 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
 
 ### Added
 
+- **Editor targets and publish limits (ID-3971, contract rc.8).** Text fields
+  and suggested list sizes now show a live count, including fields added to
+  section layouts. Exceeding a target never cuts pasted text or refuses a save.
+  The public display name on a ticked user profile shows the same 60- and
+  120-character notes as a post title. Opening times accept draft text and
+  require a 24-hour time on publication. Drafts can retain out-of-range values;
+  publication checks the retained ranges, steps, list limits and address lines.
+  A collection query cannot publish with topics left over from another source.
+  Importers using ACF receive a `DomainException` explaining an invalid limit
+  rather than an apparent success. Rendering no longer trims extra buttons or
+  street lines, or clamps a stored rating or collection count.
+
 - **Collection showcase and carousel, to salt-contract 1.0.0-rc.7 (ID-3600,
   EP-72 M3 unit 8).** Both sections' fields are generated from the pinned
   emitter. Resolvers return the contract's view props; views draw
