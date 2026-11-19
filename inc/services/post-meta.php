@@ -268,21 +268,86 @@ function salt_post_row_is_prose( array $row, array $defaults ): bool {
 }
 
 /**
- * The text a post's reading time counts: the bodies of its layout's
- * rich-text sections, prose and bands alike.
+ * The text a post's reading time counts: all the text a reader reads in the
+ * post's own sections, every row of its layout (the founder's ruling of
+ * 19/11/2026: the post's text, not the site's header or footer, which are
+ * never read here). Markup is stripped.
+ *
+ * Read by key from the stored rows, as the rest of this file does. A row's
+ * text is each text, textarea and wysiwyg field the posts group generates
+ * for its layout (headings, eyebrows, intros, bodies, button labels), in
+ * repeaters and groups too, but not its settings, a link's url or a select.
+ * An FAQ row adds the question and answer of each FAQ its query draws (the
+ * FAQ section's own query, salt_query_controls_from_query()), and a gallery
+ * row with captions on adds each image's caption.
  *
  * @param int $post_id Post ID.
  * @return string
  */
 function salt_post_reading_text( int $post_id ): string {
 	$rows = function_exists( 'get_field' ) ? get_field( 'field_salt_collection_posts_layout', $post_id, false ) : null;
-	$text = '';
-	foreach ( is_array( $rows ) ? $rows : array() as $row ) {
-		if ( is_array( $row ) && 'rich-text' === ( $row['acf_fc_layout'] ?? '' ) ) {
-			$text .= ' ' . (string) ( $row['field_salt_collection_posts_layout_rich_text_body'] ?? '' );
+	$rows = is_array( $rows ) ? array_values( $rows ) : array();
+
+	// The layout's fields by key, from the generated posts group; a row's settings are not read.
+	$fields = array();
+	$index  = static function ( array $group_fields ) use ( &$index, &$fields ): void {
+		foreach ( $group_fields as $field ) {
+			if ( ! is_array( $field ) || 'settings' === ( $field['name'] ?? '' ) ) {
+				continue;
+			}
+			$fields[ (string) ( $field['key'] ?? '' ) ] = $field;
+			$index( (array) ( $field['sub_fields'] ?? array() ) );
+			foreach ( (array) ( $field['layouts'] ?? array() ) as $layout ) {
+				$index( (array) ( $layout['sub_fields'] ?? array() ) );
+			}
+		}
+	};
+	foreach ( salt_generated_collection_groups() as $group ) {
+		if ( 'posts' === ( $group['salt']['collection'] ?? '' ) ) {
+			$index( (array) ( $group['fields'] ?? array() ) );
 		}
 	}
-	return $text;
+
+	$parts = array();
+	$read  = static function ( array $value ) use ( &$read, &$parts, $fields ): void {
+		foreach ( $value as $key => $item ) {
+			$field = $fields[ (string) $key ] ?? null;
+			if ( null === $field ) {
+				continue;
+			}
+			$type = (string) ( $field['type'] ?? '' );
+			if ( in_array( $type, array( 'text', 'textarea', 'wysiwyg' ), true ) && ! in_array( $field['name'] ?? '', array( 'url', 'anchorId' ), true ) && is_scalar( $item ) ) {
+				$parts[] = wp_strip_all_tags( (string) $item );
+			} elseif ( 'group' === $type && is_array( $item ) ) {
+				$read( $item );
+			} elseif ( 'repeater' === $type && is_array( $item ) ) {
+				foreach ( $item as $sub_row ) {
+					$read( is_array( $sub_row ) ? $sub_row : array() );
+				}
+			}
+		}
+	};
+
+	$i = 0;
+	while ( function_exists( 'have_rows' ) && have_rows( 'field_salt_collection_posts_layout', $post_id ) ) {
+		the_row();
+		$row = is_array( $rows[ $i ] ?? null ) ? $rows[ $i ] : array();
+		++$i;
+		$read( $row );
+		$layout = (string) get_row_layout();
+		if ( 'faq' === $layout && salt_module_enabled( 'faq' ) ) {
+			foreach ( salt_resolve_query( salt_query_controls_from_query(), 'faq' ) as $faq ) {
+				$parts[] = (string) $faq->post_title;
+				$parts[] = wp_strip_all_tags( (string) get_field( 'answer', $faq->ID ) );
+			}
+		}
+		if ( 'gallery' === $layout && ! empty( $row['field_salt_collection_posts_layout_gallery_captions'] ) && function_exists( 'wp_get_attachment_caption' ) ) {
+			foreach ( (array) ( $row['field_salt_collection_posts_layout_gallery_images'] ?? array() ) as $image ) {
+				$parts[] = (string) wp_get_attachment_caption( (int) $image );
+			}
+		}
+	}
+	return implode( ' ', array_filter( array_map( 'trim', $parts ), 'strlen' ) );
 }
 
 /**

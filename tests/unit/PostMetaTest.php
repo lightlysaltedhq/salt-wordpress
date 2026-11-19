@@ -7,11 +7,61 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../shims/acf.php';
+
 final class PostMetaTest extends SaltTestCase {
 
 	// -----------------------------------------------------------------------
 	// Reading time.
 	// -----------------------------------------------------------------------
+
+	public function test_the_reading_text_is_every_row_of_the_posts_layout_and_nothing_else(): void {
+		// A rich-text row and an FAQ row, stored by key; the FAQ row queries one FAQ.
+		$k = 'field_salt_collection_posts_layout_';
+		$GLOBALS['salt_test_fields']['42']['field_salt_collection_posts_layout'] = array(
+			array(
+				'acf_fc_layout'           => 'rich-text',
+				$k . 'rich_text_heading'  => 'Pruning in winter',
+				$k . 'rich_text_body'     => '<p>Cut the <strong>old wood</strong> back.</p>',
+				$k . 'rich_text_settings' => array( $k . 'rich_text_settings_anchor_id' => 'not-read' ),
+			),
+			array(
+				'acf_fc_layout'    => 'faq',
+				$k . 'faq_heading' => 'Questions',
+				$k . 'faq_query'   => array( $k . 'faq_query_mode' => 'automatic' ),
+			),
+		);
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'rich-text',
+					'fields' => array(),
+				),
+				array(
+					'layout' => 'faq',
+					'fields' => array( 'query' => array( 'mode' => 'automatic' ) ),
+				),
+			)
+		);
+		$this->seed_posts(
+			array(
+				array(
+					'ID'         => 7,
+					'post_type'  => 'faq',
+					'post_title' => 'When should I prune?',
+				),
+			)
+		);
+		$GLOBALS['salt_test_fields']['7']['answer'] = '<p>In late <em>winter</em>.</p>';
+		// What a site's header and footer say is never read from here.
+		$GLOBALS['salt_test_fields']['option']['footer_text'] = 'Footer words';
+
+		$text = salt_post_reading_text( 42 );
+
+		$this->assertSame( 'Pruning in winter Cut the old wood back. Questions When should I prune? In late winter.', $text );
+		$this->assertStringNotContainsString( 'not-read', $text, 'A row\'s settings are not read.' );
+		$this->assertStringNotContainsString( 'Footer words', $text );
+	}
 
 	public function test_empty_content_reads_as_zero_minutes(): void {
 		$this->assertSame( 0, salt_reading_time_minutes( '' ) );

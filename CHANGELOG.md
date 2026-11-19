@@ -87,6 +87,13 @@ markup granularity (cross-reference your site's override manifest).
   with the `primaryTopic` field under the box's checklist; the badge is the
   primary topic, the tags row is the post's topics, and the default
   category is never drawn. The archive still draws a topic's description.
+  Reading time counts the post's own text, not the site's header or footer
+  (the founder's ruling of 19/11/2026; `salt_post_reading_text()`): every
+  row of its layout, markup stripped, by key: each row's headings,
+  eyebrows, intros, bodies and button labels (not its settings or link
+  urls), the question and answer of each FAQ an FAQ row draws, and a
+  gallery's captions when they are on. Before, only rich-text bodies
+  counted.
 - **The contract's token layer and stylesheet, beside Tailwind (ID-3611,
   EP-72 M3 unit 9).** `assets/src/css/app.css` now emits every token
   salt-contract 1.0.0-rc.6's `contract/token-layer.json` asks of a theme
