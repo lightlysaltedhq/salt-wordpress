@@ -71,6 +71,14 @@ jobs:
       - name: Contract pin + derivation vs frozen vectors + required roles + contrast in every display mode
         run: vendor/bin/phpunit --testsuite conformance
 
+      # The page sections' and the collections' fields are the pinned salt-contract's (ID-3610
+      # parts A and B): the committed inc/fields/generated/sections.json and collections.json must
+      # be the pinned emitter's output, byte for byte, and the theme must register exactly those
+      # layouts and collection groups, with no hand-written copy and no inc/fields/cpt-*.php.
+      # Needs the npm ci above (the emitter runs from node_modules) and PHP.
+      - name: Section and collection fields generated from the pinned salt-contract (drift check)
+        run: php bin/check-fields-from-contract.php
+
   js:
     name: ESLint + Stylelint
     runs-on: ubuntu-latest
@@ -147,7 +155,89 @@ jobs:
 
       - name: No slug removed without major bump or migration entry
         run: php bin/check-slug-stability.php
+
+      # The gate's own cases (ID-3943): a field moved into or out of a group, a renamed
+      # group or repeater, and a removed layout fail a non-major bump. Throwaway repo in
+      # a temp dir; needs php and git only.
+      - name: Slug-stability gate self-test
+        run: bash bin/check-slug-stability.test.sh
   
+  real-acf:
+    name: Real ACF Pro harness (PHP ${{ matrix.php }})
+    # The contract's field shape on real ACF Pro 6.8.11 and WordPress 7.1.5 (tests/real-acf/README.md).
+    # ACF Pro comes from ACF's private Composer repository, so this job needs two repository
+    # secrets: ACF_PRO_KEY (the licence key, Composer's username) and ACF_PRO_SITE_URL (a site
+    # URL already activated on the licence, with https://, Composer's password). It fails, never
+    # skips, when they are missing.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '8.2', '8.5' ]
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      # The pinned salt-contract the harness emits from.
+      - run: npm ci
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli
+          tools: composer
+          coverage: none
+
+      - name: Install ACF Pro 6.8.11 by Composer (tests/real-acf/acf-composer)
+        env:
+          ACF_PRO_KEY: ${{ secrets.ACF_PRO_KEY }}
+          ACF_PRO_SITE_URL: ${{ secrets.ACF_PRO_SITE_URL }}
+        run: |
+          if [ -z "$ACF_PRO_KEY" ] || [ -z "$ACF_PRO_SITE_URL" ]; then
+            echo "::error::Set the ACF_PRO_KEY and ACF_PRO_SITE_URL repository secrets (tests/real-acf/README.md)."
+            exit 1
+          fi
+          COMPOSER_AUTH="$(jq -nc --arg u "$ACF_PRO_KEY" --arg p "$ACF_PRO_SITE_URL" '{"http-basic": {"connect.advancedcustomfields.com": {"username": $u, "password": $p}}}')"
+          export COMPOSER_AUTH
+          composer install --working-dir=tests/real-acf/acf-composer --no-interaction --no-progress --prefer-dist
+
+      - name: Install the harness's WordPress and Playwright
+        run: |
+          composer install --working-dir=tests/real-acf --no-interaction --no-progress --prefer-dist
+          npm ci --prefix tests/real-acf
+          (cd tests/real-acf && npx playwright install --with-deps chromium-headless-shell)
+
+      - name: Run the harness
+        env:
+          SALT_HARNESS_DB_HOST: 127.0.0.1:3306
+          SALT_HARNESS_DB_USER: root
+          SALT_HARNESS_DB_PASSWORD: ''
+          SALT_ACF_DIR: tests/real-acf/acf-composer/vendor/wpengine/advanced-custom-fields-pro
+        run: tests/real-acf/run.sh --php ${{ matrix.php }} --report real-acf-report.txt
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-acf-report-php${{ matrix.php }}
+          path: real-acf-report.txt
+          if-no-files-found: ignore
+
   release-tag:
     name: Release tag gate
     # Tag pushes only; on pull requests this job is listed as Skipped. Git Updater
