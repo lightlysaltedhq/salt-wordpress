@@ -128,10 +128,8 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    12, 2026" on en-US) on the post, its topic's archive and a search; that the "Uncategorised"
    archive answers 404 while a topic's archive answers 200; that a published team member with no
    posts has an author page; that the service intro runs no shortcode or embed; and that a
-   testimonial rated 4.5 draws 90% of five stars on a page. Known fixture mismatch, pending the contract's EP-70
-   correction: rc.7's service intro holds an `<h3>` its own list does not allow, so the intro's
-   heading is stripped to text; the phase checks the intro's two paragraphs and that no `<h2>` or
-   `<h3>` comes from it, not the heading. This is a smoke render, not conformance: the view cases'
+   testimonial rated 4.5 draws 90% of five stars on a page. The rc.8 service intro draws both
+   fixture paragraphs without a heading. This is a smoke render, not conformance: the view cases'
    markup is a later unit.
 7. **The editor, in headless Chromium** against the same server (`browser.mjs`):
    - the fixtures page's classic edit screen renders every row and layout with no console errors;

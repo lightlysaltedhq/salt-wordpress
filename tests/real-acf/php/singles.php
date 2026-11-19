@@ -90,11 +90,7 @@ $body = salt_harness_single_check(
 	$service,
 	$expect
 );
-// KNOWN FIXTURE MISMATCH, pending the EP-70 correction of the contract's example: rc.7's
-// fixtures/service/full.json puts an <h3> in the intro, but the intro's own list (services.json
-// intro) has no heading, and the founder ruled the intro stays restricted. The theme strips the
-// heading to text; this checks the two paragraphs and that no h2 or h3 comes from the intro, and
-// deliberately does not check the heading's text.
+// The rc.8 service/full intro contains two paragraphs and no heading.
 $intro      = (string) strstr( (string) substr( $body, (int) strpos( $body, '<div class="x-prose">' ) ), '</div>', true );
 $paragraphs = array( $expect['intro paragraph 1'], $expect['intro paragraph 2'] );
 $drawn      = count( array_filter( $paragraphs, static fn( string $p ): bool => str_contains( $intro, $p ) ) );
