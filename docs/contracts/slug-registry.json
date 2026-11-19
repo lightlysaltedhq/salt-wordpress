@@ -54,7 +54,6 @@
 		"group_salt_collection_posts": [
 			"alignment",
 			"anchorId",
-			"author",
 			"backgroundImage",
 			"body",
 			"buttons",
@@ -111,10 +110,13 @@
 		],
 		"group_salt_collection_team": [
 			"bio",
-			"email",
 			"name",
 			"phone",
+			"photo",
+			"publicEmail",
 			"role",
+			"showOnWebsite",
+			"slug",
 			"socials",
 			"url"
 		],
@@ -328,7 +330,6 @@
 			"zoom"
 		],
 		"group_salt_collection_posts": [
-			"author",
 			"layout",
 			"primaryTopic"
 		],
@@ -472,9 +473,12 @@
 		],
 		"group_salt_collection_team": [
 			"bio",
-			"email",
 			"phone",
+			"photo",
+			"publicEmail",
 			"role",
+			"showOnWebsite",
+			"slug",
 			"socials",
 			"socials_N_name",
 			"socials_N_url"

@@ -35,7 +35,7 @@ salt_harness_result(
 );
 salt_harness_info( implode( '; ', $salt_harness_lines ) );
 
-// The profile_photo user field is gone (the founder's ruling of 19/11/2026): no group on the user forms.
+// The generated team group replaces the former hand-written profile_photo field.
 $salt_harness_user_groups = array_values(
 	array_filter(
 		$salt_harness_groups,
@@ -43,8 +43,8 @@ $salt_harness_user_groups = array_values(
 	)
 );
 salt_harness_result(
-	array() === $salt_harness_user_groups && false === acf_get_field( 'field_salt_user_profile_photo' ),
-	'no user profile field (profile_photo is removed)',
+	array( 'group_salt_collection_team' ) === array_column( $salt_harness_user_groups, 'key' ) && false === acf_get_field( 'field_salt_user_profile_photo' ),
+	'team is the only group on the native user edit form',
 	array() === $salt_harness_user_groups ? 'no group located on the user forms' : 'on the user forms: ' . implode( ', ', array_column( $salt_harness_user_groups, 'key' ) )
 );
 

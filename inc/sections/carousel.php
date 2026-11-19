@@ -107,7 +107,7 @@ function salt_resolve_section_carousel( array $context ): ?array {
 				)
 			);
 			if ( null !== $card ) {
-				$card['image'] = (int) get_post_thumbnail_id( $post );
+				$card['image'] = $post instanceof WP_User ? (int) get_user_meta( $post->ID, 'photo', true ) : (int) get_post_thumbnail_id( $post );
 				$cards[]       = $card;
 				$posts[]       = $post;
 			}

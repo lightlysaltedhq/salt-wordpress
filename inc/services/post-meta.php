@@ -156,13 +156,25 @@ function salt_share_links( string $url, string $title, array $services = array()
  * @return WP_Term[]
  */
 function salt_post_topics( int $post_id = 0 ): array {
-	$terms = get_the_category( $post_id );
+	$post_id = $post_id > 0 ? $post_id : (int) get_the_ID();
+	$terms   = get_the_terms( $post_id, 'category' );
 	if ( ! is_array( $terms ) ) {
 		return array();
 	}
 
 	$default_id = (int) get_option( 'default_category' );
-	return array_values( array_filter( $terms, static fn( $term ): bool => $term instanceof WP_Term && $term->term_id !== $default_id ) );
+	$terms      = array_filter( $terms, static fn( $term ): bool => $term instanceof WP_Term && $term->term_id !== $default_id );
+	$primary    = function_exists( 'get_field' ) ? (int) get_field( 'field_salt_collection_posts_primary_topic', $post_id, false ) : 0;
+	usort(
+		$terms,
+		static function ( $a, $b ) use ( $primary ) {
+			if ( $a->term_id === $primary || $b->term_id === $primary ) {
+				return (int) ( $b->term_id === $primary ) <=> (int) ( $a->term_id === $primary );
+			}
+			return strcasecmp( $a->name, $b->name );
+		}
+	);
+	return $terms;
 }
 
 /**
@@ -180,13 +192,6 @@ function salt_post_primary_category( int $post_id = 0 ): ?WP_Term {
 	$topics = salt_post_topics( $post_id );
 	if ( array() === $topics ) {
 		return null;
-	}
-
-	$primary = function_exists( 'get_field' ) ? (int) get_field( 'field_salt_collection_posts_primary_topic', 0 === $post_id ? false : $post_id, false ) : 0;
-	foreach ( $topics as $topic ) {
-		if ( $topic->term_id === $primary ) {
-			return $topic;
-		}
 	}
 
 	return $topics[0];

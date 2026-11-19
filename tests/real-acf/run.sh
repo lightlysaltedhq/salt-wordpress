@@ -189,6 +189,8 @@ export SALT_HARNESS_LOG="$TMP/debug.log"
 export SALT_HARNESS_LOCK="$TMP/view.lock"
 SALT_HARNESS_ADMIN_PASS="$("$PHP" -r 'echo bin2hex(random_bytes(12));')"
 export SALT_HARNESS_ADMIN_PASS
+SALT_HARNESS_EDITOR_PASS="$("$PHP" -r 'echo bin2hex(random_bytes(12));')"
+export SALT_HARNESS_EDITOR_PASS
 export SALT_HARNESS_ACF_VERSION="$ACF_VERSION"
 export SALT_HARNESS_ACF_JSON="$ACF_JSON"
 export SALT_HARNESS_FIXTURES="$REPO/node_modules/@lightlysaltedhq/salt-contract/fixtures"
@@ -280,7 +282,7 @@ phase "collection fields: seed every post type, read back, storage" "$PHP" "$HER
 # case; browser.mjs reports how many variables the form posts against this limit.
 export SALT_HARNESS_MAX_INPUT_VARS="${SALT_HARNESS_MAX_INPUT_VARS:-20000}"
 # A browser save of that page also outlasts the default 30-second max_execution_time.
-PHP_CLI_SERVER_WORKERS=4 "$PHP" -d max_input_vars="$SALT_HARNESS_MAX_INPUT_VARS" -d max_execution_time=600 -S "127.0.0.1:$PORT" -t "$WP" >"$TMP/server.log" 2>&1 &
+PHP_CLI_SERVER_WORKERS=4 "$PHP" -d max_input_vars="$SALT_HARNESS_MAX_INPUT_VARS" -d max_execution_time=600 -S "127.0.0.1:$PORT" -t "$WP" "$HERE/php/router.php" >"$TMP/server.log" 2>&1 &
 SERVER_PID=$!
 for _ in $(seq 1 50); do
 	curl -fs -o /dev/null "$URL/wp-login.php" && break
@@ -288,11 +290,15 @@ for _ in $(seq 1 50); do
 done
 
 phase "single templates over HTTP (the contract's service, case-study and post fixtures)" "$PHP" "$HERE/php/singles.php"
-
 if [ "$BROWSER" = 1 ]; then
 	phase "editor in a real browser (Chromium)" node "$HERE/browser.mjs"
 else
 	PHASES+=("SKIP  editor in a real browser (--no-browser)")
+fi
+# Last: these tests switch the site to pretty permalinks and enable its public sitemap.
+phase "public profiles, native credits, permissions and picker over HTTP" "$PHP" "$HERE/php/profiles.php"
+if [ "$BROWSER" = 1 ] || [ -n "${SALT_HARNESS_SCREENSHOTS:-}" ]; then
+	phase "profile editorial form in Chromium" node "$HERE/profile-screenshots.mjs"
 fi
 fi
 

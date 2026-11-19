@@ -9,7 +9,7 @@
  *        php view.php < <case>.json  (once per case)
  *
  * setup sets the routes the cases' paths take (posts under /journal/, topics
- * under /journal/topic/, authors under /journal/author/), keeps uploads out
+ * under /journal/topic/, public profiles under /team/), keeps uploads out
  * of dated folders, removes WordPress's sample content, adds the site's
  * menus (seed.php) and snapshots the database (db.php snapshot).
  *
@@ -33,8 +33,8 @@
  *    case's `collections` as posts of their types;
  *  - archive: the topic as a category with its description, or the author
  *    as a published team member with the href's slug, the title as name, the
- *    strapline as role, the biography as bio and the photo as featured image
- *    (the theme's provisional mapping, ID-3952); `route.cards` as posts in
+ *    strapline as role, the biography as bio and the photo as user metadata;
+ *    `route.cards` as posts in
  *    it or crediting them;
  *  - search: each result as a document of its kind; not-found: nothing.
  *
@@ -102,7 +102,7 @@ if ( 'setup' === ( $argv[1] ?? '' ) ) {
 	salt_harness_result(
 		'/journal/%postname%/' === get_option( 'permalink_structure' ),
 		'the site is ready for the view and page cases',
-		sprintf( 'posts at %s, topics at %s, authors at %s; database snapshot taken', '/journal/<slug>/', '/journal/topic/<slug>/', '/journal/author/<slug>/' )
+		sprintf( 'posts at %s, topics at %s, profiles at %s; database snapshot taken', '/journal/<slug>/', '/journal/topic/<slug>/', '/team/<slug>/' )
 	);
 	salt_harness_exit();
 }
@@ -205,6 +205,22 @@ function salt_view_collections( array $collections ): void {
 		$group  = $groups[ $collection ];
 		$native = (array) ( $group['salt']['native'] ?? array() );
 		foreach ( array_values( (array) $items ) as $order => $item ) {
+			if ( 'team' === $collection ) {
+				salt_harness_team_member(
+					array(
+						'name'    => $item['name'] ?? $item['title'],
+						'href'    => ( $item['showOnWebsite'] ?? true ) ? ( $item['href'] ?? '/team/' . ( $item['slug'] ?? $item['id'] ) . '/' ) : '',
+						'role'    => $item['role'] ?? $item['meta'] ?? null,
+						'bio'     => $item['bio'] ?? $item['text'] ?? null,
+						'email'   => $item['publicEmail'] ?? $item['email'] ?? null,
+						'phone'   => $item['phone'] ?? null,
+						'socials' => $item['socials'] ?? array(),
+						'photo'   => $item['photo'] ?? $item['image'] ?? null,
+					),
+					$GLOBALS['salt_harness_media']
+				);
+				continue;
+			}
 			$post   = array(
 				'post_type'   => salt_collection_group_post_type( $group ),
 				'post_status' => 'publish',
@@ -318,11 +334,14 @@ switch ( $salt_view_kind ) {
 		if ( 'author' === ( $salt_view_doc['kind'] ?? '' ) ) {
 			$salt_view_member = salt_harness_team_member(
 				array(
-					'name'  => (string) $salt_view_doc['title'],
-					'href'  => (string) ( $salt_view_doc['href'] ?? $salt_view_path ),
-					'role'  => $salt_view_doc['strapline'] ?? null,
-					'bio'   => $salt_view_doc['biography'] ?? null,
-					'photo' => $salt_view_doc['photo'] ?? null,
+					'name'    => (string) $salt_view_doc['title'],
+					'href'    => (string) ( $salt_view_doc['href'] ?? $salt_view_path ),
+					'role'    => $salt_view_doc['strapline'] ?? null,
+					'bio'     => $salt_view_doc['biography'] ?? null,
+					'photo'   => $salt_view_doc['photo'] ?? null,
+					'email'   => $salt_view_doc['email'] ?? null,
+					'phone'   => $salt_view_doc['phone'] ?? null,
+					'socials' => $salt_view_doc['socials'] ?? array(),
 				),
 				$salt_view_media
 			);
@@ -341,7 +360,12 @@ switch ( $salt_view_kind ) {
 		foreach ( (array) ( $salt_view_input['route']['cards'] ?? array() ) as $salt_view_card ) {
 			$salt_view_card_id = salt_view_card( (array) $salt_view_card, $salt_view_media, $salt_view_more );
 			if ( isset( $salt_view_member ) ) {
-				update_field( 'field_salt_collection_posts_author', $salt_view_member, $salt_view_card_id );
+				wp_update_post(
+					array(
+						'ID'          => $salt_view_card_id,
+						'post_author' => $salt_view_member,
+					)
+				);
 			}
 		}
 		break;

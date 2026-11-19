@@ -609,7 +609,7 @@ try {
 				const field = ( n ) => document.querySelector( `.acf-field[data-key="field_salt_collection_posts_${ n }"]` );
 				const box = document.querySelector( '#categorydiv' );
 				return {
-					author: !! field( 'author' ) && ! box?.contains( field( 'author' ) ),
+					author: !! document.querySelector( '#post_author_override' ) && ! field( 'author' ),
 					layout: !! field( 'layout' ),
 					primary: document.querySelectorAll( '.acf-field[data-key="field_salt_collection_posts_primary_topic"]' ).length === 1 && !! box?.contains( field( 'primary_topic' ) ),
 					title: box?.querySelector( '.hndle, h2' )?.textContent.trim(),
@@ -725,7 +725,7 @@ try {
 	// search results may shorten it past 60; past 120 the strong note. A title over 120 saves as a
 	// draft (a post publishes and updates with one in phase 6).
 	{
-		for ( const type of [ 'service', 'work', 'post', 'testimonial', 'team_member', 'faq', 'location' ] ) {
+		for ( const type of [ 'service', 'work', 'post', 'testimonial', 'faq', 'location' ] ) {
 			const search = [ 'service', 'work', 'post' ].includes( type );
 			const { page, errors } = await open( `/wp-admin/post-new.php?post_type=${ type }` );
 			await page.waitForFunction( () => window.saltCharacterCount && document.readyState === 'complete' );
@@ -734,7 +734,7 @@ try {
 			for ( const [ name, n ] of [ [ 'under-60', 40 ], [ 'between-60-and-120', 90 ], [ 'over-120', 125 ] ] ) {
 				await page.fill( '#title', textOf( type, n ) );
 				seen[ name ] = await countOf( page, 'title' );
-				if ( type === 'service' || ( [ 'faq', 'team_member' ].includes( type ) && name !== 'between-60-and-120' ) ) {
+				if ( type === 'service' || ( type === 'faq' && name !== 'between-60-and-120' ) ) {
 					await shot( page, '#titlediv', `title-${ type }-${ name }` );
 				}
 			}

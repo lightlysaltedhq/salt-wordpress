@@ -241,6 +241,23 @@ final class CollectionSectionsTest extends SaltTestCase {
 		);
 	}
 
+	public function test_post_topics_show_the_primary_first_then_names_alphabetically(): void {
+		$GLOBALS['salt_test_post_terms'][5]['category']                              = array_map(
+			static fn( $id, $name ) => new WP_Term(
+				array(
+					'term_id' => $id,
+					'name'    => $name,
+				)
+			),
+			array( 2, 3, 4 ),
+			array( 'Zinnias', 'Soil', 'Compost' )
+		);
+		$GLOBALS['salt_test_fields'][5]['field_salt_collection_posts_primary_topic'] = 3;
+		$this->assertSame( array( 'Soil', 'Compost', 'Zinnias' ), array_column( salt_post_topics( 5 ), 'name' ) );
+		$GLOBALS['salt_test_fields'][5]['field_salt_collection_posts_primary_topic'] = 9;
+		$this->assertSame( array( 'Compost', 'Soil', 'Zinnias' ), array_column( salt_post_topics( 5 ), 'name' ) );
+	}
+
 	public function test_an_index_groups_loose_entries_first_then_each_topic(): void {
 		$cards = array();
 		foreach ( array(

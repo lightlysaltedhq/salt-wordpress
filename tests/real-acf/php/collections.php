@@ -73,6 +73,9 @@ function salt_harness_collection_value( array $field ) {
 	$name = (string) $field['name'];
 	switch ( $field['type'] ) {
 		case 'text':
+			if ( 'slug' === $name ) {
+				return 'harness-person';
+			}
 			$format = $field['salt']['format'] ?? '';
 			if ( 'url' === $format ) {
 				return 'https://www.linkedin.com/in/harness-' . strtolower( $name );
@@ -92,6 +95,9 @@ function salt_harness_collection_value( array $field ) {
 			return floor( $v ) === $v ? (int) $v : $v;
 		case 'select':
 		case 'radio':
+			if ( isset( $field['salt']['postSources'] ) ) {
+				return array( salt_harness_collection_target( 'service' ) );
+			}
 			$keys = array_keys( (array) ( $field['choices'] ?? array() ) );
 			return (string) ( $keys[ count( $keys ) > 1 ? 1 : 0 ] ?? '' );
 		case 'true_false':
@@ -237,7 +243,14 @@ foreach ( $generated as $group ) {
 		continue;
 	}
 
-	$post_id = (int) wp_insert_post(
+	$is_team = 'team' === $collection;
+	$post_id = $is_team ? 'user_' . wp_insert_user(
+		array(
+			'user_login'   => 'harness-person-fixture',
+			'display_name' => 'Harness team',
+			'user_pass'    => wp_generate_password(),
+		)
+	) : (int) wp_insert_post(
 		array(
 			'post_type'   => $post_type,
 			'post_status' => 'publish',
@@ -252,7 +265,7 @@ foreach ( $generated as $group ) {
 		}
 	}
 
-	$meta = array_map( static fn( array $v ): string => (string) $v[0], get_post_meta( $post_id ) );
+	$meta = array_map( static fn( array $v ): string => (string) $v[0], $is_team ? get_user_meta( (int) substr( $post_id, 5 ) ) : get_post_meta( $post_id ) );
 	$stat = array(
 		'paths'  => 0,
 		'leaves' => 0,
@@ -273,6 +286,10 @@ foreach ( $generated as $group ) {
 	$totals['leaves'] += $stat['leaves'];
 	$totals['ok']     += $stat['ok'];
 	$totals['misses'] += count( $stat['misses'] );
+	if ( $is_team ) {
+		salt_harness_result( 'Harness team' === get_userdata( (int) substr( $post_id, 5 ) )->display_name, 'team name is native' );
+		continue;
+	}
 
 	// The places WordPress keeps natively, set the WordPress way and read through the theme.
 	$native = (array) ( $group['salt']['native'] ?? array() );
@@ -307,8 +324,9 @@ foreach ( $generated as $group ) {
 
 // The post fields: author and layout are drawn in the post's field group; primaryTopic only in the
 // Topics box (inc/cpt/post.php), so acf_prepare_field() gives false for it outside the box.
-$post_fields = array();
-foreach ( array( 'field_salt_collection_posts_author', 'field_salt_collection_posts_layout' ) as $key ) {
+$post_fields                  = array();
+$post_fields['native author'] = post_type_supports( 'post', 'author' ) && ! acf_get_field( 'field_salt_collection_posts_author' );
+foreach ( array( 'field_salt_collection_posts_layout' ) as $key ) {
 	$post_fields[ $key ] = is_array( acf_prepare_field( acf_get_field( $key ) ) );
 }
 $post_fields['primaryTopic not in the group'] = false === acf_prepare_field( acf_get_field( SALT_POST_PRIMARY_TOPIC_FIELD ) );

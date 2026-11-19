@@ -179,7 +179,7 @@ salt_harness_single_check(
 		'body bold'       => '<strong>well-rotted</strong>',
 	)
 );
-salt_harness_info( 'author ' . (int) get_field( 'author', $post ) . ' (team member ' . $member . '), primaryTopic ' . (int) get_field( 'primaryTopic', $post ) . '; the WordPress user is never drawn' );
+salt_harness_result( (int) get_post_field( 'post_author', $post ) === $member, 'credit is the native post author' );
 
 // ── Dates follow the site's language (the founder's ruling of 19/11/2026) ────────────────────
 // The site keeps WordPress's stock Date Format setting ("F j, Y"), so the theme takes the
@@ -235,19 +235,18 @@ salt_harness_result(
 );
 
 // ── A published team member's author page answers with no posts (kept) ──────────────────────
-$lonely                              = (int) wp_insert_post(
+$lonely                              = salt_harness_team_member(
 	array(
-		'post_type'   => 'team_member',
-		'post_status' => 'publish',
-		'post_title'  => 'Harness Nobody-Wrote',
-		'post_name'   => 'harness-nobody-wrote',
-	)
+		'name' => 'Harness Nobody-Wrote',
+		'href' => '/team/harness-nobody-wrote/',
+	),
+	array()
 );
-list( $lonely_status, $lonely_body ) = salt_harness_get( salt_team_member_archive_url( get_post( $lonely ) ) );
+list( $lonely_status, $lonely_body ) = salt_harness_get( salt_team_profile_url( $lonely ) );
 salt_harness_result(
-	200 === $lonely_status && str_contains( $lonely_body, 'Harness Nobody-Wrote' ),
+	200 === $lonely_status && str_contains( $lonely_body, 'Harness Nobody-Wrote' ) && ! str_contains( $lonely_body, 'Latest posts' ),
 	'a published team member with no posts has an author page',
-	str_replace( home_url(), '', salt_team_member_archive_url( get_post( $lonely ) ) ) . ' answered ' . $lonely_status
+	str_replace( home_url(), '', salt_team_profile_url( $lonely ) ) . ' answered ' . $lonely_status
 );
 
 // ── Half stars (testimonials.json rating, step 0.5) ──────────────────────────────────────────

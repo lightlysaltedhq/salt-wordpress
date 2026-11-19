@@ -1,7 +1,6 @@
 <?php
 /**
- * WP shims for the team_member slice tests (CPT/taxonomy registration
- * capture + featured-image ID resolution).
+ * Native team user fixtures, plus the shared CPT/taxonomy and image shims.
  *
  * Fixtures:
  * - Registered CPTs land in $GLOBALS['salt_test_post_types'][ $slug ].
@@ -32,6 +31,32 @@ if ( ! function_exists( 'salt_test_cpt_registry_reset' ) ) {
 	}
 }
 salt_test_cpt_registry_reset();
+
+/** Native users in collection fixtures, never WP_Post fixtures. */
+class WP_User {
+	public function __construct( public int $ID, public string $display_name ) {}
+}
+
+function get_user_meta( int $id, string $name, bool $single ) {
+	$value = $GLOBALS['salt_test_fields'][ 'user_' . $id ][ $name ] ?? null;
+	return $single ? ( $value ?? '' ) : ( null === $value ? array() : array( $value ) );
+}
+
+function get_users( array $args ): array {
+	$users = array_values( array_filter( $GLOBALS['salt_test_users'] ?? array(), static fn( $user ) => ( ! isset( $args['meta_key'] ) || (string) get_user_meta( $user->ID, $args['meta_key'], true ) === $args['meta_value'] ) && ( ! isset( $args['include'] ) || in_array( $user->ID, $args['include'], true ) ) ) );
+	usort(
+		$users,
+		static fn( $a, $b ) => match ( $args['orderby'] ) {
+		'include' => array_search( $a->ID, $args['include'], true ) <=> array_search( $b->ID, $args['include'], true ),
+		'display_name' => strcasecmp( $a->display_name, $b->display_name ),
+		default => $a->ID <=> $b->ID,
+		}
+	);
+	if ( 'DESC' === $args['order'] ) {
+		$users = array_reverse( $users );
+	}
+	return $args['number'] > 0 ? array_slice( $users, 0, $args['number'] ) : $users;
+}
 
 if ( ! function_exists( 'register_post_type' ) ) {
 	/**

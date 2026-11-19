@@ -19,7 +19,7 @@ require_once __DIR__ . '/../shims/testimonial.php';
 require_once __DIR__ . '/../shims/faq.php';
 require_once __DIR__ . '/../shims/location.php';
 
-foreach ( array( 'service', 'work', 'team-member', 'testimonial', 'faq', 'location' ) as $salt_cpt_file ) {
+foreach ( array( 'service', 'work', 'testimonial', 'faq', 'location' ) as $salt_cpt_file ) {
 	require_once dirname( __DIR__, 2 ) . '/inc/cpt/' . $salt_cpt_file . '.php';
 }
 require_once dirname( __DIR__, 2 ) . '/inc/fields/collections.php';
@@ -120,7 +120,7 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 	}
 
 	public function test_every_native_place_is_one_the_post_type_has(): void {
-		foreach ( array( 'service', 'work', 'team_member', 'testimonial', 'faq', 'location' ) as $cpt ) {
+		foreach ( array( 'service', 'work', 'testimonial', 'faq', 'location' ) as $cpt ) {
 			call_user_func( 'salt_register_cpt_' . $cpt );
 		}
 		$registered = $GLOBALS['salt_test_cpts'] + $GLOBALS['salt_test_post_types'];

@@ -54,7 +54,6 @@ final class ModulesTest extends SaltTestCase {
 			array(
 				'service'     => 'service',
 				'testimonial' => 'testimonial',
-				'team_member' => 'team_member',
 				'work'        => 'work',
 				'faq'         => 'faq',
 				'location'    => 'location',

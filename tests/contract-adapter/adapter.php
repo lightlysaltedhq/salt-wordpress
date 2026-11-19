@@ -131,7 +131,6 @@ function salt_adapter_post_types(): array {
 	return array(
 		'services'     => 'service',
 		'case-studies' => 'work',
-		'team'         => 'team_member',
 		'testimonials' => 'testimonial',
 		'posts'        => 'post',
 		'faqs'         => 'faq',
@@ -162,6 +161,8 @@ function salt_adapter_contract_json( string $path ): array {
  */
 function salt_adapter_boot(): void {
 	require SALT_ADAPTER_THEME . '/tests/bootstrap.php';
+	// The contract renders same-site links relative to the site root.
+	$GLOBALS['salt_test_schema']['home_url'] = '';
 	foreach ( array( 'acf', 'media', 'blog', 'nav', 'service', 'work', 'team', 'testimonial', 'faq', 'gallery', 'location', 'http', 'terms' ) as $shim ) {
 		require_once SALT_ADAPTER_THEME . '/tests/shims/' . $shim . '.php';
 	}
@@ -172,7 +173,7 @@ function salt_adapter_boot(): void {
 		'/inc/services/display-preferences.php',
 		'/inc/cpt/service.php',
 		'/inc/cpt/work.php',
-		'/inc/cpt/team-member.php',
+		'/inc/services/post-author.php',
 		'/inc/cpt/testimonial.php',
 		'/inc/cpt/faq.php',
 		'/inc/cpt/location.php',
@@ -312,6 +313,21 @@ function salt_adapter_seed_collections( array $collections, array $media ): arra
 		$parts  = salt_adapter_card_parts( (string) $collection );
 		$tax    = function_exists( 'salt_collection_sources' ) ? ( salt_collection_sources()[ (string) $collection ]['taxonomy'] ?? null ) : null;
 		foreach ( array_values( (array) $items ) as $order => $item ) {
+			if ( 'team' === $collection ) {
+				$GLOBALS['salt_test_users'][]                   = new WP_User( $next, (string) ( $item['name'] ?? $item['title'] ) );
+				$GLOBALS['salt_test_fields'][ 'user_' . $next ] = array(
+					'showOnWebsite' => (int) ( $item['showOnWebsite'] ?? true ),
+					'slug'          => $item['slug'] ?? basename( $item['href'] ?? $item['id'] ),
+					'role'          => $item['role'] ?? $item['meta'] ?? '',
+					'bio'           => $item['bio'] ?? $item['text'] ?? '',
+					'publicEmail'   => $item['publicEmail'] ?? $item['email'] ?? '',
+					'phone'         => $item['phone'] ?? '',
+					'socials'       => $item['socials'] ?? array(),
+					'photo'         => $media[ $item['photo'] ?? $item['image'] ?? '' ] ?? 0,
+				);
+				$ids['team'][ $item['id'] ]                     = $next++;
+				continue;
+			}
 			$post = new WP_Post(
 				array(
 					'ID'           => $next,

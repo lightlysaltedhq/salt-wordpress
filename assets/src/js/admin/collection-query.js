@@ -13,12 +13,16 @@ const acf = window.acf;
 if (acf && typeof acf.addFilter === 'function') {
 	acf.addFilter('select2_ajax_data', (data, args, $input, field) => {
 		const key = field && typeof field.get === 'function' ? field.get('key') : '';
-		if (!/_query_categories$/.test(key)) {
+		if (!/_query_(categories|items)$/.test(key)) {
 			return data;
 		}
-		const sourceKey = key.replace(/_query_categories$/, '_source');
+		const sourceKey = key.replace(/_query_(categories|items)$/, '_source');
 		const layout = field.$el.closest('.layout');
 		const select = layout.find(`.acf-field[data-key="${sourceKey}"] select`).first();
 		return { ...data, salt_source: select.val() || '' };
+	});
+	// IDs belong to the selected source. Never reinterpret the old selection after a switch.
+	window.jQuery(document).on('change', '.acf-field[data-key$="_source"] select', function () {
+		window.jQuery(this).closest('.layout').find('.acf-field[data-key$="_query_items"] select').val(null).trigger('change');
 	});
 }

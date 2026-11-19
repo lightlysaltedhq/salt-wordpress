@@ -43,6 +43,20 @@ function salt_post_type_supports(): void {
 }
 add_action( 'init', 'salt_post_type_supports' );
 
+// Core still authorises reassignment on save. Giving credit does not require
+// giving that person the ability to edit posts, or publishing their profile.
+add_filter(
+	'wp_dropdown_users_args',
+	static function ( $query, $args ) {
+		if ( 'post_author_override' === $args['name'] && is_admin() && 'post' === ( get_current_screen()->post_type ?? '' ) && current_user_can( 'edit_others_posts' ) ) {
+			unset( $query['capability'] );
+		}
+		return $query;
+	},
+	10,
+	2
+);
+
 /**
  * Posts' categories as topics: labelled Topics, drawn by the box without
  * its parent control and with the primary topic ('register_taxonomy_args').

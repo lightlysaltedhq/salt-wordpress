@@ -30,7 +30,7 @@ get_header();
 // so this is the bare title; strip_all_tags defends against core's <span> wrap.
 $salt_archive_member = salt_archive_team_member();
 if ( null !== $salt_archive_member ) {
-	$salt_archive_title = (string) $salt_archive_member->post_title;
+	$salt_archive_title = $salt_archive_member->display_name;
 } elseif ( is_home() && ! is_front_page() ) {
 	$salt_posts_page    = (int) get_option( 'page_for_posts' );
 	$salt_archive_title = $salt_posts_page > 0
@@ -42,46 +42,50 @@ if ( null !== $salt_archive_member ) {
 $salt_archive_description = null !== $salt_archive_member ? '' : trim( (string) get_the_archive_description() );
 
 echo '<header class="x-archive-header bg-surface-alt py-14 md:py-20">';
-echo '<div class="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">';
-salt_the_document_h1( $salt_archive_title, 'x-heading text-4xl md:text-5xl font-bold tracking-tight' );
+if ( ! $salt_archive_member ) {
+	echo '<div class="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">';
+}
+salt_the_document_h1( $salt_archive_title, 'x-heading text-4xl md:text-5xl font-bold tracking-tight' . ( $salt_archive_member ? ' mx-auto max-w-5xl px-4' : '' ) );
 if ( '' !== $salt_archive_description ) {
 	echo '<div class="x-archive-description mt-4 max-w-prose text-lg text-ink-muted">' . wp_kses_post( $salt_archive_description ) . '</div>';
 }
+if ( ! $salt_archive_member ) {
+	echo '</div>';
+}
+echo '</header>';
 if ( null !== $salt_archive_member && ! is_paged() ) {
-	$salt_archive_person = array(
-		'role'  => trim( (string) ( function_exists( 'get_field' ) ? get_field( 'field_salt_collection_team_role', $salt_archive_member->ID ) : '' ) ),
-		'bio'   => trim( (string) ( function_exists( 'get_field' ) ? get_field( 'field_salt_collection_team_bio', $salt_archive_member->ID ) : '' ) ),
-		'photo' => (int) get_post_thumbnail_id( $salt_archive_member ),
-	);
-	if ( salt_person_has_profile( $salt_archive_person ) ) {
-		echo '<div class="x-archive-profile mt-6 flex items-start gap-4">';
-		if ( $salt_archive_person['photo'] > 0 ) {
-			echo '<div class="x-archive-portrait size-20 shrink-0 overflow-hidden rounded-full">';
-			salt_component(
-				'image',
-				array(
-					'image_id' => $salt_archive_person['photo'],
-					'alt'      => '', // Stored attachment alt wins (x-image precedence).
-					'classes'  => 'size-full object-cover',
-				)
-			);
+	$salt_archive_person = salt_team_person( $salt_archive_member );
+	$salt_portrait       = salt_image_contract( $salt_archive_person['photo'], salt_image_slot_sizes( 'thumb' ) );
+	$salt_phone_href     = salt_contract_tel( $salt_archive_person['phone'] );
+	if ( $salt_portrait || $salt_archive_person['role'] || $salt_archive_person['bio'] || $salt_archive_person['email'] || $salt_phone_href || $salt_archive_person['profiles'] ) {
+		echo '<div class="salt-archive__profile mx-auto max-w-5xl px-4">';
+		if ( $salt_portrait ) {
+			echo '<div class="salt-archive__portrait">';
+			echo salt_image_contract_html( $salt_portrait ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image renderer escapes attributes.
 			echo '</div>';
 		}
-		echo '<div class="flex flex-col gap-1">';
 		if ( '' !== $salt_archive_person['role'] ) {
-			echo '<p class="x-archive-strapline font-semibold">' . esc_html( $salt_archive_person['role'] ) . '</p>';
+			echo '<p class="salt-archive__strapline">' . esc_html( $salt_archive_person['role'] ) . '</p>';
 		}
 		if ( '' !== $salt_archive_person['bio'] ) {
-			echo '<p class="x-archive-bio max-w-prose text-ink-muted">' . esc_html( $salt_archive_person['bio'] ) . '</p>';
+			echo '<p class="salt-archive__bio">' . esc_html( $salt_archive_person['bio'] ) . '</p>';
 		}
-		echo '</div></div>';
+		salt_component(
+			'person-links',
+			$salt_archive_person + array(
+				'phoneHref'    => $salt_phone_href,
+				'social_label' => salt_contract_labels()['social'],
+			)
+		);
+		echo '</div>';
 	}
 }
-echo '</div>';
-echo '</header>';
 
 if ( have_posts() ) {
 	echo '<div class="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
+	if ( $salt_archive_member ) {
+		echo '<h2>' . esc_html__( 'Latest posts', 'salt' ) . '</h2>';
+	}
 	echo '<div class="x-archive-grid grid gap-6 sm:grid-cols-2 lg:grid-cols-3">';
 	while ( have_posts() ) {
 		the_post();
@@ -90,7 +94,7 @@ if ( have_posts() ) {
 	echo '</div>';
 	the_posts_pagination();
 	echo '</div>';
-} else {
+} elseif ( ! $salt_archive_member ) {
 	get_template_part( 'template-parts/content/none' );
 }
 

@@ -111,28 +111,8 @@ if ( null !== ( $salt_card['text'] ?? null ) ) {
 	echo '<p class="salt-showcase__text">' . esc_html( (string) $salt_card['text'] ) . '</p>';
 }
 
-$salt_email = $salt_card['email'] ?? null;
-$salt_tel   = $salt_card['phoneHref'] ?? null;
-if ( null !== $salt_email || null !== $salt_tel ) {
-	echo '<ul class="salt-showcase__contact" role="list">';
-	if ( null !== $salt_email ) {
-		echo '<li><a class="salt-showcase__contact-link" href="' . esc_url( 'mailto:' . $salt_email ) . '">' . esc_html( (string) $salt_email ) . '</a></li>';
-	}
-	if ( null !== $salt_tel ) {
-		echo '<li><a class="salt-showcase__contact-link" href="' . esc_url( (string) $salt_tel ) . '">' . esc_html( (string) $salt_card['phone'] ) . '</a></li>';
-	}
-	echo '</ul>';
-}
-
-if ( array() !== (array) ( $salt_card['profiles'] ?? array() ) ) {
-	echo '<ul class="salt-showcase__socials" role="list" aria-label="' . esc_attr( $salt_label( 'social' ) ) . '">';
-	foreach ( (array) $salt_card['profiles'] as $salt_profile ) {
-		$salt_glyph = null !== $salt_profile['network'] ? salt_contract_icon( (string) $salt_profile['network'], 'sm', (string) $salt_profile['name'] ) : '';
-		echo '<li><a class="salt-showcase__social-link" href="' . esc_url( (string) $salt_profile['href'] ) . '">';
-		echo '' !== $salt_glyph ? $salt_glyph : '<span>' . esc_html( (string) $salt_profile['name'] ) . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Theme-bundled artwork, attributes escaped.
-		echo '</a></li>';
-	}
-	echo '</ul>';
+if ( ! empty( $salt_card['email'] ) || ! empty( $salt_card['phoneHref'] ) || ! empty( $salt_card['profiles'] ) ) {
+	salt_component( 'person-links', $salt_card + array( 'social_label' => $salt_label( 'social' ) ) );
 }
 
 $salt_results = (array) ( $salt_args['results'] ?? array() );

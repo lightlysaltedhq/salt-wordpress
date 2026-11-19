@@ -1,211 +1,183 @@
 <?php
 /**
- * The credited author: a team member, not a WordPress user (salt-contract
- * rc.7 contract/collections/posts.json `author`, a relationship to team;
- * the founder's rulings of 18/11/2026). The WordPress user who owns a post
- * keeps WordPress's editing rights and is never drawn.
- *
- * The author archive is built by team member. It keeps WordPress's own
- * author address (/<front>/author/<slug>/, or ?author_name=<slug>), so
- * routing stays native, but the slug is a team member's, and the archive
- * lists the published posts whose `author` is that team member. An author
- * address that names no published team member, and a user's (?author=<id>),
- * is not found.
- *
- * Provisional, until the contract says (the open questions of ID-3952):
- * a team member has an archive when it is published; the post's author box
- * and the archive's profile are drawn when the member has a role, a bio or a
- * photo; the archive's strapline is the member's role and its biography the
- * member's bio.
+ * Public team profiles on native users; authorship never depends on publication.
  *
  * @package Salt
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+defined( 'ABSPATH' ) || exit;
 
-/**
- * The query variable that marks a team member's archive (set by
- * salt_team_author_request(), never read from the address).
- */
-const SALT_TEAM_AUTHOR_VAR = 'salt_team_member';
-
-/**
- * A post's credited author, or null when it credits none.
- *
- * The `author` field's team member, unless it is missing, binned or not a
- * team member. A draft or private member is still credited, with no
- * archive.
- *
- * @param int $post_id The post.
- * @return array{id:int,name:string,role:string,bio:string,photo:int,url:string}|null
- */
-function salt_post_credited_author( int $post_id ): ?array {
-	if ( ! function_exists( 'get_field' ) ) {
-		return null;
-	}
-	$member = get_post( (int) get_field( 'field_salt_collection_posts_author', $post_id, false ) );
-	if ( ! $member instanceof WP_Post || 'team_member' !== $member->post_type || in_array( $member->post_status, array( 'trash', 'auto-draft' ), true ) ) {
-		return null;
-	}
-	$name = trim( (string) $member->post_title );
-	if ( '' === $name ) {
-		return null;
-	}
-	return array(
-		'id'    => (int) $member->ID,
-		'name'  => $name,
-		'role'  => trim( (string) get_field( 'field_salt_collection_team_role', $member->ID ) ),
-		'bio'   => trim( (string) get_field( 'field_salt_collection_team_bio', $member->ID ) ),
-		'photo' => (int) get_post_thumbnail_id( $member ),
-		'url'   => salt_team_member_archive_url( $member ),
-	);
-}
-
-/**
- * Whether a person has a profile to draw: a role, a bio or a photo (the
- * post's author box and the author archive's profile).
- *
- * @param array{role:string,bio:string,photo:int} $person The person.
- * @return bool
- */
-function salt_person_has_profile( array $person ): bool {
-	return '' !== $person['role'] || '' !== $person['bio'] || $person['photo'] > 0;
-}
-
-/**
- * A team member's archive address, or '' when it has none (it is not
- * published).
- *
- * @param WP_Post $member The team member.
- * @return string
- */
-function salt_team_member_archive_url( WP_Post $member ): string {
-	global $wp_rewrite;
-	if ( 'team_member' !== $member->post_type || 'publish' !== $member->post_status || '' === $member->post_name ) {
+/** Public URL, or the empty string for a private person. */
+function salt_team_profile_url( int $id ): string {
+	if ( ! salt_module_enabled( 'team_member' ) || ! get_user_meta( $id, 'showOnWebsite', true ) ) {
 		return '';
 	}
-	$link = $wp_rewrite instanceof WP_Rewrite ? (string) $wp_rewrite->get_author_permastruct() : '';
-	if ( '' === $link ) {
-		return add_query_arg( 'author_name', $member->post_name, home_url( '/' ) );
-	}
-	return home_url( user_trailingslashit( str_replace( '%author%', $member->post_name, $link ) ) );
+	$slug = (string) get_user_meta( $id, 'slug', true );
+	return '' === $slug ? '' : home_url( '/team/' . $slug . '/' );
 }
 
-/**
- * The published team member with a slug, or null.
- *
- * @param string $slug The slug.
- * @return WP_Post|null
- */
-function salt_team_member_by_slug( string $slug ): ?WP_Post {
-	if ( '' === $slug || ! post_type_exists( 'team_member' ) ) {
-		return null;
+/** Atomically reserve a slug independently of credentials or subsequent name changes. */
+function salt_team_reserve_slug( string $value, int $id ): string {
+	global $wpdb;
+	$base = sanitize_title( $value );
+	if ( '' === $base ) {
+		$saved = (string) get_user_meta( $id, 'slug', true );
+		$base  = '' !== $saved ? $saved : 'member-' . wp_generate_uuid4();
 	}
-	$found = get_posts(
-		array(
-			'post_type'   => 'team_member',
-			'post_status' => 'publish',
-			'name'        => $slug,
-			'numberposts' => 1,
-		)
+	for ( $suffix = 1; ; ++$suffix ) {
+		$slug = 1 === $suffix ? $base : $base . '-' . $suffix;
+		$key  = 'salt_profile_slug_' . hash( 'sha256', $slug );
+		if ( (int) get_option( $key ) === $id ) {
+			return $slug;
+		}
+		// add_option() upserts on collision. An insert-only unique key cannot be stolen by a concurrent save.
+		$won = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO $wpdb->options (option_name,option_value,autoload) VALUES (%s,%d,'off')", $key, $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Atomic reservation.
+		if ( false === $won ) {
+			return (string) get_user_meta( $id, 'slug', true );
+		}
+		if ( $won ) {
+			wp_cache_delete( 'notoptions', 'options' );
+			return $slug;
+		}
+	}
+}
+
+add_filter(
+	'acf/update_value/key=field_salt_collection_team_slug',
+	static function ( $value, $object_id ) {
+		return preg_match( '/^user_(\d+)$/D', (string) $object_id, $match ) ? salt_team_reserve_slug( (string) $value, (int) $match[1] ) : $value;
+	},
+	10,
+	2
+);
+
+add_filter(
+	'acf/update_value/key=field_salt_collection_team_show_on_website',
+	static function ( $value, $object_id ) {
+		if ( $value && preg_match( '/^user_(\d+)$/D', (string) $object_id, $match ) && ! get_user_meta( (int) $match[1], 'slug', true ) ) {
+			update_field( 'field_salt_collection_team_slug', '', $object_id );
+		}
+		return $value;
+	},
+	10,
+	2
+);
+
+/** Only the public profile fields are read, and only when published. */
+function salt_team_person( WP_User $user ): array {
+	$url = salt_team_profile_url( $user->ID );
+	$get = static fn( $field ) => '' !== $url && function_exists( 'get_field' ) ? get_field( $field, 'user_' . $user->ID ) : null;
+	return array(
+		'id'       => $user->ID,
+		'name'     => $user->display_name,
+		'url'      => $url,
+		'photo'    => (int) $get( 'photo' ),
+		'role'     => (string) $get( 'role' ),
+		'bio'      => (string) $get( 'bio' ),
+		'email'    => (string) $get( 'publicEmail' ),
+		'phone'    => (string) $get( 'phone' ),
+		'profiles' => salt_collection_profiles( $get( 'socials' ), $user->ID ),
 	);
-	return isset( $found[0] ) && $found[0] instanceof WP_Post ? $found[0] : null;
 }
 
-/**
- * Turn an author request into a team member's archive ('request'): the
- * slug names a published team member, or the request is not found.
- *
- * @param array<string,mixed> $query_vars The request's query variables.
- * @return array<string,mixed>
- */
-function salt_team_author_request( array $query_vars ): array {
-	unset( $query_vars[ SALT_TEAM_AUTHOR_VAR ] );
-	if ( is_admin() || ( empty( $query_vars['author_name'] ) && empty( $query_vars['author'] ) ) ) {
-		return $query_vars;
+/** A post's native author, independent of the team tick. */
+function salt_post_credited_author( int $post_id ): ?array {
+	$user = get_userdata( (int) get_post_field( 'post_author', $post_id ) );
+	return $user instanceof WP_User ? salt_team_person( $user ) : null;
+}
+
+/** The public user whose profile is being rendered. */
+function salt_archive_team_member(): ?WP_User {
+	$id = (int) get_query_var( 'salt_profile_id' );
+	return $id && salt_team_profile_url( $id ) ? get_userdata( $id ) : null;
+}
+
+/** Resolve a path, not a caller-supplied public query var; no permalink flush needed on update. */
+function salt_team_author_request( array $vars ): array {
+	if ( is_admin() || isset( $vars['rest_route'] ) ) {
+		return $vars;
 	}
-	$member = empty( $query_vars['author_name'] ) ? null : salt_team_member_by_slug( sanitize_title_for_query( (string) $query_vars['author_name'] ) );
-	unset( $query_vars['author_name'], $query_vars['author'] );
-	if ( null === $member ) {
-		$query_vars['error'] = '404';
-		return $query_vars;
+	$base    = wp_parse_url( home_url( '/team/' ), PHP_URL_PATH );
+	$path    = wp_parse_url( esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ?? '/' ) ), PHP_URL_PATH );
+	$profile = preg_match( '~^' . preg_quote( $base, '~' ) . '([^/]+)(?:/page/([1-9][0-9]*))?/?$~D', (string) $path, $match );
+	if ( ! $profile && ! isset( $vars['author_name'] ) && ! isset( $vars['author'] ) ) {
+		return $vars;
 	}
-	$query_vars[ SALT_TEAM_AUTHOR_VAR ] = (int) $member->ID;
-	return $query_vars;
+	if ( $profile ) {
+		$slug = sanitize_title( $match[1] );
+		$id   = (int) get_option( 'salt_profile_slug_' . hash( 'sha256', $slug ) );
+		if ( get_user_meta( $id, 'slug', true ) !== $slug ) {
+			$id = 0;
+		}
+	} elseif ( is_string( $vars['author_name'] ?? null ) ) {
+		$user = get_user_by( 'slug', (string) $vars['author_name'] );
+		$id   = $user ? $user->ID : (int) get_option( 'salt_profile_slug_' . hash( 'sha256', sanitize_title( $vars['author_name'] ) ) );
+	} else {
+		$id = is_scalar( $vars['author'] ?? null ) ? (int) $vars['author'] : 0;
+	}
+	if ( ! $id || ! is_user_member_of_blog( $id ) || ! salt_team_profile_url( $id ) ) {
+		return array(
+			'error'                => '404',
+			'salt_private_profile' => true,
+		);
+	}
+	return array(
+		'salt_profile_id' => $id,
+		'author'          => $id,
+		'post_type'       => 'post',
+		'post_status'     => 'publish',
+		'paged'           => (int) ( $match[2] ?? 0 ),
+	);
 }
 add_filter( 'request', 'salt_team_author_request' );
 
-/**
- * A team member's archive is an archive of the posts crediting them
- * ('parse_query').
- *
- * @param WP_Query $query The query.
- * @return void
- */
-function salt_team_author_parse_query( $query ): void {
-	$member = (int) $query->get( SALT_TEAM_AUTHOR_VAR );
-	if ( $member <= 0 ) {
-		return;
-	}
-	$query->is_archive = true;
-	$query->is_home    = false;
-	$query->set( 'post_type', 'post' );
-	$query->set(
-		'meta_query',
-		array(
-			array(
-				'key'   => 'author',
-				'value' => (string) $member,
-			),
-		)
-	);
-}
-add_action( 'parse_query', 'salt_team_author_parse_query' );
+/** Keep WordPress's native author loop but never its credential-derived URL. */
+add_action(
+	'template_redirect',
+	static function () {
+		if ( get_query_var( 'salt_private_profile' ) ) {
+			remove_action( 'template_redirect', 'redirect_canonical' );
+			return;
+		}
+		$user = salt_archive_team_member();
+		if ( ! $user ) {
+			return;
+		}
+		$url = salt_team_profile_url( $user->ID );
+		if ( is_paged() ) {
+			$url .= 'page/' . (int) get_query_var( 'paged' ) . '/';
+		}
+		remove_action( 'template_redirect', 'redirect_canonical' );
+		if ( wp_parse_url( $url, PHP_URL_PATH ) !== wp_parse_url( esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) ), PHP_URL_PATH ) ) {
+			wp_safe_redirect( $url, 301 );
+			exit;
+		}
+		add_action(
+			'wp_head',
+			static function () use ( $url ) {
+				echo '<link rel="canonical" href="' . esc_url( $url ) . '" />' . "\n";
+			}
+		);
+	},
+	1
+);
 
-/**
- * A team member's archive with no posts is still found, on its first page
- * ('pre_handle_404'), as WordPress keeps a user's.
- *
- * @param bool     $preempt Whether to skip WordPress's 404 handling.
- * @param WP_Query $query   The main query.
- * @return bool
- */
-function salt_team_author_keep_empty_archive( $preempt, $query ): bool {
-	if ( $query instanceof WP_Query && (int) $query->get( SALT_TEAM_AUTHOR_VAR ) > 0 && ! $query->is_404() && ! $query->is_paged() ) {
-		return true;
+add_filter( 'author_link', static fn( $link, $id ) => salt_team_profile_url( (int) $id ), 10, 2 );
+add_filter(
+	'body_class',
+	static function ( $classes ) {
+		return salt_archive_team_member() ? array_filter( $classes, static fn( $name ) => ! str_starts_with( $name, 'author-' ) ) : $classes;
 	}
-	return (bool) $preempt;
-}
-add_filter( 'pre_handle_404', 'salt_team_author_keep_empty_archive', 10, 2 );
-
-/**
- * The team member whose archive this is, or null.
- *
- * @return WP_Post|null
- */
-function salt_archive_team_member(): ?WP_Post {
-	global $wp_query;
-	if ( ! $wp_query instanceof WP_Query ) {
-		return null;
+);
+add_filter(
+	'wp_sitemaps_users_query_args',
+	static function ( $args ) {
+		unset( $args['has_published_posts'] );
+		$args['meta_key']   = 'showOnWebsite';
+		$args['meta_value'] = '1';
+		if ( ! salt_module_enabled( 'team_member' ) ) {
+			$args['include'] = array( 0 );
+		}
+		return $args;
 	}
-	$member = get_post( (int) $wp_query->get( SALT_TEAM_AUTHOR_VAR ) );
-	return $member instanceof WP_Post && 'team_member' === $member->post_type ? $member : null;
-}
-
-/**
- * The team member's name as the archive's document title
- * ('document_title_parts').
- *
- * @param array<string,string> $parts The title's parts.
- * @return array<string,string>
- */
-function salt_team_author_document_title( array $parts ): array {
-	$member = salt_archive_team_member();
-	if ( null !== $member ) {
-		$parts['title'] = (string) $member->post_title;
-	}
-	return $parts;
-}
-add_filter( 'document_title_parts', 'salt_team_author_document_title' );
+);

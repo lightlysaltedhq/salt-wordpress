@@ -69,7 +69,7 @@ final class FieldChecksTest extends SaltTestCase {
 
 	#[DataProvider( 'email_provider' )]
 	public function test_the_email_format( string $value, bool $valid ): void {
-		$field  = self::field( 'field_salt_collection_team_email' );
+		$field  = self::field( 'field_salt_collection_team_public_email' );
 		$result = salt_validate_contract_value( true, $value, $field );
 
 		$this->assertSame( 'email', $field['salt']['format'] );

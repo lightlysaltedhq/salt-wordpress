@@ -49,10 +49,10 @@ function salt_collection_sources(): array {
 			'linked'    => true,
 		),
 		'team'         => array(
-			'post_type' => 'team_member',
+			'post_type' => null,
 			'taxonomy'  => null,
 			'module'    => 'team_member',
-			'linked'    => false,
+			'linked'    => true,
 		),
 	);
 }
@@ -200,7 +200,7 @@ function salt_contract_tel( string $phone ): ?string {
  * @return array<int,array{id: string, title: string}>
  */
 function salt_collection_tags( WP_Post $post, string $taxonomy ): array {
-	$terms   = get_the_terms( $post, $taxonomy );
+	$terms   = 'category' === $taxonomy ? salt_post_topics( $post->ID ) : get_the_terms( $post, $taxonomy );
 	$default = 'category' === $taxonomy ? (int) get_option( 'default_category' ) : 0;
 	$tags    = array();
 	foreach ( is_array( $terms ) ? $terms : array() as $term ) {
@@ -227,9 +227,13 @@ function salt_collection_tags( WP_Post $post, string $taxonomy ): array {
  *                                     slot's sizes, '' for no image).
  * @return array<string,mixed>|null
  */
-function salt_collection_card( WP_Post $post, string $source, array $options ): ?array {
-	$id    = (int) $post->ID;
-	$title = trim( (string) $post->post_title );
+function salt_collection_card( WP_Post|WP_User $post, string $source, array $options ): ?array {
+	$id     = (int) $post->ID;
+	$person = $post instanceof WP_User ? salt_team_person( $post ) : null;
+	if ( 'team' === $source && empty( $person['url'] ) ) {
+		return null;
+	}
+	$title = trim( (string) ( $person['name'] ?? $post->post_title ) );
 	if ( '' === $title ) {
 		salt_log( sprintf( 'collection card: %s item %d has no title — skipped.', $source, $id ) );
 		return null;
@@ -241,11 +245,11 @@ function salt_collection_card( WP_Post $post, string $source, array $options ): 
 	$card = array(
 		'id'        => (string) $id,
 		'title'     => $title,
-		'href'      => salt_collection_sources()[ $source ]['linked'] ? (string) get_the_permalink( $post ) : null,
-		'image'     => '' !== $sizes ? salt_image_contract( (int) get_post_thumbnail_id( $post ), $sizes ) : null,
+		'href'      => $person['url'] ?? ( salt_collection_sources()[ $source ]['linked'] ? (string) get_the_permalink( $post ) : null ),
+		'image'     => '' !== $sizes ? salt_image_contract( $person['photo'] ?? (int) get_post_thumbnail_id( $post ), $sizes ) : null,
 		'icon'      => null,
 		'meta'      => null,
-		'text'      => $text( salt_post_summary( $post ) ),
+		'text'      => $text( $person['bio'] ?? salt_post_summary( $post ) ),
 		'date'      => null,
 		'rating'    => null,
 		'email'     => null,
@@ -270,13 +274,12 @@ function salt_collection_card( WP_Post $post, string $source, array $options ): 
 			$card['date'] = is_string( $date ) && '' !== $date ? $date : null;
 			break;
 		case 'team':
-			$phone             = $text( get_field( 'phone', $id ) );
-			$card['meta']      = $text( get_field( 'role', $id ) );
-			$card['text']      = $text( get_field( 'bio', $id ) );
-			$card['email']     = $text( get_field( 'email', $id ) );
+			$phone             = $text( $person['phone'] );
+			$card['meta']      = $text( $person['role'] );
+			$card['email']     = $text( $person['email'] );
 			$card['phone']     = $phone;
 			$card['phoneHref'] = null === $phone ? null : salt_contract_tel( $phone );
-			$card['profiles']  = salt_collection_profiles( get_field( 'socials', $id ), $id );
+			$card['profiles']  = $person['profiles'];
 			break;
 		case 'testimonials':
 			$quote = $text( get_field( 'quote', $id ) );
@@ -329,14 +332,35 @@ function salt_collection_profiles( $rows, int $id ): array {
 }
 
 /**
- * The posts a section's collection query picks for a source (the row's
- * `query` group, through salt_resolve_query()).
+ * The items a section's collection query picks for a source. A team
+ * selection uses the user ID namespace, never post IDs.
  *
  * @param string $source Contract source id.
- * @return WP_Post[]
+ * @return WP_Post[]|WP_User[]
  */
 function salt_collection_query( string $source ): array {
-	return salt_resolve_query( salt_query_controls_from_query(), salt_collection_sources()[ $source ]['post_type'] );
+	$controls = salt_query_controls_from_query();
+	if ( 'manual' === $controls['source'] && empty( $controls['manual'] ) ) {
+		return array();
+	}
+	if ( 'team' !== $source ) {
+		return salt_resolve_query( $controls, salt_collection_sources()[ $source ]['post_type'] );
+	}
+	$args = array(
+		'meta_key'   => 'showOnWebsite',
+		'meta_value' => '1',
+		'orderby'    => 'title' === ( $controls['orderby'] ?? '' ) ? 'display_name' : 'ID',
+		'order'      => 'ASC',
+		'number'     => $controls['count'] ?? 0,
+	);
+	if ( 'manual' === $controls['source'] ) {
+		$args['include'] = $controls['manual'];
+		$args['orderby'] = 'include';
+	} elseif ( 'date' === ( $controls['orderby'] ?? '' ) ) {
+		$args['orderby'] = 'registered';
+		$args['order']   = 'DESC';
+	}
+	return get_users( $args );
 }
 
 /**

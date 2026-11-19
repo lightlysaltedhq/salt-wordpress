@@ -884,7 +884,7 @@ if ( ! function_exists( 'home_url' ) ) {
 	 * @return string
 	 */
 	function home_url( string $path = '' ): string {
-		return 'https://example.test' . $path;
+		return ( $GLOBALS['salt_test_schema']['home_url'] ?? 'https://example.test' ) . $path;
 	}
 }
 

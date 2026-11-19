@@ -8,6 +8,10 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
+### Breaking: native team profiles (salt-contract rc.8)
+
+Team is no longer a `team_member` post type. Publish a native user's profile in **Tools → Team profiles**; this never grants account privileges. The public address is `/team/{slug}/`. Only the separate public email field is shown. Posts credit `post_author`, not the removed ACF `author` relationship. Before upgrading a populated site, map former team records and manual selections to the intended users, set their public slugs, and verify native post authors. Old post IDs are not user IDs; no automatic account creation or data migration runs.
+
 ### Added
 
 - **Collection showcase and carousel, to salt-contract 1.0.0-rc.7 (ID-3600,

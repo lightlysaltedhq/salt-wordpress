@@ -418,32 +418,37 @@ function salt_harness_seed_case_study( array $input ): int {
 
 /**
  * A person (`{ name, href?, role, bio, photo }`, contract/collections/
- * _person.json) as a team member: name the title, role and bio its fields,
- * photo its featured image. With an href it is published under the href's
- * last segment, so its archive is that address; without one it is a draft,
- * credited with no archive (the theme's provisional rule, ID-3952).
+ * _person.json) as a native user. An href publishes the profile at its
+ * public slug; the login and account email are unrelated fixture values.
  *
  * @param array<string,mixed> $person The person.
  * @param array<string,mixed> $media  The case's media.
- * @return int Post ID.
+ * @return int User ID.
  */
 function salt_harness_team_member( array $person, array $media ): int {
 	$href   = (string) ( $person['href'] ?? '' );
-	$member = (int) wp_insert_post(
+	$member = wp_insert_user(
 		array(
-			'post_type'   => 'team_member',
-			'post_status' => '' !== $href ? 'publish' : 'draft',
-			'post_title'  => (string) $person['name'],
-			'post_name'   => '' !== $href ? salt_harness_slug( $href ) : '',
+			'user_login'   => 'harness-' . wp_generate_uuid4(),
+			'user_pass'    => wp_generate_password(),
+			'user_email'   => wp_generate_uuid4() . '@private.example.test',
+			'display_name' => (string) $person['name'],
+			'role'         => 'subscriber',
 		)
 	);
-	foreach ( array( 'role', 'bio' ) as $name ) {
+	$object = 'user_' . $member;
+	update_field( 'field_salt_collection_team_slug', salt_harness_slug( $href ), $object );
+	update_field( 'field_salt_collection_team_show_on_website', '' !== $href, $object );
+	foreach ( array( 'role', 'bio', 'phone', 'socials' ) as $name ) {
 		if ( isset( $person[ $name ] ) ) {
-			update_field( 'field_salt_collection_team_' . $name, (string) $person[ $name ], $member );
+			update_field( 'field_salt_collection_team_' . $name, $person[ $name ], $object );
 		}
 	}
+	if ( isset( $person['email'] ) ) {
+		update_field( 'field_salt_collection_team_public_email', $person['email'], $object );
+	}
 	if ( isset( $person['photo'] ) ) {
-		set_post_thumbnail( $member, salt_harness_single_image( (string) $person['photo'], $media ) );
+		update_field( 'field_salt_collection_team_photo', salt_harness_single_image( (string) $person['photo'], $media ), $object );
 	}
 	return $member;
 }
@@ -453,9 +458,7 @@ function salt_harness_team_member( array $person, array $media ): int {
  * receives it): title, date (published at 09:00), topics and category
  * (categories, and the category as primaryTopic), featuredImage, the body
  * as the layout's first row (a rich-text section that is prose alone), and
- * the credited author as a team member in the `author` field
- * (salt_harness_team_member()). The WordPress author is the site's first
- * user, which the theme never draws. Its slug is its href's last segment.
+ * the credited author as the native post_author (salt_harness_team_member()).
  *
  * @param array<string,mixed> $input The case.
  * @return array{id:int,member:int,topics:int[],primary:int}
@@ -495,7 +498,12 @@ function salt_harness_seed_post( array $input ): array {
 	$member = 0;
 	if ( isset( $doc['author']['name'] ) ) {
 		$member = salt_harness_team_member( (array) $doc['author'], $media );
-		update_field( 'field_salt_collection_posts_author', $member, $post );
+		wp_update_post(
+			array(
+				'ID'          => $post,
+				'post_author' => $member,
+			)
+		);
 	}
 	if ( $primary > 0 ) {
 		update_field( SALT_POST_PRIMARY_TOPIC_FIELD, $primary, $post );

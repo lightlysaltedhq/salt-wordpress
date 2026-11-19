@@ -38,11 +38,6 @@ if ( ! function_exists( 'salt_query_default_args' ) ) {
 				'order'   => 'ASC',
 				'count'   => -1,
 			),
-			'team_member' => array(
-				'orderby' => 'menu_order',
-				'order'   => 'ASC',
-				'count'   => -1,
-			),
 			'faq'         => array(
 				'orderby' => 'menu_order',
 				'order'   => 'ASC',

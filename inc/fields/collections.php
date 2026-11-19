@@ -3,7 +3,7 @@
  * The collection field groups, generated from salt-contract.
  *
  * One group per collection the theme registers (services, case studies,
- * testimonials, posts, team, FAQs, locations), located on its post type,
+ * testimonials, posts, team, FAQs, locations), located on its post type or user form,
  * exactly as inc/fields/generated/collections.json holds it
  * (salt_generated_collection_groups()). A group whose post type belongs to
  * a module that is switched off is not registered (§10b). What WordPress
@@ -11,7 +11,7 @@
  * categories and date) has no field here: each group names it under
  * `salt.native`, and the readers take it from WordPress.
  *
- * The options pages and the user profile group stay hand-written.
+ * The options pages stay hand-written.
  *
  * @package Salt
  */
@@ -29,7 +29,7 @@ function salt_register_collection_fields(): void {
 	$modules = array_flip( salt_module_cpts() );
 
 	foreach ( salt_generated_collection_groups() as $group ) {
-		$module = $modules[ salt_collection_group_post_type( $group ) ] ?? null;
+		$module = 'team' === $group['salt']['collection'] ? 'team_member' : ( $modules[ salt_collection_group_post_type( $group ) ] ?? null );
 		if ( null !== $module && ! salt_module_enabled( $module ) ) {
 			continue;
 		}

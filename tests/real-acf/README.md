@@ -71,10 +71,10 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    has the salt theme active (symlinked to this checkout), ACF Pro activated, `WP_DEBUG_LOG` on
    and outbound HTTP blocked.
 2. **The theme's own groups.** It loads every field group the theme registers through ACF. That
-   is 23 groups, none of them on the user forms (the `profile_photo` user field is removed).
+   includes one group on the user edit form: team (no old `profile_photo` field).
    The page sections group holds the 14 layouts generated from the contract
    (`inc/fields/generated/sections.json`); none is hand-written since unit 8. The 7
-   collection groups, one per post type, are generated too (`inc/fields/generated/collections.json`).
+   collection groups are generated too (`inc/fields/generated/collections.json`).
    Any PHP notice, warning, deprecation or `salt_log` line in `debug.log` fails the phase. This
    applies to every phase.
 3. **The contract's field shape.** `emit.mjs` writes `acfSnapshot()` from the theme's pinned
@@ -102,13 +102,12 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    band, and the page must have one H1.
 5. **The collection fields.** `php/collections.php` checks that the theme registers the 7
    collection groups verbatim from `inc/fields/generated/collections.json`, each located on its
-   post type (services on `service`, case studies on `work`, testimonials, posts, team on
-   `team_member`, faqs and locations). It makes a post of each type and seeds a value for every
+   native object: six post types and the team user form. It creates each object and seeds every
    generated field through `update_field()`, including a post's layout with a row of every section
    it offers. Each value is read back with `get_field()` and compared, and every meta path must
    carry its field key. The places WordPress keeps natively (`salt.native`: the title, the
    excerpt, the body and the featured image) are set the WordPress way and read back through the
-   theme's own readers. A post's `author` and `layout` must be drawn in its group and
+   theme's own readers. Posts keep the native Author control; `layout` is drawn in its group and
    `primaryTopic` only in the Topics box; posts must have no classic editor and no Tags box, and
    their categories must be labelled Topics. Every topic, posts' categories included, must be
    stored flat, whatever parent is asked for on insert or update.
@@ -118,7 +117,7 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    each `document` value goes to its native place or, through `update_field()`, to its generated
    field; named media become attachments with the fixture's alt text, and related or listed
    services become services. The post's body is its `layout`'s first row (prose), its author a
-   team member published under the author's href slug (`seed.php`, `salt_harness_team_member()`),
+   native user with a profile under the author's href slug (`seed.php`, `salt_harness_team_member()`),
    and its category its `primaryTopic`. Fields are seeded by key: `update_field()` looks a name up
    loosely, and the page gallery's `layout` select shares the post's `layout` name. It requests
    `single-service.php`, `single-work.php` and `single-post.php` and checks each answers 200 and
@@ -167,7 +166,13 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
 
    With `SALT_HARNESS_SCREENSHOTS` set to a directory, this phase saves pictures of the counts
    there.
-8. Prints a summary, drops the database and removes the temporary directory, whether the run
+8. **Native profiles and credits.** With pretty permalinks, `php/profiles.php` requests the
+   public profile, redirects, sitemap, manual Index, automatic team cards and both bylines over
+   HTTP. Real editor and subscriber sessions exercise the allowlisted form handler and ACF's
+   items search. The browser signs in as an Editor, saves a role, and checks it on the public page.
+   Set `SALT_HARNESS_SCREENSHOTS` to an existing directory for pictures of those views; setting it
+   with `--no-browser` runs just the focused profile browser check, not the full classic editor suite.
+9. Prints a summary, drops the database and removes the temporary directory, whether the run
    passed, failed or was interrupted.
 
 ## Reading the re-save diff

@@ -6,12 +6,9 @@
  *
  * The body is the post's layout (salt_the_post_layout()): prose in the
  * reading column, every other section as a band. The badge is the primary
- * topic, and the tags are the post's other topics, never "Uncategorised"
- * (salt_post_topics()). The byline and the author box are the credited
- * team member (salt_post_credited_author()), never the WordPress user, and
- * the photo is the member's featured image, drawn only when there is one
- * (no Gravatar; salt-contract 1.0.0-rc.7 collections/team.json). A post
- * crediting no one draws no byline and no author box.
+ * topic, and the tags are its topics, primary first then A–Z. The native
+ * author is credited whether or not they publish a profile. An unticked
+ * author has plain text credit: no author box, profile link or Gravatar.
  *
  * @package Salt
  */
@@ -181,7 +178,7 @@ while ( have_posts() ) {
 	echo '</div>';
 
 	// Author box: the credited team member, when they have a profile to show.
-	if ( null !== $salt_author && salt_person_has_profile( $salt_author ) ) {
+	if ( null !== $salt_author && '' !== $salt_author['url'] ) {
 		salt_component(
 			'author-box',
 			array(
