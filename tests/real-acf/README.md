@@ -71,7 +71,8 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    has the salt theme active (symlinked to this checkout), ACF Pro activated, `WP_DEBUG_LOG` on
    and outbound HTTP blocked.
 2. **The theme's own groups.** It loads every field group the theme registers through ACF. That
-   is 24 groups. The page sections group holds the 14 layouts generated from the contract
+   is 23 groups, none of them on the user forms (the `profile_photo` user field is removed).
+   The page sections group holds the 14 layouts generated from the contract
    (`inc/fields/generated/sections.json`); none is hand-written since unit 8. The 7
    collection groups, one per post type, are generated too (`inc/fields/generated/collections.json`).
    Any PHP notice, warning, deprecation or `salt_log` line in `debug.log` fails the phase. This
@@ -123,8 +124,11 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    `single-service.php`, `single-work.php` and `single-post.php` and checks each answers 200 and
    draws every seeded value the template draws: for the post, the primary topic as the badge and
    the team member's name, role and photo.
-   It also checks the service intro runs no shortcode or embed, and that a testimonial rated 4.5
-   draws 90% of five stars on a page. Known fixture mismatch, pending the contract's EP-70
+   It also checks the post's date follows the site's language ("12 March 2026" on en-GB, "March
+   12, 2026" on en-US) on the post, its topic's archive and a search; that the "Uncategorised"
+   archive answers 404 while a topic's archive answers 200; that a published team member with no
+   posts has an author page; that the service intro runs no shortcode or embed; and that a
+   testimonial rated 4.5 draws 90% of five stars on a page. Known fixture mismatch, pending the contract's EP-70
    correction: rc.7's service intro holds an `<h3>` its own list does not allow, so the intro's
    heading is stripped to text; the phase checks the intro's two paragraphs and that no `<h2>` or
    `<h3>` comes from it, not the heading. This is a smoke render, not conformance: the view cases'

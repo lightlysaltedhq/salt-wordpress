@@ -35,6 +35,19 @@ salt_harness_result(
 );
 salt_harness_info( implode( '; ', $salt_harness_lines ) );
 
+// The profile_photo user field is gone (the founder's ruling of 19/11/2026): no group on the user forms.
+$salt_harness_user_groups = array_values(
+	array_filter(
+		$salt_harness_groups,
+		static fn( array $group ): bool => str_contains( (string) wp_json_encode( $group['location'] ?? array() ), '"user_form"' )
+	)
+);
+salt_harness_result(
+	array() === $salt_harness_user_groups && false === acf_get_field( 'field_salt_user_profile_photo' ),
+	'no user profile field (profile_photo is removed)',
+	array() === $salt_harness_user_groups ? 'no group located on the user forms' : 'on the user forms: ' . implode( ', ', array_column( $salt_harness_user_groups, 'key' ) )
+);
+
 $salt_harness_container = acf_get_field( 'field_salt_sections_container' );
 $salt_harness_files     = glob( get_template_directory() . '/inc/fields/layouts/*.php' );
 $salt_harness_generated = salt_generated_sections_group();

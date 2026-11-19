@@ -15,10 +15,13 @@
  * and draws every seeded value the template draws. PHP diagnostics on the
  * server are caught by run.sh's debug.log check, as in every phase.
  *
- * Also over HTTP: a service whose body holds a shortcode and a video address
- * (the intro runs no the_content filter), and a page whose testimonials
- * showcase holds a 4.5 rating (the half star; labels.rating then
- * "{n} of {N}", markup/card.json).
+ * Also over HTTP: the post's date in the site's language (en-GB "12 March
+ * 2026", en-US "March 12, 2026") on the post, its topic's archive and a
+ * search; the "Uncategorised" archive answering 404; a published team member
+ * with no posts having an author page; a service whose body holds a
+ * shortcode and a video address (the intro runs no the_content filter), and
+ * a page whose testimonials showcase holds a 4.5 rating (the half star;
+ * labels.rating then "{n} of {N}", markup/card.json).
  *
  * @package Salt\Tests\RealAcf
  */
@@ -181,6 +184,75 @@ salt_harness_single_check(
 	)
 );
 salt_harness_info( 'author ' . (int) get_field( 'author', $post ) . ' (team member ' . $member . '), primaryTopic ' . (int) get_field( 'primaryTopic', $post ) . '; the WordPress user is never drawn' );
+
+// ── Dates follow the site's language (the founder's ruling of 19/11/2026) ────────────────────
+// The site keeps WordPress's stock Date Format setting ("F j, Y"), so the theme takes the
+// language's long date (salt_date_format()): on the post, its topic's archive and a search.
+global $wpdb;
+update_option( 'WPLANG', '' ); // Makes sure the row exists.
+$day     = date_create_immutable( $doc['date'] . ' 09:00:00', wp_timezone() );
+$archive = (string) get_term_link( (int) get_field( 'primaryTopic', $post ), 'category' );
+$search  = add_query_arg( 's', rawurlencode( (string) $doc['title'] ), home_url( '/' ) );
+foreach ( array(
+	'en_GB' => $day->format( 'j F Y' ),
+	''      => $day->format( 'F j, Y' ),
+) as $salt_harness_locale => $salt_harness_text ) {
+	// update_option() refuses a language with no installed pack, and the harness cannot download
+	// one, so the row is written as-is: get_locale() then reads it, and the theme takes the long
+	// date from PHP intl (with the pack, WordPress's own en_GB format, "j F Y", says the same).
+	$wpdb->update( $wpdb->options, array( 'option_value' => $salt_harness_locale ), array( 'option_name' => 'WPLANG' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The harness's own throwaway site.
+	wp_cache_delete( 'alloptions', 'options' );
+	$drawn = array();
+	foreach ( array(
+		'the post'          => (string) get_permalink( $post ),
+		'its topic archive' => $archive,
+		'a search'          => $search,
+	) as $where => $address ) {
+		list( $status, $body ) = salt_harness_get( $address );
+		$drawn[ $where ]       = 200 === $status && str_contains( $body, '>' . $salt_harness_text . '</time>' );
+	}
+	salt_harness_result(
+		! in_array( false, $drawn, true ),
+		sprintf( 'an %s site draws the post\'s date as "%s"', '' === $salt_harness_locale ? 'en-US' : 'en-GB', $salt_harness_text ),
+		implode( '; ', array_map( static fn( string $where, bool $ok ): string => $where . ( $ok ? ' draws it' : ' DOES NOT' ), array_keys( $drawn ), $drawn ) )
+	);
+}
+$wpdb->update( $wpdb->options, array( 'option_value' => '' ), array( 'option_name' => 'WPLANG' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- As above.
+wp_cache_delete( 'alloptions', 'options' );
+
+// ── The built-in "Uncategorised" topic's archive is not found (the founder's ruling) ─────────
+$default                = (int) get_option( 'default_category' );
+$filed                  = (int) wp_insert_post(
+	array(
+		'post_type'     => 'post',
+		'post_status'   => 'publish',
+		'post_title'    => 'Harness: filed under the default category',
+		'post_category' => array( $default ),
+	)
+);
+list( $default_status ) = salt_harness_get( (string) get_term_link( $default, 'category' ) );
+list( $topic_status )   = salt_harness_get( $archive );
+salt_harness_result(
+	404 === $default_status && 200 === $topic_status && $filed > 0,
+	'the "Uncategorised" archive answers 404 and a topic\'s archive 200',
+	sprintf( '%s answered %d, with a post in it; %s answered %d', str_replace( home_url(), '', (string) get_term_link( $default, 'category' ) ), $default_status, str_replace( home_url(), '', $archive ), $topic_status )
+);
+
+// ── A published team member's author page answers with no posts (kept) ──────────────────────
+$lonely                              = (int) wp_insert_post(
+	array(
+		'post_type'   => 'team_member',
+		'post_status' => 'publish',
+		'post_title'  => 'Harness Nobody-Wrote',
+		'post_name'   => 'harness-nobody-wrote',
+	)
+);
+list( $lonely_status, $lonely_body ) = salt_harness_get( salt_team_member_archive_url( get_post( $lonely ) ) );
+salt_harness_result(
+	200 === $lonely_status && str_contains( $lonely_body, 'Harness Nobody-Wrote' ),
+	'a published team member with no posts has an author page',
+	str_replace( home_url(), '', salt_team_member_archive_url( get_post( $lonely ) ) ) . ' answered ' . $lonely_status
+);
 
 // ── Half stars (testimonials.json rating, step 0.5) ──────────────────────────────────────────
 $testimonial = (int) wp_insert_post(
