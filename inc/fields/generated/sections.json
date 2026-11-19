@@ -1465,7 +1465,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_features_columns",
@@ -1797,7 +1799,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_stats_columns",
@@ -2112,7 +2116,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_logos_columns",
@@ -2402,7 +2408,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_gallery_layout",
@@ -2711,7 +2719,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_process_layout",
@@ -3114,7 +3124,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_faq_query",
@@ -3482,7 +3494,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_collection_showcase_source",
@@ -3641,7 +3655,7 @@
                     "key": "field_salt_collection_showcase_query_items",
                     "label": "Items",
                     "name": "items",
-                    "type": "relationship",
+                    "type": "select",
                     "conditional_logic": [
                       [
                         {
@@ -3651,17 +3665,21 @@
                         }
                       ]
                     ],
-                    "return_format": "id",
-                    "filters": [
-                      "search"
-                    ],
-                    "post_type": [
-                      "service",
-                      "work",
-                      "testimonial",
-                      "post",
-                      "team_member"
-                    ]
+                    "return_format": "value",
+                    "multiple": 1,
+                    "ui": 1,
+                    "ajax": 1,
+                    "choices": {},
+                    "salt": {
+                      "sourceField": "source",
+                      "postSources": {
+                        "services": "service",
+                        "case-studies": "work",
+                        "testimonials": "testimonial",
+                        "posts": "post"
+                      },
+                      "userTick": "showOnWebsite"
+                    }
                   },
                   {
                     "key": "field_salt_collection_showcase_query_order",
@@ -3720,7 +3738,8 @@
                   }
                 ],
                 "salt": {
-                  "sourceField": "source"
+                  "sourceField": "source",
+                  "userTick": "showOnWebsite"
                 }
               },
               {
@@ -3996,7 +4015,7 @@
                 "label": "Link to the full list",
                 "name": "viewAll",
                 "type": "true_false",
-                "instructions": "Shown only where the collection has an index page. Sections never paginate.",
+                "instructions": "Shown only where the collection has an index page; team has none. Sections never paginate.",
                 "ui": 1,
                 "default_value": 1
               },
@@ -4249,7 +4268,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_carousel_label",
@@ -4492,7 +4513,7 @@
                     "key": "field_salt_carousel_query_items",
                     "label": "Items",
                     "name": "items",
-                    "type": "relationship",
+                    "type": "select",
                     "conditional_logic": [
                       [
                         {
@@ -4502,17 +4523,21 @@
                         }
                       ]
                     ],
-                    "return_format": "id",
-                    "filters": [
-                      "search"
-                    ],
-                    "post_type": [
-                      "service",
-                      "work",
-                      "testimonial",
-                      "post",
-                      "team_member"
-                    ]
+                    "return_format": "value",
+                    "multiple": 1,
+                    "ui": 1,
+                    "ajax": 1,
+                    "choices": {},
+                    "salt": {
+                      "sourceField": "source",
+                      "postSources": {
+                        "services": "service",
+                        "case-studies": "work",
+                        "testimonials": "testimonial",
+                        "posts": "post"
+                      },
+                      "userTick": "showOnWebsite"
+                    }
                   },
                   {
                     "key": "field_salt_carousel_query_order",
@@ -4571,7 +4596,8 @@
                   }
                 ],
                 "salt": {
-                  "sourceField": "source"
+                  "sourceField": "source",
+                  "userTick": "showOnWebsite"
                 }
               },
               {
@@ -4832,7 +4858,9 @@
                 "name": "intro",
                 "type": "textarea",
                 "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
-                "maxlength": 300
+                "salt": {
+                  "target": 300
+                }
               },
               {
                 "key": "field_salt_contact_show_phone",
