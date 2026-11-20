@@ -79,6 +79,14 @@ salt_harness_result(
 	sprintf( '%d h1 elements', preg_match_all( '/<h1[\s>]/', $html ) )
 );
 
+// The contract phase seeded this fixture through ACF alongside the other sections.
+$row = array_search( 'rich-text/h4-first-under-h2', $state['rows'], true );
+salt_harness_result(
+	false !== $row && '<h4>First</h4><h3>Second</h3>' === get_post_meta( (int) $state['fixturesPage'], "sections_{$row}_body", true )
+		&& 1 === preg_match( '~<h2\b[^>]*>Planting notes</h2>\s*<div\b[^>]*>\s*<h3>First</h3>\s*<h3>Second</h3>~', $html ),
+	'rich-text/h4-first-under-h2: stored H4/H3 draw H3/H3 under H2'
+);
+
 salt_harness_info( sprintf( '%d salt_log lines (resolvers skipping rows the fixtures leave empty or broken); first 10:', count( $GLOBALS['salt_harness_logs'] ) ) );
 foreach ( array_slice( $GLOBALS['salt_harness_logs'], 0, 10 ) as $line ) {
 	salt_harness_info( '  ' . $line );

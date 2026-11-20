@@ -146,9 +146,9 @@
       "id": "rich-text",
       "status": "fail",
       "fixtures": {
-        "total": 7,
+        "total": 8,
         "passed": 1,
-        "failed": 6,
+        "failed": 7,
         "failures": [
           {
             "case": "body-headings-two-to-six",
@@ -181,6 +181,15 @@
             "path": "section.salt-section",
             "name": "aria-labelledby",
             "expected": "small-team__heading",
+            "found": null
+          },
+          {
+            "case": "h4-first-under-h2",
+            "kind": "mismatch",
+            "difference": "attribute",
+            "path": "section.salt-section",
+            "name": "aria-labelledby",
+            "expected": "planting-notes__heading",
             "found": null
           },
           {

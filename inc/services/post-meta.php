@@ -391,7 +391,7 @@ function salt_the_post_layout( int $post_id ): void {
 			if ( '' !== trim( $body ) ) {
 				printf(
 					'<div class="x-post-prose mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8"><div class="x-prose">%s</div></div>',
-					salt_sanitize_html( $body, salt_field_allowed( 'field_salt_collection_posts_layout_rich_text_body' ) ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised through salt_sanitize_html(), constrained to the field's contract list (§16a).
+					salt_render_rich_text_headings( salt_sanitize_html( $body, salt_field_allowed( 'field_salt_collection_posts_layout_rich_text_body' ) ), 1 ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised to the field's contract list before adjusting ranks.
 				);
 				salt_render_state( 'set', 'last_background', '' );
 				++$index;
