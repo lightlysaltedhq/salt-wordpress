@@ -35,6 +35,6 @@ if ( null !== $salt_props['heading'] ) {
 if ( null !== $salt_props['body'] ) {
 	printf(
 		'<div class="x-prose max-w-prose text-ink">%s</div>',
-		$salt_props['body'] // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised by the resolver through salt_sanitize_html(), constrained by salt_allowed_html() (§16a).
+		salt_render_rich_text_headings( $salt_props['body'], null === $salt_props['heading'] ? 1 : $salt_plan['headingLevel'] ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Already sanitised by the resolver; only heading ranks change.
 	);
 }

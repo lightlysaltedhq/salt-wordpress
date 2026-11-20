@@ -126,6 +126,35 @@ function salt_sanitize_html( string $html, ?array $allowed = null ): string {
 }
 
 /**
+ * Draw the rich-text section's heading ranks relative to its actual container.
+ * The input has already passed KSES: headings have no attributes. Change only
+ * their rank digits, leaving prose, links, inline formatting and storage alone.
+ *
+ * @param string $html Sanitised section body.
+ * @param int    $base Drawn section heading level, or 1 for bare prose.
+ */
+function salt_render_rich_text_headings( string $html, int $base ): string {
+	// A tag-shaped word in an HTML comment is not part of the outline.
+	if ( ! preg_match_all( '~<!--.*?-->(*SKIP)(*F)|<(/?)h([2-6])\s*>~is', $html, $tags, PREG_SET_ORDER | PREG_OFFSET_CAPTURE ) ) {
+		return $html;
+	}
+	$shallowest = 6;
+	foreach ( $tags as $tag ) {
+		if ( '' === $tag[1][0] ) {
+			$shallowest = min( $shallowest, (int) $tag[2][0] );
+		}
+	}
+	$level = $base;
+	foreach ( $tags as $tag ) {
+		if ( '' === $tag[1][0] ) {
+			$level = min( 6, $level + 1, $base + 1 + (int) $tag[2][0] - $shallowest );
+		}
+		$html[ $tag[2][1] ] = (string) $level;
+	}
+	return $html;
+}
+
+/**
  * The element kinds of the service's intro, which WordPress keeps in the
  * post's body (salt.native), so no generated field carries its list.
  * Copied from salt-contract contract/collections/services.json `intro`;

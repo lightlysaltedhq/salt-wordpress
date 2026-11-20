@@ -5,7 +5,7 @@
 | Section | Fixtures | Field parity | Classes | Stylesheet pin |
 | --- | --- | --- | --- | --- |
 | hero | 1/10 | pass | pass | pass |
-| rich-text | 1/7 | pass | pass | pass |
+| rich-text | 1/8 | pass | pass | pass |
 | call-to-action | 1/4 | pass | pass | pass |
 | media-text | 1/4 | pass | pass | pass |
 | features | 1/4 | pass | pass | pass |
@@ -62,6 +62,7 @@ acf snapshot `inc/fields/generated/sections.json` with options `inc/fields/gener
 - `rich-text/body-only-first-on-page`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface" data-tone-dark="surface" data-track="rich-text-1" data-width="default" id="approach-first" style="--salt-section-space:var(--space-secti…`, found `<section class="bg-surface md:py-20 py-14 section-rich-text text-ink x-section" data-section="rich-text" id="approach-first">`
 - `rich-text/body-only-no-heading`: element at `div.salt-section`: expected `<div class="salt-section" data-spacing="md" data-tone="surface" data-tone-dark="surface" data-track="rich-text-1" data-width="default" id="approach" style="--salt-section-space:var(--space-section-md)…`, found `<section class="bg-surface md:py-20 py-14 section-rich-text text-ink x-section" data-section="rich-text" id="approach">`
 - `rich-text/centre-inverse`: attribute `aria-labelledby` at `section.salt-section`: expected `small-team__heading`, found nothing
+- `rich-text/h4-first-under-h2`: attribute `aria-labelledby` at `section.salt-section`: expected `planting-notes__heading`, found nothing
 - `rich-text/heading-headings-shift-down`: attribute `aria-labelledby` at `section.salt-section`: expected `planting-notes__heading`, found nothing
 - `rich-text/left-eyebrow-heading-body`: attribute `aria-labelledby` at `section.salt-section`: expected `how-we-work__heading`, found nothing
 

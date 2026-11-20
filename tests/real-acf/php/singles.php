@@ -175,7 +175,7 @@ salt_harness_single_check(
 		'author photo'    => 'alt="' . esc_attr( $media[ $doc['author']['photo'] ]['alt'] ) . '"',
 		'featured image'  => 'alt="' . esc_attr( $media[ $doc['featuredImage'] ]['alt'] ) . '"',
 		'body'            => 'Most gardeners reach for a bottle of feed',
-		'body h3'         => '<h3>Why compost does the heavy lifting</h3>',
+		'body h2'         => '<h2>Why compost does the heavy lifting</h2>',
 		'body bold'       => '<strong>well-rotted</strong>',
 	)
 );
