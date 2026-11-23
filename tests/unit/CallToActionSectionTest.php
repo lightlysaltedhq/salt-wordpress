@@ -2,8 +2,10 @@
 /**
  * Call to Action slice unit tests: layout shape (DATA02), section 0/1/N
  * states (COMPL02), malformed/overflow buttons skipped + logged, the
- * brand-tint background default, escaping, and the no-schema invariant
- * (§10 #10 has no schema assignment; newsletter variant deferred).
+ * brand-tint tone default, escaping, and the no-schema invariant
+ * (§10 #10 has no schema assignment; newsletter variant deferred). The
+ * band and block are the contract's (salt-contract markup/call-to-action.json,
+ * rc.8; EP-72 M4).
  *
  * @package Salt\Tests
  */
@@ -80,21 +82,40 @@ final class CallToActionSectionTest extends SaltTestCase {
 		);
 	}
 
+	public function test_a_body_of_only_an_empty_paragraph_is_no_body(): void {
+		$this->assertSame(
+			'',
+			$this->render_cta_section( array( 'body' => '<p>&nbsp;</p>' ) ),
+			'A body with no words is empty, so the row is the zero state (markup zeroState).'
+		);
+
+		$html = $this->render_cta_section(
+			array(
+				'heading' => 'Ready?',
+				'body'    => '<p>&nbsp;</p>',
+			)
+		);
+		$this->assertStringContainsString( '<h1 id="call-to-action__heading">Ready?</h1>', $html );
+		$this->assertStringNotContainsString( 'salt-rich-text', $html, 'A body with no words draws no div.salt-rich-text.' );
+	}
+
 	public function test_single_button_is_a_valid_static_layout(): void {
 		$html = $this->render_cta_section(
 			array(
 				'heading' => 'Ready to start?',
 				'body'    => 'Tell us about your project.',
 				'buttons' => array(
-					salt_test_button( 'Get in touch', 'https://example.test/contact/', 'primary' ),
+					salt_test_button( 'Get in touch', 'https://example.test/contact/', 'primary', true ),
 				),
 			)
 		);
 
-		$this->assertStringContainsString( 'x-cta', $html );
+		$this->assertStringNotContainsString( 'x-cta', $html, 'The view draws the contract\'s block, not x-cta.' );
+		$this->assertStringContainsString( '<div class="salt-block" data-block="call-to-action" data-align="centre">', $html );
 		$this->assertSame( 1, preg_match_all( '/<a\b/', $html ) );
-		$this->assertStringContainsString( 'href="https://example.test/contact/"', $html );
-		$this->assertStringContainsString( '<h1', $html, 'Primary section with heading claims the H1.' );
+		$this->assertStringContainsString( '<div class="salt-cta__actions"><a class="salt-button" href="https://example.test/contact/" data-style="primary" data-track-control="cta" target="_blank" rel="noopener noreferrer">', $html, 'A new tab adds target and rel.' );
+		$this->assertStringContainsString( '<h1 id="call-to-action__heading">Ready to start?</h1>', $html, 'Primary section with heading claims the H1.' );
+		$this->assertStringContainsString( '<div class="salt-rich-text">Tell us about your project.</div>', $html );
 		$this->assertStringNotContainsString( '<script', $html, 'No JS in this section — ever.' );
 		$this->assertStringNotContainsString( '<input', $html, 'Newsletter variant is deferred: no email input may ship (PRIV01).' );
 	}
@@ -111,8 +132,9 @@ final class CallToActionSectionTest extends SaltTestCase {
 		);
 
 		$this->assertSame( 2, preg_match_all( '/<a\b/', $html ) );
-		$this->assertStringContainsString( 'x-button-primary', $html );
-		$this->assertStringContainsString( 'x-button-secondary', $html );
+		$this->assertStringContainsString( 'href="https://example.test/a/" data-style="primary" data-track-control="cta">', $html );
+		$this->assertStringContainsString( 'href="https://example.test/b/" data-style="secondary" data-track-control="cta">', $html );
+		$this->assertStringNotContainsString( 'target=', $html, 'No new tab, no target.' );
 	}
 
 	public function test_malformed_buttons_are_skipped_but_usable_overflow_buttons_render(): void {
@@ -139,20 +161,41 @@ final class CallToActionSectionTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// Background default (assignment: brand-tint).
+	// Tone default (assignment: brand-tint).
 	// -----------------------------------------------------------------
 
-	public function test_background_defaults_to_brand_tint(): void {
+	public function test_tone_defaults_to_brand_tint(): void {
 		$html = $this->render_cta_section(
 			array(
 				'heading' => 'Ready?',
 			)
 		);
 
-		$this->assertStringContainsString( 'bg-brand-tint', $html );
+		$this->assertStringStartsWith( '<section class="salt-section" id="call-to-action" aria-labelledby="call-to-action__heading" data-tone="brand-tint" data-tone-dark="brand-tint" ', $html );
+		$this->assertStringContainsString( 'data-track="call-to-action-1"', $html );
+		$this->assertStringNotContainsString( 'data-section=', $html, 'The x-section wrapper is gone.' );
+		$this->assertStringNotContainsString( 'x-section', $html );
 	}
 
-	public function test_editor_chosen_background_wins(): void {
+	public function test_dark_tone_follows_the_default_unless_the_editor_sets_one(): void {
+		$html = $this->render_cta_section(
+			array(
+				'heading'  => 'Ready?',
+				'settings' => array( 'toneDark' => 'auto' ),
+			)
+		);
+		$this->assertStringContainsString( 'data-tone="brand-tint" data-tone-dark="brand-tint"', $html, 'An auto dark tone follows the default tone.' );
+
+		$html = $this->render_cta_section(
+			array(
+				'heading'  => 'Ready?',
+				'settings' => array( 'toneDark' => 'surface-inverse' ),
+			)
+		);
+		$this->assertStringContainsString( 'data-tone="brand-tint" data-tone-dark="surface-inverse"', $html, 'An editor\'s dark tone wins.' );
+	}
+
+	public function test_editor_chosen_tone_wins(): void {
 		$html = $this->render_cta_section(
 			array(
 				'heading'  => 'Ready?',
@@ -160,8 +203,8 @@ final class CallToActionSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringNotContainsString( 'bg-brand-tint', $html );
-		$this->assertStringContainsString( 'bg-surface-inverse text-ink-inverse', $html, 'The contract tone surface-inverse is x-section\'s inverse band.' );
+		$this->assertStringNotContainsString( 'brand-tint', $html );
+		$this->assertStringContainsString( 'data-tone="surface-inverse" data-tone-dark="surface-inverse"', $html, 'An unset dark tone follows the editor\'s tone.' );
 	}
 
 	// -----------------------------------------------------------------
@@ -200,6 +243,42 @@ final class CallToActionSectionTest extends SaltTestCase {
 
 		$this->assertStringNotContainsString( '<h1', $html );
 		$this->assertFalse( salt_h1_claimed(), 'Heading-less primary section must not consume the H1 claim (A11Y01).' );
+		$this->assertStringStartsWith( '<div class="salt-section" id="call-to-action" data-tone="brand-tint"', $html, 'With no heading the band is a div, named by nothing (section#labelled-by).' );
+		$this->assertStringNotContainsString( 'aria-labelledby', $html );
+		$this->assertStringNotContainsString( '__heading', $html );
+	}
+
+	public function test_body_headings_rank_under_the_bands_heading_or_from_one_without_it(): void {
+		$body = '<h3>Steps</h3><p>Words.</p>';
+
+		$html = $this->render_cta_section(
+			array(
+				'heading' => 'Ready?',
+				'body'    => $body,
+			)
+		);
+		$this->assertStringContainsString( '<div class="salt-rich-text"><h2>Steps</h2><p>Words.</p></div>', $html, 'Under an H1 heading the body\'s top heading is an H2.' );
+
+		$html = $this->render_cta_section(
+			array(
+				'heading' => 'Ready?',
+				'body'    => $body,
+			),
+			array(
+				'index'      => 1,
+				'is_primary' => false,
+			)
+		);
+		$this->assertStringContainsString( '<div class="salt-rich-text"><h3>Steps</h3><p>Words.</p></div>', $html, 'Under an H2 heading the body\'s top heading is an H3.' );
+
+		$html = $this->render_cta_section(
+			array( 'body' => $body ),
+			array(
+				'index'      => 2,
+				'is_primary' => false,
+			)
+		);
+		$this->assertStringContainsString( '<div class="salt-rich-text"><h2>Steps</h2><p>Words.</p></div>', $html, 'With no heading the body ranks from base 1, not from the band\'s level.' );
 	}
 
 	// -----------------------------------------------------------------
@@ -275,7 +354,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 	public function test_resolver_props_use_the_contract_names(): void {
 		$resolved = $this->resolve_cta(
 			array(
-				'heading' => ' Ready? ',
+				'heading' => 'Ready?',
 				'body'    => 'Talk to us.',
 				'buttons' => array(
 					salt_test_button( 'Go', '/go', 'secondary' ),
@@ -284,7 +363,8 @@ final class CallToActionSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( array( 'heading', 'body', 'buttons' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( array( 'heading', 'body', 'buttons', 'arrow' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( '→', $resolved['props']['arrow'], 'The site\'s arrow (salt_contract_arrow()).' );
 		$this->assertSame( 'Ready?', $resolved['props']['heading'] );
 		$this->assertSame( 'Talk to us.', $resolved['props']['body'] );
 		$this->assertSame(
@@ -323,7 +403,10 @@ final class CallToActionSectionTest extends SaltTestCase {
 	public function test_resolver_owns_the_wrapper_inputs_and_the_brand_tint_default(): void {
 		$resolved = $this->resolve_cta( array( 'heading' => 'Hi' ) );
 		$this->assertSame( 'call-to-action', $resolved['section']['name'] );
+		$this->assertTrue( $resolved['section']['contract'], 'Drawn in the contract\'s wrapper (M4).' );
 		$this->assertSame( 'brand-tint', $resolved['section']['background'] );
+		$this->assertSame( 'brand-tint', $resolved['section']['tone'] );
+		$this->assertSame( 'brand-tint', $resolved['section']['tone_dark'] );
 		$this->assertTrue( $resolved['section']['has_heading'] );
 
 		$resolved = $this->resolve_cta(
@@ -333,6 +416,8 @@ final class CallToActionSectionTest extends SaltTestCase {
 			)
 		);
 		$this->assertSame( 'surface-alt', $resolved['section']['background'] );
+		$this->assertSame( 'surface-alt', $resolved['section']['tone'] );
+		$this->assertSame( 'surface-alt', $resolved['section']['tone_dark'] );
 	}
 
 	public function test_resolver_keeps_buttons_beyond_two(): void {
@@ -362,23 +447,45 @@ final class CallToActionSectionTest extends SaltTestCase {
 							'newTab' => true,
 						),
 					),
+					'arrow'   => '»',
 				),
 				'plan'  => array(
 					'index'         => 0,
+					'anchor'        => 'book',
 					'headingLevel'  => 2,
+					'headingId'     => 'book__heading',
+					'bodyBaseLevel' => 2,
 					'priorityMedia' => false,
 				),
 			)
 		);
 		$html = (string) ob_get_clean();
 
-		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
-		$this->assertStringContainsString( 'From props', $html );
-		$this->assertStringContainsString( '<p>Copy <b>x</b></p>', $html, 'body arrives sanitised; the view prints it.' );
-		$this->assertStringContainsString( 'target="_blank"', $html );
-		$this->assertStringContainsString( 'href="/pressed"', $html );
-		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+		$this->assertSame(
+			'<div class="salt-block" data-block="call-to-action" data-align="centre">'
+			. '<h2 id="book__heading">From props</h2>'
+			. '<div class="salt-rich-text"><p>Copy <b>x</b></p></div>'
+			. '<div class="salt-cta__actions"><a class="salt-button" href="/pressed" data-style="ghost" data-track-control="cta" target="_blank" rel="noopener noreferrer">'
+			. '<span class="salt-button__label">Press<span class="salt-arrow" aria-hidden="true">&#x2060;»</span></span></a></div>'
+			. '</div>',
+			$html,
+			'The block only, from props alone (body arrives sanitised, the arrow is the prop\'s): the band is the entry\'s, not the view\'s.'
+		);
 	}
+
+	public function test_view_draws_a_plain_label_without_the_sites_arrow(): void {
+		add_filter( 'salt_contract_arrow', static fn() => null );
+		$html = $this->render_cta_section(
+			array(
+				'buttons' => array( salt_test_button( 'Go', 'https://example.test/' ) ),
+			)
+		);
+
+		$this->assertStringContainsString( 'data-track-control="cta">Go</a>', $html );
+		$this->assertStringNotContainsString( 'salt-button__label', $html );
+		$this->assertStringNotContainsString( 'salt-arrow', $html );
+	}
+
 	public function test_body_keeps_only_headings_three_and_four(): void {
 		$resolved = $this->resolve_cta(
 			array(

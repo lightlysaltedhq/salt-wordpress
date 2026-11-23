@@ -1,8 +1,9 @@
 <?php
 /**
- * Hero section snapshots (FLEET01) — one per meaningful variant:
- * full-bleed with the complete field set (the eager LCP image is asserted
- * in the snapshot), split two-column, and the text-only minimal variant.
+ * Hero section snapshots (FLEET01; salt-contract markup/hero.json, rc.8) —
+ * one per meaningful variant: full-bleed with the complete field set (its
+ * photograph is the band's decorative background and the page's priority
+ * image), split with its half-slot image, and the text-only minimal variant.
  *
  * @package Salt\Tests
  */
@@ -22,8 +23,20 @@ final class HeroSectionSnapshotTest extends SaltSnapshotTestCase {
 			'src'    => 'https://example.test/uploads/hero.jpg',
 			'width'  => 2000,
 			'height' => 1200,
-			'srcset' => 'https://example.test/uploads/hero-1000.jpg 1000w, https://example.test/uploads/hero.jpg 2000w',
 			'alt'    => 'Studio workspace',
+			// Sub-sizes WordPress made, so the contract's srcset rule shows.
+			'sizes'  => array(
+				'salt-640'  => array(
+					'width'  => 640,
+					'height' => 384,
+					'url'    => 'https://example.test/uploads/hero-640.jpg',
+				),
+				'salt-1080' => array(
+					'width'  => 1080,
+					'height' => 648,
+					'url'    => 'https://example.test/uploads/hero-1080.jpg',
+				),
+			),
 		);
 	}
 

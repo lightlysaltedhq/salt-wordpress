@@ -1,7 +1,8 @@
 <?php
 /**
- * Stats section snapshots (FLEET01) — the canonical stats row + single-stat
- * static variant.
+ * Stats section snapshots (FLEET01) — the canonical stats row (heading,
+ * intro, icons; after the contract's many-with-icons fixture) + a
+ * heading-less single stat (the div band).
  *
  * @package Salt\Tests
  */
@@ -48,14 +49,17 @@ final class StatsSectionSnapshotTest extends SaltSnapshotTestCase {
 			$this->render_stats(
 				array(
 					'heading' => 'The numbers',
+					'intro'   => 'A few figures from the last five years.',
 					'columns' => '3',
 					'items'   => array(
 						array(
+							'icon'   => 'check',
 							'value'  => '45',
 							'suffix' => '%',
 							'label'  => 'More conversions',
 						),
 						array(
+							'icon'   => 'star',
 							'value'  => '12',
 							'suffix' => 'k',
 							'label'  => 'Happy users',

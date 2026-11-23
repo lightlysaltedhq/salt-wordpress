@@ -93,9 +93,9 @@ foreach ( $salt_attributes as $salt_name => $salt_value ) {
 echo '>';
 
 if ( null !== $salt_background ) {
-	// The nine positions as keyword pairs; focal-point is the stored focal
-	// point, and WordPress stores none, so it draws the stylesheet's centre
-	// (markup/media.json, WordPress owes).
+	// The nine positions as keyword pairs; focal-point is the image's stored
+	// focal point as <x>% <y>% (salt_image_focal_point()), and with none the
+	// declaration is left out for the stylesheet's centre (markup/media.json).
 	$salt_positions = array(
 		'top-left'     => 'top left',
 		'top'          => 'top',
@@ -108,8 +108,11 @@ if ( null !== $salt_background ) {
 		'bottom-right' => 'bottom right',
 	);
 	$salt_style     = 'object-fit: ' . $salt_background['fit'];
+	$salt_focal     = $salt_background['image']['focalPoint'] ?? null;
 	if ( isset( $salt_positions[ $salt_background['position'] ] ) ) {
 		$salt_style .= '; object-position: ' . $salt_positions[ $salt_background['position'] ];
+	} elseif ( 'focal-point' === $salt_background['position'] && is_array( $salt_focal ) ) {
+		$salt_style .= '; object-position: ' . (int) $salt_focal['x'] . '% ' . (int) $salt_focal['y'] . '%';
 	}
 	echo salt_image_contract_html( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped attribute by attribute.
 		$salt_background['image'],

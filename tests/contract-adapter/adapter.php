@@ -253,6 +253,27 @@ function salt_adapter_seed_media( array $media ): array {
 }
 
 /**
+ * Store each media record's focal point (focalPoint { x, y }) as its
+ * attachment's _salt_focal_point meta, which salt_image_focal_point() reads
+ * (EP-72 M4 U3).
+ *
+ * @param array<string,mixed> $media The case's `media`.
+ * @param array<string,int>   $ids   Media id => attachment ID.
+ * @return void
+ */
+function salt_adapter_seed_focal_points( array $media, array $ids ): void {
+	foreach ( $media as $name => $record ) {
+		$focal = $record['focalPoint'] ?? null;
+		if ( is_array( $focal ) && isset( $ids[ (string) $name ] ) ) {
+			$GLOBALS['salt_test_meta'][ $ids[ (string) $name ] ]['_salt_focal_point'] = array(
+				'x' => $focal['x'] ?? null,
+				'y' => $focal['y'] ?? null,
+			);
+		}
+	}
+}
+
+/**
  * Seed the case's documents as pages whose permalink is the case's href.
  *
  * @param array<string,mixed> $documents The case's `documents`.
@@ -455,8 +476,27 @@ function salt_adapter_fields( string $section ): array {
 		$fields[] = array(
 			'name'   => 'settings',
 			'type'   => 'group',
-			'fields' => salt_adapter_contract_json( 'contract/fields/_section-settings.json' )['fields'],
+			'fields' => salt_adapter_settings_fields( (array) ( $definition['shared']['defaults'] ?? array() ) ),
 		);
+	}
+	return $fields;
+}
+
+/**
+ * The shared section settings' fields with a section's own defaults
+ * (its field definition's shared.defaults, such as call-to-action's
+ * brand-tint tone), as the theme's emitted field group carries them
+ * (EP-72 M4 U3).
+ *
+ * @param array<string,mixed> $defaults Setting name => the section's default.
+ * @return array<int,array<string,mixed>>
+ */
+function salt_adapter_settings_fields( array $defaults ): array {
+	$fields = (array) salt_adapter_contract_json( 'contract/fields/_section-settings.json' )['fields'];
+	foreach ( $fields as $i => $field ) {
+		if ( array_key_exists( (string) $field['name'], $defaults ) ) {
+			$fields[ $i ]['default'] = $defaults[ $field['name'] ];
+		}
 	}
 	return $fields;
 }
@@ -819,10 +859,11 @@ if ( ! isset( $salt_adapter_input['section'] ) && ! isset( $salt_adapter_input['
 try {
 	salt_adapter_boot();
 	salt_adapter_seed_site( (array) ( $salt_adapter_input['site'] ?? array() ) );
-	$salt_adapter_ids          = array(
+	$salt_adapter_ids = array(
 		'media'     => salt_adapter_seed_media( (array) ( $salt_adapter_input['media'] ?? array() ) ),
 		'documents' => salt_adapter_seed_documents( (array) ( $salt_adapter_input['documents'] ?? array() ) ),
 	);
+	salt_adapter_seed_focal_points( (array) ( $salt_adapter_input['media'] ?? array() ), $salt_adapter_ids['media'] );
 	$salt_adapter_ids['items'] = salt_adapter_seed_collections( (array) ( $salt_adapter_input['collections'] ?? array() ), $salt_adapter_ids['media'] );
 	$salt_adapter_html         = isset( $salt_adapter_input['section'] )
 		? salt_adapter_render_section( $salt_adapter_input, $salt_adapter_ids )

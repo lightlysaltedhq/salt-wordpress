@@ -287,13 +287,13 @@ function salt_image_contract_srcset( int $image_id, string $src, int $width, str
  * An attachment as the contract's resolved image (view-props/_shared.json
  * image) for one slot: src the upload at its own width, srcset by the
  * contract's rule for the slot's sizes (salt_image_contract_srcset()), the
- * upload's width and height, its alt, its
- * caption, and no focal point (WordPress stores none). Null when the
- * attachment does not resolve (logged).
+ * upload's width and height, its alt, its caption, and its focal point
+ * (salt_image_focal_point()). Null when the attachment does not resolve
+ * (logged).
  *
  * @param int    $image_id Attachment ID.
  * @param string $sizes    The slot's sizes (salt_image_slot_sizes()).
- * @return array{src: string, srcset: string|null, sizes: string, width: int, height: int, alt: string, caption: string|null, focalPoint: null}|null
+ * @return array{src: string, srcset: string|null, sizes: string, width: int, height: int, alt: string, caption: string|null, focalPoint: array{x: int, y: int}|null}|null
  */
 function salt_image_contract( int $image_id, string $sizes ): ?array {
 	if ( $image_id <= 0 ) {
@@ -320,7 +320,33 @@ function salt_image_contract( int $image_id, string $sizes ): ?array {
 		'height'     => $height,
 		'alt'        => is_string( $alt ) ? $alt : '',
 		'caption'    => is_string( $caption ) && '' !== trim( $caption ) ? $caption : null,
-		'focalPoint' => null,
+		'focalPoint' => salt_image_focal_point( $image_id ),
+	);
+}
+
+/**
+ * An attachment's stored focal point (view-props/_shared.json focalPoint):
+ * the `_salt_focal_point` meta { x, y }, each a whole percentage of the
+ * image's width and height, clamped to 0-100. Null when none is stored or
+ * either value is not a whole number. Nothing sets it from the editor yet.
+ *
+ * @param int $image_id Attachment ID.
+ * @return array{x: int, y: int}|null
+ */
+function salt_image_focal_point( int $image_id ): ?array {
+	$stored = get_post_meta( $image_id, '_salt_focal_point', true );
+	if ( ! is_array( $stored ) ) {
+		return null;
+	}
+	$whole = static fn( $value ) => is_int( $value ) || is_string( $value ) ? filter_var( $value, FILTER_VALIDATE_INT ) : false;
+	$x     = $whole( $stored['x'] ?? null );
+	$y     = $whole( $stored['y'] ?? null );
+	if ( false === $x || false === $y ) {
+		return null;
+	}
+	return array(
+		'x' => max( 0, min( 100, $x ) ),
+		'y' => max( 0, min( 100, $y ) ),
 	);
 }
 

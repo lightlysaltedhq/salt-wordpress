@@ -1,33 +1,31 @@
 <?php
 /**
- * Resolver: Media + Text (spec §10 #6) — the logic half of the section;
- * the view is template-parts/sections/media-text.php.
+ * Resolver: Media + Text (salt-contract media-text, rc.8; spec §10 #6) —
+ * the logic half of the section; the view is
+ * template-parts/sections/media-text.php. Drawn in the contract's shared
+ * wrapper (salt_section(), EP-72 M4).
  *
- * Inline repeater of image/text rows on a md:grid-cols-2 grid; images render
- * through x-image with sizes_context 'half'. Text-only rows (no image) render
- * full-width — never an empty media column.
+ * Fields (contract/fields/media-text.json): mode (single|alternating),
+ * rows (image, heading, content, mediaSide, buttons) and the shared
+ * settings. A row's image takes the half slot beside its words, or the
+ * content slot when the row has none (contract/image-sizes.json).
  *
- * MODE RULE: in 'alternating' mode the media side flips automatically per
- * RENDERED row — even rows media-left, odd rows media-right (0-indexed) —
- * and each row's mediaSide sub-field is IGNORED. In 'single' mode each
- * row's own mediaSide ('left' default) decides the column order. The flip
- * is purely visual (md:order-2 on the media cell); DOM order is always
- * media then body, so the reading order never changes. The resolver applies
- * the rule and hands the view the side each row is drawn on.
+ * MODE RULE: in 'alternating' mode the media side flips per RENDERED row —
+ * even rows left, odd rows right (0-indexed) — and each row's mediaSide is
+ * IGNORED. In 'single' mode each row's own mediaSide ('left' default)
+ * decides. DOM order is always media then body; the side is the row's
+ * data-media-side, which the stylesheet reads. The resolver applies the
+ * rule and hands the view the side each row is drawn on.
  *
- * HEADING OUTLINE RULE (A11Y01/AMBIG03): this section has NO heading field
- * of its own — the FIRST rendered row's heading acts as the section heading.
- * has_heading is true only when that first row has a non-empty heading, so
- * a leading headingless row can never consume the page's H1 claim. In the
- * view: row 0's heading renders at the section's heading level (H1 only when
- * the wrapper designates this section primary AND the claim succeeds); every
- * LATER row's heading renders at ( 1 === level ? 2 : level ), so the outline
- * is h1 → h2 siblings on a primary section and h2 all round otherwise —
- * never a skipped level, never multiple H1s.
+ * HEADING OUTLINE RULE (markup/media-text.json headings): this section has
+ * NO heading field of its own — the FIRST rendered row's heading names the
+ * section (plan level, id <anchor>__heading). has_heading is true only when
+ * that row has a heading, so a leading headingless row never claims the
+ * page's H1. Later rows' headings rank at body base + 1.
  *
- * States (COMPL02): 0 usable rows => null (renders NOTHING, no section
- * band). A row is usable when it has an image, a heading or content;
- * malformed/empty rows are skipped + logged. No JS in any state.
+ * States (COMPL02, markup zeroState): no row with an image, heading, body
+ * or button => null (renders NOTHING, no band). Empty rows are skipped +
+ * logged. No JS in any state.
  *
  * @package Salt
  */
@@ -40,24 +38,23 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Resolve the current media-text Flexible Content row to its view props.
  *
  * Props (contract view-props/media-text.json):
- *   rows  array<int, array{image_id: int, heading: string|null, content: string|null, mediaSide: string, buttons: array<int, array{label: string, url: string, style: string, target: string}>}>
- *         Contract `rows` (row), in rendered order, never empty:
- *           image_id   WordPress-local (the contract's `image` is an
- *                      object): a resolvable attachment ID, 0 for none.
- *           heading    Contract `heading`. Null when blank; trimmed.
- *           content    Contract `content` (rich text). Sanitised HTML
- *                      (salt_sanitize_html()); null when blank.
- *           mediaSide  Contract `mediaSide`: 'left'|'right'. The EFFECTIVE
- *                      side: the MODE RULE is already applied.
- *           buttons    Contract `buttons` (button), up to two, from the
- *                      row's buttons list (salt_contract_buttons()):
- *                      x-button label/url/style/target. May be empty. The
- *                      view draws each as a link-arrow button (style is
- *                      not drawn yet, M4).
+ *   rows   array<int, array{image: array|null, heading: string|null, content: string|null, mediaSide: string|null, buttons: array}>
+ *          In rendered order, never empty:
+ *            image      The resolved image (salt_image_contract()), or null.
+ *            heading    Null when blank.
+ *            content    Sanitised HTML; null when it has no words.
+ *            mediaSide  left|right, the side it is drawn on (the MODE RULE
+ *                       applied); null unless the row has an image and words.
+ *            buttons    Up to two { label, href, style, newTab }
+ *                       (salt_contract_buttons(), default style secondary).
+ *   arrow  string|null The site's arrow (salt_contract_arrow()).
  *   The contract's `mode` is not a prop: it only decides `mediaSide`.
  *
+ * Plan: priorityMedia, the request for the page's priority image when the
+ * first rendered row draws an image.
+ *
  * @param array<string,mixed> $context Loop context: index, is_primary.
- * @return array{section: array<string,mixed>, props: array<string,mixed>}|null Null = 0-state.
+ * @return array{section: array<string,mixed>, props: array<string,mixed>, plan: array{priorityMedia: bool}}|null Null = 0-state.
  */
 function salt_resolve_section_media_text( array $context ): ?array {
 	$mode = function_exists( 'get_sub_field' ) ? (string) get_sub_field( 'mode' ) : '';
@@ -70,8 +67,9 @@ function salt_resolve_section_media_text( array $context ): ?array {
 
 	$rows_raw = function_exists( 'get_sub_field' ) ? get_sub_field( 'rows' ) : null;
 	$rows_raw = is_array( $rows_raw ) ? $rows_raw : array();
+	$section  = salt_section_contract_args( 'media-text', $context );
+	$band     = (string) $section['container'];
 
-	// Normalise rows; broken/malformed rows are skipped + logged (DATA05 spirit).
 	$rows = array();
 	foreach ( $rows_raw as $i => $row ) {
 		if ( ! is_array( $row ) ) {
@@ -81,27 +79,32 @@ function salt_resolve_section_media_text( array $context ): ?array {
 
 		$image_raw = $row['image'] ?? 0;
 		$image_id  = is_array( $image_raw ) ? (int) ( $image_raw['ID'] ?? 0 ) : (int) $image_raw;
-		$heading   = trim( (string) ( $row['heading'] ?? '' ) );
-		$content   = trim( (string) ( $row['content'] ?? '' ) );
+		$heading   = salt_nullable_text( is_string( $row['heading'] ?? null ) ? $row['heading'] : '' );
+		$content   = salt_sanitize_html( is_string( $row['content'] ?? null ) ? $row['content'] : '', salt_field_allowed( 'field_salt_media_text_rows_content' ) );
+		$content   = salt_rich_text_has_words( $content ) ? $content : null;
+		$buttons   = salt_contract_button_props( salt_contract_buttons( $row['buttons'] ?? null, sprintf( 'section media-text: row %d', (int) $i ), 2, 'secondary' ) );
+		$words     = null !== $heading || null !== $content || array() !== $buttons;
 
-		// A deleted attachment must not count as row content (COMPL02).
-		if ( $image_id > 0 && null === salt_image_data( $image_id, 'half' ) ) {
-			salt_log( sprintf( 'section media-text: row %d image %d is unresolvable — treated as absent.', (int) $i, $image_id ) );
-			$image_id = 0;
+		// The half slot beside words, the content slot alone; drawn only
+		// with dimensions (markup/media-text.json media).
+		$image = $image_id > 0 ? salt_image_contract( $image_id, salt_image_slot_sizes( $words ? 'half' : 'content', $band ) ) : null;
+		if ( null !== $image && ( $image['width'] <= 0 || $image['height'] <= 0 ) ) {
+			$image = null;
 		}
 
-		if ( 0 >= $image_id && '' === $heading && '' === $content ) {
-			salt_log( sprintf( 'section media-text: row %d has no image, heading or content — skipped.', (int) $i ) );
+		if ( null === $image && ! $words ) {
+			salt_log( sprintf( 'section media-text: row %d has no image, heading, text or button — skipped.', (int) $i ) );
 			continue;
 		}
 
 		$rows[] = array(
-			'image_id'  => $image_id,
-			'heading'   => '' !== $heading ? $heading : null,
-			'content'   => '' !== $content ? salt_sanitize_html( $content, salt_field_allowed( 'field_salt_media_text_rows_content' ) ) : null,
-			// Stored side, until the MODE RULE below settles the effective one.
+			'image'     => $image,
+			'heading'   => $heading,
+			'content'   => $content,
+			// Stored side, until the MODE RULE below settles the drawn one.
 			'mediaSide' => 'right' === ( $row['mediaSide'] ?? '' ) ? 'right' : 'left',
-			'buttons'   => salt_contract_buttons( $row['buttons'] ?? null, sprintf( 'section media-text: row %d', (int) $i ), 2, 'secondary' ),
+			'buttons'   => $buttons,
+			'words'     => $words,
 		);
 	}
 
@@ -110,22 +113,27 @@ function salt_resolve_section_media_text( array $context ): ?array {
 	}
 
 	// MODE RULE (see file docblock): alternating flips per RENDERED row and
-	// ignores mediaSide; single respects it.
-	if ( 'alternating' === $mode ) {
-		foreach ( array_keys( $rows ) as $n ) {
-			$rows[ $n ]['mediaSide'] = 0 === $n % 2 ? 'left' : 'right';
+	// ignores mediaSide; single respects it. Only a row with an image and
+	// words has a side.
+	foreach ( $rows as $n => $row ) {
+		if ( 'alternating' === $mode ) {
+			$row['mediaSide'] = 0 === $n % 2 ? 'left' : 'right';
 		}
+		$rows[ $n ]['mediaSide'] = null !== $row['image'] && $row['words'] ? $row['mediaSide'] : null;
+		unset( $rows[ $n ]['words'] );
 	}
 
 	return array(
 		'section' => array_merge(
-			salt_section_wrapper_args( 'media-text', $context ),
+			$section,
 			// The FIRST rendered row's heading is the section heading; without
-			// one this section must not claim the page H1 (A11Y01).
+			// one this section is a div and must not claim the page H1 (A11Y01).
 			array( 'has_heading' => null !== $rows[0]['heading'] )
 		),
 		'props'   => array(
-			'rows' => $rows,
+			'rows'  => $rows,
+			'arrow' => salt_contract_arrow(),
 		),
+		'plan'    => array( 'priorityMedia' => salt_section_plan_priority( $context ) && null !== $rows[0]['image'] ),
 	);
 }
