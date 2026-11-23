@@ -252,6 +252,27 @@ function salt_adapter_seed_media( array $media ): array {
 }
 
 /**
+ * Store each media record's focal point (focalPoint { x, y }) as its
+ * attachment's _salt_focal_point meta, which salt_image_focal_point() reads
+ * (EP-72 M4 U3).
+ *
+ * @param array<string,mixed> $media The case's `media`.
+ * @param array<string,int>   $ids   Media id => attachment ID.
+ * @return void
+ */
+function salt_adapter_seed_focal_points( array $media, array $ids ): void {
+	foreach ( $media as $name => $record ) {
+		$focal = $record['focalPoint'] ?? null;
+		if ( is_array( $focal ) && isset( $ids[ (string) $name ] ) ) {
+			$GLOBALS['salt_test_meta'][ $ids[ (string) $name ] ]['_salt_focal_point'] = array(
+				'x' => $focal['x'] ?? null,
+				'y' => $focal['y'] ?? null,
+			);
+		}
+	}
+}
+
+/**
  * Seed the case's documents as pages whose permalink is the case's href.
  *
  * @param array<string,mixed> $documents The case's `documents`.
@@ -716,6 +737,7 @@ try {
 		'media'     => salt_adapter_seed_media( (array) ( $salt_adapter_input['media'] ?? array() ) ),
 		'documents' => salt_adapter_seed_documents( (array) ( $salt_adapter_input['documents'] ?? array() ) ),
 	);
+	salt_adapter_seed_focal_points( (array) ( $salt_adapter_input['media'] ?? array() ), $salt_adapter_ids['media'] );
 	$salt_adapter_ids['items'] = salt_adapter_seed_collections( (array) ( $salt_adapter_input['collections'] ?? array() ), $salt_adapter_ids['media'] );
 	$salt_adapter_html         = isset( $salt_adapter_input['section'] )
 		? salt_adapter_render_section( $salt_adapter_input, $salt_adapter_ids )

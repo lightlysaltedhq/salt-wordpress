@@ -210,6 +210,7 @@ function salt_harness_attachment( string $name ): int {
 	if ( isset( $GLOBALS['salt_harness_media'][ $name ]['alt'] ) ) {
 		update_post_meta( (int) $id, '_wp_attachment_image_alt', (string) $GLOBALS['salt_harness_media'][ $name ]['alt'] );
 	}
+	salt_harness_seed_focal_point( (int) $id, $GLOBALS['salt_harness_media'][ $name ]['focalPoint'] ?? null );
 	$ids[ $name ] = (int) $id;
 	return $ids[ $name ];
 }
@@ -514,4 +515,26 @@ function salt_harness_seed_post( array $input ): array {
 		'topics'  => $topics,
 		'primary' => $primary,
 	);
+}
+
+/**
+ * Store a media record's focal point (focalPoint { x, y }) as the
+ * attachment's _salt_focal_point meta, which salt_image_focal_point()
+ * reads (EP-72 M4 U3).
+ *
+ * @param int   $id    Attachment ID.
+ * @param mixed $focal The record's focalPoint, or null.
+ * @return void
+ */
+function salt_harness_seed_focal_point( int $id, $focal ): void {
+	if ( is_array( $focal ) ) {
+		update_post_meta(
+			$id,
+			'_salt_focal_point',
+			array(
+				'x' => $focal['x'] ?? null,
+				'y' => $focal['y'] ?? null,
+			)
+		);
+	}
 }
