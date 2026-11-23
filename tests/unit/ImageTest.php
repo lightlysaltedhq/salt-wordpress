@@ -161,6 +161,71 @@ final class ImageTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------------
+	// salt_image_contract_srcset(): an upload made before the salt-<w> sizes.
+	// -----------------------------------------------------------------------
+
+	/**
+	 * A 2000 x 1200 upload with core's sub-sizes only (made before the theme
+	 * registered its candidates), the cropped thumbnail among them.
+	 *
+	 * @param array<string, array<string,mixed>> $extra Further sub-sizes.
+	 * @return void
+	 */
+	private function seed_core_sized_upload( array $extra = array() ): void {
+		$size                                 = static fn( int $w, int $h ): array => array(
+			'width'  => $w,
+			'height' => $h,
+			'url'    => "https://example.test/uploads/old-{$w}x{$h}.jpg",
+		);
+		$GLOBALS['salt_test_attachments'][60] = array(
+			'src'    => 'https://example.test/uploads/old.jpg',
+			'width'  => 2000,
+			'height' => 1200,
+			'alt'    => '',
+			'sizes'  => array(
+				'thumbnail'    => $size( 150, 150 ),
+				'large'        => $size( 1024, 614 ),
+				'medium'       => $size( 300, 180 ),
+				'medium_large' => $size( 768, 461 ),
+				'1536x1536'    => $size( 1536, 922 ),
+			) + $extra,
+		);
+	}
+
+	public function test_an_upload_with_core_sizes_only_lists_them_in_its_srcset(): void {
+		$this->seed_core_sized_upload();
+
+		// Review #3: ascending, same proportions only (no square thumbnail),
+		// then the upload.
+		$this->assertSame(
+			'https://example.test/uploads/old-300x180.jpg 300w, https://example.test/uploads/old-768x461.jpg 768w, https://example.test/uploads/old-1024x614.jpg 1024w, https://example.test/uploads/old-1536x922.jpg 1536w, https://example.test/uploads/old.jpg 2000w',
+			salt_image_contract( 60, salt_image_slot_sizes( 'content', 'default' ) )['srcset']
+		);
+		// The slot's floor still applies: 100vw drops widths under 640.
+		$this->assertSame(
+			'https://example.test/uploads/old-768x461.jpg 768w, https://example.test/uploads/old-1024x614.jpg 1024w, https://example.test/uploads/old-1536x922.jpg 1536w, https://example.test/uploads/old.jpg 2000w',
+			salt_image_contract( 60, '100vw' )['srcset']
+		);
+	}
+
+	public function test_an_upload_with_the_candidate_sizes_lists_only_those(): void {
+		$this->seed_core_sized_upload(
+			array(
+				'salt-640' => array(
+					'width'  => 640,
+					'height' => 384,
+					'url'    => 'https://example.test/uploads/old-640.jpg',
+				),
+			)
+		);
+
+		$this->assertSame(
+			'https://example.test/uploads/old-640.jpg 640w, https://example.test/uploads/old.jpg 2000w',
+			salt_image_contract( 60, '100vw' )['srcset']
+		);
+	}
+
+	// -----------------------------------------------------------------------
 	// salt_image_data().
 	// -----------------------------------------------------------------------
 

@@ -259,6 +259,12 @@ add_filter( 'wp_calculate_image_srcset', 'salt_image_srcset_without_candidates',
  * above the sizes' floor and below the upload's width that WordPress made
  * (its salt-<width> sub-size), then the upload itself at its own width.
  *
+ * An upload made before the theme registered its salt-<width> sizes has
+ * none of them until its thumbnails are regenerated. Its core sub-sizes of
+ * the upload's own proportions (medium, large and the rest; never a
+ * cropped thumbnail) stand in, at or above the floor and below the upload's
+ * width, so it is not served only at full size.
+ *
  * @param int    $image_id Attachment ID.
  * @param string $src      The upload's URL.
  * @param int    $width    The upload's width.
@@ -266,17 +272,36 @@ add_filter( 'wp_calculate_image_srcset', 'salt_image_srcset_without_candidates',
  * @return string
  */
 function salt_image_contract_srcset( int $image_id, string $src, int $width, string $sizes ): string {
-	$meta    = wp_get_attachment_metadata( $image_id );
-	$made    = is_array( $meta ) ? (array) ( $meta['sizes'] ?? array() ) : array();
-	$floor   = salt_image_srcset_floor( $sizes );
-	$sources = array();
+	$meta   = wp_get_attachment_metadata( $image_id );
+	$made   = is_array( $meta ) ? (array) ( $meta['sizes'] ?? array() ) : array();
+	$height = is_array( $meta ) ? (int) ( $meta['height'] ?? 0 ) : 0;
+	$floor  = salt_image_srcset_floor( $sizes );
+	$names  = array();
 	foreach ( salt_image_candidates() as $candidate ) {
-		if ( $candidate < $floor || $candidate >= $width || ! isset( $made[ 'salt-' . $candidate ] ) ) {
+		if ( isset( $made[ 'salt-' . $candidate ] ) ) {
+			$names[ $candidate ] = 'salt-' . $candidate;
+		}
+	}
+	if ( array() === $names ) {
+		foreach ( $made as $name => $size ) {
+			$w = (int) ( $size['width'] ?? 0 );
+			$h = (int) ( $size['height'] ?? 0 );
+			// The upload's proportions, as core's own srcset keeps them.
+			if ( $w > 0 && $h > 0 && ( $height <= 0 || abs( $height * $w / $width - $h ) <= 1 ) ) {
+				$names[ $w ] ??= (string) $name;
+			}
+		}
+		ksort( $names );
+	}
+
+	$sources = array();
+	foreach ( $names as $w => $name ) {
+		if ( $w < $floor || $w >= $width ) {
 			continue;
 		}
-		$sub = wp_get_attachment_image_src( $image_id, 'salt-' . $candidate );
-		if ( is_array( $sub ) && (int) ( $sub[1] ?? 0 ) === $candidate ) {
-			$sources[] = $sub[0] . ' ' . $candidate . 'w';
+		$sub = wp_get_attachment_image_src( $image_id, $name );
+		if ( is_array( $sub ) && (int) ( $sub[1] ?? 0 ) === $w ) {
+			$sources[] = $sub[0] . ' ' . $w . 'w';
 		}
 	}
 	$sources[] = $src . ' ' . $width . 'w';
