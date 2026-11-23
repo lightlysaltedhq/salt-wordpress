@@ -1,21 +1,21 @@
 <?php
 /**
- * x-opening-hours — semantic <dl> rendering of structured opening hours.
+ * The contract's opening hours (salt-contract markup/opening-hours.json,
+ * rc.8): a semantic <dl> of structured opening hours.
  *
  * Consumes the stored hours rows (salt-contract collections/locations.json, shared
  * with salt_location_status()): day ('monday'..'sunday' lowercase English
  * keys), open/close ('HH:MM' 24h), appointment (bool). Split hours
  * (multiple rows per day) group into one <dd> per day; every time renders
- * as <time datetime="HH:MM">. Appointment-only days render a "By
- * appointment" value. Days with no rows are omitted.
+ * as <time datetime="HH:MM">. Appointment-only days render
+ * salt_contract_labels()'s byAppointment. Days with no rows are omitted.
  *
- * ARGS CONTRACT (v1 — changing this signature or the markup structure is a
- * MAJOR semver bump, §4/§12):
+ * ARGS:
  *   hours   array  required  Stored opening-hours rows (shape above).
  *                            Malformed rows (unknown day, bad times) are
  *                            skipped + salt_log()ged — never a fatal.
  *                            Rows that all fail render NOTHING (COMPL02).
- *   compact bool   false     Abbreviated day labels + smaller text.
+ *   compact bool   false     Abbreviated day labels (data-compact).
  *
  * Render via salt_component( 'opening-hours', … ) / salt_get_component().
  *
@@ -58,7 +58,7 @@ foreach ( $args['hours'] as $salt_row_index => $salt_row ) {
 	$salt_day = is_array( $salt_row ) && is_string( $salt_row['day'] ?? null ) ? strtolower( $salt_row['day'] ) : '';
 
 	if ( ! isset( $salt_day_labels[ $salt_day ] ) ) {
-		salt_log( sprintf( 'x-opening-hours: row %s has an invalid day — skipped.', (string) $salt_row_index ) );
+		salt_log( sprintf( 'opening-hours: row %s has an invalid day — skipped.', (string) $salt_row_index ) );
 		continue;
 	}
 
@@ -72,7 +72,7 @@ foreach ( $args['hours'] as $salt_row_index => $salt_row ) {
 	$salt_close = $salt_row['close'] ?? null;
 
 	if ( null === salt_location_minutes( $salt_open ) || null === salt_location_minutes( $salt_close ) ) {
-		salt_log( sprintf( 'x-opening-hours: row %s (%s) has malformed open/close times — skipped.', (string) $salt_row_index, $salt_day ) );
+		salt_log( sprintf( 'opening-hours: row %s (%s) has malformed open/close times — skipped.', (string) $salt_row_index, $salt_day ) );
 		continue;
 	}
 
@@ -92,15 +92,8 @@ if ( ! $salt_has_rows ) {
 }
 
 $salt_label_index = $args['compact'] ? 1 : 0;
-$salt_dl_classes  = salt_classnames(
-	array(
-		'x-opening-hours',
-		'grid grid-cols-[auto_1fr] gap-x-6 gap-y-1',
-		$args['compact'] ? 'text-sm' : '',
-	)
-);
 ?>
-<dl class="<?php echo esc_attr( $salt_dl_classes ); ?>">
+<dl class="salt-opening-hours"<?php echo $args['compact'] ? ' data-compact' : ''; ?>>
 	<?php foreach ( $salt_day_labels as $salt_day => $salt_labels ) : ?>
 		<?php
 		$salt_is_appointment = isset( $salt_appointment_by_day[ $salt_day ] );
@@ -108,17 +101,17 @@ $salt_dl_classes  = salt_classnames(
 			continue;
 		}
 		?>
-	<div class="x-opening-hours-day col-span-2 grid grid-cols-subgrid">
-		<dt class="font-medium"><?php echo esc_html( $salt_labels[ $salt_label_index ] ); ?></dt>
+	<div class="salt-opening-hours__day">
+		<dt><?php echo esc_html( $salt_labels[ $salt_label_index ] ); ?></dt>
 		<dd>
 		<?php if ( $salt_is_appointment ) : ?>
-			<?php esc_html_e( 'By appointment', 'salt' ); ?>
+			<span><?php echo esc_html( salt_contract_labels()['byAppointment'] ?? '' ); ?></span>
 		<?php else : ?>
 			<?php
 			$salt_span_html = array();
 			foreach ( $salt_spans_by_day[ $salt_day ] as $salt_span ) {
 				$salt_span_html[] = sprintf(
-					'<span class="x-opening-hours-span whitespace-nowrap"><time datetime="%1$s">%2$s</time>&#8211;<time datetime="%3$s">%4$s</time></span>',
+					'<span class="salt-opening-hours__span"><time datetime="%1$s">%2$s</time>&#8211;<time datetime="%3$s">%4$s</time></span>',
 					esc_attr( $salt_span[0] ),
 					esc_html( $salt_span[0] ),
 					esc_attr( $salt_span[1] ),

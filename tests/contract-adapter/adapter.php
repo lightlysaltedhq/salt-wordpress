@@ -177,6 +177,7 @@ function salt_adapter_boot(): void {
 		'/inc/cpt/testimonial.php',
 		'/inc/cpt/faq.php',
 		'/inc/cpt/location.php',
+		'/inc/services/maps.php',
 	) as $module ) {
 		if ( file_exists( SALT_ADAPTER_THEME . $module ) ) {
 			require_once SALT_ADAPTER_THEME . $module;
@@ -527,6 +528,61 @@ function salt_adapter_value( $value, array $field, array $ids, string $source ) 
 	}
 }
 
+/**
+ * The locations section's site data (EP-72 M4 U4, test seams): the site's
+ * timezone (site.timezone), the maps options (site.maps: enabled, tile)
+ * and the case's moment for the open-now status (context.now, through the
+ * salt_location_now filter).
+ *
+ * @param array<string,mixed> $site    The case's `site`.
+ * @param array<string,mixed> $context The case's `context`.
+ * @return void
+ */
+function salt_adapter_seed_locations_site( array $site, array $context ): void {
+	if ( isset( $site['timezone'] ) ) {
+		$GLOBALS['salt_test_options']['timezone_string'] = (string) $site['timezone'];
+	}
+	if ( isset( $site['maps'] ) ) {
+		$GLOBALS['salt_test_fields']['option']['maps_enabled']  = ! empty( $site['maps']['enabled'] );
+		$GLOBALS['salt_test_fields']['option']['maps_tile_url'] = $site['maps']['tile'] ?? null;
+	}
+	if ( isset( $context['now'] ) ) {
+		$now = new DateTimeImmutable( (string) $context['now'] );
+		add_filter( 'salt_location_now', static fn() => $now );
+	}
+}
+
+/**
+ * The case's locations as the theme stores them (EP-72 M4 U4, test seams):
+ * a fixture's address is its resolved lines, stored here as the address
+ * group's parts in order (street, locality, region, postalCode, country),
+ * which the resolver joins back into the same lines; its directionsUrl
+ * stands in for the theme's own OpenStreetMap link (salt_location_directions_url).
+ *
+ * @param array<string,mixed>      $collections The case's `collections`.
+ * @param array<string,array<mixed>> $ids       ID maps.
+ * @return void
+ */
+function salt_adapter_seed_locations( array $collections, array $ids ): void {
+	$urls = array();
+	foreach ( (array) ( $collections['locations'] ?? array() ) as $item ) {
+		$post_id = $ids['items']['locations'][ (string) ( $item['id'] ?? '' ) ] ?? null;
+		if ( null === $post_id ) {
+			continue;
+		}
+		if ( isset( $item['address'] ) && array_is_list( (array) $item['address'] ) ) {
+			$GLOBALS['salt_test_fields'][ (string) $post_id ]['address'] = array_combine(
+				array_slice( array( 'street', 'locality', 'region', 'postalCode', 'country' ), 0, count( (array) $item['address'] ) ),
+				array_map( 'strval', array_slice( (array) $item['address'], 0, 5 ) )
+			);
+		}
+		if ( isset( $item['directionsUrl'] ) ) {
+			$urls[ $post_id ] = (string) $item['directionsUrl'];
+		}
+	}
+	add_filter( 'salt_location_directions_url', static fn( $url, $post_id ) => $urls[ $post_id ] ?? $url, 10, 2 );
+}
+
 // ── Rendering ─────────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -698,7 +754,9 @@ try {
 		'documents' => salt_adapter_seed_documents( (array) ( $salt_adapter_input['documents'] ?? array() ) ),
 	);
 	$salt_adapter_ids['items'] = salt_adapter_seed_collections( (array) ( $salt_adapter_input['collections'] ?? array() ), $salt_adapter_ids['media'] );
-	$salt_adapter_html         = isset( $salt_adapter_input['section'] )
+	salt_adapter_seed_locations_site( (array) ( $salt_adapter_input['site'] ?? array() ), (array) ( $salt_adapter_input['context'] ?? array() ) );
+	salt_adapter_seed_locations( (array) ( $salt_adapter_input['collections'] ?? array() ), $salt_adapter_ids );
+	$salt_adapter_html = isset( $salt_adapter_input['section'] )
 		? salt_adapter_render_section( $salt_adapter_input, $salt_adapter_ids )
 		: salt_adapter_render_chrome( $salt_adapter_input, $salt_adapter_ids );
 } catch ( Throwable $e ) {

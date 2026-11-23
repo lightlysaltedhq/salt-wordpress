@@ -72,7 +72,7 @@ final class OpeningHoursComponentTest extends SaltTestCase {
 		);
 
 		$this->assertStringContainsString( '<dl', $html );
-		$this->assertStringContainsString( '<dt class="font-medium">Monday</dt>', $html );
+		$this->assertStringContainsString( '<dt>Monday</dt>', $html );
 		$this->assertCount( 1, $this->logs() );
 	}
 
@@ -91,15 +91,15 @@ final class OpeningHoursComponentTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( 1, substr_count( $html, '<dt class="font-medium">Wednesday</dt>' ) );
-		$this->assertSame( 2, preg_match_all( '/class="x-opening-hours-span/', $html ) );
+		$this->assertSame( 1, substr_count( $html, '<dt>Wednesday</dt>' ) );
+		$this->assertSame( 2, preg_match_all( '/class="salt-opening-hours__span"/', $html ) );
 		$this->assertStringContainsString( '<time datetime="14:00">', $html );
 	}
 
 	public function test_appointment_day_renders_the_label_not_times(): void {
 		$html = $this->render_hours( array( self::row( 'saturday', '', '', true ) ) );
 
-		$this->assertStringContainsString( 'By appointment', $html );
+		$this->assertStringContainsString( '<span>By appointment</span>', $html );
 		$this->assertStringNotContainsString( '<time', $html );
 	}
 
@@ -121,8 +121,8 @@ final class OpeningHoursComponentTest extends SaltTestCase {
 	public function test_compact_variant_abbreviates_day_labels(): void {
 		$html = $this->render_hours( array( self::row( 'monday', '09:00', '17:00' ) ), true );
 
-		$this->assertStringContainsString( '<dt class="font-medium">Mon</dt>', $html );
+		$this->assertStringContainsString( '<dt>Mon</dt>', $html );
 		$this->assertStringNotContainsString( 'Monday', $html );
-		$this->assertStringContainsString( 'text-sm', $html );
+		$this->assertStringContainsString( '<dl class="salt-opening-hours" data-compact>', $html );
 	}
 }

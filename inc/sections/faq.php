@@ -1,7 +1,8 @@
 <?php
 /**
- * Resolver: FAQ / Accordion (spec §10 #13) — the logic half of the
- * section; the view is template-parts/sections/faq.php.
+ * Resolver: FAQ / Accordion (salt-contract faq, rc.8; spec §10 #13) — the
+ * logic half of the section; the view is template-parts/sections/faq.php,
+ * drawn in the contract's shared wrapper (salt_section(), EP-72 M4).
  *
  * Questions come from the display-only faq CPT via the Principle-7 query
  * funnel. Malformed posts (empty question title or empty answer) are
@@ -30,6 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Props (contract view-props/faq.json):
  *   eyebrow         string|null  Contract `eyebrow`. Null when blank.
  *   heading         string|null  Contract `heading`. Null when blank.
+ *   intro           string|null  Contract `intro` (plain text). Null when blank.
  *   items           array<int, array{id: string, question: string, answer: string}>
  *                                Contract `items` (faq-item), in query order;
  *                                never empty. answer is HTML already
@@ -46,8 +48,8 @@ function salt_resolve_section_faq( array $context ): ?array {
 		return null;
 	}
 
-	$eyebrow = function_exists( 'get_sub_field' ) ? (string) get_sub_field( 'eyebrow' ) : '';
-	$heading = function_exists( 'get_sub_field' ) ? (string) get_sub_field( 'heading' ) : '';
+	$sub     = static fn( string $field ): string => function_exists( 'get_sub_field' ) && is_string( get_sub_field( $field ) ) ? (string) get_sub_field( $field ) : '';
+	$heading = salt_nullable_text( $sub( 'heading' ) );
 
 	// true_false, default 1: rows saved before the field existed read null => on.
 	$schema_raw = function_exists( 'get_sub_field' ) ? get_sub_field( 'structuredData' ) : null;
@@ -61,7 +63,7 @@ function salt_resolve_section_faq( array $context ): ?array {
 		$answer   = get_field( 'answer', $faq_post->ID );
 		$answer   = is_string( $answer ) ? salt_sanitize_html( $answer, salt_field_allowed( 'field_salt_collection_faqs_answer' ) ) : '';
 
-		if ( '' === $question || '' === trim( wp_strip_all_tags( $answer ) ) ) {
+		if ( '' === $question || ! salt_rich_text_has_words( $answer ) ) {
 			salt_log(
 				sprintf(
 					'faq section: post %d skipped — %s is empty (broken row).',
@@ -106,13 +108,14 @@ function salt_resolve_section_faq( array $context ): ?array {
 
 	return array(
 		'section' => array_merge(
-			salt_section_wrapper_args( 'faq', $context ),
-			// A section with no heading must not claim the page H1 (A11Y01).
-			array( 'has_heading' => '' !== trim( $heading ) )
+			salt_section_contract_args( 'faq', $context ),
+			// A section with no heading is a div and must not claim the page H1 (A11Y01).
+			array( 'has_heading' => null !== $heading )
 		),
 		'props'   => array(
-			'eyebrow'        => salt_nullable_text( $eyebrow ),
-			'heading'        => salt_nullable_text( $heading ),
+			'eyebrow'        => salt_nullable_text( $sub( 'eyebrow' ) ),
+			'heading'        => $heading,
+			'intro'          => salt_nullable_text( $sub( 'intro' ) ),
 			'items'          => $items,
 			'structuredData' => $schema_on,
 		),

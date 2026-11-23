@@ -102,9 +102,11 @@ function salt_collection_index_url( string $source ): ?string {
 }
 
 /**
- * The strings the contract's markup names as `labels.<name>` for the
- * collection sections: viewAll, slide, rating, results, social, previous
- * and next.
+ * The strings the contract's markup names as `labels.<name>`: for the
+ * collection sections viewAll, slide, rating, results, social, previous
+ * and next; for locations the status words (open, appointment, closed),
+ * byAppointment, getDirections, directions (before the office name), and
+ * the map facade's load, loadMap, consent and error.
  *
  * The founder's ruling: translatable theme strings, in the contract
  * fixtures' English. The `salt_contract_labels` filter is this one seam;
@@ -114,13 +116,24 @@ function salt_collection_index_url( string $source ): ?string {
  */
 function salt_contract_labels(): array {
 	$labels = array(
-		'viewAll'  => __( 'View all', 'salt' ),
-		'slide'    => __( 'Slide', 'salt' ),
-		'rating'   => __( 'Rated', 'salt' ),
-		'results'  => __( 'Results', 'salt' ),
-		'social'   => __( 'Social profiles', 'salt' ),
-		'previous' => __( 'Previous', 'salt' ),
-		'next'     => __( 'Next', 'salt' ),
+		'viewAll'       => __( 'View all', 'salt' ),
+		'slide'         => __( 'Slide', 'salt' ),
+		'rating'        => __( 'Rated', 'salt' ),
+		'results'       => __( 'Results', 'salt' ),
+		'social'        => __( 'Social profiles', 'salt' ),
+		'previous'      => __( 'Previous', 'salt' ),
+		'next'          => __( 'Next', 'salt' ),
+		// Locations (markup/locations.json, opening-hours.json, map.json).
+		'open'          => __( 'Open now', 'salt' ),
+		'appointment'   => __( 'By appointment', 'salt' ),
+		'closed'        => __( 'Closed', 'salt' ),
+		'byAppointment' => __( 'By appointment', 'salt' ),
+		'getDirections' => __( 'Get directions', 'salt' ),
+		'directions'    => __( 'Directions to', 'salt' ),
+		'load'          => __( 'Load the map', 'salt' ),
+		'loadMap'       => __( 'Load map', 'salt' ),
+		'consent'       => __( 'Allow map cookies to view this map.', 'salt' ),
+		'error'         => __( 'The map could not be loaded.', 'salt' ),
 	);
 	$given  = apply_filters( 'salt_contract_labels', $labels );
 	return is_array( $given ) ? array_map( 'strval', $given ) : $labels;
