@@ -140,8 +140,10 @@ parent sections are.
   `$args['plan']` (`index`, `headingLevel`, `priorityMedia`). Draw from
   those only: never read fields, query, sanitise, log or queue schema,
   and never call `salt_section()`. The parent resolver keeps doing all of
-  that, so its fixes reach you without touching your override. To change
-  the band itself, override `template-parts/components/section.php`.
+  that, so its fixes reach you without touching your override. The band
+  around it is the contract's (`template-parts/components/contract-section.php`,
+  salt-contract `markup/section.json`); a child copy of that part must keep
+  its markup, which the contract's fixtures check.
 - **The 0-state is the resolver's.** When it decides a section renders
   nothing, your view is not loaded at all. A view is only loaded with
   something to draw.
@@ -296,6 +298,30 @@ template draws markup without it (a template that draws nothing is a
 0-state and is not warned about). Name its helpers with the child's own
 prefix, never `salt_resolve_section_*()`.
 
+**The x-section band is deprecated (6.0.0, ID-3946).** Called with
+`salt_section_wrapper_args()`, `salt_section()` draws the old x-section
+band (`template-parts/components/section.php`, Tailwind utilities). It
+still works, and app.css still builds the utilities that part prints, but
+no parent section uses it and a later major release removes it. Draw the
+contract's band instead, as the parent's own sections do: pass
+`salt_section_contract_args()` and say whether the block draws a heading,
+then draw the block, `div.salt-block[data-block=…]`, with its heading's id
+`<anchor>__heading`:
+
+```php
+salt_section(
+	array_merge( salt_section_contract_args( '{slug}', $args ), array( 'has_heading' => true ) ),
+	static function ( int $level, string $anchor ): void {
+		printf( '<div class="salt-block" data-block="{slug}"><h%1$d id="%2$s__heading">…</h%1$d>…</div>', $level, esc_attr( $anchor ) );
+	}
+);
+```
+
+The band then takes the row's tone, dark tone, spacing, width, divider,
+background image and anchor, the page's adjacency collapse and the H1
+claim, and salt.css styles it. The same call works in a child-only
+layout's template (tier 6).
+
 - **No child template, no section.** If the declaration says `logic` but
   the child has no `template-parts/sections/{slug}.php`, the section logs
   `… declares it replaced (tier "logic"), but the child theme has no …`,
@@ -364,6 +390,66 @@ makes no network calls and stores nothing.
 
 Not supported yet. The theme's token layer has no rungs for the dials to
 move; the dials extension point arrives with ID-3612.
+
+## Removed template parts and CSS (6.0.0, ID-3946) — BREAKING
+
+The sections, views and chrome draw the Salt contract's markup, styled by
+the contract's salt.css, so the parts and rules only the old markup used
+are gone. Nothing in the parent calls them.
+
+**Template parts removed.** `salt_component()` / `salt_get_component()` on
+one of these logs `component "…" not found.`, throws under `WP_DEBUG` and
+draws nothing in production; `get_template_part()` on a removed
+`content/` part draws nothing, silently. A child that still needs one
+keeps its own copy at the same path (`locate_template()` finds the child's
+first) and lists it in its override manifest, but must also ship the CSS
+for it (below).
+
+- `template-parts/components/accordion.php` (x-accordion)
+- `template-parts/components/button.php` (x-button; the contract's button
+  is `components/contract-button.php`)
+- `template-parts/components/card.php` (x-card)
+- `template-parts/components/card-post.php` (x-card-post)
+- `template-parts/components/card-service.php` (x-card-service)
+- `template-parts/components/card-work.php` (x-card-work)
+- `template-parts/components/cta.php` (x-cta)
+- `template-parts/components/eyebrow.php` (x-eyebrow)
+- `template-parts/components/heading.php` (x-heading)
+- `template-parts/components/icon.php` (x-icon; `salt_contract_icon()`
+  draws the contract's icon)
+- `template-parts/components/stat.php` (x-stat)
+- `template-parts/content/card.php`, `card-post.php`, `card-service.php`,
+  `card-work.php` and `none.php` (the archive and search loops draw
+  `components/contract-card.php` and the contract's empty states)
+
+**Booking markup changed.** `components/booking.php` draws salt-contract
+`markup/booking.json`: `a.salt-button.salt-booking` with `data-style`,
+`data-track-control="cta"` and `data-provider`. The `x-booking`,
+`x-button`, `x-button-primary` and utility classes, `data-salt-booking`
+and `data-url` are gone, and so is the `classes` arg (the contract fixes
+the element's classes; an extra arg is ignored). Select the link by
+`.salt-booking`; its `href` is the booking URL.
+
+**CSS no longer in app.css.**
+
+- Tailwind utilities for child markup. app.css builds utilities only from
+  `components/section.php`, `sections/fallback.php` and `single.php`; a
+  utility class in a child's own template is no longer generated unless
+  one of those uses it. Ship the child's own stylesheet for its markup.
+- `.x-prose` (long-form typography); the contract draws rich text as
+  `.salt-rich-text`, which salt.css styles.
+- `.x-logo*` (the dark-logo swap) and `.x-header.is-sticky`; the chrome
+  draws `salt-logo` and `salt-header[data-sticky]`, which salt.css styles.
+- The chips for core's `the_posts_pagination()` (`.pagination`,
+  `.nav-links`, `.page-numbers`); `components/pagination.php` draws the
+  contract's `salt-pagination`.
+- `@utility visually-hidden`; use `salt-sr-only` (salt.css).
+- Tailwind's default theme variables that only the removed utilities
+  used: `--text-sm` to `--text-5xl` (and their `--line-height`s),
+  `--font-weight-medium`/`-semibold`/`-bold`, `--tracking-tight`/`-widest`,
+  `--default-transition-duration`/`-timing-function`, and the `--tw-*`
+  internals. The theme's token layer (colour roles, the contract's type,
+  space, radius and layout tokens) is unchanged; use those instead.
 
 ## Component render rule (Open Q6 — resolved)
 

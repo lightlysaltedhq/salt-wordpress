@@ -93,14 +93,14 @@ docblock at the top of its partial (enforced at runtime by
 
 | Component | File | Notes |
 |---|---|---|
-| x-section | components/section.php | Render via `salt_section()` only |
+| x-section | components/section.php | Deprecated: only a child's own whole section draws it (OVERRIDES.md, tier 5) |
 | x-image | components/image.php | **`<img srcset>` default; `<picture>` opt-in (AMBIG01)** |
-| x-logo | components/logo.php | Light/dark display logos, text fallback; dark swap via `[data-theme=dark]` CSS |
-| x-display-preferences | components/display-preferences.php | §14 widget; server-rendered `hidden`, JS-activated (FAIL02) |
-| x-map | components/map.php | Click-to-load facade; consent-gated (v2) |
+| logo | components/logo.php | `salt-logo`: light/dark display logos, text fallback; dark swap by salt.css |
+| display-preferences | components/display-preferences.php | §14 widget; server-rendered `hidden`, JS-activated (FAIL02) |
+| map | components/map.php | `salt-map` click-to-load facade; consent-gated; facade rules in app.css until salt.css has them |
 | booking | components/booking.php | Provider facade (salt-contract markup/booking.json: `salt-button salt-booking`); plain link until consent |
-| x-share-links | components/share-links.php | Social share intents (x/facebook/linkedin/whatsapp/bluesky/reddit/email + pinterest opt-in); copy-link button `hidden` until sections/share.js activates it (FAIL02) |
-| x-author-box | components/author-box.php | Post author attribution (name, role, bio and photo from the credited team member, never the WordPress user; ID-3952) |
+| share-links | components/share-links.php | Social share intents (x/facebook/linkedin/whatsapp/bluesky/reddit/email + pinterest opt-in); copy-link button `hidden` until sections/share.js activates it (FAIL02) |
+| author-box | components/author-box.php | Post author attribution (name, role, bio and photo from the credited team member, never the WordPress user; ID-3952) |
 
 Changing any args signature or markup structure = MAJOR (RELEASE-POLICY.md;
 snapshot diff is the trigger).

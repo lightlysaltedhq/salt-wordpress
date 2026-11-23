@@ -444,8 +444,10 @@ function salt_section_plan_rows( string $selector, $post_id = false, ?callable $
  *     place among the page's rendered bands, from 0: accordion names) and
  *     priorityMedia.
  *  3. It never prints an id of its own but <anchor>__<part> (plan.anchor).
- * Sections that have not moved pass no `contract` and keep x-section
- * (components/section.php) until their tranche converts them.
+ * Every parent section passes `contract`. Without it, salt_section()
+ * draws the x-section band (components/section.php): only a child theme's
+ * own whole section does that now (salt_section_wrapper_args()), and the
+ * band is deprecated (docs/contracts/OVERRIDES.md, tier 5).
  *
  * With `contract` the band (components/contract-section.php) is:
  *  - a section named by its heading (aria-labelledby <anchor>__heading)
