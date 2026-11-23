@@ -50,7 +50,7 @@ if ( 'panel' === $salt_style && ! $salt_quote ) {
 		echo '<p class="salt-showcase__text">' . esc_html( (string) $salt_card['text'] ) . '</p>';
 	}
 	if ( null !== ( $salt_card['href'] ?? null ) ) {
-		echo '<p><a class="salt-showcase__link" href="' . esc_url( (string) $salt_card['href'] ) . '">' . esc_html( (string) $salt_card['title'] ) . '</a></p>';
+		echo '<p><a class="salt-showcase__link" href="' . esc_url( salt_contract_url( (string) $salt_card['href'] ) ) . '">' . esc_html( (string) $salt_card['title'] ) . '</a></p>';
 	}
 	echo '</div>';
 	return;
@@ -97,7 +97,7 @@ if ( is_array( $salt_card['image'] ?? null ) ) {
 $salt_title = esc_html( (string) $salt_card['title'] );
 if ( null !== ( $salt_card['href'] ?? null ) ) {
 	$salt_arrow = null !== ( $salt_args['arrow'] ?? null ) ? '<span class="salt-arrow" aria-hidden="true">&#x2060;' . esc_html( (string) $salt_args['arrow'] ) . '</span>' : '';
-	$salt_title = '<a class="salt-card__link" href="' . esc_url( (string) $salt_card['href'] ) . '">' . $salt_title . $salt_arrow . '</a>';
+	$salt_title = '<a class="salt-card__link" href="' . esc_url( salt_contract_url( (string) $salt_card['href'] ) ) . '">' . $salt_title . $salt_arrow . '</a>';
 }
 printf( '<h%1$d>%2$s</h%1$d>', (int) $salt_level, $salt_title ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
 

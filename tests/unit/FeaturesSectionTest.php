@@ -161,7 +161,7 @@ final class FeaturesSectionTest extends SaltTestCase {
 		$this->assertSame( 3, preg_match_all( '/<li><div class="salt-card">/', $html ) );
 		$this->assertStringContainsString( '<ul class="salt-grid" role="list" data-columns="4">', $html );
 		$this->assertStringContainsString( '<p class="salt-eyebrow">Benefits</p><h2 id="features__heading">Why us</h2>', $html );
-		$this->assertStringContainsString( '<h3><a class="salt-card__link" href="https://example.test/fast/">Fast<span class="salt-arrow" aria-hidden="true">&#x2060;→</span></a></h3>', $html, 'A linked title under an h2 is an h3 with the site\'s arrow.' );
+		$this->assertStringContainsString( '<h3><a class="salt-card__link" href="/fast/">Fast<span class="salt-arrow" aria-hidden="true">&#x2060;→</span></a></h3>', $html, 'A linked title under an h2 is an h3 with the site\'s arrow.' );
 		$this->assertStringContainsString( '<h3>Accessible</h3>', $html, 'No url: a plain title.' );
 		$this->assertSame( 1, preg_match_all( '/<a\b/', $html ) );
 		$this->assertSame( 2, preg_match_all( '/<svg class="salt-icon" data-icon="(check|star)" data-size="lg"/', $html ), 'An icon per item that sets one, large.' );

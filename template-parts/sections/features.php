@@ -59,7 +59,7 @@ if ( array() !== $salt_props['items'] ) {
 		}
 		$salt_title = esc_html( (string) $salt_item['title'] );
 		if ( null !== $salt_item['href'] ) {
-			$salt_title = '<a class="salt-card__link" href="' . esc_url( (string) $salt_item['href'] ) . '">' . $salt_title . $salt_arrow . '</a>';
+			$salt_title = '<a class="salt-card__link" href="' . esc_url( salt_contract_url( (string) $salt_item['href'] ) ) . '">' . $salt_title . $salt_arrow . '</a>';
 		}
 		printf( '<h%1$d>%2$s</h%1$d>', (int) $salt_card_level, $salt_title ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
 		if ( null !== $salt_item['text'] ) {
