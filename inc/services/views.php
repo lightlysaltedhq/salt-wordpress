@@ -179,14 +179,20 @@ function salt_contract_search(): ?array {
  * /search/?q=<query>&page=<n> are WordPress's search for the query, page n.
  * The contract's input is named q (markup/search-form.json); routing stays
  * WordPress's own (SC-003), so this only maps it onto s and paged, and
- * WordPress's own /?s= search still answers. Read from the path, so no
- * rewrite rules need flushing.
+ * WordPress's own /?s= search still answers as before.
+ *
+ * Only when nothing else owns /search/: a page, post or attachment at that
+ * path, a post type archive, a term or an author WordPress resolved it to
+ * is served as it was. q is handed over exactly as s arrives from a form
+ * ($_GET included), so WP_Query cleans it as it cleans s, and the page is a
+ * search (is_search()) with core's noindex robots. Read from the path: no
+ * rewrite rules are added and none need flushing.
  *
  * @param array<string,mixed> $vars The parsed query vars.
  * @return array<string,mixed>
  */
 function salt_search_request( array $vars ): array {
-	if ( is_admin() || isset( $vars['rest_route'] ) ) {
+	if ( is_admin() || isset( $vars['rest_route'] ) || isset( $vars['s'] ) ) {
 		return $vars;
 	}
 	$base = (string) wp_parse_url( home_url( '/search/' ), PHP_URL_PATH );
@@ -194,10 +200,22 @@ function salt_search_request( array $vars ): array {
 	if ( untrailingslashit( $path ) !== untrailingslashit( $base ) ) {
 		return $vars;
 	}
-	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- A public search form, as WordPress's own ?s= is.
-	$query = isset( $_GET['q'] ) && is_string( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
+	foreach ( array( 'post_type', 'category_name', 'cat', 'tag', 'taxonomy', 'term', 'author', 'author_name', 'feed' ) as $owner ) {
+		if ( ! empty( $vars[ $owner ] ) ) {
+			return $vars;
+		}
+	}
+	foreach ( array( 'pagename', 'name', 'attachment' ) as $owner ) {
+		if ( ! empty( $vars[ $owner ] ) && null !== get_page_by_path( (string) $vars[ $owner ], OBJECT, array_values( get_post_types( array( 'public' => true ) ) ) ) ) {
+			return $vars;
+		}
+	}
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput -- A public search form, as WordPress's own ?s= is; WP_Query cleans s.
+	$query = isset( $_GET['q'] ) && is_string( $_GET['q'] ) ? $_GET['q'] : '';
 	$page  = isset( $_GET['page'] ) && is_scalar( $_GET['page'] ) ? absint( $_GET['page'] ) : 0;
-	// phpcs:enable WordPress.Security.NonceVerification.Recommended
+	// As a ?s= form submission: WP_Query reads $_GET['s'] to know the query is not URL-encoded.
+	$_GET['s'] = $query;
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput
 	return array(
 		's'     => $query,
 		'paged' => $page > 1 ? $page : 0,
