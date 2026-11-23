@@ -14,7 +14,9 @@
  *   2. Granted → injects a <script> for the SAME-origin MapLibre bundle
  *      (window.saltMaps.maplibre, from the nonce-stamped inline script
  *      salt_maps_enqueue() adds; CSP script-src 'self' allows it — no
- *      third-party script ever) and initialises a raster map from the
+ *      third-party script ever), points it at its same-origin worker
+ *      (window.saltMaps.worker: MapLibre's CSP build, so no blob: worker)
+ *      and initialises a raster map from the
  *      facade's data-lat/lng/zoom/tile with a marker. OpenStreetMap attribution is
  *      REQUIRED and always rendered via the raster source.
  *
@@ -34,24 +36,29 @@
 	let libraryLoading = null;
 
 	/**
-	 * Load the same-origin MapLibre bundle once (sets window.maplibregl).
+	 * Load the same-origin MapLibre bundle once (sets window.maplibregl) and
+	 * point it at its same-origin worker (the CSP build runs no blob: worker).
 	 *
-	 * @param {string} src Hashed bundle URL (same origin).
-	 * @return {Promise<void>} Resolves when window.maplibregl exists.
+	 * @param {string} src    Hashed bundle URL (same origin).
+	 * @param {string} worker Hashed worker URL (same origin).
+	 * @return {Promise<void>} Resolves when window.maplibregl exists, its worker set.
 	 */
-	const loadLibrary = (src) => {
+	const loadLibrary = (src, worker) => {
 		if (window.maplibregl) {
 			return Promise.resolve();
 		}
-		if (!src) {
-			return Promise.reject(new Error('maps: no MapLibre bundle address.'));
+		if (!src || !worker) {
+			return Promise.reject(new Error('maps: no MapLibre bundle or worker address.'));
 		}
 		if (!libraryLoading) {
 			libraryLoading = new Promise((resolve, reject) => {
 				const script = document.createElement('script');
 				script.src = src;
 				script.async = true;
-				script.onload = () => resolve();
+				script.onload = () => {
+					window.maplibregl.setWorkerUrl(worker);
+					resolve();
+				};
 				script.onerror = () => {
 					libraryLoading = null;
 					reject(new Error('maps: MapLibre bundle failed to load.'));
@@ -170,7 +177,8 @@
 			}
 
 			button.disabled = true;
-			loadLibrary((window.saltMaps && window.saltMaps.maplibre) || '')
+			const settings = window.saltMaps || {};
+			loadLibrary(settings.maplibre || '', settings.worker || '')
 				.then(() => {
 					button.remove();
 					const label = container.querySelector('.salt-map__label');
