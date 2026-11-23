@@ -29,8 +29,8 @@ if ( array() === $salt_window || ! is_callable( $salt_href ) ) {
 }
 
 $salt_page_label = static function ( int $n ) use ( $salt_labels ): string {
-	$label = (string) ( $salt_labels['page'] ?? '' );
-	return str_contains( $label, '{n}' ) ? salt_view_label( $label, array( 'n' => (string) $n ) ) : trim( $label . ' ' . $n );
+	// {n} replaced where it stands; a label without it is drawn as written (SC-031).
+	return salt_view_label( (string) ( $salt_labels['page'] ?? '' ), array( 'n' => (string) $n ) );
 };
 
 echo '<nav class="salt-pagination" aria-label="' . esc_attr( (string) ( $salt_labels['nav'] ?? '' ) ) . '"><ul class="salt-pagination__list" role="list">';

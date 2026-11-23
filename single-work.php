@@ -1,6 +1,6 @@
 <?php
 /**
- * Single case study, as the contract draws it (salt-contract rc.8
+ * Single case study, as the contract draws it (salt-contract rc.9
  * markup/case-study.json): the article with its header (the link back to
  * the case studies' index, the title as the document's h1, the client, the
  * summary, the results and the project details), the featured image as the
@@ -13,9 +13,11 @@
  * → Case Studies (salt_case_study_settings(), the contract's
  * site.caseStudy): the header plain or a toned band (data-header="band"),
  * and the featured image in the flow or aside (data-media="aside", with
- * --salt-case-study-view-aside-rows, the parts beside the image, and
- * --salt-case-study-view-measure, a default band's 64rem). The aside needs
- * an image and a part beside it; otherwise the image stays in the flow.
+ * data-aside-rows, how many sidebar parts are drawn: SC-032's challenge,
+ * solution, gallery and live-site link). The aside needs an image and a
+ * sidebar part; otherwise the image stays in the flow. No style attribute
+ * (SC-029): the stylesheet sets the rows, the measure and the band's
+ * spacing from these attributes.
  *
  * Reads salt-contract's case study (collections/case-studies.json): the
  * title, summary (the excerpt) and featuredImage (the featured image) from
@@ -126,13 +128,13 @@ while ( have_posts() ) {
 	printf(
 		'<article class="salt-case-study-view"%1$s%2$s>',
 		$salt_band ? ' data-header="band"' : '',
-		$salt_aside ? sprintf( ' data-media="aside" style="%s"', esc_attr( '--salt-case-study-view-aside-rows: ' . count( $salt_parts ) . '; --salt-case-study-view-measure: 64rem' ) ) : ''
+		$salt_aside ? sprintf( ' data-media="aside" data-aside-rows="%d"', count( $salt_parts ) ) : ''
 	);
 
 	// The header: plain, or a toned band as a section draws one.
 	if ( $salt_band ) {
 		printf(
-			'<header class="salt-section salt-case-study-view__header" data-tone="%1$s" data-tone-dark="%2$s" data-spacing="md" data-width="default" style="--salt-section-space: var(--space-section-md)"><div class="salt-section__content">',
+			'<header class="salt-section salt-case-study-view__header" data-tone="%1$s" data-tone-dark="%2$s" data-spacing="md" data-width="default"><div class="salt-section__content">',
 			esc_attr( $salt_layout['headerTone'] ),
 			esc_attr( $salt_layout['headerToneDark'] )
 		);
