@@ -14,8 +14,18 @@
  * title, the excerpt, the body and the featured image) are set the WordPress
  * way and read back through the theme's own readers.
  *
+ * The client and sector records are off by default (SC-035); this phase
+ * switches both on, before WordPress loads, so every generated group and
+ * field is registered.
+ *
  * @package Salt\Tests\RealAcf
  */
+
+// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- WordPress builds hooks added before it loads (WP_Hook::build_preinitialized_hooks).
+$GLOBALS['wp_filter']['salt_module_enabled'][20][] = array(
+	'function'      => static fn( bool $enabled, string $slug ): bool => $enabled || in_array( $slug, array( 'client', 'sector' ), true ),
+	'accepted_args' => 2,
+);
 
 require __DIR__ . '/wp.php';
 
@@ -223,7 +233,7 @@ function salt_harness_collection_compare( $want, $got, array $field, string $pat
 
 $generated = salt_generated_collection_groups();
 salt_harness_result(
-	7 === count( $generated ),
+	9 === count( $generated ),
 	'the collection groups are the generated ones',
 	sprintf( '%d groups from inc/fields/generated/collections.json: %s', count( $generated ), implode( ', ', array_map( static fn( array $g ): string => $g['salt']['collection'] . ' on ' . salt_collection_group_post_type( $g ), $generated ) ) )
 );

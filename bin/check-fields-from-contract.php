@@ -118,6 +118,11 @@ require_once $salt_root . '/inc/helpers.php';
 require_once $salt_root . '/inc/modules.php';
 require_once $salt_root . '/inc/acf.php';
 require_once $salt_root . '/inc/query/resolver.php';
+require_once $salt_root . '/inc/cpt/records.php';
+
+// Verbatim means with every module on, the client and sector records too
+// (off by default, when their pickers are left out of the case study's group).
+add_filter( 'salt_module_enabled', static fn( bool $enabled, string $slug ): bool => $enabled || in_array( $slug, salt_modules_off_by_default(), true ), 10, 2 );
 
 $salt_generated = json_decode( (string) file_get_contents( $salt_root . '/inc/fields/generated/sections.json' ), true )[0]['fields'][0]['layouts'] ?? array();
 $salt_names     = array_column( $salt_generated, 'name' );

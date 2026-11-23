@@ -57,6 +57,12 @@ require_once $salt_root . '/inc/helpers.php';
 require_once $salt_root . '/inc/modules.php';
 require_once $salt_root . '/inc/acf.php';
 require_once $salt_root . '/inc/query/resolver.php';
+require_once $salt_root . '/inc/cpt/records.php';
+remove_filter( 'init', 'salt_register_cpt_records' ); // Only its field helpers are needed here.
+
+// The registry holds every name a site can store, so the modules that are
+// off by default (the client and sector records) are switched on here.
+add_filter( 'salt_module_enabled', static fn( bool $enabled, string $slug ): bool => $enabled || in_array( $slug, salt_modules_off_by_default(), true ), 10, 2 );
 
 $salt_fields_files = glob( $salt_root . '/inc/fields/*.php' );
 foreach ( false === $salt_fields_files ? array() : $salt_fields_files as $salt_fields_file ) {

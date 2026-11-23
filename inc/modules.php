@@ -28,15 +28,31 @@ function salt_modules(): array {
 		'work'                => __( 'Work', 'salt' ),
 		'faq'                 => __( 'FAQs', 'salt' ),
 		'location'            => __( 'Locations', 'salt' ),
+		'client'              => __( 'Clients', 'salt' ),
+		'sector'              => __( 'Sectors', 'salt' ),
 		'dark_mode'           => __( 'Dark mode', 'salt' ),
 		'display_preferences' => __( 'Display preferences', 'salt' ),
 	);
 }
 
 /**
+ * Modules that are off until a site switches them on.
+ *
+ * The name-only client and sector records (SC-035): a site that never
+ * saves their switch keeps its case studies' free-text names. Every other
+ * module stays on by default.
+ *
+ * @return string[]
+ */
+function salt_modules_off_by_default(): array {
+	return array( 'client', 'sector' );
+}
+
+/**
  * Single three-layer module gate.
  *
- * Reads the ACF option 'module_{slug}': unset/null defaults to enabled;
+ * Reads the ACF option 'module_{slug}': unset/null defaults to enabled,
+ * except the salt_modules_off_by_default() modules, which default to off;
  * anything else is cast to bool. The result then passes through the
  * 'salt_module_enabled' filter — the child/site override point (register
  * at priority 20+ per the conventions contract). Final; extend via filter.
@@ -53,13 +69,13 @@ function salt_module_enabled( string $slug ): bool {
 	}
 
 	$value   = salt_option( 'module_' . $slug );
-	$enabled = null === $value ? true : (bool) $value;
+	$enabled = null === $value ? ! in_array( $slug, salt_modules_off_by_default(), true ) : (bool) $value;
 
 	return (bool) apply_filters( 'salt_module_enabled', $enabled, $slug );
 }
 
 /**
- * Module slug => CPT name for the six CPT-backed modules.
+ * Module slug => CPT name for the CPT-backed modules.
  *
  * Final.
  *
@@ -72,5 +88,7 @@ function salt_module_cpts(): array {
 		'work'        => 'work',
 		'faq'         => 'faq',
 		'location'    => 'location',
+		'client'      => 'client',
+		'sector'      => 'sector',
 	);
 }

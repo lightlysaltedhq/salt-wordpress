@@ -364,10 +364,9 @@ function salt_section_tones(): array {
  * The case-study view's layout, which a site sets once for all its case
  * studies (the contract's `site.caseStudy`) on Site Settings → Case Studies
  * (inc/fields/options-case-studies.php): the header plain or a toned band,
- * the band's tone and dark tone (the tone itself when unset), and the
- * featured image in the flow or aside.
+ * and the band's tone and dark tone (the tone itself when unset).
  *
- * @return array{header: string, headerTone: string, headerToneDark: string, media: string}
+ * @return array{header: string, headerTone: string, headerToneDark: string}
  */
 function salt_case_study_settings(): array {
 	$tones = salt_section_tones();
@@ -377,7 +376,6 @@ function salt_case_study_settings(): array {
 		'header'         => 'band' === salt_option( 'case_study_header' ) ? 'band' : 'plain',
 		'headerTone'     => $tone,
 		'headerToneDark' => $dark,
-		'media'          => 'aside' === salt_option( 'case_study_media' ) ? 'aside' : 'flow',
 	);
 }
 

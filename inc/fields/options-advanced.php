@@ -3,7 +3,8 @@
  * Site Settings → Advanced (page 7 — implementer territory, touched once).
  *
  * Module availability switches (§10b). Field names module_{slug} frozen
- * (FLEET07); defaults stay enabled. Feature modules (dark_mode,
+ * (FLEET07); defaults stay enabled, except the client and sector records
+ * (salt_modules_off_by_default()), which a site switches on. Feature modules (dark_mode,
  * display_preferences) are AVAILABILITY gates — the editor-facing on/off
  * switches live on Brand & Design (two-level gating pattern).
  *
@@ -56,6 +57,11 @@ function salt_register_modules_options(): void {
 			'ui'            => 1,
 			'default_value' => 1,
 		);
+
+		if ( in_array( $slug, salt_modules_off_by_default(), true ) ) {
+			$field['default_value'] = 0;
+			$field['instructions']  = __( 'Off by default. On: case studies choose from a list of records. Off: they keep the name as text. Switching never changes a stored name or choice.', 'salt' );
+		}
 
 		if ( in_array( $slug, $feature_slugs, true ) ) {
 			$field['instructions'] = __( 'Availability gate. The editor-facing on/off switch lives on Brand & Design.', 'salt' );

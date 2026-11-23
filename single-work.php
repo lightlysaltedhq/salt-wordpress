@@ -1,29 +1,31 @@
 <?php
 /**
  * Single case study, as the contract draws it (salt-contract rc.9
- * markup/case-study.json): the article with its header (the link back to
- * the case studies' index, the title as the document's h1, the client, the
- * summary, the results and the project details), the featured image as the
- * view's priority image, the challenge, solution and gallery as sections
- * named case-study__<part>-heading (SC-012), the live-site link opening in
- * a new tab, and the delivered services as cards; then the CreativeWork
- * schema.
+ * markup/case-study.json, SC-034): the article with its header (the link
+ * back to the case studies' index, the title as the document's h1, the
+ * client, the summary, the results, the project details and, last, the
+ * featured image as the view's one priority image), then the narrative:
+ * the challenge, the case-study image, the solution and the gallery as
+ * sections named case-study__<part>-heading (SC-012), the live-site link
+ * opening in a new tab, and the delivered services as cards; then the
+ * CreativeWork schema.
  *
- * The layout is the site's, set once for every case study on Site Settings
+ * The case-study image stays in the flow after the challenge (after the
+ * header when there is none, before the gallery when there is no
+ * solution); it is never promoted to the header, and it is drawn once, in
+ * the header, when it is the featured image. A missing image draws
+ * nothing.
+ *
+ * The header is the site's, set once for every case study on Site Settings
  * → Case Studies (salt_case_study_settings(), the contract's
- * site.caseStudy): the header plain or a toned band (data-header="band"),
- * and the featured image in the flow or aside (data-media="aside", with
- * data-aside-rows, how many sidebar parts are drawn: SC-032's challenge,
- * solution, gallery and live-site link). The aside needs an image and a
- * sidebar part; otherwise the image stays in the flow. No style attribute
- * (SC-029): the stylesheet sets the rows, the measure and the band's
- * spacing from these attributes.
+ * site.caseStudy): plain, or a toned band (data-header="band") with the
+ * featured image inside its content.
  *
  * Reads salt-contract's case study (collections/case-studies.json): the
  * title, summary (the excerpt) and featuredImage (the featured image) from
- * WordPress, and client, results, details, challenge, solution, gallery,
- * externalUrl and services from the generated group. A case study has no
- * page body.
+ * WordPress, and client, results, details, challenge, caseStudyImage,
+ * solution, gallery, externalUrl and services from the generated group. A
+ * case study has no page body.
  *
  * @package Salt
  */
@@ -44,7 +46,7 @@ while ( have_posts() ) {
 	$salt_permalink = (string) get_permalink();
 	$salt_text      = static fn( $value ): string => is_string( $value ) ? trim( $value ) : '';
 
-	$salt_client       = $salt_text( get_field( 'client', $salt_work_id ) );
+	$salt_client       = salt_case_study_name( $salt_work_id, 'client' );
 	$salt_summary      = trim( salt_post_summary( $salt_work_id ) );
 	$salt_external_url = $salt_text( get_field( 'externalUrl', $salt_work_id ) );
 	$salt_index        = salt_collection_index_url( 'case-studies' );
@@ -65,7 +67,21 @@ while ( have_posts() ) {
 		}
 	}
 
-	// The parts beside the aside: challenge, solution, gallery and the live link.
+	// The featured image is the header's, and the view's one priority image.
+	$salt_band     = 'band' === $salt_layout['header'];
+	$salt_thumb_id = (int) get_post_thumbnail_id( $salt_work_id );
+	$salt_featured = salt_image_contract( $salt_thumb_id, $salt_band ? salt_image_slot_sizes( 'content', 'default' ) : salt_image_slot_sizes( 'content' ) );
+
+	// The case-study image, in the flow between the challenge and the solution;
+	// never promoted to the header, and drawn once (in the header) when it is
+	// the featured image.
+	$salt_flow_id  = (int) get_field( 'caseStudyImage', $salt_work_id, false );
+	$salt_flow     = $salt_flow_id > 0 && $salt_flow_id !== $salt_thumb_id ? salt_image_contract( $salt_flow_id, salt_image_slot_sizes( 'content' ) ) : null;
+	$salt_flow_tag = null !== $salt_flow ? '<div class="salt-case-study-view__flow-media">' . salt_image_contract_html( $salt_flow ) . '</div>' : '';
+
+	// The narrative in order: challenge, the case-study image, solution,
+	// gallery and the live link. A missing part draws nothing and leaves the
+	// others in their order.
 	$salt_parts = array();
 	foreach ( array(
 		'challenge' => 'field_salt_collection_case_studies_challenge',
@@ -81,6 +97,9 @@ while ( have_posts() ) {
 				esc_html( (string) $salt_labels[ $salt_name ] ),
 				salt_render_rich_text_headings( $salt_html, 2 )
 			);
+		}
+		if ( 'challenge' === $salt_name && '' !== $salt_flow_tag ) {
+			$salt_parts[] = $salt_flow_tag;
 		}
 	}
 	$salt_frames = array();
@@ -108,14 +127,8 @@ while ( have_posts() ) {
 		) . '</p>';
 	}
 
-	// The featured image: the view's priority image, in the flow or aside.
-	$salt_aside    = 'aside' === $salt_layout['media'] && array() !== $salt_parts;
-	$salt_thumb_id = (int) get_post_thumbnail_id( $salt_work_id );
-	$salt_featured = salt_image_contract( $salt_thumb_id, $salt_aside ? salt_image_slot_sizes( 'aside', 'default' ) : salt_image_slot_sizes( 'content' ) );
-	$salt_aside    = $salt_aside && null !== $salt_featured;
-
 	$salt_services = array();
-	$salt_sizes    = $salt_aside ? salt_image_slot_sizes( 'aside-card' ) : salt_image_slot_sizes( 'card', 'full', '3' );
+	$salt_sizes    = salt_image_slot_sizes( 'card', 'full', '3' );
 	foreach ( (array) get_field( 'services', $salt_work_id ) as $salt_service_id ) {
 		$salt_service = get_post( (int) ( $salt_service_id instanceof WP_Post ? $salt_service_id->ID : $salt_service_id ) );
 		$salt_card    = $salt_service instanceof WP_Post && 'publish' === $salt_service->post_status ? salt_contract_view_card( $salt_service, 'services', $salt_sizes ) : null;
@@ -124,12 +137,7 @@ while ( have_posts() ) {
 		}
 	}
 
-	$salt_band = 'band' === $salt_layout['header'];
-	printf(
-		'<article class="salt-case-study-view"%1$s%2$s>',
-		$salt_band ? ' data-header="band"' : '',
-		$salt_aside ? sprintf( ' data-media="aside" data-aside-rows="%d"', count( $salt_parts ) ) : ''
-	);
+	echo $salt_band ? '<article class="salt-case-study-view" data-header="band">' : '<article class="salt-case-study-view">';
 
 	// The header: plain, or a toned band as a section draws one.
 	if ( $salt_band ) {
@@ -174,11 +182,11 @@ while ( have_posts() ) {
 		}
 		echo '</dl>';
 	}
-	echo $salt_band ? '</div></header>' : '</header>';
-
 	if ( null !== $salt_featured ) {
 		echo '<div class="salt-case-study-view__media">' . salt_image_contract_html( $salt_featured, true ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped attribute by attribute.
 	}
+	echo $salt_band ? '</div></header>' : '</header>';
+
 	echo implode( '', $salt_parts ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each part escaped as it was built; rich text sanitised to its field's contract list.
 
 	if ( array() !== $salt_services ) {

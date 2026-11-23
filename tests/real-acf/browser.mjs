@@ -34,8 +34,9 @@
  *    name over 120 is added and updated. No count in quick edit or in the
  *    Topics box's add-new form, which adds a name over 120 too.
  * 10. Site Settings → Case Studies: with the work module on, the form saves
- *    the band header, its tones and the aside image, and the case-study
- *    view draws them; with it off, the page and its field group are gone
+ *    the band header and its tones (and offers no image aside), and the
+ *    case-study view draws them, its featured image the band's last part
+ *    and the page's one priority image; with it off, the page and its field group are gone
  *    and the stored settings are kept.
  *
  * With SALT_HARNESS_SCREENSHOTS set to a directory, it saves pictures of the
@@ -866,37 +867,35 @@ try {
 		await page.click( `${ field( 'case_study_header' ) } label:has(input[value="band"])` );
 		await page.selectOption( `${ field( 'case_study_header_tone' ) } select`, 'brand-tint' );
 		await page.selectOption( `${ field( 'case_study_header_tone_dark' ) } select`, 'surface-inverse' );
-		await page.click( `${ field( 'case_study_media' ) } label:has(input[value="aside"])` );
+		const mediaControl = await page.locator( field( 'case_study_media' ) ).count();
 		await Promise.all( [ page.waitForURL( /[?&]message=1/, { timeout: 60000 } ), page.click( '#publish' ) ] );
 		const saved = caseStudy();
-		const want = { header: 'band', headerTone: 'brand-tint', headerToneDark: 'surface-inverse', media: 'aside' };
+		const want = { header: 'band', headerTone: 'brand-tint', headerToneDark: 'surface-inverse' };
 		result(
-			on.work && on.group && offered === 1 && JSON.stringify( saved.settings ) === JSON.stringify( want ),
-			'Site Settings → Case Studies saves the case-study layout (work on)',
-			`page ${ offered ? 'offered' : 'MISSING' }; salt_case_study_settings() reads ${ JSON.stringify( saved.settings ) }`
+			on.work && on.group && offered === 1 && mediaControl === 0 && JSON.stringify( saved.settings ) === JSON.stringify( want ),
+			'Site Settings → Case Studies saves the header layout, with no image aside control (work on)',
+			`page ${ offered ? 'offered' : 'MISSING' }; image aside control ${ mediaControl ? 'STILL OFFERED' : 'gone' }; salt_case_study_settings() reads ${ JSON.stringify( saved.settings ) }`
 		);
 		result( errors.length === 0, 'no console errors on the Case Studies settings page', `${ errors.length } errors` );
 		errors.slice( 0, 10 ).forEach( info );
 		await close( page );
 
-		// The case-study view draws what was saved: the band in its tones, the image aside.
+		// The case-study view draws what was saved: the band in its tones, the featured image the band's last part (SC-034).
 		const { page: view } = await open( saved.url.replace( url, '' ) );
 		const drawn = await view.evaluate( () => {
 			const article = document.querySelector( 'article.salt-case-study-view' );
 			const header = article?.querySelector( '.salt-case-study-view__header' );
 			return {
 				header: article?.dataset.header ?? null,
-				media: article?.dataset.media ?? null,
 				tone: header?.dataset.tone ?? null,
 				toneDark: header?.dataset.toneDark ?? null,
-				// rc.9 (SC-029): the attribute, and the row count the stylesheet computes from it.
-				asideRows: article?.dataset.asideRows ?? null,
-				rows: article ? getComputedStyle( article ).getPropertyValue( '--salt-case-study-view-aside-rows' ).trim() : '',
+				heroLast: header?.querySelector( ':scope > .salt-section__content > :last-child' )?.matches( '.salt-case-study-view__media' ) ?? false,
+				priority: [ ...document.querySelectorAll( 'img[fetchpriority="high"]' ) ].map( ( img ) => img.closest( '.salt-case-study-view__media' ) !== null ),
 				inlineStyle: article?.hasAttribute( 'style' ) ?? false,
 			};
 		} );
 		result(
-			drawn.header === 'band' && drawn.tone === 'brand-tint' && drawn.toneDark === 'surface-inverse' && drawn.media === 'aside' && drawn.asideRows === '4' && drawn.rows === '4' && ! drawn.inlineStyle,
+			drawn.header === 'band' && drawn.tone === 'brand-tint' && drawn.toneDark === 'surface-inverse' && drawn.heroLast && JSON.stringify( drawn.priority ) === '[true]' && ! drawn.inlineStyle,
 			'the case-study view reads the saved settings',
 			`${ saved.url.replace( url, '' ) }: ${ JSON.stringify( drawn ) }`
 		);
@@ -915,6 +914,260 @@ try {
 			'with the work module off there is no Case Studies page, and its settings are kept',
 			`group ${ off.group ? 'REGISTERED' : 'not registered' }; menu links ${ linked }; the page answered ${ direct.status() }; on again it reads ${ JSON.stringify( back.settings ) }`
 		);
+	}
+
+	// ── 11. The client and sector records (SC-035): the switches, the editor and the client slot ─
+	{
+		const script = path.join( here, 'php/records.php' );
+		const state = ( ...ids ) => JSON.parse( execFileSync( php, [ script, ...ids.map( String ) ], { encoding: 'utf8' } ) );
+		const field = ( name ) => `.acf-field[data-name="${ name }"]`;
+		const advanced = '/wp-admin/admin.php?page=salt-settings-advanced';
+
+		// The switches, through Site Settings → Advanced → Modules → Content modules.
+		const switches = async ( client, sector ) => {
+			const { page, errors } = await open( advanced );
+			await page.waitForFunction( () => window.acf && document.readyState === 'complete' );
+			await page.click( 'a.acf-tab-button:has-text("Content modules")' );
+			const before = {};
+			for ( const [ slug, want ] of [ [ 'client', client ], [ 'sector', sector ] ] ) {
+				const box = page.locator( `${ field( `module_${ slug }` ) } input[type="checkbox"]` );
+				before[ slug ] = await box.isChecked();
+				if ( before[ slug ] !== want ) {
+					await page.locator( `${ field( `module_${ slug }` ) } .acf-switch` ).click();
+				}
+			}
+			before.work = await page.locator( `${ field( 'module_work' ) } input[type="checkbox"]` ).isChecked();
+			await Promise.all( [ page.waitForURL( /[?&]message=1/, { timeout: 60000 } ), page.click( '#publish' ) ] );
+			await close( page );
+			return { before, errors };
+		};
+		// A case study's editor: which controls it offers and what they hold.
+		const editor = async ( page ) =>
+			page.evaluate( () => {
+				const read = ( name ) => {
+					const el = document.querySelector( `.acf-field[data-name="${ name }"]` );
+					if ( ! el ) {
+						return null;
+					}
+					const select = el.querySelector( 'select' );
+					const status = el.querySelector( '.salt-record-unavailable' )?.textContent.trim();
+					return {
+						...( status ? { status } : {} ),
+						shown: ! el.classList.contains( 'acf-hidden' ) && el.offsetParent !== null,
+						// An empty picker reads '', not its placeholder.
+						value: select ? ( select.value ? select.selectedOptions[ 0 ].textContent.trim() : '' ) : el.querySelector( 'input' )?.value ?? '',
+					};
+				};
+				return { client: read( 'client' ), clientRecord: read( 'clientRecord' ), sector: read( 'sector' ), sectorRecord: read( 'sectorRecord' ) };
+			} );
+		const edit = async ( id ) => {
+			const opened = await open( `/wp-admin/post.php?post=${ id }&action=edit` );
+			await opened.page.waitForFunction( () => window.acf && document.readyState === 'complete' );
+			await opened.page.waitForTimeout( 500 );
+			return opened;
+		};
+		const drawnClient = async ( target ) => {
+			const { page } = await open( target.replace( url, '' ) );
+			const text = await page.locator( '.salt-case-study-view__client' ).first().textContent().catch( () => null );
+			await close( page );
+			return text?.trim() ?? null;
+		};
+		const same = ( a, b ) => JSON.stringify( a ) === JSON.stringify( b );
+		const stored = ( w ) => ( { client: w.client, clientRecord: w.clientRecord, sector: w.sector, sectorRecord: w.sectorRecord } );
+
+		// Defaults: both switches off on the screen and at run time; the other modules stay on.
+		const first = await switches( false, false );
+		const fresh = state();
+		result(
+			! first.before.client && ! first.before.sector && first.before.work && ! fresh.modules.client && ! fresh.modules.sector && ! fresh.types.client && ! fresh.types.sector,
+			'the Clients and Sectors switches are off by default, on the screen and at run time, and the other modules stay on',
+			`screen ${ JSON.stringify( first.before ) }; run time ${ JSON.stringify( fresh.modules ) }; post types ${ JSON.stringify( fresh.types ) }`
+		);
+		result( first.errors.length === 0, 'no console errors on Site Settings → Advanced', `${ first.errors.length } errors` );
+
+		const ids = JSON.parse( execFileSync( php, [ script, '--setup' ], { encoding: 'utf8' } ) );
+		const seeded = state( ids.conflict, ids.recordOnly, ids.legacy, ids.unresolved );
+		const conflictWas = stored( seeded.works[ ids.conflict ] );
+
+		// All four switch combinations on the conflicting case study: what the editor offers, that a save rewrites nothing, and the client slot.
+		for ( const [ client, sector ] of [ [ false, false ], [ true, false ], [ false, true ], [ true, true ] ] ) {
+			const mode = `clients ${ client ? 'on' : 'off' }, sectors ${ sector ? 'on' : 'off' }`;
+			await switches( client, sector );
+			const { page, errors } = await edit( ids.conflict );
+			const seen = await editor( page );
+			const saved = await saveBy( page, '#publish' );
+			await close( page );
+			const after = state( ids.conflict );
+			const work = after.works[ ids.conflict ];
+			const drawn = await drawnClient( work.url );
+			const expect = {
+				client: client ? { shown: false, value: 'Ashby PC' } : { shown: true, value: 'Ashby PC' },
+				clientRecord: client ? { shown: true, value: 'Ashby Parish Council' } : null,
+				sector: sector ? { shown: false, value: 'Councils' } : { shown: true, value: 'Councils' },
+				sectorRecord: sector ? { shown: true, value: 'Local government' } : null,
+			};
+			result(
+				same( seen, expect ) && saved && same( stored( work ), conflictWas ) && drawn === ( client ? 'Ashby Parish Council' : 'Ashby PC' ) && same( after.types, { client, sector } ),
+				`${ mode }: the editor offers the picker only when on, keeps the text until a record is chosen, a save rewrites nothing, and the client slot draws the ${ client ? 'record' : 'text' }`,
+				`editor ${ JSON.stringify( seen ) }; saved ${ saved }; stored ${ JSON.stringify( stored( work ) ) }; drawn \"${ drawn }\"; post types ${ JSON.stringify( after.types ) }`
+			);
+			result( errors.length === 0, `no console errors in the case-study editor (${ mode })`, `${ errors.length } errors` );
+			errors.slice( 0, 10 ).forEach( info );
+		}
+
+		// Clients and sectors have no public address.
+		{
+			const { page } = await open( `/?post_type=client&p=${ ids.clientA }` );
+			const status = ( await page.goto( `${ url }/?post_type=client&p=${ ids.clientA }` ) ).status();
+			const named = await page.locator( 'text=Ashby Parish Council' ).count();
+			await close( page );
+			result( status === 404 && named === 0, 'a client record has no public page', `/?post_type=client&p=${ ids.clientA } answered ${ status }` );
+		}
+
+		// A round trip with differing names and IDs, starting from a case study with records and no text.
+		await switches( false, false );
+		let opened = await edit( ids.recordOnly );
+		const initialised = await editor( opened.page );
+		await opened.page.fill( `${ field( 'client' ) } input`, 'Ashby Council (edited)' );
+		await saveBy( opened.page, '#publish' );
+		await close( opened.page );
+		const step1 = stored( state( ids.recordOnly ).works[ ids.recordOnly ] );
+		result(
+			initialised.client?.value === 'Ashby Parish Council' && initialised.sector?.value === 'Local government' &&
+				same( step1, { client: 'Ashby Council (edited)', clientRecord: String( ids.clientA ), sector: 'Local government', sectorRecord: String( ids.sectorA ) } ),
+			'off, with no text ever saved, the text opens with the stored record\'s name; an edit saves and the IDs are kept',
+			`opened with ${ JSON.stringify( { client: initialised.client?.value, sector: initialised.sector?.value } ) }; stored ${ JSON.stringify( step1 ) }`
+		);
+
+		await switches( true, true );
+		opened = await edit( ids.recordOnly );
+		const chosen = await editor( opened.page );
+		// Clearing the record shows the kept text; then search the picker for the other client.
+		await opened.page.locator( `${ field( 'clientRecord' ) } .select2-selection__clear` ).click();
+		await opened.page.waitForTimeout( 300 );
+		const cleared = await editor( opened.page );
+		// Clearing opens the dropdown; close it, then open it as an editor would.
+		await opened.page.keyboard.press( 'Escape' );
+		await opened.page.locator( `${ field( 'clientRecord' ) } .select2-selection` ).click();
+		// Typed, as select2 searches on keystrokes; then wait for the search's answer.
+		await opened.page.locator( '.select2-search__field' ).pressSequentially( 'Estates', { delay: 50 } );
+		const option = opened.page.locator( '.select2-results__option', { hasText: 'Ashby Estates Trust' } );
+		await option.waitFor( { timeout: 30000 } );
+		await opened.page
+			.waitForFunction( () => [ ...document.querySelectorAll( '.select2-results__option' ) ].every( ( o ) => o.textContent.includes( 'Estates' ) ), null, { timeout: 30000 } )
+			.catch( () => {} );
+		const offered = await opened.page.locator( '.select2-results__option' ).allTextContents();
+		await option.click();
+		await opened.page.waitForTimeout( 300 );
+		const picked = await editor( opened.page );
+		await saveBy( opened.page, '#publish' );
+		await close( opened.page );
+		const step2 = state( ids.recordOnly ).works[ ids.recordOnly ];
+		const drawn2 = await drawnClient( step2.url );
+		result(
+			chosen.clientRecord?.value === 'Ashby Parish Council' && chosen.client?.shown === false &&
+				cleared.client?.shown === true && cleared.client?.value === 'Ashby Council (edited)' &&
+				same( offered.map( ( t ) => t.trim() ), [ 'Ashby Estates Trust' ] ) && picked.clientRecord?.value === 'Ashby Estates Trust' && picked.client?.shown === false &&
+				same( stored( step2 ), { client: 'Ashby Council (edited)', clientRecord: String( ids.clientB ), sector: 'Local government', sectorRecord: String( ids.sectorA ) } ) &&
+				drawn2 === 'Ashby Estates Trust',
+			'on, the picker is searchable; clearing it shows the kept text, choosing another record keeps that text, and the slot draws the new record',
+			`chosen ${ JSON.stringify( chosen.clientRecord ) }; cleared shows ${ JSON.stringify( cleared.client ) }; search \"Estates\" offered ${ JSON.stringify( offered ) }; stored ${ JSON.stringify( stored( step2 ) ) }; drawn \"${ drawn2 }\"`
+		);
+
+		await switches( false, false );
+		opened = await edit( ids.recordOnly );
+		const back = await editor( opened.page );
+		await saveBy( opened.page, '#publish' );
+		await close( opened.page );
+		const step3 = state( ids.recordOnly ).works[ ids.recordOnly ];
+		result(
+			back.client?.value === 'Ashby Council (edited)' && same( stored( step3 ), stored( step2 ) ) && ( await drawnClient( step3.url ) ) === 'Ashby Council (edited)',
+			'off again, the edited text is not overwritten by the record\'s name, the record ID is kept, and the slot draws the text',
+			`opened with \"${ back.client?.value }\"; stored ${ JSON.stringify( stored( step3 ) ) }`
+		);
+
+		// A legacy case study (text only) under both switches, and an ID that is no post.
+		await switches( true, true );
+		const before = state();
+		opened = await edit( ids.legacy );
+		const legacy = await editor( opened.page );
+		await saveBy( opened.page, '#publish' );
+		await close( opened.page );
+		opened = await edit( ids.unresolved );
+		const unresolved = await editor( opened.page );
+		await saveBy( opened.page, '#publish' );
+		await close( opened.page );
+		const end = state( ids.legacy, ids.unresolved );
+		const legacyAfter = end.works[ ids.legacy ];
+		const unresolvedAfter = end.works[ ids.unresolved ];
+		result(
+			legacy.client?.shown && legacy.client?.value === 'Legacy Gardens Ltd' && legacy.clientRecord?.value === '' &&
+				legacyAfter.client === 'Legacy Gardens Ltd' && [ '', '0' ].includes( String( legacyAfter.clientRecord ) ) &&
+				( await drawnClient( legacyAfter.url ) ) === 'Legacy Gardens Ltd' && same( end.records, before.records ),
+			'on, a legacy case study keeps its text name, gets no record, and no record is created',
+			`editor ${ JSON.stringify( legacy ) }; stored ${ JSON.stringify( stored( legacyAfter ) ) }; records ${ JSON.stringify( before.records ) } -> ${ JSON.stringify( end.records ) }`
+		);
+		result(
+			unresolved.client?.shown && unresolved.client?.value === 'Old Co' && unresolved.clientRecord?.value === '' && /no longer exists/.test( unresolved.clientRecord?.status ?? '' ) &&
+				same( stored( unresolvedAfter ), stored( seeded.works[ ids.unresolved ] ) ) && ( await drawnClient( unresolvedAfter.url ) ) === 'Old Co',
+			'on, an ID that is no post is named as unavailable, offered to no one, kept through an ordinary save, and the slot draws the text',
+			`editor ${ JSON.stringify( unresolved ) }; stored ${ JSON.stringify( stored( unresolvedAfter ) ) }`
+		);
+
+		// Removing it is explicit, and removes only the one ticked.
+		opened = await edit( ids.unresolved );
+		await opened.page.locator( `${ field( 'clientRecord' ) } input[name="salt_remove_record[client]"]` ).check();
+		await saveBy( opened.page, '#publish' );
+		await close( opened.page );
+		const removed = stored( state( ids.unresolved ).works[ ids.unresolved ] );
+		result(
+			[ '', '0' ].includes( String( removed.clientRecord ) ) && removed.sectorRecord === '999998' && removed.client === 'Old Co',
+			'on, ticking "Remove the saved choice" removes that record only, and keeps the text',
+			`stored ${ JSON.stringify( removed ) }`
+		);
+
+		// A record in the bin: kept through an ordinary save and the switches, drawn again once restored.
+		const bin = ( id ) => execFileSync( php, [ script, '--trash', String( id ) ] );
+		const restore = ( id ) => execFileSync( php, [ script, '--restore', String( id ) ] );
+		bin( ids.clientA );
+		opened = await edit( ids.conflict );
+		const binned = await editor( opened.page );
+		await saveBy( opened.page, '#publish' );
+		await close( opened.page );
+		const binnedAfter = state( ids.conflict ).works[ ids.conflict ];
+		const binnedDrawn = await drawnClient( binnedAfter.url );
+		await switches( false, true );
+		await switches( true, true );
+		const afterSwitches = stored( state( ids.conflict ).works[ ids.conflict ] );
+		restore( ids.clientA );
+		opened = await edit( ids.conflict );
+		const restored = await editor( opened.page );
+		await close( opened.page );
+		const restoredDrawn = await drawnClient( binnedAfter.url );
+		result(
+			binned.client?.shown && binned.clientRecord?.value === '' && /“Ashby Parish Council”, is in the bin/.test( binned.clientRecord?.status ?? '' ) &&
+				same( stored( binnedAfter ), conflictWas ) && binnedDrawn === 'Ashby PC' && same( afterSwitches, conflictWas ) &&
+				restored.clientRecord?.value === 'Ashby Parish Council' && ! restored.clientRecord?.status && restored.client?.shown === false && restoredDrawn === 'Ashby Parish Council',
+			'on, a record in the bin is named as such, kept through an ordinary save and both switches, the slot draws the text, and once restored it is chosen and drawn again',
+			`in the bin: editor ${ JSON.stringify( binned.clientRecord ) }, stored ${ JSON.stringify( stored( binnedAfter ) ) }, drawn "${ binnedDrawn }"; after the switches ${ JSON.stringify( afterSwitches ) }; restored: editor ${ JSON.stringify( restored.clientRecord ) }, drawn "${ restoredDrawn }"`
+		);
+
+		// Choosing another record replaces one in the bin.
+		bin( ids.clientA );
+		opened = await edit( ids.conflict );
+		await opened.page.locator( `${ field( 'clientRecord' ) } .select2-selection` ).click();
+		await opened.page.locator( '.select2-search__field' ).pressSequentially( 'Estates', { delay: 50 } );
+		await opened.page.locator( '.select2-results__option', { hasText: 'Ashby Estates Trust' } ).click();
+		await saveBy( opened.page, '#publish' );
+		await close( opened.page );
+		const replaced = stored( state( ids.conflict ).works[ ids.conflict ] );
+		restore( ids.clientA );
+		result(
+			replaced.clientRecord === String( ids.clientB ) && replaced.client === 'Ashby PC',
+			'on, choosing another record replaces one in the bin',
+			`stored ${ JSON.stringify( replaced ) }`
+		);
+		await switches( false, false );
 	}
 
 	const unloadTotal = [ ...unloadBy.values() ].reduce( ( a, b ) => a + b, 0 );

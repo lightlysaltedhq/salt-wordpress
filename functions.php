@@ -66,6 +66,7 @@ require_once SALT_DIR . '/inc/fields/team-profile.php';
 require_once SALT_DIR . '/inc/cpt/work.php';
 require_once SALT_DIR . '/inc/cpt/faq.php';
 require_once SALT_DIR . '/inc/cpt/location.php';
+require_once SALT_DIR . '/inc/cpt/records.php';
 require_once SALT_DIR . '/inc/fields/options.php';
 require_once SALT_DIR . '/inc/fields/options-company.php';
 require_once SALT_DIR . '/inc/fields/options-brand.php';

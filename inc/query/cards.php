@@ -311,7 +311,7 @@ function salt_collection_card( WP_Post|WP_User $post, string $source, array $opt
 			$card['icon'] = ! empty( $options['icons'] ) ? $text( get_field( 'icon', $id ) ) : null;
 			break;
 		case 'case-studies':
-			$card['meta'] = $text( get_field( 'client', $id ) );
+			$card['meta'] = $text( salt_case_study_name( $id, 'client' ) );
 			break;
 		case 'posts':
 			$date         = get_the_date( 'Y-m-d', $post );
