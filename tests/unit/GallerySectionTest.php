@@ -471,7 +471,7 @@ final class GallerySectionTest extends SaltTestCase {
 						'label'    => null,
 						'named'    => false,
 						'captions' => true,
-						'labels'   => array( 'slide' => 'Diapo' ),
+						'labels'   => array( 'slide' => 'Diapo {n} sur {N}' ),
 					),
 					$props
 				),
@@ -523,7 +523,7 @@ final class GallerySectionTest extends SaltTestCase {
 
 		$this->assertStringContainsString( '<h2 id="photos__heading">Photos</h2>', $html );
 		$this->assertStringContainsString( 'aria-roledescription="carousel" aria-label="Photos"', $html );
-		$this->assertStringContainsString( 'aria-label="Diapo 1 of 2"', $html, 'The slide word is the labels\'.' );
+		$this->assertStringContainsString( 'aria-label="Diapo 1 sur 2"', $html, 'The slide word is the labels\'.' );
 		$this->assertSame( 1, substr_count( $html, '<figcaption' ), 'No caption: no figcaption.' );
 		$this->assertStringContainsString( 'From &lt;props&gt;', $html );
 		$this->assertSame( 1, substr_count( $html, 'fetchpriority="high"' ), 'Only the first image is the priority image.' );
