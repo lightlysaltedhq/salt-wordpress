@@ -13,10 +13,11 @@
  * A row whose settings turn on firstPageOnly is skipped on any page after
  * the first (salt_section_hidden_on_this_page()).
  *
- * The page plan: every band's id is settled before any band draws
- * (salt_section_plan_rows(), section#anchors), and a band's index and
- * primacy count only the bands drawn before it, so a first row that draws
- * nothing leaves the next one first.
+ * The page plan: every band's id is settled once the bands have drawn,
+ * over the rows that drew one (salt_section_plan_settle(), section#anchors),
+ * and a band's index and primacy count only the bands drawn before it, so
+ * a first row that draws nothing leaves the next one first and never takes
+ * an editor's anchor.
  *
  * ACF-absent (DEP01): renders the safe fallback (title as H1) — no fatal.
  *
@@ -34,14 +35,14 @@ if ( ! salt_acf_active() ) {
 
 ob_start();
 
+$salt_rows = array();
 if ( have_rows( 'sections' ) ) {
-	// The page plan's first pass: every band's id, settled before any draws.
-	$salt_ids   = salt_section_plan_rows( 'sections' );
 	$salt_first = salt_render_state()['section_index'];
 	$salt_row   = -1;
 	while ( have_rows( 'sections' ) ) {
 		the_row();
 		++$salt_row;
+		$salt_rows[ $salt_row ] = salt_section_plan_row();
 		// The contract's firstPageOnly: hidden past page 1, and not counted,
 		// so the next drawn section takes its place in the document.
 		if ( salt_section_hidden_on_this_page() ) {
@@ -49,19 +50,22 @@ if ( have_rows( 'sections' ) ) {
 		}
 		// The band's place among the bands drawn so far: a row that draws
 		// nothing takes no place, so the next one is the page's first.
-		$salt_index = salt_render_state()['section_index'] - $salt_first;
+		$salt_before = salt_render_state()['section_index'];
+		$salt_index  = $salt_before - $salt_first;
 		salt_render_section(
 			salt_section_slug_for_layout( (string) get_row_layout() ),
 			array(
 				'index'      => $salt_index,
 				'is_primary' => 0 === $salt_index,
-				'id'         => $salt_ids[ $salt_row ] ?? '',
+				'id'         => salt_section_plan_placeholder( $salt_row ),
 			)
 		);
+		$salt_rows[ $salt_row ]['on_page'] = salt_render_state()['section_index'] > $salt_before;
 	}
 }
 
-$salt_sections_html = (string) ob_get_clean();
+// The page plan's ids, settled over the rows that drew a band.
+$salt_sections_html = salt_section_plan_settle( (string) ob_get_clean(), $salt_rows );
 
 if ( ! salt_h1_claimed() ) {
 	salt_the_document_h1( get_the_title(), 'visually-hidden' );

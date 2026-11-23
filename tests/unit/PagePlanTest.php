@@ -214,6 +214,58 @@ final class PagePlanTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------
+	// A row that draws nothing never takes an editor's anchor.
+	// -----------------------------------------------------------------
+
+	/**
+	 * A minimal hero row.
+	 *
+	 * @param string $heading Heading ('' for none, which draws nothing).
+	 * @param string $anchor  anchorId.
+	 * @return array{layout:string,fields:array<string,mixed>}
+	 */
+	private static function hero( string $heading, string $anchor ): array {
+		return array(
+			'layout' => 'hero',
+			'fields' => array(
+				'variant'  => 'minimal',
+				'heading'  => $heading,
+				'settings' => array( 'anchorId' => $anchor ),
+			),
+		);
+	}
+
+	public function test_an_anchored_row_that_draws_nothing_leaves_its_anchor_to_the_next(): void {
+		$html = $this->render_page(
+			array(
+				self::rich_text( '', '', 'foo' ),
+				self::rich_text( 'Drawn', '<p>Words.</p>', 'foo' ),
+				self::hero( 'Hero', 'foo' ),
+			)
+		);
+
+		$this->assertMatchesRegularExpression( '/id="foo"[^>]*>.*Drawn.*id="foo-2"[^>]*>.*Hero/s', $html );
+		$this->assertStringNotContainsString( 'foo-3', $html );
+		$this->assertStringNotContainsString( 'salt-plan-', $html, 'Every placeholder is settled.' );
+	}
+
+	public function test_an_empty_hero_and_a_missing_layout_take_no_anchor(): void {
+		$this->assertStringContainsString( 'id="about"', $this->render_page( array( self::hero( '', 'about' ), self::hero( 'About', 'about' ) ) ) );
+
+		salt_render_state_reset();
+		$html = $this->render_page(
+			array(
+				array(
+					'layout' => 'no-such-layout',
+					'fields' => array( 'settings' => array( 'anchorId' => 'contact' ) ),
+				),
+				self::rich_text( 'Contact', '', 'contact' ),
+			)
+		);
+		$this->assertStringContainsString( 'id="contact" aria-labelledby="contact__heading"', $html );
+	}
+
+	// -----------------------------------------------------------------
 	// The priority image (SC-026).
 	// -----------------------------------------------------------------
 
