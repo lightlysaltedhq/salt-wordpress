@@ -137,7 +137,8 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 
 		$html = $this->render( 'rich-text', $view );
 
-		$this->assertSame( 2, substr_count( $html, 'data-section="rich-text"' ), 'Nested band, exactly as before the declaration existed.' );
+		$this->assertSame( 1, substr_count( $html, 'data-track="rich-text-1"' ), 'The entry\'s band (the contract\'s since M4) …' );
+		$this->assertSame( 1, substr_count( $html, 'data-section="rich-text"' ), '… nests the legacy template\'s own band, as before the declaration existed.' );
 		$this->assertStringContainsString( 'whole-section override', implode( ' ', $this->logs() ) );
 	}
 

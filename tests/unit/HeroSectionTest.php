@@ -415,7 +415,7 @@ final class HeroSectionTest extends SaltTestCase {
 		$this->assertSame( 'Welcome', $resolved['props']['heading'] );
 		$this->assertNull( $resolved['props']['subheading'] );
 		$this->assertSame( 0, $resolved['props']['image_id'] );
-		$this->assertSame( array( 'priorityMedia' => true ), $resolved['plan'], 'The hero image is THE LCP image (§8), a contract plan key.' );
+		$this->assertSame( array( 'priorityMedia' => false ), $resolved['plan'], 'A hero with no image does not ask for the page\'s priority image (SC-026).' );
 		$this->assertSame( array(), $resolved['props']['ctas'] );
 	}
 

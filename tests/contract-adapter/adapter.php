@@ -530,6 +530,21 @@ function salt_adapter_value( $value, array $field, array $ids, string $source ) 
 // ── Rendering ─────────────────────────────────────────────────────────────────────────────────
 
 /**
+ * The rest of the page plan a section case describes, seeded into the
+ * render state (EP-72 M4 U1): with priorityMedia false, an earlier band on
+ * the page has taken the priority image (section#priority-media), so this
+ * one is refused it even when it has an image.
+ *
+ * @param array<string,mixed> $context The case's context.
+ * @return void
+ */
+function salt_adapter_seed_section_plan( array $context ): void {
+	if ( array_key_exists( 'priorityMedia', $context ) && ! $context['priorityMedia'] ) {
+		salt_render_state( 'set', 'priority_media', true );
+	}
+}
+
+/**
  * Render a section case through the theme's resolver and view.
  *
  * @param array<string,mixed> $input The case.
@@ -579,6 +594,7 @@ function salt_adapter_render_section( array $input, array $ids ): string {
 	if ( ! empty( $context['collapseTop'] ) ) {
 		salt_render_state( 'set', 'last_background', salt_section_wrapper_args( $slug )['background'] );
 	}
+	salt_adapter_seed_section_plan( $context );
 
 	ob_start();
 	salt_render_section(

@@ -51,7 +51,8 @@ if ( ! function_exists( 'acf_add_options_sub_page' ) ) {
 
 if ( ! function_exists( 'have_rows' ) ) {
 	/**
-	 * have_rows shim.
+	 * have_rows shim. Past the last row it ends the loop, as ACF does, so
+	 * the next have_rows() loop starts again from the first row.
 	 *
 	 * @param string $selector Field selector.
 	 * @return bool
@@ -62,7 +63,13 @@ if ( ! function_exists( 'have_rows' ) ) {
 			'rows' => array(),
 			'i'    => -1,
 		);
-		return ( $fc['i'] + 1 ) < count( $fc['rows'] );
+		if ( ( $fc['i'] + 1 ) < count( $fc['rows'] ) ) {
+			return true;
+		}
+		if ( isset( $GLOBALS['salt_test_fc'] ) ) {
+			$GLOBALS['salt_test_fc']['i'] = -1;
+		}
+		return false;
 	}
 }
 

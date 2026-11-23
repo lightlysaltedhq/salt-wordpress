@@ -17,6 +17,7 @@ declare(strict_types=1);
 use PHPUnit\Framework\Attributes\DataProvider;
 
 require_once __DIR__ . '/../shims/acf.php';
+require_once __DIR__ . '/../shims/media.php';
 
 final class SectionSplitTest extends SaltTestCase {
 
@@ -185,7 +186,7 @@ final class SectionSplitTest extends SaltTestCase {
 		);
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'data-section="rich-text"', $html, 'The entry opens the wrapper.' );
+		$this->assertStringContainsString( 'data-track="rich-text-1"', $html, 'The entry opens the wrapper.' );
 		$this->assertStringContainsString( '<p class="child" data-level="1" data-index="3">Child heading|props,plan</p>', $html );
 		$this->assertStringNotContainsString( 'x-prose', $html, 'The parent view did not run.' );
 		$this->assertTrue( salt_h1_claimed() );
@@ -222,7 +223,28 @@ final class SectionSplitTest extends SaltTestCase {
 		$this->seed_row( 'hero', array( 'heading' => 'Hero' ) );
 		ob_start();
 		salt_render_resolved_section( 'hero', $view, array( 'index' => 1 ) );
-		$this->assertStringContainsString( '<p>true</p>', (string) ob_get_clean(), 'Hero claims the priority image.' );
+		$this->assertStringContainsString( '<p>false</p>', (string) ob_get_clean(), 'A hero with no image does not take it (SC-026).' );
+
+		$GLOBALS['salt_test_attachments'][41] = array(
+			'src'    => 'https://example.test/uploads/hero.jpg',
+			'width'  => 2000,
+			'height' => 1200,
+			'alt'    => 'Studio',
+		);
+		$hero                                 = array(
+			'variant' => 'split',
+			'heading' => 'Hero',
+			'image'   => 41,
+		);
+		$this->seed_row( 'hero', $hero );
+		ob_start();
+		salt_render_resolved_section( 'hero', $view, array( 'index' => 2 ) );
+		$this->assertStringContainsString( '<p>true</p>', (string) ob_get_clean(), 'The first band with an image claims the priority image, wherever it sits.' );
+
+		$this->seed_row( 'hero', $hero );
+		ob_start();
+		salt_render_resolved_section( 'hero', $view, array( 'index' => 3 ) );
+		$this->assertStringContainsString( '<p>false</p>', (string) ob_get_clean(), 'One priority image per page (section#priority-media).' );
 	}
 
 	// -----------------------------------------------------------------
