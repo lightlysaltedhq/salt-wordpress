@@ -192,7 +192,7 @@ function salt_icon_svg( string $name ): string {
  * (logged by salt_icon_svg()).
  *
  * @param string      $name  Icon name.
- * @param string      $size  sm|md|lg.
+ * @param string      $size  sm|md|lg, or '' for none (the header's phone glyph, which the stylesheet sizes).
  * @param string|null $label The accessible name; null for a decorative icon.
  * @return string
  */
@@ -212,7 +212,7 @@ function salt_contract_icon( string $name, string $size, ?string $label = null )
 		}
 	}
 
-	$attributes  = 'class="salt-icon" data-icon="' . esc_attr( $name ) . '" data-size="' . esc_attr( $size ) . '" viewBox="0 0 24 24" width="24" height="24" focusable="false"';
+	$attributes  = 'class="salt-icon" data-icon="' . esc_attr( $name ) . '"' . ( '' === $size ? '' : ' data-size="' . esc_attr( $size ) . '"' ) . ' viewBox="0 0 24 24" width="24" height="24" focusable="false"';
 	$attributes .= null === $label ? ' aria-hidden="true"' : ' role="img" aria-label="' . esc_attr( $label ) . '"';
 	$attributes .= ' fill="' . esc_attr( $paint['fill'] ?? 'none' ) . '" stroke="' . esc_attr( $paint['stroke'] ?? 'none' ) . '"';
 	$art         = array() === $inner ? $match[2] : '<g ' . implode( ' ', $inner ) . '>' . $match[2] . '</g>';

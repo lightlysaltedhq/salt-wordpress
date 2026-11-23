@@ -60,7 +60,8 @@ function salt_display_preferences_controls(): array {
 		&& salt_acf_active()
 		&& (bool) salt_option( 'dark_mode' );
 
-	if ( ! $dark_available ) {
+	// A placed theme toggle takes the dark-mode control's place.
+	if ( ! $dark_available || ( function_exists( 'salt_theme_toggle_placement' ) && null !== salt_theme_toggle_placement() ) ) {
 		$controls = array_values( array_diff( $controls, array( 'dark_mode' ) ) );
 	}
 
@@ -129,3 +130,26 @@ function salt_display_preferences_enqueue(): void {
 	);
 }
 add_action( 'wp_enqueue_scripts', 'salt_display_preferences_enqueue', 20 );
+
+/**
+ * The widget's words (the contract's display-preferences labels):
+ * translatable theme strings, with the `salt_display_preferences_labels`
+ * filter as the seam (the contract adapter feeds it a case's labels).
+ *
+ * @return array<string,string>
+ */
+function salt_display_preferences_labels(): array {
+	$labels = array(
+		'summary'   => __( 'Display preferences', 'salt' ),
+		'fontSize'  => __( 'Text size', 'salt' ),
+		'decrease'  => __( 'Smaller text', 'salt' ),
+		'reset'     => __( 'Reset text size', 'salt' ),
+		'increase'  => __( 'Larger text', 'salt' ),
+		'contrast'  => __( 'High contrast', 'salt' ),
+		'grayscale' => __( 'Greyscale', 'salt' ),
+		'theme'     => __( 'Dark mode', 'salt' ),
+		'motion'    => __( 'Reduce motion', 'salt' ),
+	);
+	$given  = apply_filters( 'salt_display_preferences_labels', $labels );
+	return is_array( $given ) ? array_merge( $labels, array_map( 'strval', $given ) ) : $labels;
+}

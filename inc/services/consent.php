@@ -87,3 +87,20 @@ function salt_consent( string $category ): bool {
 	// code and no Consent API gets a hard deny, never a silent allow.
 	return true === apply_filters( 'salt_consent_state', false, $category );
 }
+
+/**
+ * Whether the site runs a cookie plugin wired to the WP Consent API
+ * (founder ruling C, EP-72 M4): wp_has_consent() and wp_get_consent_type()
+ * exist and the plugin has set a consent type. Only then does the footer
+ * draw its consent control and panel, whose Save writes through the
+ * plugin's client-side wp_set_consent(); the theme stores nothing itself.
+ *
+ * @return bool
+ */
+function salt_consent_plugin_active(): bool {
+	if ( ! function_exists( 'wp_has_consent' ) || ! function_exists( 'wp_get_consent_type' ) ) {
+		return false;
+	}
+	$type = wp_get_consent_type();
+	return is_string( $type ) && '' !== $type;
+}

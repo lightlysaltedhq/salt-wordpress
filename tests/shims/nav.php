@@ -7,6 +7,10 @@
  *     HTML that wp_nav_menu() echoes for that theme_location. An unset
  *     location triggers the fallback_cb, matching core's "no menu
  *     assigned" path.
+ *   $GLOBALS['salt_test_menu_items'][ $location ] = object[]  Menu items
+ *     (db_id, menu_item_parent, title, url, current, target) that
+ *     wp_nav_menu() hands to the args' walker, as core does; used when no
+ *     pre-rendered HTML is set for the location.
  *   $GLOBALS['salt_test_bloginfo'][ $show ]  = string  get_bloginfo values
  *     (shim identical in behaviour to the mail slice's superset shim —
  *     whichever loads first, both suites see their fixtures).
@@ -35,7 +39,8 @@ if ( ! function_exists( 'salt_test_menus_reset' ) ) {
 	 * @return void
 	 */
 	function salt_test_menus_reset(): void {
-		$GLOBALS['salt_test_menus'] = array();
+		$GLOBALS['salt_test_menus']      = array();
+		$GLOBALS['salt_test_menu_items'] = array();
 	}
 }
 
@@ -122,6 +127,13 @@ if ( ! function_exists( 'wp_nav_menu' ) ) {
 	function wp_nav_menu( array $args = array() ) {
 		$location = (string) ( $args['theme_location'] ?? '' );
 		$menu     = $GLOBALS['salt_test_menus'][ $location ] ?? null;
+
+		// Menu items (objects with db_id, menu_item_parent, title, url,
+		// current, target), handed to the walker as core does.
+		$items = $GLOBALS['salt_test_menu_items'][ $location ] ?? null;
+		if ( null === $menu && is_array( $items ) && array() !== $items && isset( $args['walker'] ) && is_object( $args['walker'] ) ) {
+			$menu = (string) $args['walker']->walk( $items, (int) ( $args['depth'] ?? 0 ), (object) $args );
+		}
 
 		if ( null === $menu ) {
 			$fallback = $args['fallback_cb'] ?? false;
