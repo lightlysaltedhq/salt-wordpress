@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * fixtures' English: translatable theme strings, as the founder ruled for
  * the collection labels. salt_contract_labels( $view ) merges them over the
  * shared ones, so the `salt_contract_labels` seam gives any of them. {n},
- * {q} and {kind} are filled by salt_view_label().
+ * {q}, {kind} and {name} are replaced by salt_view_label(), never appended.
  *
  * @param string $view post|service|case-study|archive|search|not-found, or '' for none.
  * @return array<string,string|array<string,string>>
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function salt_view_label_defaults( string $view ): array {
 	$pagination = array(
 		'nav'      => __( 'Pagination', 'salt' ),
-		/* translators: A page link's accessible name; {n} is the page number. */
+		/* translators: A page link's accessible name; {n} is the page number, replaced where it stands. Keep {n}: nothing is appended. */
 		'page'     => __( 'Page {n}', 'salt' ),
 		'previous' => __( 'Previous', 'salt' ),
 		'next'     => __( 'Next', 'salt' ),
@@ -43,8 +43,9 @@ function salt_view_label_defaults( string $view ): array {
 		case 'post':
 			return array(
 				'breadcrumb' => __( 'Breadcrumb', 'salt' ),
-				'byline'     => __( 'By', 'salt' ),
-				/* translators: A post's reading time; {n} is the number of minutes. */
+				/* translators: A post's byline; {name} is the author's name, or the link to their archive, replaced where it stands. Keep {name}: nothing is appended. */
+				'byline'     => __( 'By {name}', 'salt' ),
+				/* translators: A post's reading time; {n} is the number of minutes, replaced where it stands. */
 				'readTime'   => __( '{n} min read', 'salt' ),
 				'tags'       => __( 'Tags', 'salt' ),
 				'adjacent'   => __( 'More posts', 'salt' ),
@@ -89,12 +90,12 @@ function salt_view_label_defaults( string $view ): array {
 		case 'search':
 			return array(
 				'search'    => __( 'Search', 'salt' ),
-				/* translators: The search results heading; {n} is the number of results, {q} the query. */
+				/* translators: The search results heading; {n} is the number of results and {q} the query, each replaced where it stands. */
 				'results'   => __( '{n} results for “{q}”', 'salt' ),
 				'more'      => __( 'More pages match than are listed here. Try a more specific search.', 'salt' ),
-				/* translators: The empty search; {q} is the query. */
+				/* translators: The empty search; {q} is the query, replaced where it stands. */
 				'noResults' => __( 'Nothing matched “{q}”. Try a different word.', 'salt' ),
-				/* translators: A search result's kind; {kind} is the post type's name, such as Post or Page. */
+				/* translators: A search result's kind; {kind} is the post type's translated singular name, such as Post or Page, replaced where it stands. */
 				'kind'      => __( '{kind}', 'salt' ),
 				'nav'       => __( 'Search results pages', 'salt' ),
 			) + $pagination + $search;
@@ -109,11 +110,12 @@ function salt_view_label_defaults( string $view ): array {
 }
 
 /**
- * A label with its placeholders filled: {n}, {q} and {kind}. A page label
- * with no {n} (an older "Page") takes the number after a space.
+ * A label with its named placeholders replaced where they stand: {n}, {q},
+ * {kind} and {name} (README "Labels", SC-031). Nothing is appended: a label
+ * without a placeholder, and an unknown placeholder, are drawn as written.
  *
  * @param string               $label The label.
- * @param array<string,string> $vars  n, q, kind.
+ * @param array<string,string> $vars  n, q, kind, name.
  * @return string
  */
 function salt_view_label( string $label, array $vars = array() ): string {

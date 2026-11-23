@@ -145,6 +145,63 @@ final class ViewsTest extends SaltTestCase {
 		$this->assertSame( $window, salt_pagination_window( $current, $total ) );
 	}
 
+	/**
+	 * README "Labels" (SC-031): placeholders replaced where they stand,
+	 * nothing appended, an unknown one drawn as written.
+	 *
+	 * @return array<string,array{string,array<string,string>,string}>
+	 */
+	public static function labels(): array {
+		return array(
+			'the number first'           => array( '{n}. page', array( 'n' => '2' ), '2. page' ),
+			'the name first'             => array( '{name} wrote this', array( 'name' => 'Priya Shah' ), 'Priya Shah wrote this' ),
+			'two values'                 => array(
+				'{n} results for “{q}”',
+				array(
+					'n' => '3',
+					'q' => 'hedge',
+				),
+				'3 results for “hedge”',
+			),
+			'no placeholder: as written' => array( 'Page', array( 'n' => '2' ), 'Page' ),
+			'an unknown one is kept'     => array( 'Rated {stars}', array( 'n' => '4' ), 'Rated {stars}' ),
+		);
+	}
+
+	/**
+	 * @param string               $label    The label.
+	 * @param array<string,string> $vars     Its values.
+	 * @param string               $expected What is drawn.
+	 */
+	#[DataProvider( 'labels' )]
+	public function test_a_label_is_replaced_where_it_stands_and_nothing_is_appended( string $label, array $vars, string $expected ): void {
+		$this->assertSame( $expected, salt_view_label( $label, $vars ) );
+	}
+
+	public function test_a_page_label_is_drawn_as_written(): void {
+		$html  = salt_get_component(
+			'pagination',
+			array(
+				'current' => 2,
+				'total'   => 3,
+				'href'    => static fn( int $page ): string => '/journal/page/' . $page . '/',
+				'labels'  => array( 'page' => '{n}. page' ),
+			)
+		);
+		$plain = salt_get_component(
+			'pagination',
+			array(
+				'current' => 2,
+				'total'   => 3,
+				'href'    => static fn( int $page ): string => '/journal/page/' . $page . '/',
+				'labels'  => array( 'page' => 'Page' ),
+			)
+		);
+
+		$this->assertStringContainsString( 'aria-label="3. page"', $html );
+		$this->assertSame( 3, substr_count( $plain, 'aria-label="Page"' ), 'no number is appended to a label without {n}' );
+	}
+
 	public function test_a_one_argument_labels_callback_still_filters_a_views_labels(): void {
 		add_filter(
 			'salt_contract_labels',

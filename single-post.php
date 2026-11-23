@@ -93,9 +93,11 @@ while ( have_posts() ) {
 	// The meta line: byline, date and reading time, one space between them.
 	$salt_meta = array();
 	if ( null !== $salt_author ) {
-		$salt_meta[] = '<span class="salt-post__byline">' . esc_html( (string) $salt_labels['byline'] ) . ' ' . ( '' !== $salt_author['url']
+		// labels.byline with {name} replaced where it stands by the name, or the link to their archive (SC-031).
+		$salt_byline_name = '' !== $salt_author['url']
 			? '<a href="' . esc_url( salt_contract_url( $salt_author['url'] ) ) . '">' . esc_html( $salt_author['name'] ) . '</a>'
-			: esc_html( $salt_author['name'] ) ) . '</span>';
+			: esc_html( $salt_author['name'] );
+		$salt_meta[]      = '<span class="salt-post__byline">' . salt_view_label( esc_html( (string) $salt_labels['byline'] ), array( 'name' => $salt_byline_name ) ) . '</span>';
 	}
 	$salt_meta[] = '<time datetime="' . esc_attr( (string) get_the_date( 'Y-m-d' ) ) . '">' . esc_html( salt_post_date_text( $salt_post_id ) ) . '</time>';
 	if ( $salt_minutes > 0 ) {
