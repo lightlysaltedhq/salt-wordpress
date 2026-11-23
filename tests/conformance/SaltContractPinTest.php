@@ -35,14 +35,16 @@ final class SaltContractPinTest extends SaltTestCase {
 	private const PACKAGE = '@lightlysaltedhq/salt-contract';
 
 	/**
-	 * The candidate salt was last checked against: 1.0.0-rc.8, packed from
-	 * lightlysaltedhq/contracts at 96374d86dde1ab880dc9e735095ec08947340418 (salt-contract/).
+	 * The candidate salt was last checked against: 1.0.0-rc.9, packed from
+	 * the local, unpushed lightlysaltedhq/contracts branch feat/salt-contract-rc9
+	 * at f757570279fbca0e68d2742db568a4392382434f (salt-contract/). Re-pack and
+	 * re-pin from the merged commit once that branch lands.
 	 */
-	private const PINNED = '1.0.0-rc.8';
+	private const PINNED = '1.0.0-rc.9';
 
-	private const TARBALL = 'vendor-contract/lightlysaltedhq-salt-contract-1.0.0-rc.8.tgz';
+	private const TARBALL = 'vendor-contract/lightlysaltedhq-salt-contract-1.0.0-rc.9.tgz';
 
-	private const TARBALL_SHA256 = 'e08566cd5be88b4dc0b0018fa817aed9999dd783ffb5c3d2a69404ef7ce75a3f';
+	private const TARBALL_SHA256 = 'c3538a302daba5a2271189a5ad6bcfe1bcb59e2f2f6c67092324d034419cd205';
 
 	private const ROOT = __DIR__ . '/../..';
 
