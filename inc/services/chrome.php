@@ -458,6 +458,7 @@ function salt_chrome_labels( string $context ): array {
 		'menu'        => __( 'Menu', 'salt' ),
 		'closeMenu'   => __( 'Close menu', 'salt' ),
 		'theme'       => __( 'Dark mode', 'salt' ),
+		'skip'        => __( 'Skip to content', 'salt' ),
 		'social'      => __( 'Social media', 'salt' ),
 		'preferences' => __( 'Cookie preferences', 'salt' ),
 	);
@@ -599,7 +600,7 @@ function salt_nav_link_html( array $item, string $class_name, bool $opens_sub ):
 	if ( null === $item['href'] ) {
 		return '<span class="' . $class_name . '"' . ( $opens_sub ? ' tabindex="0"' : '' ) . '>' . $label . '</span>';
 	}
-	$atts  = ' href="' . esc_url( (string) $item['href'] ) . '"';
+	$atts  = ' href="' . esc_url( salt_contract_url( (string) $item['href'] ) ) . '"';
 	$atts .= empty( $item['current'] ) ? '' : ' aria-current="page"';
 	foreach ( (array) ( $item['atts'] ?? array() ) as $name => $value ) {
 		$atts .= ' ' . esc_attr( (string) $name ) . '="' . esc_attr( (string) $value ) . '"';
@@ -615,7 +616,7 @@ function salt_nav_link_html( array $item, string $class_name, bool $opens_sub ):
  */
 function salt_header_cta_html( array $cta ): string {
 	$atts = '_blank' === $cta['target'] ? ' target="_blank" rel="noopener noreferrer"' : '';
-	return '<a class="salt-button salt-header__cta" href="' . esc_url( $cta['url'] ) . '" data-style="primary" data-track-control="cta"' . $atts . '>' . esc_html( $cta['label'] ) . '</a>';
+	return '<a class="salt-button salt-header__cta" href="' . esc_url( salt_contract_url( $cta['url'] ) ) . '" data-style="primary" data-track-control="cta"' . $atts . '>' . esc_html( $cta['label'] ) . '</a>';
 }
 
 /**

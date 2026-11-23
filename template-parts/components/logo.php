@@ -11,6 +11,7 @@
  *   text     string ''        Wordmark when no image resolves; falls back to
  *                              the site title. NEVER an empty brand slot.
  *   url      string ''        Link destination; '' means home_url( '/' ).
+ *                              Drawn root-relative (salt_contract_url()).
  *   height   int    0         The drawn height in px; 0 for the stylesheet's
  *                              2rem (no style attribute).
  *   context  string 'header'  header|footer. Only the header's default-scheme
@@ -70,7 +71,7 @@ $salt_args = salt_require_args(
 );
 
 $salt_site_name = (string) get_bloginfo( 'name' );
-$salt_home      = '' !== $salt_args['url'] ? $salt_args['url'] : home_url( '/' );
+$salt_home      = salt_contract_url( '' !== $salt_args['url'] ? $salt_args['url'] : home_url( '/' ) );
 $salt_height    = $salt_args['height'] > 0 ? $salt_args['height'] : 32;
 
 /**
