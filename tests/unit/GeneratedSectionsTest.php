@@ -125,6 +125,7 @@ final class GeneratedSectionsTest extends SaltTestCase {
 				'anchor'     => 'about',
 				'divider'    => true,
 				'is_primary' => true,
+				'id'         => '',
 			),
 			$args,
 			'toneDark and backgroundImage are inert until the contract stylesheet (unit 9).'

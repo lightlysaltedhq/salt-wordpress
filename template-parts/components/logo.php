@@ -1,22 +1,29 @@
 <?php
 /**
- * x-logo — the site brand link (spec §12a).
+ * The site logo (salt-contract markup/site-logo.json; spec §12a).
  *
- * ARGS CONTRACT (v1 — changing this signature or the markup structure is a
+ * ARGS CONTRACT (changing this signature or the markup structure is a
  * MAJOR semver bump, §4/§12):
- *   light_id int    0   Attachment ID of the light-surface logo.
- *   dark_id  int    0   Attachment ID of the dark-mode logo. Rendered
- *                       aria-hidden next to the light one; the .has-dark
- *                       class (set only when BOTH resolve) drives the CSS
- *                       swap in app.css ([data-theme="dark"]).
- *   text     string ''  Text fallback when no logo resolves; falls back to
- *                       the site title. NEVER an empty brand slot.
- *   url      string ''  Link destination; '' means home_url( '/' ).
- *   slots    array      Unused (reserved by salt_get_component()).
+ *   light_id int    0         Attachment ID of the light-scheme logo.
+ *   dark_id  int    0         Attachment ID of the dark-scheme logo; drawn
+ *                              only beside a light one, and then the link
+ *                              carries data-swaps (the stylesheet swaps them).
+ *   text     string ''        Wordmark when no image resolves; falls back to
+ *                              the site title. NEVER an empty brand slot.
+ *   url      string ''        Link destination; '' means home_url( '/' ).
+ *   height   int    0         The drawn height in px; 0 for the stylesheet's
+ *                              2rem (no style attribute).
+ *   context  string 'header'  header|footer. Only the header's default-scheme
+ *                              logo loads eagerly (SC-025): the light one,
+ *                              since the server cannot know the visitor's
+ *                              scheme. The footer's are always lazy.
+ *   slots    array            Unused (reserved by salt_get_component()).
  *
- * An unresolvable attachment ID degrades to the text fallback (light) or
- * to light-only (dark) — logged, never blank (FAIL01). Rendered height is
- * option-driven via --logo-height (salt_header_runtime_css()).
+ * The link is named by aria-label when an image is drawn and both images
+ * are alt="". Its style="--logo-height" is the contract's markup; under the
+ * theme's CSP it is applied by the nonce-stamped salt_header_runtime_css()
+ * rule. An unresolvable attachment degrades to the wordmark (light) or to
+ * light-only (dark), logged (FAIL01).
  *
  * Render via salt_component( 'logo', salt_logo_args() ).
  *
@@ -46,6 +53,14 @@ $salt_args = salt_require_args(
 			'type'    => 'string',
 			'default' => '',
 		),
+		'height'   => array(
+			'type'    => 'int',
+			'default' => 0,
+		),
+		'context'  => array(
+			'type'    => 'string',
+			'default' => 'header',
+		),
 		'slots'    => array(
 			'type'    => 'array',
 			'default' => array(),
@@ -56,43 +71,72 @@ $salt_args = salt_require_args(
 
 $salt_site_name = (string) get_bloginfo( 'name' );
 $salt_home      = '' !== $salt_args['url'] ? $salt_args['url'] : home_url( '/' );
+$salt_height    = $salt_args['height'] > 0 ? $salt_args['height'] : 32;
 
-$salt_light = false;
-if ( $salt_args['light_id'] > 0 ) {
-	$salt_light = wp_get_attachment_image_src( $salt_args['light_id'], 'full' );
-	if ( false === $salt_light ) {
-		salt_log( sprintf( 'x-logo: light logo attachment %d is unresolvable — rendered the text fallback.', $salt_args['light_id'] ) );
+/**
+ * One logo image as the contract's media, sized to the drawn height.
+ *
+ * @param int    $id      Attachment ID.
+ * @param string $variant light|dark.
+ * @param int    $height  Drawn height (px).
+ * @return array<string,mixed>|null
+ */
+$salt_logo_image = static function ( int $id, string $variant, int $height ): ?array {
+	if ( $id <= 0 ) {
+		return null;
 	}
-}
+	$full = wp_get_attachment_image_src( $id, 'full' );
+	if ( ! is_array( $full ) || empty( $full[0] ) ) {
+		salt_log( sprintf( 'x-logo: %s logo attachment %d is unresolvable — %s.', $variant, $id, 'light' === $variant ? 'rendered the wordmark' : 'rendered the light logo only' ) );
+		return null;
+	}
+	$width   = (int) ( $full[1] ?? 0 );
+	$natural = (int) ( $full[2] ?? 0 );
+	$drawn   = $natural > 0 ? (int) round( $height * $width / $natural ) : $width;
+	return salt_image_contract( $id, $drawn . 'px' );
+};
 
-$salt_dark = false;
-if ( is_array( $salt_light ) && $salt_args['dark_id'] > 0 ) {
-	$salt_dark = wp_get_attachment_image_src( $salt_args['dark_id'], 'full' );
-	if ( false === $salt_dark ) {
-		salt_log( sprintf( 'x-logo: dark logo attachment %d is unresolvable — rendered the light logo only.', $salt_args['dark_id'] ) );
-	}
-}
+$salt_light = $salt_logo_image( $salt_args['light_id'], 'light', $salt_height );
+$salt_dark  = null !== $salt_light ? $salt_logo_image( $salt_args['dark_id'], 'dark', $salt_height ) : null;
 
 $salt_text = trim( $salt_args['text'] );
 if ( '' === $salt_text ) {
 	$salt_text = $salt_site_name;
 }
 
-$salt_classes = salt_classnames(
-	array(
-		'x-logo',
-		'inline-flex items-center',
-		is_array( $salt_dark ) ? 'has-dark' : '',
-	)
-);
-?>
-<a class="<?php echo esc_attr( $salt_classes ); ?>" href="<?php echo esc_url( $salt_home ); ?>">
-	<?php if ( is_array( $salt_light ) ) : ?>
-		<img class="x-logo-light" src="<?php echo esc_url( $salt_light[0] ); ?>" width="<?php echo esc_attr( (string) $salt_light[1] ); ?>" height="<?php echo esc_attr( (string) $salt_light[2] ); ?>" alt="<?php echo esc_attr( $salt_site_name ); ?>">
-		<?php if ( is_array( $salt_dark ) ) : ?>
-			<img class="x-logo-dark" src="<?php echo esc_url( $salt_dark[0] ); ?>" width="<?php echo esc_attr( (string) $salt_dark[1] ); ?>" height="<?php echo esc_attr( (string) $salt_dark[2] ); ?>" alt="" aria-hidden="true">
-		<?php endif; ?>
-	<?php else : ?>
-		<span class="x-logo-text text-xl font-bold"><?php echo esc_html( $salt_text ); ?></span>
-	<?php endif; ?>
-</a>
+$salt_eager = 'header' === $salt_args['context'];
+
+$salt_link = '<a class="salt-logo" href="' . esc_url( $salt_home ) . '"';
+if ( null !== $salt_light ) {
+	$salt_link .= ' aria-label="' . esc_attr( $salt_site_name ) . '"';
+}
+if ( null !== $salt_dark ) {
+	$salt_link .= ' data-swaps';
+}
+if ( $salt_args['height'] > 0 ) {
+	$salt_link .= ' style="' . esc_attr( '--logo-height: ' . $salt_args['height'] . 'px' ) . '"';
+}
+$salt_link .= '>';
+
+$salt_img = static function ( array $image, string $variant, bool $eager ): string {
+	$html = salt_image_contract_html(
+		$image,
+		false,
+		array(
+			'class' => 'salt-logo__image salt-logo__' . $variant,
+			'alt'   => '',
+		)
+	);
+	return $eager ? str_replace( ' loading="lazy"', ' loading="eager"', $html ) : $html;
+};
+
+echo $salt_link; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each value escaped as the tag was built.
+if ( null !== $salt_light ) {
+	echo $salt_img( $salt_light, 'light', $salt_eager ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- salt_image_contract_html() escapes every attribute.
+	if ( null !== $salt_dark ) {
+		echo $salt_img( $salt_dark, 'dark', false ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- salt_image_contract_html() escapes every attribute.
+	}
+} else {
+	echo '<span class="salt-logo__wordmark">' . esc_html( $salt_text ) . '</span>';
+}
+echo '</a>';

@@ -44,12 +44,19 @@ function salt_csp_nonce(): string {
 function salt_security_headers(): array {
 	$nonce = salt_csp_nonce();
 
+	// The head's scriptless header style is printed without a nonce, so its
+	// markup is the contract's (salt_output_header_noscript()): its hash allows it.
+	$styles = "'self' 'nonce-{$nonce}'";
+	if ( function_exists( 'salt_header_noscript_css' ) ) {
+		$styles .= " 'sha256-" . base64_encode( hash( 'sha256', salt_header_noscript_css(), true ) ) . "'"; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- A CSP hash source is base64 by definition.
+	}
+
 	$csp = implode(
 		'; ',
 		array(
 			"default-src 'self'",
 			"script-src 'self' 'nonce-{$nonce}'",
-			"style-src 'self' 'nonce-{$nonce}'",
+			"style-src {$styles}",
 			"img-src 'self' data:",
 			"font-src 'self'",
 			"connect-src 'self'",

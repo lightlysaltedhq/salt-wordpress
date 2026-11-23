@@ -455,8 +455,8 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		$rules   = array();
 		$imports = array();
 		$depth   = 0;
-		$start  = 0;
-		$open   = 0;
+		$start   = 0;
+		$open    = 0;
 
 		for ( $i = 0; $i < $length; $i++ ) {
 			$char = $blank[ $i ];
@@ -1410,13 +1410,11 @@ final class FoundationsConformanceTest extends SaltTestCase {
 
 	/**
 	 * Utilities from those families that are allowed, by file, with the exact
-	 * number of times each appears. The nav submenu's shadow-lg is on a <ul>
-	 * that takes no focus, in the header, which is never inside a section, so
-	 * it can replace no keyline. A new use needs a line here and a reason.
+	 * number of times each appears. None today: the header draws the
+	 * contract's markup, styled by salt.css. A new use needs a line here and
+	 * a reason.
 	 */
-	private const INDICATOR_UTILITIES_ALLOWED = array(
-		'inc/class-salt-nav-walker.php' => array( 'shadow-lg' => 1 ),
-	);
+	private const INDICATOR_UTILITIES_ALLOWED = array();
 
 	/**
 	 * No file Tailwind scans for classes carries a utility that draws over the

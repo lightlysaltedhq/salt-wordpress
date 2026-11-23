@@ -4,7 +4,9 @@
  * before it draws. Ids settle in the contract's two steps, editors' anchors
  * first (section#anchors); a band's index and primacy count only the bands
  * drawn before it; the one priority image goes to the first band that has
- * an image (section#priority-media, SC-026).
+ * an image (section#priority-media, SC-026). A post's bands are planned
+ * the same way, with its prose counted and its featured image holding the
+ * priority image (section#sections-in-a-post).
  *
  * @package Salt\Tests
  */
@@ -13,6 +15,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../shims/acf.php';
 require_once __DIR__ . '/../shims/media.php';
+require_once __DIR__ . '/../shims/blog.php';
 require_once __DIR__ . '/../shims/faq.php';
 require_once dirname( __DIR__, 2 ) . '/inc/cpt/faq.php';
 require_once dirname( __DIR__, 2 ) . '/inc/fields/collections.php';
@@ -211,6 +214,58 @@ final class PagePlanTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------
+	// A row that draws nothing never takes an editor's anchor.
+	// -----------------------------------------------------------------
+
+	/**
+	 * A minimal hero row.
+	 *
+	 * @param string $heading Heading ('' for none, which draws nothing).
+	 * @param string $anchor  anchorId.
+	 * @return array{layout:string,fields:array<string,mixed>}
+	 */
+	private static function hero( string $heading, string $anchor ): array {
+		return array(
+			'layout' => 'hero',
+			'fields' => array(
+				'variant'  => 'minimal',
+				'heading'  => $heading,
+				'settings' => array( 'anchorId' => $anchor ),
+			),
+		);
+	}
+
+	public function test_an_anchored_row_that_draws_nothing_leaves_its_anchor_to_the_next(): void {
+		$html = $this->render_page(
+			array(
+				self::rich_text( '', '', 'foo' ),
+				self::rich_text( 'Drawn', '<p>Words.</p>', 'foo' ),
+				self::hero( 'Hero', 'foo' ),
+			)
+		);
+
+		$this->assertMatchesRegularExpression( '/id="foo"[^>]*>.*Drawn.*id="foo-2"[^>]*>.*Hero/s', $html );
+		$this->assertStringNotContainsString( 'foo-3', $html );
+		$this->assertStringNotContainsString( 'salt-plan-', $html, 'Every placeholder is settled.' );
+	}
+
+	public function test_an_empty_hero_and_a_missing_layout_take_no_anchor(): void {
+		$this->assertStringContainsString( 'id="about"', $this->render_page( array( self::hero( '', 'about' ), self::hero( 'About', 'about' ) ) ) );
+
+		salt_render_state_reset();
+		$html = $this->render_page(
+			array(
+				array(
+					'layout' => 'no-such-layout',
+					'fields' => array( 'settings' => array( 'anchorId' => 'contact' ) ),
+				),
+				self::rich_text( 'Contact', '', 'contact' ),
+			)
+		);
+		$this->assertStringContainsString( 'id="contact" aria-labelledby="contact__heading"', $html );
+	}
+
+	// -----------------------------------------------------------------
 	// The priority image (SC-026).
 	// -----------------------------------------------------------------
 
@@ -225,5 +280,88 @@ final class PagePlanTest extends SaltTestCase {
 
 		$this->assertSame( 1, substr_count( $html, 'fetchpriority="high"' ), 'One priority image per page.' );
 		$this->assertLessThan( strpos( $html, 'loading="lazy"' ), strpos( $html, 'fetchpriority="high"' ), 'The first image below the text band takes it; the later one is lazy.' );
+	}
+
+	// -----------------------------------------------------------------
+	// A post's bands (section#sections-in-a-post): planned as a page's.
+	// -----------------------------------------------------------------
+
+	/**
+	 * Draw post 500's layout over these rows.
+	 *
+	 * @param array<int,array{layout:string,fields:array<string,mixed>}> $rows      Stored rows.
+	 * @param int                                                        $thumbnail The featured image (0 for none).
+	 * @param array<int,array<string,mixed>>                             $posts     Other posts to seed.
+	 * @return string
+	 */
+	private function render_post( array $rows, int $thumbnail = 0, array $posts = array() ): string {
+		$posts[] = array(
+			'ID'                => 500,
+			'post_type'         => 'post',
+			'post_title'        => 'A post',
+			'salt_thumbnail_id' => $thumbnail,
+		);
+		$this->seed_posts( $posts );
+		salt_test_seed_fc( $rows );
+		ob_start();
+		salt_the_post_layout( 500 );
+		return (string) ob_get_clean();
+	}
+
+	public function test_a_posts_band_counts_its_prose_and_not_a_band_that_draws_nothing(): void {
+		$GLOBALS['salt_test_fields']['1']['answer'] = '<p>A day or two.</p>';
+
+		$html = $this->render_post(
+			array(
+				self::rich_text( '', '<p>Prose first.</p>' ),
+				self::rich_text( '', '', 'skipped' ),
+				array(
+					'layout' => 'faq',
+					'fields' => array(
+						'heading' => 'Questions',
+						'query'   => array(
+							'mode'  => 'manual',
+							'items' => array( 1 ),
+						),
+					),
+				),
+			),
+			0,
+			array(
+				array(
+					'ID'         => 1,
+					'post_type'  => 'faq',
+					'post_title' => 'How long does planting take?',
+				),
+			)
+		);
+
+		$this->assertStringContainsString( 'name="faq-1"', $html, 'The post/band-faq numbering: the prose is index 0, the FAQ band 1.' );
+		$this->assertStringNotContainsString( '<h1', $html, 'The post\'s title holds the h1.' );
+	}
+
+	public function test_a_posts_ids_settle_as_a_pages_do(): void {
+		$html = $this->render_post(
+			array(
+				self::rich_text( '', '<p>Prose.</p>' ),
+				self::rich_text( 'First band', '' ),
+				self::rich_text( 'Anchored band', '', 'rich-text' ),
+			)
+		);
+
+		$this->assertStringStartsWith( '<div class="x-post-prose', $html, 'Prose draws no wrapper and so no id.' );
+		$this->assertMatchesRegularExpression( '/id="rich-text-2"[^>]*>.*First band.*id="rich-text"[^>]*>.*Anchored band/s', $html, 'The editor\'s anchor settles first; the prose row is place 1 among unanchored rich-text rows, so the band asks for -2.' );
+	}
+
+	public function test_a_posts_featured_image_holds_the_priority_image(): void {
+		$hero = $this->hero_with_image();
+		$html = $this->render_post( array( $hero ), 41 );
+
+		$this->assertStringNotContainsString( 'fetchpriority="high"', $html, 'The featured image above the layout holds it.' );
+		$this->assertStringContainsString( 'loading="lazy"', $html );
+
+		salt_render_state_reset();
+		$html = $this->render_post( array( $hero ) );
+		$this->assertSame( 1, substr_count( $html, 'fetchpriority="high"' ), 'With no featured image, the first band with an image takes it.' );
 	}
 }
