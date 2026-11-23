@@ -213,7 +213,7 @@ add_action( 'acf/init', 'salt_register_maps_options_fields' );
  * Register the Booking group (DATA02/DATA03). The booking URL is a public
  * page address; provider API keys (not needed by this integration) would be
  * wp-config constants, never options (SEC03). No conditional display: the
- * x-booking plain-link fallback uses booking_url even with provider none.
+ * booking plain-link fallback uses booking_url even with provider none.
  *
  * @return void
  */
@@ -228,7 +228,7 @@ function salt_register_booking_options_fields(): void {
 					'key'           => 'field_salt_options_booking_provider',
 					'name'          => 'booking_provider',
 					'label'         => __( 'Booking provider', 'salt' ),
-					'instructions'  => __( 'The x-booking component renders a plain link to your booking page; with marketing consent it upgrades to the provider\'s inline widget on click.', 'salt' ),
+					'instructions'  => __( 'The booking component renders a plain link to your booking page; with marketing consent it upgrades to the provider\'s inline widget on click.', 'salt' ),
 					'type'          => 'select',
 					'choices'       => array(
 						''         => __( 'None', 'salt' ),

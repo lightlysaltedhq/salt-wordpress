@@ -116,7 +116,9 @@ foreach ( $salt_props['offices'] as $salt_office ) {
 		printf(
 			'<a class="salt-locations__directions" href="%1$s" aria-label="%2$s">%3$s</a>',
 			esc_url( (string) $salt_office['directionsHref'] ),
-			esc_attr( trim( ( $salt_labels['directions'] ?? '' ) . ' ' . $salt_office['title'] ) ),
+			// {name} is replaced where it stands and nothing is appended: a label
+			// without it is drawn as written (README Labels, SC-031).
+			esc_attr( str_replace( '{name}', (string) $salt_office['title'], (string) ( $salt_labels['directions'] ?? '' ) ) ),
 			esc_html( (string) ( $salt_labels['getDirections'] ?? '' ) )
 		);
 	}

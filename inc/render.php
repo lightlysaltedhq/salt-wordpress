@@ -444,8 +444,10 @@ function salt_section_plan_rows( string $selector, $post_id = false, ?callable $
  *     place among the page's rendered bands, from 0: accordion names) and
  *     priorityMedia.
  *  3. It never prints an id of its own but <anchor>__<part> (plan.anchor).
- * Sections that have not moved pass no `contract` and keep x-section
- * (components/section.php) until their tranche converts them.
+ * Every parent section passes `contract`. Without it, salt_section()
+ * draws the x-section band (components/section.php): only a child theme's
+ * own whole section does that now (salt_section_wrapper_args()), and the
+ * band is deprecated (docs/contracts/OVERRIDES.md, tier 5).
  *
  * With `contract` the band (components/contract-section.php) is:
  *  - a section named by its heading (aria-labelledby <anchor>__heading)
@@ -816,7 +818,7 @@ function salt_section_hidden_on_this_page(): bool {
 
 /**
  * A contract link (contract field type `link`: label, type internal|
- * external, document, url, newTab) as x-button's label/url/target, or
+ * external, document, url, newTab) as a button's label/url/target, or
  * null when it does not make a usable link: no label, an internal link
  * whose document has no address, or an external link with no address or
  * one esc_url() refuses.
@@ -852,7 +854,7 @@ function salt_contract_link( $link ): ?array {
 }
 
 /**
- * A contract `buttons` list (rows of { link, style }) as x-button args, in
+ * A contract `buttons` list (rows of { link, style }) as button args, in
  * row order: rows that do not make a usable link are skipped and logged,
  * an unknown style becomes $default_style. A draft can exceed the publish
  * limit: still draw every usable button.

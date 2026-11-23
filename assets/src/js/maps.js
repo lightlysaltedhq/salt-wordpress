@@ -124,15 +124,9 @@
 		const lng = parseFloat(container.dataset.lng);
 		const zoom = parseInt(container.dataset.zoom, 10);
 
-		// The shared stylesheets have no salt-map rules yet (map.json,
-		// stylesheet-owes): until they do, the canvas sizes itself here
-		// (CSSOM, which the CSP's style-src allows) to fill a 16:9 facade.
-		container.style.position = 'relative';
-		container.style.aspectRatio = '16 / 9';
+		// The canvas fills the 16:9 facade (app.css, .salt-map).
 		const target = document.createElement('div');
 		target.className = 'salt-map__canvas';
-		target.style.position = 'absolute';
-		target.style.inset = '0';
 		container.appendChild(target);
 
 		const map = new window.maplibregl.Map({

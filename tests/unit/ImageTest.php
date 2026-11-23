@@ -88,59 +88,31 @@ final class ImageTest extends SaltTestCase {
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Stored _salt_focal_point values and the focal point they give.
+	 * Stored _salt_focal_point values and the focal point they give: each
+	 * axis snapped to a step of 5, halves up, and held to 0-100
+	 * (section#background-position).
 	 *
 	 * @return array<string, array{0: mixed, 1: array{x: int, y: int}|null}>
 	 */
 	public static function focal_points(): array {
+		$point = static fn( $x, $y ): array => array(
+			'x' => $x,
+			'y' => $y,
+		);
 		return array(
-			'whole numbers'         => array(
-				array(
-					'x' => 30,
-					'y' => 60,
-				),
-				array(
-					'x' => 30,
-					'y' => 60,
-				),
-			),
-			'numeric strings'       => array(
-				array(
-					'x' => '0',
-					'y' => '100',
-				),
-				array(
-					'x' => 0,
-					'y' => 100,
-				),
-			),
-			'clamped to 0-100'      => array(
-				array(
-					'x' => -5,
-					'y' => 150,
-				),
-				array(
-					'x' => 0,
-					'y' => 100,
-				),
-			),
-			'a fraction is invalid' => array(
-				array(
-					'x' => 30.5,
-					'y' => 60,
-				),
-				null,
-			),
-			'a boolean is invalid'  => array(
-				array(
-					'x' => true,
-					'y' => 60,
-				),
-				null,
-			),
-			'one value missing'     => array( array( 'x' => 30 ), null ),
-			'not a pair'            => array( '30% 60%', null ),
-			'nothing stored'        => array( '', null ),
+			'steps stay as they are'    => array( $point( 30, 60 ), $point( 30, 60 ) ),
+			'fractions snap, halves up' => array( $point( 32.5, 2.4 ), $point( 35, 0 ) ),
+			'just under a half step'    => array( $point( 32.49, 97.5 ), $point( 30, 100 ) ),
+			'numeric strings'           => array( $point( '0', '42.5' ), $point( 0, 45 ) ),
+			'clamped to 0-100'          => array( $point( -3, 140 ), $point( 0, 100 ) ),
+			'NaN is refused'            => array( $point( NAN, 50 ), null ),
+			'infinity is refused'       => array( $point( 50, INF ), null ),
+			'a non-numeric string'      => array( $point( 'left', 50 ), null ),
+			'an empty string'           => array( $point( '', 50 ), null ),
+			'a boolean is refused'      => array( $point( true, 60 ), null ),
+			'one value missing'         => array( array( 'x' => 30 ), null ),
+			'not a pair'                => array( '30% 60%', null ),
+			'nothing stored'            => array( '', null ),
 		);
 	}
 
@@ -149,7 +121,7 @@ final class ImageTest extends SaltTestCase {
 	 * @param array{x: int, y: int}|null $expected The focal point.
 	 */
 	#[DataProvider( 'focal_points' )]
-	public function test_focal_point_is_the_stored_whole_percentages_or_none( $stored, ?array $expected ): void {
+	public function test_focal_point_is_snapped_to_steps_of_five_or_none( $stored, ?array $expected ): void {
 		$this->seed_attachment( 12 );
 		$GLOBALS['salt_test_meta'][12]['_salt_focal_point'] = $stored;
 		try {

@@ -13,6 +13,8 @@
 
 declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 foreach ( array( 'acf', 'media', 'blog', 'gallery', 'terms' ) as $salt_shim ) {
 	require_once __DIR__ . '/../shims/' . $salt_shim . '.php';
 }
@@ -124,8 +126,9 @@ final class CollectionSectionsTest extends SaltTestCase {
 		);
 		$this->assertSame( 1, substr_count( $html, 'salt-showcase__quote' ) );
 		$this->assertStringContainsString( 'testimonial 302 has no quote', implode( ' ', $this->logs() ) );
-		$this->assertStringContainsString( 'aria-label="Rated 4.5 of 5"', $html, 'labels.rating, then "{n} of {N}" (markup/card.json).' );
-		$this->assertStringContainsString( '--salt-rating-fill: 90%', $html );
+		$this->assertStringContainsString( 'aria-label="Rated 4.5 of 5"', $html, 'labels.rating with {n} and {N} replaced (markup/card.json).' );
+		$this->assertStringContainsString( '<span class="salt-showcase__stars" aria-hidden="true" data-fill="90">', $html, 'The fill is a data attribute, never a style (section#no-inline-style).' );
+		$this->assertStringNotContainsString( ' style="', $html );
 		$this->assertStringContainsString( 'Owner, Example Ltd', $html, 'meta is role and company joined by ", " (the approved display).' );
 	}
 
@@ -170,8 +173,8 @@ final class CollectionSectionsTest extends SaltTestCase {
 		$this->assertSame(
 			array(
 				'viewAll'       => 'View all',
-				'slide'         => 'Slide',
-				'rating'        => 'Rated',
+				'slide'         => 'Slide {n} of {N}',
+				'rating'        => 'Rated {n} of {N}',
 				'results'       => 'Results',
 				'social'        => 'Social profiles',
 				'previous'      => 'Previous',
@@ -181,7 +184,7 @@ final class CollectionSectionsTest extends SaltTestCase {
 				'closed'        => 'Closed',
 				'byAppointment' => 'By appointment',
 				'getDirections' => 'Get directions',
-				'directions'    => 'Directions to',
+				'directions'    => 'Directions to {name}',
 				'load'          => 'Load the map',
 				'loadMap'       => 'Load map',
 				'consent'       => 'Allow map cookies to view this map.',
@@ -382,11 +385,36 @@ final class CollectionSectionsTest extends SaltTestCase {
 		$this->assertNull( salt_contract_tel( '1234567890123456' ), 'At most 15 digits.' );
 	}
 
-	public function test_n_of_is_a_translatable_format_in_the_contracts_english(): void {
-		$this->assertSame( 'Rated 4.5 of 5', salt_contract_n_of( 'Rated', 4.5, 5 ) );
-		$this->assertSame( 'Slide 2 of 3', salt_contract_n_of( 'Slide', 2, 3 ) );
+	public function test_n_of_replaces_its_placeholders_where_they_stand(): void {
+		$this->assertSame( 'Rated 4.5 of 5', salt_contract_n_of( 'Rated {n} of {N}', 4.5, 5 ) );
+		$this->assertSame( '3 slides, this is 2', salt_contract_n_of( '{N} slides, this is {n}', 2, 3 ), 'Replaced where they stand, in any order.' );
+		$this->assertSame( 'Slide', salt_contract_n_of( 'Slide', 2, 3 ), 'A label without a placeholder is drawn as written, nothing appended.' );
+		$this->assertSame( '{stars} stars', salt_contract_n_of( '{stars} stars', 4, 5 ), 'An unknown placeholder is drawn as written.' );
 		$this->assertSame( 'services', salt_query_source_list( array( 'services' ) ) );
 		$this->assertSame( 'team and posts', salt_query_source_list( array( 'team', 'posts' ) ) );
+	}
+
+	/**
+	 * A rating and the stars' data-fill it gives (markup/card.json): the
+	 * rating's share of 5 to the nearest 10, halves up, held to 0-100.
+	 *
+	 * @return array<string, array{0: float, 1: int}>
+	 */
+	public static function rating_fills(): array {
+		return array(
+			'a whole star'           => array( 4.0, 80 ),
+			'a half star'            => array( 4.5, 90 ),
+			'just under a half step' => array( 4.24, 80 ),
+			'a half step rounds up'  => array( 4.25, 90 ),
+			'none'                   => array( 0.0, 0 ),
+			'over five is held'      => array( 6.0, 100 ),
+			'below zero is held'     => array( -1.0, 0 ),
+		);
+	}
+
+	#[DataProvider( 'rating_fills' )]
+	public function test_the_rating_fill_is_a_step_of_ten( float $rating, int $fill ): void {
+		$this->assertSame( $fill, salt_rating_fill( $rating ) );
 	}
 
 	public function test_dates_are_the_locales_long_form(): void {

@@ -122,7 +122,7 @@ final class HeroSectionTest extends SaltTestCase {
 		$html = $this->render_hero( array( 'heading' => 'Welcome' ) );
 
 		$this->assertSame(
-			'<section class="salt-section" id="hero" aria-labelledby="hero__heading" data-tone="surface" data-tone-dark="surface" data-spacing="md" data-width="default" data-track="hero-1" style="--salt-section-space: var(--space-section-md)">'
+			'<section class="salt-section" id="hero" aria-labelledby="hero__heading" data-tone="surface" data-tone-dark="surface" data-spacing="md" data-width="default" data-track="hero-1">'
 			. '<div class="salt-section__content">'
 			. '<div class="salt-block salt-hero" data-block="hero" data-variant="full-bleed">'
 			. '<div class="salt-hero__text"><h1 id="hero__heading">Welcome</h1></div>'
@@ -149,7 +149,7 @@ final class HeroSectionTest extends SaltTestCase {
 
 		$this->assertStringContainsString( ' data-media=""', $html, 'The band says it draws a background.' );
 		$this->assertStringContainsString(
-			'><img src="https://example.test/uploads/hero.jpg" srcset="https://example.test/uploads/hero.jpg 2000w" sizes="100vw" width="2000" height="1200" alt="" class="salt-section__media" aria-hidden="true" style="object-fit: cover" fetchpriority="high" decoding="async"><div class="salt-section__scrim"',
+			'><img src="https://example.test/uploads/hero.jpg" srcset="https://example.test/uploads/hero.jpg 2000w" sizes="100vw" width="2000" height="1200" alt="" class="salt-section__media" aria-hidden="true" data-fit="cover" fetchpriority="high" decoding="async"><div class="salt-section__scrim"',
 			$html,
 			'The wrapper draws the photograph behind the words, decorative and the priority image.'
 		);

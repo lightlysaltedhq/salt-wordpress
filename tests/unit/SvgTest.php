@@ -2,10 +2,10 @@
 /**
  * SVG services tests (SEC04).
  *
- * Proves the four security properties of the module: hostile markup dies in
- * salt_sanitize_svg(), hostile markup cannot survive THROUGH x-icon, upload
- * filters sanitise/reject in place and only admins get the mime type, and
- * every bundled icon is loadable, sanitiser-clean and currentColor-driven.
+ * Proves the three security properties of the module: hostile markup dies in
+ * salt_sanitize_svg(), upload filters sanitise/reject in place and only
+ * admins get the mime type, and every bundled icon is loadable,
+ * sanitiser-clean and currentColor-driven.
  *
  * @package Salt\Tests
  */
@@ -55,32 +55,6 @@ final class SvgTest extends SaltTestCase {
 		$this->assertSame( '', salt_sanitize_svg( 'this is not markup at all <<<' ) );
 		$this->assertNotEmpty( $this->logs() );
 		$this->assertStringContainsString( 'salt_sanitize_svg', implode( "\n", $this->logs() ) );
-	}
-
-	// -----------------------------------------------------------------------
-	// x-icon integration: hostile svg arg cannot survive to output.
-	// -----------------------------------------------------------------------
-
-	public function test_malicious_svg_arg_cannot_survive_through_component(): void {
-		$html = salt_get_component(
-			'icon',
-			array(
-				'svg'        => self::MALICIOUS_SVG,
-				'decorative' => true,
-			)
-		);
-
-		$this->assertStringNotContainsString( '<script', $html );
-		$this->assertStringNotContainsString( 'onload', $html );
-		$this->assertStringNotContainsString( 'onerror', $html );
-		$this->assertStringNotContainsString( 'foreignObject', $html );
-		$this->assertStringNotContainsString( 'evil.example', $html );
-		$this->assertStringContainsString( '<path', $html );
-		$this->assertStringContainsString( 'x-icon', $html );
-	}
-
-	public function test_component_with_no_name_and_no_svg_renders_nothing(): void {
-		$this->assertSame( '', trim( salt_get_component( 'icon', array() ) ) );
 	}
 
 	// -----------------------------------------------------------------------

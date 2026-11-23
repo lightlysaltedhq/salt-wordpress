@@ -105,7 +105,8 @@ function salt_collection_index_url( string $source ): ?string {
  * The strings the contract's markup names as `labels.<name>`: for the
  * collection sections viewAll, slide, rating, results, social, previous
  * and next; for locations the status words (open, appointment, closed),
- * byAppointment, getDirections, directions (before the office name), and
+ * byAppointment, getDirections, directions ({name}, the office's name,
+ * replaced where it stands, nothing appended: README Labels), and
  * the map facade's load, loadMap, consent and error.
  *
  * The founder's ruling: translatable theme strings, in the contract
@@ -122,8 +123,10 @@ function salt_contract_labels( string $view = '' ): array {
 	$labels = array_merge(
 		array(
 			'viewAll'       => __( 'View all', 'salt' ),
-			'slide'         => __( 'Slide', 'salt' ),
-			'rating'        => __( 'Rated', 'salt' ),
+			/* translators: {n} is replaced by the slide's number and {N} by how many slides there are. */
+			'slide'         => __( 'Slide {n} of {N}', 'salt' ),
+			/* translators: {n} is replaced by the rating (a half rating is written 4.5) and {N} by the most it can be. */
+			'rating'        => __( 'Rated {n} of {N}', 'salt' ),
 			'results'       => __( 'Results', 'salt' ),
 			'social'        => __( 'Social profiles', 'salt' ),
 			'previous'      => __( 'Previous', 'salt' ),
@@ -134,7 +137,8 @@ function salt_contract_labels( string $view = '' ): array {
 			'closed'        => __( 'Closed', 'salt' ),
 			'byAppointment' => __( 'By appointment', 'salt' ),
 			'getDirections' => __( 'Get directions', 'salt' ),
-			'directions'    => __( 'Directions to', 'salt' ),
+			/* translators: The directions link's accessible name; {name} is replaced by the office's name, where it stands, so put it where your language needs it. */
+			'directions'    => __( 'Directions to {name}', 'salt' ),
 			'load'          => __( 'Load the map', 'salt' ),
 			'loadMap'       => __( 'Load map', 'salt' ),
 			'consent'       => __( 'Allow map cookies to view this map.', 'salt' ),
@@ -178,11 +182,12 @@ function salt_contract_arrow(): ?string {
 }
 
 /**
- * A slide's or a rating's label: the label, then "{n} of {N}"
- * (markup/carousel-track.json, markup/card.json). A half rating is written
- * "4.5" (the founder's ruling on PR #26). "{n} of {N}" is a translatable
- * format string in the contract's English, as the labels are (a reading of
- * the labels ruling, not a ruling of its own).
+ * A slide's or a rating's label with its values in place
+ * (markup/carousel-track.json, markup/card.json; README "Labels", SC-031):
+ * {n} is replaced by the number and {N} by how many, where they stand. A
+ * label without them, or with another placeholder, is drawn as written,
+ * with nothing appended. A half rating is written "4.5" (the founder's
+ * ruling on PR #26).
  *
  * @param string    $label The label (labels.slide, labels.rating).
  * @param int|float $n     The number.
@@ -190,9 +195,13 @@ function salt_contract_arrow(): ?string {
  * @return string
  */
 function salt_contract_n_of( string $label, $n, int $total ): string {
-	/* translators: 1: the number (a rating may be 4.5), 2: of how many. Follows a label such as "Slide" or "Rated". */
-	$of = sprintf( __( '%1$s of %2$d', 'salt' ), (string) $n, $total );
-	return trim( $label . ' ' . $of );
+	return strtr(
+		$label,
+		array(
+			'{n}' => (string) $n,
+			'{N}' => (string) $total,
+		)
+	);
 }
 
 /**

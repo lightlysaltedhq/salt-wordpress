@@ -143,9 +143,9 @@ function salt_logo_args( string $context = 'header' ): array {
 }
 
 /**
- * Normalise an ACF link value into x-button args (PURE — unit-tested).
+ * Normalise an ACF link value into button args (PURE — unit-tested).
  *
- * Target follows the x-button contract ('' or '_blank' only — anything
+ * Target follows the button contract ('' or '_blank' only — anything
  * else is dropped and logged; the component re-validates as
  * defence-in-depth). A link without a URL is "no CTA" (null), a link
  * without a title falls back to the URL as its label — never a blank
@@ -377,7 +377,7 @@ function salt_chrome_icon_exists( string $name ): bool {
  * Resolve one sameAs URL into a footer social link (PURE — unit-tested).
  *
  * Known hosts (including their subdomains) get the platform label and —
- * when the built-in set ships one — an x-icon name; unknown hosts label as
+ * when the built-in set ships one — a bundled icon name; unknown hosts label as
  * their bare domain (www. stripped). URLs without a usable host are
  * dropped LOUDLY.
  *
