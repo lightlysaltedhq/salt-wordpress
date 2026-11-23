@@ -143,3 +143,21 @@ function salt_speculation_rules_script_nonce( array $attributes ): array {
 	return $attributes;
 }
 add_filter( 'wp_inline_script_attributes', 'salt_speculation_rules_script_nonce' );
+
+/**
+ * Link core's stylesheets instead of inlining them ('styles_inline_size_limit').
+ * wp_maybe_inline_styles() (wp-includes/script-loader.php) prints any
+ * enqueued style that has a file path as an inline <style> until the page's
+ * inlined total reaches this limit (40,000 bytes by default). That is how
+ * wp-block-library, classic-theme-styles and the on-demand block styles
+ * arrived as inline styles with no nonce, which the CSP refuses (SEC06).
+ * At 0 nothing is inlined, so each one is a <link> that 'self' allows, and
+ * the on-demand placeholder core adds to wp-block-library's inline style is
+ * all that style holds, so wp_hoist_late_printed_styles() removes it.
+ *
+ * @return int
+ */
+function salt_styles_inline_size_limit(): int {
+	return 0;
+}
+add_filter( 'styles_inline_size_limit', 'salt_styles_inline_size_limit' );
