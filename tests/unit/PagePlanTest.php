@@ -5,7 +5,8 @@
  * first (section#anchors); a band's index and primacy count only the bands
  * drawn before it; the one priority image goes to the first band that has
  * an image (section#priority-media, SC-026). A post's bands are planned
- * the same way, with its prose counted and its featured image holding the
+ * the same way, its prose taking no id and no place in a minted id's
+ * number, and its featured image holding the
  * priority image (section#sections-in-a-post).
  *
  * @package Salt\Tests
@@ -134,22 +135,22 @@ final class PagePlanTest extends SaltTestCase {
 		);
 	}
 
-	public function test_a_minted_id_counts_its_place_in_the_stored_layout(): void {
+	public function test_a_row_that_is_never_a_band_takes_no_place(): void {
 		$ids = salt_section_plan_ids(
 			array(
 				array(
-					'section' => 'faq',
+					'section' => 'rich-text',
 					'anchor'  => '',
-					'on_page' => false,
+					'band'    => false,
 				),
 				array(
-					'section' => 'faq',
+					'section' => 'rich-text',
 					'anchor'  => '',
 				),
 			)
 		);
 
-		$this->assertSame( array( '', 'faq-2' ), $ids, 'The first faq counts though it is not drawn, so the second keeps faq-2.' );
+		$this->assertSame( array( '', 'rich-text' ), $ids, 'A post\'s prose takes no id and does not move the next one\'s number.' );
 	}
 
 	// -----------------------------------------------------------------
@@ -436,7 +437,20 @@ PHP
 		);
 
 		$this->assertStringStartsWith( '<div class="salt-rich-text">', $html, 'Prose draws no wrapper and so no id.' );
-		$this->assertMatchesRegularExpression( '/id="rich-text-2"[^>]*>.*First band.*id="rich-text"[^>]*>.*Anchored band/s', $html, 'The editor\'s anchor settles first; the prose row is place 1 among unanchored rich-text rows, so the band asks for -2.' );
+		$this->assertMatchesRegularExpression( '/id="rich-text-2"[^>]*>.*First band.*id="rich-text"[^>]*>.*Anchored band/s', $html, 'The editor\'s anchor holds rich-text, so the first band takes the next free number.' );
+	}
+
+	public function test_a_posts_prose_takes_no_place_in_a_minted_id(): void {
+		$html = $this->render_post(
+			array(
+				self::rich_text( '', '<p>Prose.</p>' ),
+				self::rich_text( 'First band', '' ),
+				self::rich_text( 'Second band', '' ),
+			)
+		);
+
+		$this->assertMatchesRegularExpression( '/^<div class="salt-rich-text">.*id="rich-text"[^>]*>.*First band.*id="rich-text-2"[^>]*>.*Second band/s', $html, 'The founder\'s ruling: prose does not count, so the first band is #rich-text.' );
+		$this->assertStringNotContainsString( 'id="rich-text-3"', $html );
 	}
 
 	public function test_a_posts_featured_image_holds_the_priority_image(): void {

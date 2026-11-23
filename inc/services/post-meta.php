@@ -366,7 +366,8 @@ function salt_post_reading_text( int $post_id ): string {
  *  - every minted id is settled before any band draws, holding every
  *    editor's anchor, and an anchored band settles its own as it draws
  *    (salt_section_plan_rows(), section#anchors); a prose row takes no id
- *    but counts in a minted id's number, as a row that draws nothing does;
+ *    and no place in a minted id's number, so prose above a rich-text band
+ *    leaves it #rich-text (unlike a row that draws nothing, which counts);
  *  - a band's index counts the rows drawn before it, prose included, as
  *    the contract's post/band-* cases number them; a row that draws
  *    nothing takes no place;

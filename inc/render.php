@@ -318,16 +318,17 @@ function salt_anchor_id( string $raw ): string {
  *     row took or a landmark id taking the next free -n;
  *  2. the rows with none, in page order: each mints one from its section
  *     id, asking first for the number of its place among the unanchored
- *     rows of that section id in the STORED layout (the bare id, then -2,
- *     ...), counting the rows that draw nothing or are not on this page,
- *     then taking the next free number from there.
+ *     band rows of that section id in the STORED layout (the bare id, then
+ *     -2, ...), counting the rows that draw nothing or are not on this
+ *     page, then taking the next free number from there.
  * So an editor's anchor never moves for an unanchored row, wherever the
- * two sit, and a minted id never moves when a row above it empties.
+ * two sit, and a minted id never moves when a row above it empties. A row
+ * that is never a band (a post's prose) takes no id and no place, so prose
+ * above a rich-text band leaves it #rich-text (the founder's ruling).
  *
- * @param array<int, array{section: string, anchor: string, on_page?: bool}> $rows The stored rows in order:
- *        section id, raw anchor, and whether the row takes an id at all
- *        (false for a row that never draws a band, such as a post's prose
- *        row; default true).
+ * @param array<int, array{section: string, anchor: string, band?: bool}> $rows The stored rows in order:
+ *        section id, raw anchor, and whether the row draws as a band at
+ *        all (false for a post's prose row; default true).
  * @param array<string,bool> $taken Ids already settled on the page, which neither step takes.
  * @return array<int,string> Each row's id, by the rows' keys; '' for a row that draws no band.
  */
@@ -338,7 +339,7 @@ function salt_section_plan_ids( array $rows, array $taken = array() ): array {
 	foreach ( $rows as $key => $row ) {
 		$ids[ $key ] = '';
 		$slug        = sanitize_title( $row['anchor'] );
-		if ( '' === $slug || false === ( $row['on_page'] ?? true ) ) {
+		if ( '' === $slug || false === ( $row['band'] ?? true ) ) {
 			continue;
 		}
 		$ids[ $key ]           = salt_anchor_settle( $slug, $taken );
@@ -346,13 +347,11 @@ function salt_section_plan_ids( array $rows, array $taken = array() ): array {
 	}
 
 	foreach ( $rows as $key => $row ) {
-		if ( '' !== sanitize_title( $row['anchor'] ) ) {
+		if ( '' !== sanitize_title( $row['anchor'] ) || false === ( $row['band'] ?? true ) ) {
 			continue;
 		}
 		$places[ $row['section'] ] = ( $places[ $row['section'] ] ?? 0 ) + 1;
-		if ( false === ( $row['on_page'] ?? true ) ) {
-			continue;
-		}
+
 		$base = sanitize_title( $row['section'] );
 		if ( '' === $base ) {
 			continue;
@@ -381,9 +380,9 @@ function salt_section_plan_ids( array $rows, array $taken = array() ): array {
  * @param int|false     $post_id  The post, or false for the current one.
  * @param callable|null $is_band  function(): bool, read on the current row:
  *                                whether it draws as a band at all (a post's
- *                                prose row does not). Such a row is counted,
- *                                as one that draws nothing is, but takes no
- *                                id. Null: every row is a band.
+ *                                prose row does not). Such a row takes no id
+ *                                and no place in a minted id's number.
+ *                                Null: every row is a band.
  * @return array<int,string> Each stored row's minted id, by its place from 0; '' for an anchored row, a hidden one or one with none.
  */
 function salt_section_plan_rows( string $selector, $post_id = false, ?callable $is_band = null ): array {
@@ -395,7 +394,7 @@ function salt_section_plan_rows( string $selector, $post_id = false, ?callable $
 		$rows[] = array(
 			'section' => salt_section_slug_for_layout( (string) get_row_layout() ),
 			'anchor'  => $anchor,
-			'on_page' => '' !== sanitize_title( $anchor ) || null === $is_band || $is_band(),
+			'band'    => '' !== sanitize_title( $anchor ) || null === $is_band || $is_band(),
 			'hidden'  => salt_section_hidden_on_this_page(),
 		);
 	}
