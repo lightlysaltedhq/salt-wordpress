@@ -367,6 +367,29 @@ final class ChromeTest extends SaltTestCase {
 		$this->assertStringNotContainsString( 'plugin-class', $html, 'The contract fixes the class list.' );
 	}
 
+	public function test_walker_on_another_location_never_reuses_the_headers_submenu_ids(): void {
+		$items                                      = array( self::item( 1 ), self::item( 2, 1 ) );
+		$GLOBALS['salt_test_menu_items']['primary'] = $items;
+		$GLOBALS['salt_test_menu_items']['footer']  = $items;
+		$walk                                       = static fn( string $location ): string => (string) wp_nav_menu(
+			array(
+				'theme_location' => $location,
+				'echo'           => false,
+				'walker'         => new Salt_Nav_Walker(),
+			)
+		);
+
+		$header = $walk( 'primary' );
+		$footer = $walk( 'footer' );
+
+		// The header's ids stay the contract's (SC-012).
+		$this->assertStringContainsString( 'id="site-header__submenu-1"', $header );
+		$this->assertStringContainsString( 'aria-controls="site-header__submenu-1"', $header );
+		$this->assertStringContainsString( 'id="site-menu-footer__submenu-1"', $footer );
+		$this->assertStringContainsString( 'aria-controls="site-menu-footer__submenu-1"', $footer );
+		$this->assertStringNotContainsString( 'site-header__', $footer );
+	}
+
 	public function test_footer_columns_group_titled_parents_and_runs_of_flat_links(): void {
 		$GLOBALS['salt_test_menu_items']['footer'] = array(
 			self::item( 1 ),

@@ -8,6 +8,9 @@
 
 declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+
 final class SecurityTest extends SaltTestCase {
 
 	public function test_csp_nonce_is_stable_within_request_and_urlsafe(): void {
@@ -150,6 +153,23 @@ final class SecurityTest extends SaltTestCase {
 
 	public function test_acf_active_mirrors_function_existence(): void {
 		$this->assertSame( function_exists( 'acf_add_local_field_group' ), salt_acf_active() );
+	}
+
+	/**
+	 * Without ACF the logo keeps the field's 48px default, in its args and
+	 * in the nonce'd head rule. Separate process: ACF's shim, once another
+	 * test loads it, outlives the test.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_without_acf_the_logo_keeps_its_48px_default(): void {
+		require_once dirname( __DIR__, 2 ) . '/inc/services/chrome.php';
+		$this->assertFalse( salt_acf_active() );
+
+		$this->assertSame( 48, salt_logo_args()['height'] );
+		ob_start();
+		salt_output_theme_vars_css();
+		$this->assertStringContainsString( '.salt-logo{--logo-height:48px}</style>', (string) ob_get_clean() );
 	}
 
 	public function test_acf_notice_message_covers_absent_outdated_and_ok(): void {
