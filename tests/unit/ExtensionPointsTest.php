@@ -44,7 +44,7 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'data-section="call-to-action"', $html, 'Inside the parent wrapper.' );
+		$this->assertStringContainsString( 'data-track="call-to-action-1"', $html, 'Inside the parent wrapper.' );
 		$this->assertStringContainsString( '<div class="grain-cta">', $html, 'The child view drew it.' );
 		$this->assertStringContainsString( '<h1>Ready?</h1>', $html, 'From the parent resolver\'s props and plan.' );
 		$this->assertStringContainsString( 'href="https://example.test/contact/"', $html );

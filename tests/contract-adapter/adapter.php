@@ -454,8 +454,27 @@ function salt_adapter_fields( string $section ): array {
 		$fields[] = array(
 			'name'   => 'settings',
 			'type'   => 'group',
-			'fields' => salt_adapter_contract_json( 'contract/fields/_section-settings.json' )['fields'],
+			'fields' => salt_adapter_settings_fields( (array) ( $definition['shared']['defaults'] ?? array() ) ),
 		);
+	}
+	return $fields;
+}
+
+/**
+ * The shared section settings' fields with a section's own defaults
+ * (its field definition's shared.defaults, such as call-to-action's
+ * brand-tint tone), as the theme's emitted field group carries them
+ * (EP-72 M4 U3).
+ *
+ * @param array<string,mixed> $defaults Setting name => the section's default.
+ * @return array<int,array<string,mixed>>
+ */
+function salt_adapter_settings_fields( array $defaults ): array {
+	$fields = (array) salt_adapter_contract_json( 'contract/fields/_section-settings.json' )['fields'];
+	foreach ( $fields as $i => $field ) {
+		if ( array_key_exists( (string) $field['name'], $defaults ) ) {
+			$fields[ $i ]['default'] = $defaults[ $field['name'] ];
+		}
 	}
 	return $fields;
 }
@@ -693,7 +712,7 @@ if ( ! isset( $salt_adapter_input['section'] ) && ! isset( $salt_adapter_input['
 try {
 	salt_adapter_boot();
 	salt_adapter_seed_site( (array) ( $salt_adapter_input['site'] ?? array() ) );
-	$salt_adapter_ids          = array(
+	$salt_adapter_ids = array(
 		'media'     => salt_adapter_seed_media( (array) ( $salt_adapter_input['media'] ?? array() ) ),
 		'documents' => salt_adapter_seed_documents( (array) ( $salt_adapter_input['documents'] ?? array() ) ),
 	);

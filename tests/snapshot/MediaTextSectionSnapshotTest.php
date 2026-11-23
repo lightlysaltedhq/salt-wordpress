@@ -1,8 +1,10 @@
 <?php
 /**
- * Media + Text section snapshots (FLEET01) — one per meaningful variant:
- * single mode with a right-side media row + CTA, the alternating zigzag,
- * and a text-only (imageless) row.
+ * Media + Text section snapshots (FLEET01; salt-contract
+ * markup/media-text.json, rc.8) — one per meaningful variant: single mode
+ * with a right-side media row and a button, the alternating zigzag, and a
+ * text-only (imageless) row. Each upload has two of the contract's
+ * candidate sub-sizes, so the srcset is the contract's.
  *
  * @package Salt\Tests
  */
@@ -23,14 +25,36 @@ final class MediaTextSectionSnapshotTest extends SaltSnapshotTestCase {
 			'src'    => 'https://example.test/uploads/studio.jpg',
 			'width'  => 1200,
 			'height' => 800,
-			'srcset' => 'https://example.test/uploads/studio-600.jpg 600w, https://example.test/uploads/studio.jpg 1200w',
+			'sizes'  => array(
+				'salt-640'  => array(
+					'width'  => 640,
+					'height' => 427,
+					'url'    => 'https://example.test/uploads/studio-640.jpg',
+				),
+				'salt-1080' => array(
+					'width'  => 1080,
+					'height' => 720,
+					'url'    => 'https://example.test/uploads/studio-1080.jpg',
+				),
+			),
 			'alt'    => 'The studio workspace',
 		);
 		$GLOBALS['salt_test_attachments'][62] = array(
 			'src'    => 'https://example.test/uploads/team.jpg',
 			'width'  => 1200,
 			'height' => 800,
-			'srcset' => 'https://example.test/uploads/team-600.jpg 600w, https://example.test/uploads/team.jpg 1200w',
+			'sizes'  => array(
+				'salt-640'  => array(
+					'width'  => 640,
+					'height' => 427,
+					'url'    => 'https://example.test/uploads/team-640.jpg',
+				),
+				'salt-1080' => array(
+					'width'  => 1080,
+					'height' => 720,
+					'url'    => 'https://example.test/uploads/team-1080.jpg',
+				),
+			),
 			'alt'    => 'The team at work',
 		);
 	}

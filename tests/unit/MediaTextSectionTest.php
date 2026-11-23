@@ -1,11 +1,14 @@
 <?php
 /**
- * Media + Text slice tests (spec §10 #6; COMPL02, A11Y01, DATA02).
+ * Media + Text slice tests (salt-contract markup/media-text.json, rc.8;
+ * spec §10 #6; COMPL02, A11Y01, DATA02).
  *
  * Covers the FC layout shape, the 0/1/N row states, malformed-row skipping,
- * the single-mode mediaSide vs alternating auto-flip rule, the heading
- * outline rule (row 0 at $level, later rows stepped to h2 when row 0 took
- * the H1), the x-image 'half' sizes context, and the CTA button path.
+ * the single-mode mediaSide vs alternating auto-flip rule (data-media-side),
+ * the heading outline rule (row 0 at the plan's level with the band's id,
+ * later rows at body base + 1, row text ranked under its row heading), the
+ * half and content image slots and the priority image, and the contract's
+ * buttons.
  *
  * @package Salt\Tests
  */
@@ -16,6 +19,12 @@ require_once __DIR__ . '/../shims/acf.php';
 require_once __DIR__ . '/../shims/media.php';
 
 final class MediaTextSectionTest extends SaltTestCase {
+
+	/** The half slot's sizes in a default-width band (contract/image-sizes.json). */
+	private const HALF_SIZES = '(min-width: 75rem) 29rem, (min-width: 64rem) 29.22rem, (min-width: 48.01rem) calc((100vw - 4rem) / 2), calc(100vw - 2rem)';
+
+	/** The content slot's sizes in a default-width band (contract/image-sizes.json). */
+	private const CONTENT_SIZES = '(min-width: 75rem) 60rem, (min-width: 64rem) 60.44rem, calc(100vw - 2rem)';
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -65,9 +74,19 @@ final class MediaTextSectionTest extends SaltTestCase {
 			'src'    => 'https://example.test/uploads/media-' . $id . '.jpg',
 			'width'  => 1200,
 			'height' => 800,
-			'srcset' => 'https://example.test/uploads/media-' . $id . '-600.jpg 600w, https://example.test/uploads/media-' . $id . '.jpg 1200w',
 			'alt'    => 'Fixture image ' . $id,
 		);
+	}
+
+	/**
+	 * The data-media-side of each drawn row, in order ('' for a row without one).
+	 *
+	 * @param string $html Rendered HTML.
+	 * @return array<int,string>
+	 */
+	private function media_sides( string $html ): array {
+		preg_match_all( '/<div class="salt-media-text__row"(?: data-media-side="([a-z]+)")?>/', $html, $matches );
+		return $matches[1];
 	}
 
 	// -----------------------------------------------------------------
@@ -92,7 +111,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// States (COMPL02).
+	// States (COMPL02, markup zeroState).
 	// -----------------------------------------------------------------
 
 	public function test_zero_rows_renders_nothing(): void {
@@ -110,12 +129,15 @@ final class MediaTextSectionTest extends SaltTestCase {
 						'heading' => '   ',
 						'content' => '',
 					),
+					array( 'content' => '<p>&nbsp;</p>' ),
 				),
 			)
 		);
 
-		$this->assertSame( '', $html );
-		$this->assertStringContainsString( 'skipped', implode( ' ', $this->logs() ) );
+		$this->assertSame( '', $html, 'Text without words does not make a row usable.' );
+		$logs = implode( ' ', $this->logs() );
+		$this->assertStringContainsString( 'section media-text: row 0 has no image, heading, text or button — skipped.', $logs );
+		$this->assertStringContainsString( 'section media-text: row 1 has no image, heading, text or button — skipped.', $logs );
 	}
 
 	public function test_malformed_rows_skipped_but_valid_rows_render(): void {
@@ -131,12 +153,12 @@ final class MediaTextSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( 1, substr_count( $html, 'x-media-text-row ' ) + substr_count( $html, 'x-media-text-row"' ) );
+		$this->assertSame( 1, substr_count( $html, '<div class="salt-media-text__row"' ) );
 		$this->assertStringContainsString( 'Kept row', $html );
-		$this->assertStringContainsString( 'malformed', implode( ' ', $this->logs() ) );
+		$this->assertStringContainsString( 'section media-text: row 0 is malformed — skipped.', implode( ' ', $this->logs() ) );
 	}
 
-	public function test_single_row_renders_static_grid(): void {
+	public function test_single_row_draws_the_block_media_then_body(): void {
 		$this->seed_attachment( 31 );
 
 		$html = $this->render_media_text(
@@ -152,26 +174,45 @@ final class MediaTextSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( 1, substr_count( $html, 'md:grid-cols-2' ) );
-		$this->assertStringContainsString( 'media-31.jpg', $html );
+		$this->assertMatchesRegularExpression(
+			'#<div class="salt-section__content"><div class="salt-block" data-block="media-text"><div class="salt-media-text"><div class="salt-media-text__row" data-media-side="left"><div class="salt-media-text__media"><img [^>]*></div><div class="salt-media-text__body"><h1 id="media-text__heading">One row</h1><div class="salt-rich-text"><p>Body.</p></div></div></div></div></div></div></section>$#',
+			$html
+		);
+		$this->assertStringNotContainsString( 'data-section', $html, 'The x-section band is gone.' );
 		$this->assertStringNotContainsString( 'data-salt-', $html, 'Media + Text ships no JS trigger in any state.' );
 	}
 
-	public function test_text_only_row_renders_full_width_without_grid(): void {
+	public function test_text_only_row_draws_the_body_alone_without_a_side(): void {
 		$html = $this->render_media_text(
 			array(
 				'rows' => array(
 					array(
-						'heading' => 'No image here',
-						'content' => '<p>Text only.</p>',
+						'heading'   => 'No image here',
+						'content'   => '<p>Text only.</p>',
+						'mediaSide' => 'right',
 					),
 				),
 			)
 		);
 
-		$this->assertStringNotContainsString( 'md:grid-cols-2', $html, 'Text-only rows never render an empty media column.' );
-		$this->assertStringNotContainsString( 'x-media-text-media', $html );
-		$this->assertStringContainsString( 'No image here', $html );
+		$this->assertStringNotContainsString( 'salt-media-text__media', $html, 'Text-only rows never render an empty media column.' );
+		$this->assertSame( array( '' ), $this->media_sides( $html ), 'A row without an image has no side.' );
+		$this->assertStringContainsString( '<div class="salt-media-text__body"><h1 id="media-text__heading">No image here</h1>', $html );
+	}
+
+	public function test_a_row_with_only_a_button_is_drawn(): void {
+		$html = $this->render_media_text(
+			array(
+				'rows' => array(
+					array( 'buttons' => array( salt_test_button( 'Get in touch', 'https://example.test/contact/' ) ) ),
+				),
+			),
+			false
+		);
+
+		$this->assertStringStartsWith( '<div class="salt-section" id="media-text"', $html, 'No heading: the band is a div, not a named section.' );
+		$this->assertStringContainsString( '<div class="salt-media-text__row"><div class="salt-media-text__body"><div class="salt-media-text__actions"><a class="salt-button" href="https://example.test/contact/"', $html );
+		$this->assertSame( array(), $this->logs() );
 	}
 
 	// -----------------------------------------------------------------
@@ -181,6 +222,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 	public function test_single_mode_respects_per_row_media_side(): void {
 		$this->seed_attachment( 31 );
 		$this->seed_attachment( 32 );
+		$this->seed_attachment( 33 );
 
 		$html = $this->render_media_text(
 			array(
@@ -188,33 +230,34 @@ final class MediaTextSectionTest extends SaltTestCase {
 				'rows' => array(
 					array(
 						'image'     => 31,
+						'heading'   => 'Right row',
+						'mediaSide' => 'right',
+					),
+					array(
+						'image'     => 32,
 						'heading'   => 'Left row',
 						'mediaSide' => 'left',
 					),
 					array(
-						'image'     => 32,
-						'heading'   => 'Right row',
-						'mediaSide' => 'right',
+						'image'   => 33,
+						'heading' => 'Unset row',
 					),
 				),
 			)
 		);
 
-		$this->assertSame( 1, substr_count( $html, 'md:order-2' ), 'Only the mediaSide=right row flips.' );
-		$this->assertLessThan(
-			strpos( $html, 'md:order-2' ),
-			strpos( $html, 'media-31.jpg' ),
-			'The left row renders before the flipped right row.'
-		);
+		$this->assertSame( array( 'right', 'left', 'left' ), $this->media_sides( $html ), 'Each row\'s own side; left when unset.' );
+		$this->assertLessThan( strpos( $html, 'salt-media-text__body' ), strpos( $html, 'media-31.jpg' ), 'Media then body in the DOM, whatever the side.' );
+		$this->assertStringNotContainsString( 'order-', $html, 'The side is data-media-side, not an order class.' );
 	}
 
-	public function test_alternating_mode_flips_automatically_and_ignores_media_side(): void {
+	public function test_alternating_mode_flips_by_rendered_row_and_ignores_media_side(): void {
 		$this->seed_attachment( 31 );
 		$this->seed_attachment( 32 );
 		$this->seed_attachment( 33 );
 
-		// All rows say 'right' — alternating must IGNORE that and flip
-		// even/odd (row 0 left, row 1 right, row 2 left).
+		// Every row says 'right' and a skipped row sits between them:
+		// alternating must ignore the stored side and count rendered rows.
 		$html = $this->render_media_text(
 			array(
 				'mode' => 'alternating',
@@ -224,6 +267,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 						'heading'   => 'Row zero',
 						'mediaSide' => 'right',
 					),
+					array( 'heading' => '' ),
 					array(
 						'image'     => 32,
 						'heading'   => 'Row one',
@@ -238,26 +282,18 @@ final class MediaTextSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( 3, substr_count( $html, 'md:grid-cols-2' ) );
-		$this->assertSame( 1, substr_count( $html, 'md:order-2' ), 'Exactly the odd row flips — mediaSide is ignored in alternating mode.' );
-		$this->assertLessThan(
-			strpos( $html, 'md:order-2' ),
-			strpos( $html, 'media-31.jpg' ),
-			'Row 0 (media left) precedes the flipped row 1.'
-		);
-		$this->assertGreaterThan(
-			strpos( $html, 'md:order-2' ),
-			strpos( $html, 'media-33.jpg' ),
-			'Row 2 (media left again) follows the flipped row 1.'
-		);
+		$this->assertSame( array( 'left', 'right', 'left' ), $this->media_sides( $html ) );
 	}
 
 	public function test_invalid_mode_falls_back_to_single_and_logs(): void {
+		$this->seed_attachment( 31 );
+
 		$html = $this->render_media_text(
 			array(
 				'mode' => 'zigzag',
 				'rows' => array(
 					array(
+						'image'     => 31,
 						'heading'   => 'Row',
 						'mediaSide' => 'right',
 					),
@@ -265,8 +301,8 @@ final class MediaTextSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'Row', $html );
-		$this->assertStringContainsString( 'invalid mode', implode( ' ', $this->logs() ) );
+		$this->assertSame( array( 'right' ), $this->media_sides( $html ), 'Single mode: the row\'s own side.' );
+		$this->assertStringContainsString( 'section media-text: invalid mode "zigzag" — using single.', implode( ' ', $this->logs() ) );
 	}
 
 	// -----------------------------------------------------------------
@@ -294,12 +330,15 @@ final class MediaTextSectionTest extends SaltTestCase {
 			true
 		);
 
+		$this->assertStringStartsWith( '<section class="salt-section" id="media-text" aria-labelledby="media-text__heading"', $html );
+		$this->assertStringContainsString( '<h1 id="media-text__heading">Section heading</h1>', $html );
 		$this->assertSame( 1, preg_match_all( '/<h1[\s>]/', $html ), 'Row 0 claims the H1 on a primary section.' );
-		$this->assertSame( 2, preg_match_all( '/<h2[\s>]/', $html ), 'Later rows step to h2 — never more H1s, never a skip.' );
-		$this->assertLessThan( strpos( $html, '<h2' ), strpos( $html, '<h1' ), 'H1 precedes the h2s.' );
+		$this->assertStringContainsString( '<h2>Second row</h2>', $html );
+		$this->assertStringContainsString( '<h2>Third row</h2>', $html, 'Later rows at body base + 1: never more H1s, never a skip.' );
+		$this->assertSame( 1, preg_match_all( '/<h[1-6] id=/', $html ), 'Only the first row\'s heading carries an id.' );
 	}
 
-	public function test_non_primary_section_renders_all_row_headings_at_h2(): void {
+	public function test_non_primary_section_ranks_later_row_headings_under_the_first(): void {
 		$html = $this->render_media_text(
 			array(
 				'rows' => array(
@@ -310,8 +349,32 @@ final class MediaTextSectionTest extends SaltTestCase {
 			false
 		);
 
+		$this->assertStringContainsString( '<h2 id="media-text__heading">First</h2>', $html );
+		$this->assertStringContainsString( '<h3>Second</h3>', $html, 'Ruled: Next\'s ranking, the first row names the section.' );
 		$this->assertSame( 0, preg_match_all( '/<h1[\s>]/', $html ) );
-		$this->assertSame( 2, preg_match_all( '/<h2[\s>]/', $html ), 'Non-primary: $level is 2 for row 0 and stays 2 for later rows.' );
+	}
+
+	public function test_row_text_ranks_its_headings_under_the_row_heading(): void {
+		$html = $this->render_media_text(
+			array(
+				'rows' => array(
+					array(
+						'heading' => 'First',
+						'content' => '<h3>Under first</h3>',
+					),
+					array(
+						'heading' => 'Second',
+						'content' => '<h3>Under second</h3>',
+					),
+					array( 'content' => '<h3>Under the band</h3>' ),
+				),
+			),
+			false
+		);
+
+		$this->assertStringContainsString( '<div class="salt-rich-text"><h3>Under first</h3></div>', $html );
+		$this->assertStringContainsString( '<h3>Second</h3><div class="salt-rich-text"><h4>Under second</h4></div>', $html, 'Under the row\'s h3, not the band\'s h2.' );
+		$this->assertStringContainsString( '<div class="salt-rich-text"><h3>Under the band</h3></div>', $html, 'A headingless row ranks under the body base.' );
 	}
 
 	public function test_headingless_first_row_never_claims_the_h1(): void {
@@ -325,16 +388,18 @@ final class MediaTextSectionTest extends SaltTestCase {
 			true
 		);
 
-		$this->assertSame( 0, preg_match_all( '/<h1[\s>]/', $html ), 'has_heading keys off ROW 0 — a later heading must not take the H1.' );
-		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
+		$this->assertStringStartsWith( '<div class="salt-section" id="media-text" data-tone=', $html, 'No first-row heading: a div band with no aria-labelledby.' );
+		$this->assertSame( 0, preg_match_all( '/<h1[\s>]/', $html ), 'has_heading keys off ROW 0: a later heading must not take the H1.' );
+		$this->assertStringContainsString( '<h2>Later heading</h2>', $html );
+		$this->assertStringNotContainsString( '__heading', $html );
 		$this->assertFalse( salt_h1_claimed(), 'The page-level fallback H1 must still be able to fire (A11Y01).' );
 	}
 
 	// -----------------------------------------------------------------
-	// Content, image and CTA rendering.
+	// Images (markup/media.json; contract/image-sizes.json).
 	// -----------------------------------------------------------------
 
-	public function test_image_renders_through_x_image_with_half_sizes_context(): void {
+	public function test_image_beside_words_takes_the_half_slot(): void {
 		$this->seed_attachment( 31 );
 
 		$html = $this->render_media_text(
@@ -345,15 +410,81 @@ final class MediaTextSectionTest extends SaltTestCase {
 						'heading' => 'With image',
 					),
 				),
+			),
+			false
+		);
+
+		$this->assertStringContainsString(
+			'<div class="salt-media-text__media"><img src="https://example.test/uploads/media-31.jpg" srcset="https://example.test/uploads/media-31.jpg 1200w" sizes="' . self::HALF_SIZES . '" width="1200" height="800" alt="Fixture image 31" class="salt-media-text__image"',
+			$html
+		);
+	}
+
+	public function test_image_alone_takes_the_content_slot_and_no_side(): void {
+		$this->seed_attachment( 31 );
+
+		$html = $this->render_media_text(
+			array(
+				'rows' => array(
+					array(
+						'image'     => 31,
+						'mediaSide' => 'right',
+					),
+				),
+			),
+			false
+		);
+
+		$this->assertStringContainsString( 'sizes="' . self::CONTENT_SIZES . '"', $html );
+		$this->assertSame( array( '' ), $this->media_sides( $html ), 'An image without words has no side.' );
+		$this->assertStringNotContainsString( 'salt-media-text__body', $html );
+	}
+
+	public function test_only_the_first_row_image_may_be_the_priority_image(): void {
+		$this->seed_attachment( 31 );
+		$this->seed_attachment( 32 );
+
+		$html = $this->render_media_text(
+			array(
+				'rows' => array(
+					array(
+						'image'   => 31,
+						'heading' => 'First',
+					),
+					array(
+						'image'   => 32,
+						'heading' => 'Second',
+					),
+				),
 			)
 		);
 
-		$this->assertStringContainsString( 'sizes="(min-width: 768px) 50vw, 100vw"', $html, "sizes_context 'half'." );
-		$this->assertStringContainsString( 'alt="Fixture image 31"', $html, 'Stored attachment alt wins when the alt arg is empty.' );
-		$this->assertStringContainsString( 'class="x-image w-full rounded-lg"', $html );
+		$this->assertSame( 1, substr_count( $html, 'fetchpriority="high"' ) );
+		$this->assertMatchesRegularExpression( '#<img src="[^"]*media-31\.jpg"[^>]* fetchpriority="high" decoding="async">#', $html );
+		$this->assertMatchesRegularExpression( '#<img src="[^"]*media-32\.jpg"[^>]* loading="lazy" decoding="async">#', $html );
 	}
 
-	public function test_broken_image_renders_comment_not_broken_img(): void {
+	public function test_a_later_row_image_never_takes_the_priority_image(): void {
+		$this->seed_attachment( 32 );
+
+		$html = $this->render_media_text(
+			array(
+				'rows' => array(
+					array( 'heading' => 'Words first' ),
+					array(
+						'image'   => 32,
+						'heading' => 'Image second',
+					),
+				),
+			)
+		);
+
+		$this->assertStringNotContainsString( 'fetchpriority', $html );
+		$this->assertStringContainsString( 'loading="lazy"', $html );
+		$this->assertFalse( salt_render_state()['priority_media'], 'The priority image stays free for a later band.' );
+	}
+
+	public function test_unresolvable_image_is_absent_and_the_row_keeps_its_words(): void {
 		$html = $this->render_media_text(
 			array(
 				'rows' => array(
@@ -365,13 +496,19 @@ final class MediaTextSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringNotContainsString( 'x-image missing attachment', $html, 'Broken attachments are zeroed up front (COMPL02) — no comment placeholder inside the row.' );
+		$this->assertStringNotContainsString( '<!--', $html, 'No comment placeholder inside the row.' );
 		$this->assertStringNotContainsString( '<img', $html );
+		$this->assertStringNotContainsString( 'salt-media-text__media', $html );
+		$this->assertSame( array( '' ), $this->media_sides( $html ) );
 		$this->assertStringContainsString( 'Broken image row', $html, 'The row still renders its text.' );
-		$this->assertStringContainsString( 'unresolvable', implode( ' ', $this->logs() ), 'The zeroed attachment is logged.' );
+		$this->assertStringContainsString( 'attachment 999 could not be resolved', implode( ' ', $this->logs() ) );
 	}
 
-	public function test_wysiwyg_content_is_sanitized(): void {
+	// -----------------------------------------------------------------
+	// Text and buttons.
+	// -----------------------------------------------------------------
+
+	public function test_wysiwyg_content_is_sanitised(): void {
 		$html = $this->render_media_text(
 			array(
 				'rows' => array(
@@ -383,25 +520,36 @@ final class MediaTextSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( '<p>Fine.</p>', $html );
+		$this->assertStringContainsString( '<div class="salt-rich-text"><p>Fine.</p>', $html );
 		$this->assertStringNotContainsString( '<script', $html );
 	}
 
-	public function test_cta_renders_as_x_button(): void {
+	public function test_buttons_draw_as_contract_buttons_with_the_site_arrow(): void {
+		add_filter( 'salt_contract_arrow', static fn(): string => '›' );
+
 		$html = $this->render_media_text(
 			array(
 				'rows' => array(
 					array(
-						'heading' => 'With CTA',
-						'buttons' => array( salt_test_button( 'Get in touch', 'https://example.test/contact/' ) ),
+						'heading' => 'With buttons',
+						'buttons' => array(
+							salt_test_button( 'Get in touch', 'https://example.test/contact/', '' ),
+							salt_test_button( 'Our work', 'https://example.test/work/', 'primary', true ),
+						),
 					),
 				),
 			)
 		);
 
-		$this->assertStringContainsString( 'x-button-link-arrow', $html );
-		$this->assertStringContainsString( 'href="https://example.test/contact/"', $html );
-		$this->assertStringContainsString( 'Get in touch', $html );
+		$this->assertStringContainsString(
+			'<div class="salt-media-text__actions">'
+			. '<a class="salt-button" href="https://example.test/contact/" data-style="secondary" data-track-control="cta"><span class="salt-button__label">Get in touch<span class="salt-arrow" aria-hidden="true">&#x2060;›</span></span></a>'
+			. '<a class="salt-button" href="https://example.test/work/" data-style="primary" data-track-control="cta" target="_blank" rel="noopener noreferrer"><span class="salt-button__label">Our work<span class="salt-arrow" aria-hidden="true">&#x2060;›</span></span></a>'
+			. '</div>',
+			$html,
+			'Unstyled buttons default to secondary.'
+		);
+		$this->assertStringNotContainsString( 'x-button', $html );
 	}
 
 	public function test_malformed_cta_is_skipped_and_logged_row_still_renders(): void {
@@ -417,7 +565,8 @@ final class MediaTextSectionTest extends SaltTestCase {
 		);
 
 		$this->assertStringContainsString( 'CTA-less row', $html );
-		$this->assertStringNotContainsString( 'x-button', $html );
+		$this->assertStringNotContainsString( 'salt-button', $html );
+		$this->assertStringNotContainsString( 'salt-media-text__actions', $html );
 		$this->assertStringContainsString( 'section media-text: row 0: button 0 has no label or no address', implode( ' ', $this->logs() ) );
 	}
 
@@ -491,20 +640,26 @@ final class MediaTextSectionTest extends SaltTestCase {
 				'rows' => array(
 					array(
 						'image'     => 5,
-						'heading'   => ' Our story ',
+						'heading'   => 'Our story',
 						'content'   => '<p>Copy <strong>here</strong>.</p><script>x()</script>',
 						'mediaSide' => 'right',
 						'buttons'   => array( salt_test_button( 'Read more', '/about', 'primary', true ) ),
 					),
-					array( 'content' => '<p>Text only.</p>' ),
+					array(
+						'content'   => '<p>Text only.</p>',
+						'mediaSide' => 'right',
+					),
 				),
 			)
 		);
 
-		$this->assertSame( array( 'rows' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( array( 'rows', 'arrow' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( '→', $resolved['props']['arrow'] );
+
 		$first = $resolved['props']['rows'][0];
-		$this->assertSame( array( 'image_id', 'heading', 'content', 'mediaSide', 'buttons' ), array_keys( $first ) );
-		$this->assertSame( 5, $first['image_id'] );
+		$this->assertSame( array( 'image', 'heading', 'content', 'mediaSide', 'buttons' ), array_keys( $first ) );
+		$this->assertSame( 'https://example.test/uploads/media-5.jpg', $first['image']['src'] );
+		$this->assertSame( self::HALF_SIZES, $first['image']['sizes'] );
 		$this->assertSame( 'Our story', $first['heading'] );
 		$this->assertStringContainsString( '<strong>here</strong>', $first['content'] );
 		$this->assertStringNotContainsString( '<script', $first['content'] );
@@ -513,27 +668,48 @@ final class MediaTextSectionTest extends SaltTestCase {
 			array(
 				array(
 					'label'  => 'Read more',
-					'url'    => '/about',
+					'href'   => '/about',
 					'style'  => 'primary',
-					'target' => '_blank',
+					'newTab' => true,
 				),
 			),
 			$first['buttons']
 		);
 
 		$second = $resolved['props']['rows'][1];
-		$this->assertSame( 0, $second['image_id'] );
+		$this->assertNull( $second['image'] );
 		$this->assertNull( $second['heading'] );
 		$this->assertSame( array(), $second['buttons'] );
-		$this->assertSame( 'left', $second['mediaSide'] );
+		$this->assertNull( $second['mediaSide'], 'No image: no side, whatever was stored.' );
 		$this->assertTrue( $resolved['section']['has_heading'], 'The FIRST row\'s heading is the section heading.' );
+		$this->assertSame( array( 'priorityMedia' => true ), $resolved['plan'], 'The first row draws an image.' );
+	}
+
+	public function test_resolver_asks_for_the_priority_image_only_for_the_first_row(): void {
+		$this->seed_attachment( 5 );
+
+		$resolved = $this->resolve_media_text(
+			array(
+				'rows' => array(
+					array( 'heading' => 'No image' ),
+					array(
+						'image'   => 5,
+						'heading' => 'Image',
+					),
+				),
+			)
+		);
+
+		$this->assertSame( array( 'priorityMedia' => false ), $resolved['plan'] );
 	}
 
 	public function test_resolver_applies_the_mode_rule_to_the_media_side(): void {
 		$rows = array();
-		foreach ( array( 'A', 'B', 'C' ) as $heading ) {
+		foreach ( array( 11, 12, 13 ) as $id ) {
+			$this->seed_attachment( $id );
 			$rows[] = array(
-				'heading'   => $heading,
+				'image'     => $id,
+				'heading'   => 'Row ' . $id,
 				'mediaSide' => 'right',
 			);
 		}
@@ -573,61 +749,77 @@ final class MediaTextSectionTest extends SaltTestCase {
 		);
 
 		$this->assertSame( 'media-text', $resolved['section']['name'] );
+		$this->assertTrue( $resolved['section']['contract'], 'Drawn in the contract\'s wrapper (M4).' );
 		$this->assertSame( 'lg', $resolved['section']['spacing'] );
 		$this->assertTrue( $resolved['section']['is_primary'] );
 		$this->assertTrue( $resolved['section']['has_heading'] );
 	}
 
 	public function test_view_draws_from_props_alone(): void {
-		$this->seed_attachment( 5 );
-
 		ob_start();
 		load_template(
 			dirname( __DIR__, 2 ) . '/template-parts/sections/media-text.php',
 			false,
 			array(
 				'props' => array(
-					'rows' => array(
+					'rows'  => array(
 						array(
-							'image_id'  => 5,
+							'image'     => array(
+								'src'        => 'https://example.test/props.jpg',
+								'srcset'     => null,
+								'sizes'      => '50vw',
+								'width'      => 1200,
+								'height'     => 800,
+								'alt'        => 'From props',
+								'caption'    => null,
+								'focalPoint' => null,
+							),
 							'heading'   => 'First from props',
 							'content'   => '<p>Already sanitised.</p>',
 							'mediaSide' => 'right',
 							'buttons'   => array(
 								array(
 									'label'  => 'More',
-									'url'    => '/more',
+									'href'   => '/more',
 									'style'  => 'secondary',
-									'target' => '',
+									'newTab' => false,
 								),
 							),
 						),
 						array(
-							'image_id'  => 0,
+							'image'     => null,
 							'heading'   => 'Second from props',
 							'content'   => null,
-							'mediaSide' => 'left',
+							'mediaSide' => null,
 							'buttons'   => array(),
 						),
 					),
+					'arrow' => null,
 				),
 				'plan'  => array(
 					'index'         => 0,
+					'anchor'        => 'story',
 					'headingLevel'  => 1,
-					'priorityMedia' => false,
+					'headingId'     => 'story__heading',
+					'bodyBaseLevel' => 1,
+					'priorityMedia' => true,
 				),
 			)
 		);
 		$html = (string) ob_get_clean();
 
-		$this->assertSame( 1, preg_match_all( '/<h1[\s>]/', $html ), 'Row 0 draws at the section level.' );
-		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ), 'Later rows step below an H1.' );
-		$this->assertStringContainsString( 'x-media-text-media md:order-2', $html );
-		$this->assertStringContainsString( '<div class="x-prose max-w-prose text-ink"><p>Already sanitised.</p></div>', $html );
-		$this->assertStringContainsString( 'href="/more"', $html );
-		$this->assertSame( 2, preg_match_all( '/class="x-media-text-row[" ]/', $html ) );
-		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+		$this->assertSame(
+			'<div class="salt-block" data-block="media-text"><div class="salt-media-text">'
+			. '<div class="salt-media-text__row" data-media-side="right"><div class="salt-media-text__media"><img src="https://example.test/props.jpg" sizes="50vw" width="1200" height="800" alt="From props" class="salt-media-text__image" fetchpriority="high" decoding="async"></div>'
+			. '<div class="salt-media-text__body"><h1 id="story__heading">First from props</h1><div class="salt-rich-text"><p>Already sanitised.</p></div>'
+			. '<div class="salt-media-text__actions"><a class="salt-button" href="/more" data-style="secondary" data-track-control="cta">More</a></div></div></div>'
+			. '<div class="salt-media-text__row"><div class="salt-media-text__body"><h2>Second from props</h2></div></div>'
+			. '</div></div>',
+			$html,
+			'The block only: the band is the entry\'s, not the view\'s.'
+		);
 	}
+
 	public function test_row_content_keeps_only_headings_three_and_four(): void {
 		$resolved = $this->resolve_media_text(
 			array(
