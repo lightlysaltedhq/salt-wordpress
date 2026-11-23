@@ -1,7 +1,7 @@
 /**
  * Booking facade upgrade (spec §9; PRIV01/§7 progressive click-to-load).
  *
- * The x-booking component is a PLAIN LINK to the provider's booking page.
+ * The booking component (a.salt-booking) is a PLAIN LINK to the provider's booking page.
  * This module intercepts the click ONLY when the visitor has granted the
  * 'marketing' consent category via the WP Consent API bridge
  * (window.wp_has_consent). Granted → prevent navigation and swap the link
@@ -10,12 +10,12 @@
  * NOTHING: the plain link navigates and our page loads zero third-party
  * bytes (progressive fallback, fail closed).
  *
- * No-ops gracefully when [data-salt-booking] is absent.
+ * No-ops gracefully when a.salt-booking is absent.
  */
 (() => {
 	'use strict';
 
-	const links = document.querySelectorAll('a[data-salt-booking]');
+	const links = document.querySelectorAll('a.salt-booking');
 	if (!links.length) {
 		return;
 	}
@@ -56,8 +56,8 @@
 	 */
 	const embedCalendly = (link) => {
 		const holder = document.createElement('div');
-		holder.className = 'calendly-inline-widget x-booking-embed';
-		holder.setAttribute('data-url', link.dataset.url);
+		holder.className = 'calendly-inline-widget salt-booking__embed';
+		holder.setAttribute('data-url', link.href);
 		// CSSOM sizing (the style ATTRIBUTE would be blocked by style-src).
 		holder.style.minWidth = '320px';
 		holder.style.height = '640px';
@@ -86,12 +86,12 @@
 		}
 
 		const holder = document.createElement('div');
-		holder.className = 'x-booking-embed';
+		holder.className = 'salt-booking__embed';
 		holder.style.width = '100%';
 		holder.style.minHeight = '640px';
 		link.after(holder);
 
-		const calLink = new URL(link.dataset.url).pathname.replace(/^\/+/, '');
+		const calLink = new URL(link.href).pathname.replace(/^\/+/, '');
 		window.Cal('init', { origin: 'https://app.cal.com' });
 		window.Cal('inline', { elementOrSelector: holder, calLink });
 	};

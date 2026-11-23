@@ -98,7 +98,7 @@ docblock at the top of its partial (enforced at runtime by
 | x-logo | components/logo.php | Light/dark display logos, text fallback; dark swap via `[data-theme=dark]` CSS |
 | x-display-preferences | components/display-preferences.php | §14 widget; server-rendered `hidden`, JS-activated (FAIL02) |
 | x-map | components/map.php | Click-to-load facade; consent-gated (v2) |
-| x-booking | components/booking.php | Provider facade; plain link until consent (v2) |
+| booking | components/booking.php | Provider facade (salt-contract markup/booking.json: `salt-button salt-booking`); plain link until consent |
 | x-share-links | components/share-links.php | Social share intents (x/facebook/linkedin/whatsapp/bluesky/reddit/email + pinterest opt-in); copy-link button `hidden` until sections/share.js activates it (FAIL02) |
 | x-author-box | components/author-box.php | Post author attribution (name, role, bio and photo from the credited team member, never the WordPress user; ID-3952) |
 

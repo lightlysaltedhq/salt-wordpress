@@ -143,9 +143,9 @@ function salt_logo_args( string $context = 'header' ): array {
 }
 
 /**
- * Normalise an ACF link value into x-button args (PURE — unit-tested).
+ * Normalise an ACF link value into button args (PURE — unit-tested).
  *
- * Target follows the x-button contract ('' or '_blank' only — anything
+ * Target follows the button contract ('' or '_blank' only — anything
  * else is dropped and logged; the component re-validates as
  * defence-in-depth). A link without a URL is "no CTA" (null), a link
  * without a title falls back to the URL as its label — never a blank

@@ -3,7 +3,7 @@
  * Booking facade — Cal.com / Calendly behind a progressive click-to-load
  * link (spec §9; PRIV01/§7).
  *
- * The x-booking component renders a PLAIN LINK to the site's booking page
+ * The booking component (salt-booking) renders a PLAIN LINK to the site's booking page
  * (the one third-party URL allowed in facade markup — it loads nothing
  * until the visitor navigates). assets/src/js/booking.js intercepts the
  * click ONLY when the 'marketing' consent category is granted client-side
@@ -180,7 +180,7 @@ add_filter( 'salt_csp_policy', 'salt_booking_csp_policy', 10 );
  * ('wp_enqueue_scripts', 20).
  *
  * The script is a tiny facade loader that no-ops when no
- * [data-salt-booking] link is on the page; the provider embed itself loads
+ * a.salt-booking link is on the page; the provider embed itself loads
  * only post-click, post-consent, from the provider origin.
  *
  * @return void

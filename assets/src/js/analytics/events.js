@@ -1,8 +1,7 @@
 /**
  * Rich salt-instrumented events adapter.
  *
- * Pure DOM delegation over the section markup contracts (x-button,
- * salt-contact__form, [data-section], [data-salt-carousel])
+ * Pure DOM delegation over the section markup contracts (salt-contact__form, [data-section], [data-salt-carousel])
  * and, for bands drawn to the salt-contract's markup, their equivalents
  * ([data-track], [data-track-control="cta"], details.salt-accordion__item,
  * [data-track-control^="carousel-"]) — NO section-file changes, passive listeners,
@@ -72,7 +71,7 @@
 					return;
 				}
 
-				const cta = target.closest('.x-button, [data-track-control="cta"]');
+				const cta = target.closest('[data-track-control="cta"]');
 				if (cta && cta.closest('[data-section], [data-track]')) {
 					track('cta_click', {
 						section: sectionOf(cta),
