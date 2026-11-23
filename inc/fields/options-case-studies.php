@@ -30,6 +30,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return void
  */
 function salt_register_case_studies_options(): void {
+	if ( ! salt_module_enabled( 'work' ) ) {
+		return;
+	}
 	$tones = array(
 		'surface'         => __( 'Surface (the page background)', 'salt' ),
 		'surface-alt'     => __( 'Surface, alternate (a subtle step away from it)', 'salt' ),

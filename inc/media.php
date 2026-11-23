@@ -111,8 +111,8 @@ function salt_image_slots(): array {
 	$half         = '(min-width: 75rem) 29rem, (min-width: 64rem) 29.22rem, (min-width: 48.01rem) calc((100vw - 4rem) / 2), calc(100vw - 2rem)';
 
 	return array(
-		'full'    => array( 'sizes' => '100vw' ),
-		'content' => array(
+		'full'       => array( 'sizes' => '100vw' ),
+		'content'    => array(
 			'sizes' => '(min-width: 64rem) 60rem, 100vw',
 			'bands' => array(
 				'full'    => 'calc(100vw)',
@@ -121,7 +121,7 @@ function salt_image_slots(): array {
 				'narrow'  => $content,
 			),
 		),
-		'half'    => array(
+		'half'       => array(
 			'sizes' => '(min-width: 64rem) 30rem, 100vw',
 			'bands' => array(
 				'full'    => '(min-width: 48.01rem) calc((100vw - 2rem) / 2), calc(100vw)',
@@ -130,7 +130,7 @@ function salt_image_slots(): array {
 				'narrow'  => $half,
 			),
 		),
-		'card'    => array(
+		'card'       => array(
 			'sizes' => '(min-width: 64rem) 19rem, (min-width: 40rem) 50vw, 100vw',
 			'bands' => array(
 				'full'    => array(

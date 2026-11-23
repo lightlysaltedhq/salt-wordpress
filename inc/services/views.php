@@ -260,7 +260,7 @@ function salt_pagination_window( int $current, int $total ): array {
 	$window = array();
 	$last   = 0;
 	foreach ( $pages as $page ) {
-		if ( $page - $last === 2 ) {
+		if ( 2 === $page - $last ) {
 			$window[] = $last + 1;
 		} elseif ( $page - $last > 2 ) {
 			$window[] = null;
@@ -368,15 +368,14 @@ function salt_section_tones(): array {
  * @return array{header: string, headerTone: string, headerToneDark: string, media: string}
  */
 function salt_case_study_settings(): array {
-	$get   = static fn( string $name ) => function_exists( 'get_field' ) ? get_field( $name, 'option' ) : null;
 	$tones = salt_section_tones();
-	$tone  = in_array( $get( 'case_study_header_tone' ), $tones, true ) ? (string) $get( 'case_study_header_tone' ) : 'surface';
-	$dark  = in_array( $get( 'case_study_header_tone_dark' ), $tones, true ) ? (string) $get( 'case_study_header_tone_dark' ) : $tone;
+	$tone  = in_array( salt_option( 'case_study_header_tone' ), $tones, true ) ? (string) salt_option( 'case_study_header_tone' ) : 'surface';
+	$dark  = in_array( salt_option( 'case_study_header_tone_dark' ), $tones, true ) ? (string) salt_option( 'case_study_header_tone_dark' ) : $tone;
 	return array(
-		'header'         => 'band' === $get( 'case_study_header' ) ? 'band' : 'plain',
+		'header'         => 'band' === salt_option( 'case_study_header' ) ? 'band' : 'plain',
 		'headerTone'     => $tone,
 		'headerToneDark' => $dark,
-		'media'          => 'aside' === $get( 'case_study_media' ) ? 'aside' : 'flow',
+		'media'          => 'aside' === salt_option( 'case_study_media' ) ? 'aside' : 'flow',
 	);
 }
 

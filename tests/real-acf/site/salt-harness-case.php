@@ -49,8 +49,8 @@ function salt_harness_case(): ?array {
 }
 
 if ( null !== salt_harness_case() ) {
-	$salt_harness_site = (array) ( salt_harness_case()['site'] ?? array() );
-	$salt_harness_doc  = (array) ( salt_harness_case()['document'] ?? array() );
+	$salt_harness_site  = (array) ( salt_harness_case()['site'] ?? array() );
+	$salt_harness_doc   = (array) ( salt_harness_case()['document'] ?? array() );
 	$salt_harness_route = (array) ( salt_harness_case()['route'] ?? array() );
 
 	$salt_harness_locale = (string) ( salt_harness_case()['context']['locale'] ?? '' );

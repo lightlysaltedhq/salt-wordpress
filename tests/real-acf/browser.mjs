@@ -33,6 +33,10 @@
  *    taxonomy and of posts' categories, "N / 120" and the note past 120; a
  *    name over 120 is added and updated. No count in quick edit or in the
  *    Topics box's add-new form, which adds a name over 120 too.
+ * 10. Site Settings → Case Studies: with the work module on, the form saves
+ *    the band header, its tones and the aside image, and the case-study
+ *    view draws them; with it off, the page and its field group are gone
+ *    and the stored settings are kept.
  *
  * With SALT_HARNESS_SCREENSHOTS set to a directory, it saves pictures of the
  * counts there.
@@ -842,6 +846,74 @@ try {
 			await close( page );
 		}
 	}
+	// ── 10. Site Settings → Case Studies saves, and the case-study view reads it ──────────────
+	{
+		const script = path.join( here, 'php/case-study-settings.php' );
+		const caseStudy = ( work ) => {
+			if ( work !== undefined ) {
+				execFileSync( php, [ script, '--work', work ] );
+			}
+			return JSON.parse( execFileSync( php, [ script ], { encoding: 'utf8' } ) );
+		};
+		const pageUrl = '/wp-admin/admin.php?page=salt-settings-case-studies';
+		const field = ( name ) => `.acf-field[data-name="${ name }"]`;
+
+		// With the work module on: set every setting through the form, then read it back.
+		const on = caseStudy( '1' );
+		const { page, errors } = await open( pageUrl );
+		await page.waitForFunction( () => window.acf && document.readyState === 'complete' );
+		const offered = await page.locator( field( 'case_study_header' ) ).count();
+		await page.click( `${ field( 'case_study_header' ) } label:has(input[value="band"])` );
+		await page.selectOption( `${ field( 'case_study_header_tone' ) } select`, 'brand-tint' );
+		await page.selectOption( `${ field( 'case_study_header_tone_dark' ) } select`, 'surface-inverse' );
+		await page.click( `${ field( 'case_study_media' ) } label:has(input[value="aside"])` );
+		await Promise.all( [ page.waitForURL( /[?&]message=1/, { timeout: 60000 } ), page.click( '#publish' ) ] );
+		const saved = caseStudy();
+		const want = { header: 'band', headerTone: 'brand-tint', headerToneDark: 'surface-inverse', media: 'aside' };
+		result(
+			on.work && on.group && offered === 1 && JSON.stringify( saved.settings ) === JSON.stringify( want ),
+			'Site Settings → Case Studies saves the case-study layout (work on)',
+			`page ${ offered ? 'offered' : 'MISSING' }; salt_case_study_settings() reads ${ JSON.stringify( saved.settings ) }`
+		);
+		result( errors.length === 0, 'no console errors on the Case Studies settings page', `${ errors.length } errors` );
+		errors.slice( 0, 10 ).forEach( info );
+		await close( page );
+
+		// The case-study view draws what was saved: the band in its tones, the image aside.
+		const { page: view } = await open( saved.url.replace( url, '' ) );
+		const drawn = await view.evaluate( () => {
+			const article = document.querySelector( 'article.salt-case-study-view' );
+			const header = article?.querySelector( '.salt-case-study-view__header' );
+			return {
+				header: article?.dataset.header ?? null,
+				media: article?.dataset.media ?? null,
+				tone: header?.dataset.tone ?? null,
+				toneDark: header?.dataset.toneDark ?? null,
+				rows: article?.style.getPropertyValue( '--salt-case-study-view-aside-rows' ).trim() ?? '',
+			};
+		} );
+		result(
+			drawn.header === 'band' && drawn.tone === 'brand-tint' && drawn.toneDark === 'surface-inverse' && drawn.media === 'aside' && drawn.rows !== '',
+			'the case-study view reads the saved settings',
+			`${ saved.url.replace( url, '' ) }: ${ JSON.stringify( drawn ) }`
+		);
+		await close( view );
+
+		// With the work module off: no page, no group, the stored settings kept for when it is on again.
+		const off = caseStudy( '0' );
+		const { page: gone } = await open( '/wp-admin/' );
+		const linked = await gone.locator( 'a[href*="page=salt-settings-case-studies"]' ).count();
+		const direct = await gone.goto( `${ url }${ pageUrl }` );
+		const blocked = direct.status() >= 400 && ( await gone.locator( field( 'case_study_header' ) ).count() ) === 0;
+		await close( gone );
+		const back = caseStudy( '1' );
+		result(
+			! off.work && ! off.group && linked === 0 && blocked && JSON.stringify( back.settings ) === JSON.stringify( want ),
+			'with the work module off there is no Case Studies page, and its settings are kept',
+			`group ${ off.group ? 'REGISTERED' : 'not registered' }; menu links ${ linked }; the page answered ${ direct.status() }; on again it reads ${ JSON.stringify( back.settings ) }`
+		);
+	}
+
 	const unloadTotal = [ ...unloadBy.values() ].reduce( ( a, b ) => a + b, 0 );
 	info(
 		`${ unloadTotal } Chromium "unload is not allowed" policy reports across all screens, not counted as errors; by script: ${
