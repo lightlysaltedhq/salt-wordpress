@@ -5,7 +5,7 @@
  * Without script the form posts to its own page, which answers it in the
  * same response. With script each form submits in place: it fetches a
  * form token from the credentials endpoint (never drawn in the cached
- * page), posts the contract's fields to the REST route, marks each field
+ * page; both REST addresses come from window.saltContact), posts the contract's fields to the REST route, marks each field
  * that failed, fills the status region and moves focus to it. CAPTCHA
  * tokens (Turnstile/reCAPTCHA render their own hidden inputs into the
  * form) are forwarded verbatim; the server verifies (SEC02).
@@ -13,10 +13,15 @@
 (() => {
 	'use strict';
 
-	const endpoint = '/wp-json/salt/v1/contact';
+	// The REST addresses, from rest_url() (salt_contact_script_settings()):
+	// ?rest_route= on plain permalinks, never a hard-coded /wp-json/.
+	const settings = window.saltContact || {};
+	const endpoint = settings.send || '';
 
 	const credentials = () =>
-		fetch(`${endpoint}/credentials`, { credentials: 'same-origin', cache: 'no-store' })
+		(settings.credentials
+			? fetch(settings.credentials, { credentials: 'same-origin', cache: 'no-store' })
+			: Promise.reject(new Error('contact: no REST address')))
 			.then((response) => response.json())
 			.then((body) => (body && body.ok && typeof body.formToken === 'string' ? body.formToken : ''));
 

@@ -921,6 +921,19 @@ if ( ! function_exists( 'home_url' ) ) {
 	}
 }
 
+if ( ! function_exists( 'rest_url' ) ) {
+	/**
+	 * rest_url shim: the plain-permalink form (?rest_route=), so a caller
+	 * that assumes /wp-json/ shows up.
+	 *
+	 * @param string $path REST route.
+	 * @return string
+	 */
+	function rest_url( string $path = '' ): string {
+		return home_url( '/index.php?rest_route=/' . ltrim( $path, '/' ) );
+	}
+}
+
 if ( ! function_exists( 'is_singular' ) ) {
 	/**
 	 * is_singular shim (fixture-controlled; defaults true).

@@ -16,6 +16,8 @@
 //    clock) is refused 403 as stale and sent after one refetch.
 //  - A single post's own address, posted a contact `name`: the post still
 //    answers, by its permalink's own name.
+//  - With script on plain permalinks: the send uses ?rest_route= (the
+//    script's addresses come from rest_url()) and arrives in place.
 //  - A form-encoded REST send with the self-post flag in its address: the
 //    REST API reads every field it was sent (they are back in $_POST first).
 //  - Another form posted to the answered page, whose address keeps the
@@ -122,6 +124,30 @@ try {
 	await page.waitForFunction( () => [ 'sent', 'problem' ].includes( document.querySelector( '#enquire__status' )?.dataset.tone ), null, { timeout: 15000 } );
 	// The last fetch is the next message's token, taken after the send.
 	result( events.join( ', ' ) === 'credentials, send 403, credentials, send 200, credentials' && await status.getAttribute( 'data-tone' ) === 'sent' && site( 'stored', 'Ada Five Hours' ) === '1', 'script: a send 5 hours after focus arrives after one refetch', `${ events.join( ', ' ) }; "${ await status.textContent() }"` );
+	// With script on plain permalinks, where /wp-json/ does not answer: the
+	// script's REST addresses are ?rest_route= ones (rest_url()), and the
+	// send arrives in place, never falling back to the native post.
+	const plainUrl = site( 'permalinks', 'plain' );
+	site( 'reset' );
+	const plain = await scripted.newPage();
+	plain.on( 'console', ( m ) => m.type() === 'error' && errors.push( m.text() ) );
+	plain.on( 'pageerror', ( e ) => errors.push( e.message ) );
+	const plainRest = [];
+	const plainPosts = [];
+	plain.on( 'request', ( r ) => r.url().includes( 'salt/v1/contact' ) && plainRest.push( r.url() ) );
+	plain.on( 'request', ( r ) => r.method() === 'POST' && plainPosts.push( r.url() ) );
+	await plain.goto( plainUrl );
+	const plainForm = plain.locator( 'form#enquire__form' );
+	await plainForm.locator( '[name=name]' ).fill( 'Ada Plain' );
+	await plainForm.locator( '[name=email]' ).fill( 'ada@example.org' );
+	await plainForm.locator( '[name=message]' ).fill( 'Plain permalinks.' );
+	await wait( 3500 );
+	await plainForm.locator( '.salt-contact__submit' ).click();
+	await plain.waitForFunction( () => [ 'sent', 'problem' ].includes( document.querySelector( '#enquire__status' )?.dataset.tone ), null, { timeout: 15000 } ).catch( () => {} );
+	const plainTone = await plainForm.locator( '.salt-contact__status' ).getAttribute( 'data-tone' ).catch( () => null );
+	result( plainTone === 'sent' && plainRest.length >= 2 && plainRest.every( ( u ) => u.includes( '?rest_route=/salt/v1/contact' ) ) && plainPosts.every( ( u ) => u.includes( 'rest_route=' ) ) && site( 'stored', 'Ada Plain' ) === '1', 'script on plain permalinks: the send goes to ?rest_route= and arrives without the fallback', `tone ${ plainTone }; ${ [ ...plainRest, ...plainPosts.filter( ( u ) => ! u.includes( 'rest_route=' ) ) ].join( ', ' ) }` );
+	await plain.close();
+	site( 'permalinks', 'pretty' );
 	// A single post posted a contact `name`: WordPress queries it by its permalink.
 	const post = site( 'post' );
 	const posted = await scripted.request.post( `${ post }?salt-contact-send=enquire`, { form: { name: 'Ada Lovelace', message: 'x', returnTo: new URL( post ).pathname } } );

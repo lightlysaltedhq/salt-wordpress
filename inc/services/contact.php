@@ -413,6 +413,49 @@ function salt_contact_register_rest(): void {
 add_action( 'rest_api_init', 'salt_contact_register_rest' );
 
 /**
+ * Hand the contact script its REST addresses ('wp_enqueue_scripts', 21,
+ * after the section scripts are enqueued): from rest_url(), so they are
+ * right on every permalink setting (?rest_route= on plain permalinks) and
+ * under a moved REST prefix, never a hard-coded /wp-json/. The inline
+ * script carries the CSP nonce (salt_contact_inline_script_nonce()).
+ *
+ * @return void
+ */
+function salt_contact_script_settings(): void {
+	if ( ! wp_script_is( 'salt-section-contact', 'enqueued' ) ) {
+		return;
+	}
+	wp_add_inline_script(
+		'salt-section-contact',
+		'window.saltContact = ' . wp_json_encode(
+			array(
+				'send'        => esc_url_raw( rest_url( 'salt/v1/contact' ) ),
+				'credentials' => esc_url_raw( rest_url( 'salt/v1/contact/credentials' ) ),
+			),
+			JSON_HEX_TAG | JSON_UNESCAPED_SLASHES
+		) . ';',
+		'before'
+	);
+}
+add_action( 'wp_enqueue_scripts', 'salt_contact_script_settings', 21 );
+
+/**
+ * Stamp the contact script's inline settings with the request's CSP nonce
+ * ('wp_inline_script_attributes'), as the theme's other inline scripts are
+ * stamped: without it the CSP refuses them.
+ *
+ * @param array<string,string|bool> $attributes The inline script's attributes.
+ * @return array<string,string|bool>
+ */
+function salt_contact_inline_script_nonce( array $attributes ): array {
+	if ( 'salt-section-contact-js-before' === ( $attributes['id'] ?? '' ) ) {
+		$attributes['nonce'] = salt_csp_nonce();
+	}
+	return $attributes;
+}
+add_filter( 'wp_inline_script_attributes', 'salt_contact_inline_script_nonce' );
+
+/**
  * WordPress's no-cache headers on a REST response, leaving out those core
  * sets to false or '' to mean "send none" (Last-Modified), so no empty
  * header goes out.

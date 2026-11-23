@@ -312,6 +312,21 @@ final class ContactEndpointTest extends SaltTestCase {
 		$this->assertSame( $this->nocache_sent(), $response->get_headers(), 'WordPress\'s no-cache set, no empty Last-Modified.' );
 	}
 
+	public function test_the_script_gets_its_rest_addresses_from_rest_url_in_a_nonced_script(): void {
+		salt_contact_script_settings();
+		$this->assertArrayNotHasKey( 'salt-section-contact', $GLOBALS['salt_test_inline_scripts'], 'Nothing without the contact script.' );
+
+		$GLOBALS['salt_test_enqueued']['scripts']['salt-section-contact'] = true;
+		salt_contact_script_settings();
+
+		$this->assertSame(
+			array( 'window.saltContact = {"send":"https://example.test/index.php?rest_route=/salt/v1/contact","credentials":"https://example.test/index.php?rest_route=/salt/v1/contact/credentials"};' ),
+			$GLOBALS['salt_test_inline_scripts']['salt-section-contact']['before']
+		);
+		$this->assertSame( salt_csp_nonce(), salt_contact_inline_script_nonce( array( 'id' => 'salt-section-contact-js-before' ) )['nonce'] ?? null );
+		$this->assertArrayNotHasKey( 'nonce', salt_contact_inline_script_nonce( array( 'id' => 'salt-section-contact-js-after' ) ) );
+	}
+
 	public function test_captcha_required_on_rest_path_when_provider_configured(): void {
 		$GLOBALS['salt_test_fields']['option']['captcha_provider']           = 'turnstile';
 		$GLOBALS['salt_test_fields']['option']['captcha_turnstile_site_key'] = '1x0000';
