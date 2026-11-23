@@ -5,7 +5,8 @@
  * HARNESS ONLY. Never shipped. tests/real-acf/run.sh copies this file into
  * the throwaway site's wp-content/mu-plugins. A view or page case's chrome
  * data that the theme takes through code seams, not Site Settings (labels,
- * the footer's copyright and profiles, and a consent plugin), cannot be
+ * the footer's copyright and profiles, and a consent plugin with its
+ * categories in use), cannot be
  * set from view.php, which runs in another process than the request it
  * makes: view.php stores it in the salt_harness_chrome option
  * (salt_view_chrome()), and this feeds the theme from it, as
@@ -49,29 +50,47 @@ if ( null !== ( $salt_harness_chrome['profiles'] ?? null ) ) {
 	);
 }
 
-// Founder ruling C: the footer draws its consent control only with a cookie
-// plugin wired to the WP Consent API. The contract makes the control part
-// of every footer, so, as the adapter does, a case with a footer is a site
-// with such a plugin: the API's server functions with an opt-in type. No
-// consent is recorded, so wp_has_consent() denies.
-if ( ! empty( $salt_harness_chrome['consent'] ) && ! function_exists( 'wp_get_consent_type' ) ) {
-	/**
-	 * The harness's consent plugin: opt-in.
-	 *
-	 * @return string
-	 */
-	function wp_get_consent_type() {
-		return 'optin';
-	}
+// Founder ruling C, SC-030: the footer draws its consent control only when
+// an integration needs consent and a cookie plugin is wired to the WP
+// Consent API. A case's site.consent says one is: the API's server
+// functions with an opt-in type (no consent is recorded, so
+// wp_has_consent() denies), the Salt categories its boxes cover as the ones
+// in use, and its words. The theme groups the boxes itself.
+$salt_harness_consent = $salt_harness_chrome['consent'] ?? null;
+if ( is_array( $salt_harness_consent ) ) {
+	if ( ! function_exists( 'wp_get_consent_type' ) ) {
+		/**
+		 * The harness's consent plugin: opt-in.
+		 *
+		 * @return string
+		 */
+		function wp_get_consent_type() {
+			return 'optin';
+		}
 
-	/**
-	 * The harness's consent plugin: nothing is consented.
-	 *
-	 * @param string $category WP Consent API category.
-	 * @return bool
-	 */
-	function wp_has_consent( $category ) {
-		unset( $category );
-		return false;
+		/**
+		 * The harness's consent plugin: nothing is consented.
+		 *
+		 * @param string $category WP Consent API category.
+		 * @return bool
+		 */
+		function wp_has_consent( $category ) {
+			unset( $category );
+			return false;
+		}
 	}
+	$salt_harness_boxes  = (array) ( $salt_harness_consent['categories'] ?? array() );
+	$salt_harness_in_use = array();
+	foreach ( $salt_harness_boxes as $salt_harness_box ) {
+		$salt_harness_in_use = array_merge( $salt_harness_in_use, (array) ( $salt_harness_box['covers'] ?? array() ) );
+	}
+	add_filter( 'salt_consent_categories_in_use', static fn() => $salt_harness_in_use, 20 );
+	add_filter(
+		'salt_consent_panel',
+		static fn() => array(
+			'labels'     => (array) ( $salt_harness_consent['labels'] ?? array() ),
+			'categories' => $salt_harness_boxes,
+		),
+		20
+	);
 }

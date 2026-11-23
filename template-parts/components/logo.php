@@ -12,8 +12,9 @@
  *                              the site title. NEVER an empty brand slot.
  *   url      string ''        Link destination; '' means home_url( '/' ).
  *                              Drawn root-relative (salt_contract_url()).
- *   height   int    0         The drawn height in px; 0 for the stylesheet's
- *                              2rem (no style attribute).
+ *   height   int    0         The drawn height in px, which the images'
+ *                              sizes are computed from; 0 for the
+ *                              stylesheet's 2rem.
  *   context  string 'header'  header|footer. Only the header's default-scheme
  *                              logo loads eagerly (SC-025): the light one,
  *                              since the server cannot know the visitor's
@@ -21,9 +22,9 @@
  *   slots    array            Unused (reserved by salt_get_component()).
  *
  * The link is named by aria-label when an image is drawn and both images
- * are alt="". Its style="--logo-height" is the contract's markup; under the
- * theme's CSP it is applied by the nonce-stamped salt_header_runtime_css()
- * rule. An unresolvable attachment degrades to the wordmark (light) or to
+ * are alt="". The link carries no style attribute (SC-029): the height
+ * reaches the page once, site-wide, as the nonce-stamped
+ * salt_header_runtime_css() rule, from the same stored value. An unresolvable attachment degrades to the wordmark (light) or to
  * light-only (dark), logged (FAIL01).
  *
  * Render via salt_component( 'logo', salt_logo_args() ).
@@ -113,9 +114,6 @@ if ( null !== $salt_light ) {
 }
 if ( null !== $salt_dark ) {
 	$salt_link .= ' data-swaps';
-}
-if ( $salt_args['height'] > 0 ) {
-	$salt_link .= ' style="' . esc_attr( '--logo-height: ' . $salt_args['height'] . 'px' ) . '"';
 }
 $salt_link .= '>';
 

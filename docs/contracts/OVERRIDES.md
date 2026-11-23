@@ -123,9 +123,18 @@ Chrome seams (filters):
   (`surface-alt`). `salt_footer_show_logo( bool )` — defaults to the
   "Show logo in footer" setting (off).
 - `salt_consent_control( bool )` — turns the footer's cookie-preferences
-  control and panel off. It cannot turn them on: they are drawn only when a
-  cookie plugin is wired to the WP Consent API (`salt_consent_plugin_active()`).
-  Save writes through the plugin's `wp_set_consent()`; Salt stores nothing.
+  control and panel off. It cannot turn them on: they are drawn only when an
+  integration needs consent and a cookie plugin is wired to the WP Consent
+  API (`salt_consent_control_drawn()`, SC-030). Save writes through the
+  plugin's `wp_set_consent()`; Salt stores nothing.
+- `salt_consent_categories_in_use( string[] )` — the Salt categories the
+  site's integrations use (default: `analytics` with an analytics provider,
+  `maps` with maps on, `embeds` with a booking provider). The panel draws
+  one box per WP Consent API category they map to, statistics then
+  marketing; with none, no control is drawn.
+- `salt_consent_panel( array )` — the panel's words: `labels` and each
+  box's `label` and `description`, by its API category id. It cannot add
+  or remove a box.
 
 ## Template overrides (native hierarchy)
 

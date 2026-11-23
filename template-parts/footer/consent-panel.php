@@ -3,7 +3,8 @@
  * The consent preferences panel (salt-contract markup/site-footer.json,
  * consent-panel): a dialog drawn only when open, so always with open
  * (SC-019). Its ids are fixed (SC-012): site-footer__consent-title, and
- * site-footer__consent-<category> with its -description.
+ * site-footer__consent-<category> with its -description, <category> the
+ * box's WP Consent API category (statistics, marketing; SC-030).
  *
  * Only script opens it on a real page (assets/src/js/app.js builds the same
  * markup from salt_chrome_script_data()); the server draws it open only for
@@ -13,7 +14,7 @@
  * script's copy carries method="dialog", so Enter never submits a request.
  *
  * Args: salt_consent_panel() — labels { title, save, cancel } and
- * categories [ { id, label, description } ].
+ * categories [ { id, covers, label, description } ], one per API category.
  *
  * @package Salt
  */

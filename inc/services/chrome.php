@@ -89,10 +89,10 @@ function salt_logo_height_set(): ?int {
  * Header runtime CSS — the seam salt_output_theme_vars_css() composes.
  *
  * Emits the validated --logo-height on .salt-logo (48px unless the site
- * sets another). The logo also draws it as its contract style attribute,
- * which the CSP refuses (no 'unsafe-inline' for style attributes, SEC06),
- * so this nonce-stamped rule in the head is what applies it; it prints
- * after salt.css, so it wins over the stylesheet's 2rem. Adds the sticky-header anchor
+ * sets another), the one place the height reaches the page (SC-029: the
+ * logo draws no style attribute); it prints after salt.css, so it wins
+ * over the stylesheet's 2rem. The logo's sizes use the same value
+ * (salt_logo_args()). Adds the sticky-header anchor
  * offset --salt-scroll-padding ONLY when the header is sticky. Numeric
  * tokens only — safe to print unescaped inside the nonce-stamped <style>.
  *
@@ -741,16 +741,26 @@ function salt_footer_text_html(): string {
 }
 
 /**
- * The consent preferences panel's words and categories (site.consent).
+ * The consent preferences panel's words and boxes (site.consent): one box
+ * per WP Consent API category in use (salt_consent_groups(), SC-030), its
+ * id the API category, `covers` the Salt categories ticking it sets, and a
+ * label and description from the theme's words. The `salt_consent_panel`
+ * filter is a site's override of the words; it cannot add a box, and a
+ * box it drops stays undrawn.
  *
- * Drawn only when a cookie plugin is wired to the WP Consent API
- * (salt_consent_plugin_active(), founder ruling C). The categories are the
- * contract's ids, each written through salt_consent_api_category(); the
- * `salt_consent_panel` filter is the seam.
- *
- * @return array{labels:array<string,string>,categories:array<int,array{id:string,label:string,description:string}>}
+ * @return array{labels:array<string,string>,categories:array<int,array{id:string,covers:string[],label:string,description:string}>}
  */
 function salt_consent_panel(): array {
+	$words = array(
+		'statistics' => array(
+			'label'       => __( 'Analytics', 'salt' ),
+			'description' => __( 'Helps us see which pages are read, with no personal details.', 'salt' ),
+		),
+		'marketing'  => array(
+			'label'       => __( 'Marketing and embedded content', 'salt' ),
+			'description' => __( 'Lets us measure how our adverts perform, and shows videos, maps and booking tools from other sites.', 'salt' ),
+		),
+	);
 	$panel = array(
 		'labels'     => array(
 			'title'  => __( 'Cookie preferences', 'salt' ),
@@ -758,26 +768,27 @@ function salt_consent_panel(): array {
 			'cancel' => __( 'Cancel', 'salt' ),
 			'saved'  => __( 'Your cookie preferences are saved.', 'salt' ),
 		),
-		'categories' => array(
-			array(
-				'id'          => 'analytics',
-				'label'       => __( 'Analytics', 'salt' ),
-				'description' => __( 'Helps us see which pages are read, with no personal details.', 'salt' ),
-			),
-			array(
-				'id'          => 'embeds',
-				'label'       => __( 'Embedded content', 'salt' ),
-				'description' => __( 'Maps, videos and booking tools from other sites.', 'salt' ),
-			),
-			array(
-				'id'          => 'marketing',
-				'label'       => __( 'Marketing', 'salt' ),
-				'description' => __( 'Lets us measure how our adverts perform.', 'salt' ),
-			),
-		),
+		'categories' => array(),
 	);
+	foreach ( salt_consent_groups() as $api => $covers ) {
+		$panel['categories'][] = array(
+			'id'     => $api,
+			'covers' => $covers,
+		) + $words[ $api ];
+	}
 	$given = apply_filters( 'salt_consent_panel', $panel );
-	return is_array( $given ) && isset( $given['labels'], $given['categories'] ) ? $given : $panel;
+	if ( ! is_array( $given ) || ! isset( $given['labels'], $given['categories'] ) ) {
+		return $panel;
+	}
+	// The words are the site's; the boxes stay the theme's.
+	$by_id = array_column( (array) $given['categories'], null, 'id' );
+	foreach ( $panel['categories'] as $i => $box ) {
+		$site                       = (array) ( $by_id[ $box['id'] ] ?? array() );
+		$panel['categories'][ $i ]['label']       = (string) ( $site['label'] ?? $box['label'] );
+		$panel['categories'][ $i ]['description'] = (string) ( $site['description'] ?? $box['description'] );
+	}
+	$panel['labels'] = array_map( 'strval', array_merge( $panel['labels'], (array) $given['labels'] ) );
+	return $panel;
 }
 
 /**
@@ -830,49 +841,10 @@ function salt_chrome_script_data(): array {
 		$panel           = salt_consent_panel();
 		$data['consent'] = array(
 			'labels'     => array_map( 'strval', $panel['labels'] ),
-			'categories' => salt_consent_choices( $panel['categories'] ),
+			'categories' => $panel['categories'],
 		);
 	}
 	return $data;
-}
-
-/**
- * The consent panel's boxes as script draws them: the same boxes and ids
- * as the server form (one per category the contract names), each with the
- * WP Consent API category it writes. Categories that share one (embeds
- * and marketing are both marketing) carry a note naming the others: the
- * script keeps them ticked together, and Save allows the shared category
- * only when all of them are ticked, so the panel and the record always
- * agree.
- *
- * @param array<int,array{id:string,label:string,description:string}> $categories salt_consent_panel() categories.
- * @return array<int,array{id:string,label:string,description:string,api:string,note:string}>
- */
-function salt_consent_choices( array $categories ): array {
-	$choices = array();
-	foreach ( $categories as $category ) {
-		$id        = sanitize_key( (string) $category['id'] );
-		$choices[] = array(
-			'id'          => $id,
-			'label'       => (string) $category['label'],
-			'description' => (string) $category['description'],
-			'api'         => function_exists( 'salt_consent_api_category' ) ? salt_consent_api_category( $id ) : $id,
-			'note'        => '',
-		);
-	}
-	foreach ( $choices as $i => $choice ) {
-		$others = array();
-		foreach ( $choices as $j => $other ) {
-			if ( $i !== $j && $other['api'] === $choice['api'] ) {
-				$others[] = $other['label'];
-			}
-		}
-		if ( array() !== $others ) {
-			/* translators: %s: the other consent categories (for example "Marketing") that share this one's setting. */
-			$choices[ $i ]['note'] = sprintf( __( 'Shares one setting with %s: ticking one ticks both.', 'salt' ), implode( ', ', $others ) );
-		}
-	}
-	return $choices;
 }
 
 /**

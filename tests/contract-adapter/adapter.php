@@ -904,25 +904,23 @@ function salt_adapter_seed_chrome( array $input, array $ids ): void {
 		);
 	}
 
-	// Consent, founder ruling C: the footer draws its consent control and
-	// panel only when a cookie plugin is wired to the WP Consent API. The
-	// contract's site-footer.json makes the consent block non-optional, and
-	// every footer fixture draws the control, though only consent-panel-open
-	// carries site.consent. So every footer case is a site with a plugin:
-	// the WP Consent API is seeded as present for all of them. The contract
-	// gap (consent optional, and a no-plugin fixture) is with the founder;
-	// the no-plugin path is proved by the unit suite (ChromeMarkupTest).
-	if ( 'site-footer' === ( $input['chrome'] ?? '' ) ) {
-		require_once SALT_ADAPTER_THEME . '/tests/shims/consent-api.php';
-		$GLOBALS['salt_test_wp_consent_type'] = 'optin';
-	}
+	// Consent (ruling C, SC-030): a case's site.consent says a WP Consent
+	// API plugin is wired, and its categories' covers are the Salt
+	// categories the site's integrations use. The theme groups them into
+	// boxes itself (salt_consent_groups()); the case gives only the words.
+	// No site.consent: no plugin, so nothing is drawn.
 	add_filter( 'salt_consent_panel_open', static fn() => ! empty( $state['consentPanelOpen'] ) );
 	if ( isset( $site['consent'] ) ) {
+		require_once SALT_ADAPTER_THEME . '/tests/shims/consent-api.php';
+		$GLOBALS['salt_test_wp_consent_type'] = 'optin';
+		$boxes                                = (array) ( $site['consent']['categories'] ?? array() );
+		$in_use                               = array_merge( array(), ...array_map( static fn( $box ): array => (array) ( $box['covers'] ?? array() ), array_values( $boxes ) ) );
+		add_filter( 'salt_consent_categories_in_use', static fn() => $in_use );
 		add_filter(
 			'salt_consent_panel',
 			static fn() => array(
 				'labels'     => (array) ( $site['consent']['labels'] ?? array() ),
-				'categories' => (array) ( $site['consent']['categories'] ?? array() ),
+				'categories' => $boxes,
 			)
 		);
 	}
