@@ -1,6 +1,6 @@
 <?php
 /**
- * Salt_Nav_Walker — the core-menu walker for the salt chrome (spec §12a).
+ * Salt_Nav_Walker — reads a core menu for the salt chrome (spec §12a).
  *
  * @package Salt
  */
@@ -10,164 +10,102 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Nav menu walker: one submenu level max, disclosure-pattern submenus,
- * aria-current on the current item (§12a).
+ * Nav menu walker that draws nothing: it reads the menu wp_nav_menu() hands
+ * it into a tree the chrome draws as the contract's markup
+ * (salt-contract markup/site-header.json, site-footer.json), once in the
+ * bar and again in the drawer, or as the footer's columns.
  *
- * Markup contract (structural change = MAJOR bump, §4/§12):
- * - Top-level items: <li class="x-nav-item …"><a class="x-nav-link" …>.
- * - The current item's link carries aria-current="page".
- * - Submenu parents additionally render a <button type="button"
- *   class="x-nav-toggle" aria-expanded="false" aria-controls="{submenu id}"
- *   data-salt-nav-toggle> after the link, then <ul class="x-nav-submenu"
- *   id="x-nav-submenu-{item id}"> with the depth-1 items.
- * - DEPTH CAP: exactly one submenu level. start_lvl()/end_lvl() at depth 1+
- *   emit nothing (logged once), and items deeper than depth 1 are dropped —
- *   wp_nav_menu callers should also pass 'depth' => 2.
+ * wp_nav_menu() still does what it owns: finding the location's menu,
+ * marking the current item (_wp_menu_item_classes_by_context()) and calling
+ * the fallback when no menu is assigned. Call it with 'echo' => false and
+ * this walker, then read tree().
  *
- * NO-JS BEHAVIOUR (deliberate — the drawer/disclosure JS is a later slice):
- * the submenu is hidden with the Tailwind 'hidden' utility and revealed
- * purely via CSS :focus-within — the parent <li> carries the arbitrary
- * variant [&:focus-within>.x-nav-submenu]:block, so keyboard users tabbing
- * onto the parent link, the toggle button, or any submenu link see the
- * submenu with zero JavaScript. The button is inert until the future JS
- * (keying off data-salt-nav-toggle) wires click handling and maintains
- * aria-expanded; the server-rendered aria-expanded="false" is the correct
- * pre-enhancement state.
+ * The tree is one submenu level deep (§12a): items nested deeper are dropped
+ * and logged once. Each node is
+ * { label, href (null without a usable URL), current, target, children }.
  */
 class Salt_Nav_Walker extends Walker_Nav_Menu {
 
 	/**
-	 * The submenu-parent item ID (start_el stashes it for start_lvl's
-	 * submenu id — WP calls start_lvl immediately after the parent's
-	 * start_el).
+	 * The menu read by the last walk().
 	 *
-	 * @var int
+	 * @var array<int,array{label:string,href:?string,current:bool,target:string,children:array<int,array<string,mixed>>}>
 	 */
-	private $salt_parent_id = 0;
+	private $salt_tree = array();
 
 	/**
-	 * Whether the depth cap has been logged this request.
+	 * Read the menu into the tree; draws nothing.
 	 *
-	 * @var bool
+	 * @param array<int,object> $elements  Menu items, in menu order.
+	 * @param int               $max_depth Unused: the depth is always one submenu level.
+	 * @param mixed             ...$args   wp_nav_menu() args.
+	 * @return string Always ''.
 	 */
-	private $salt_depth_logged = false;
+	public function walk( $elements, $max_depth, ...$args ) {
+		unset( $max_depth, $args );
+		$this->salt_tree = array();
 
-	/**
-	 * Open a submenu <ul> — first level only (§12a depth cap).
-	 *
-	 * @param string        $output Passed by reference; appended to.
-	 * @param int           $depth  Menu depth (0 = the first submenu).
-	 * @param stdClass|null $args   wp_nav_menu() args object.
-	 * @return void
-	 */
-	public function start_lvl( &$output, $depth = 0, $args = null ) {
-		if ( $depth >= 1 ) {
-			if ( ! $this->salt_depth_logged ) {
+		$top = array();
+		foreach ( (array) $elements as $item ) {
+			$id     = (int) ( $item->db_id ?? $item->ID ?? 0 );
+			$parent = (int) ( $item->menu_item_parent ?? 0 );
+			if ( 0 === $parent ) {
+				$top[ $id ] = array_merge( self::salt_node( $item ), array( 'children' => array() ) );
+			} elseif ( isset( $top[ $parent ] ) ) {
+				$top[ $parent ]['children'][] = self::salt_node( $item );
+			} else {
 				salt_log( 'Salt_Nav_Walker: menu nests deeper than one submenu level — deeper levels are not rendered (§12a).' );
-				$this->salt_depth_logged = true;
 			}
-			return;
 		}
 
-		$output .= '<ul id="' . esc_attr( 'x-nav-submenu-' . $this->salt_parent_id ) . '" class="x-nav-submenu hidden absolute left-0 top-full z-50 min-w-48 rounded-md border border-border bg-surface p-2 shadow-lg">';
+		$this->salt_tree = array_values( $top );
+		return '';
 	}
 
 	/**
-	 * Close a submenu <ul> — mirrors the start_lvl() depth cap.
+	 * The menu read by the last walk().
 	 *
-	 * @param string        $output Passed by reference; appended to.
-	 * @param int           $depth  Menu depth.
-	 * @param stdClass|null $args   wp_nav_menu() args object.
-	 * @return void
+	 * @return array<int,array{label:string,href:?string,current:bool,target:string,children:array<int,array<string,mixed>>}>
 	 */
-	public function end_lvl( &$output, $depth = 0, $args = null ) {
-		if ( $depth >= 1 ) {
-			return;
-		}
-
-		$output .= '</ul>';
+	public function tree(): array {
+		return $this->salt_tree;
 	}
 
 	/**
-	 * Render a menu item's opening markup.
+	 * One menu item as a node. A URL that is empty or only '#' is no URL:
+	 * the contract draws such an item's label as a span.
 	 *
-	 * @param string        $output            Passed by reference; appended to.
-	 * @param WP_Post       $data_object       Menu item (decorated WP_Post).
-	 * @param int           $depth             Item depth (0 = top level).
-	 * @param stdClass|null $args              wp_nav_menu() args object.
-	 * @param int           $current_object_id Current object ID (unused).
-	 * @return void
+	 * @param object $item Menu item (decorated WP_Post).
+	 * @return array{label:string,href:?string,current:bool,target:string}
 	 */
-	public function start_el( &$output, $data_object, $depth = 0, $args = null, $current_object_id = 0 ) {
-		if ( $depth > 1 ) {
-			return; // Items beyond the one-submenu cap are dropped (start_lvl logged it).
-		}
+	private static function salt_node( $item ): array {
+		$url = trim( (string) ( $item->url ?? '' ) );
+		return array(
+			'label'   => (string) ( $item->title ?? '' ),
+			'href'    => '' === $url || '#' === $url ? null : $url,
+			'current' => ! empty( $item->current ),
+			'target'  => '_blank' === (string) ( $item->target ?? '' ) ? '_blank' : '',
+		);
+	}
 
-		$item    = $data_object;
-		$item_id = (int) ( $item->ID ?? 0 );
-		$title   = (string) ( $item->title ?? '' );
-		$url     = (string) ( $item->url ?? '' );
-		$current = ! empty( $item->current );
-		$target  = (string) ( $item->target ?? '' );
-
-		// wp_nav_menu() adds 'menu-item-has-children'; Walker::display_element
-		// sets $this->has_children — accept either (direct unit calls use one).
-		$item_classes = array_filter( array_map( 'strval', (array) ( $item->classes ?? array() ) ) );
-		$has_children = ! empty( $this->has_children ) || in_array( 'menu-item-has-children', $item_classes, true );
-		$is_parent    = $has_children && 0 === $depth;
-
-		if ( $is_parent ) {
-			$this->salt_parent_id = $item_id;
-		}
-
-		$li_classes = salt_classnames(
-			array_merge(
-				array( 0 === $depth ? 'x-nav-item' : 'x-nav-subitem' ),
-				$item_classes,
-				// No-JS disclosure: reveal the submenu on focus-within (see class docblock).
-				$is_parent ? array( 'relative', '[&:focus-within>.x-nav-submenu]:block' ) : array()
+	/**
+	 * Read a location's menu: wp_nav_menu() with this walker, nothing printed.
+	 *
+	 * @param string $location Theme location (primary, footer).
+	 * @return array<int,array<string,mixed>> The tree; empty when no menu is assigned (the fallback logs it).
+	 */
+	public static function salt_menu( string $location ): array {
+		$walker = new self();
+		wp_nav_menu(
+			array(
+				'theme_location' => $location,
+				'container'      => false,
+				'depth'          => 2,
+				'echo'           => false,
+				'walker'         => $walker,
+				'fallback_cb'    => 'salt_nav_menu_fallback',
 			)
 		);
-
-		$link_classes = 0 === $depth
-			? 'x-nav-link inline-flex items-center py-2 text-ink hover:text-brand'
-			: 'x-nav-sublink block rounded px-3 py-2 text-ink hover:bg-surface-alt';
-
-		$atts  = ' class="' . esc_attr( $link_classes ) . '" href="' . esc_url( $url ) . '"';
-		$atts .= $current ? ' aria-current="page"' : '';
-		$atts .= '_blank' === $target ? ' target="_blank" rel="noopener noreferrer"' : '';
-
-		$output .= '<li class="' . esc_attr( $li_classes ) . '">';
-		$output .= '<a' . $atts . '>' . esc_html( $title ) . '</a>';
-
-		if ( $is_parent ) {
-			$output .= '<button type="button" class="x-nav-toggle inline-flex items-center p-2" aria-expanded="false" aria-controls="' . esc_attr( 'x-nav-submenu-' . $item_id ) . '" data-salt-nav-toggle>'
-				. '<span class="visually-hidden">' . esc_html(
-					sprintf(
-						/* translators: %s: parent menu item title. */
-						__( 'Show submenu for %s', 'salt' ),
-						$title
-					)
-				) . '</span>'
-				. '<span aria-hidden="true">&#9662;</span>'
-				. '</button>';
-		}
-	}
-
-	/**
-	 * Render a menu item's closing markup.
-	 *
-	 * @param string        $output      Passed by reference; appended to.
-	 * @param WP_Post       $data_object Menu item (unused).
-	 * @param int           $depth       Item depth.
-	 * @param stdClass|null $args        wp_nav_menu() args object.
-	 * @return void
-	 */
-	public function end_el( &$output, $data_object, $depth = 0, $args = null ) {
-		if ( $depth > 1 ) {
-			return;
-		}
-
-		$output .= '</li>';
+		return $walker->tree();
 	}
 }

@@ -214,6 +214,128 @@ final class PagePlanTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------
+	// A row that draws nothing never takes an editor's anchor.
+	// -----------------------------------------------------------------
+
+	/**
+	 * A minimal hero row.
+	 *
+	 * @param string $heading Heading ('' for none, which draws nothing).
+	 * @param string $anchor  anchorId.
+	 * @return array{layout:string,fields:array<string,mixed>}
+	 */
+	private static function hero( string $heading, string $anchor ): array {
+		return array(
+			'layout' => 'hero',
+			'fields' => array(
+				'variant'  => 'minimal',
+				'heading'  => $heading,
+				'settings' => array( 'anchorId' => $anchor ),
+			),
+		);
+	}
+
+	public function test_an_anchored_row_that_draws_nothing_leaves_its_anchor_to_the_next(): void {
+		$html = $this->render_page(
+			array(
+				self::rich_text( '', '', 'foo' ),
+				self::rich_text( 'Drawn', '<p>Words.</p>', 'foo' ),
+				self::hero( 'Hero', 'foo' ),
+			)
+		);
+
+		$this->assertMatchesRegularExpression( '/id="foo"[^>]*>.*Drawn.*id="foo-2"[^>]*>.*Hero/s', $html );
+		$this->assertStringNotContainsString( 'foo-3', $html );
+		$this->assertStringNotContainsString( 'salt-plan-', $html, 'No placeholder reaches the page.' );
+	}
+
+	public function test_an_empty_hero_and_a_missing_layout_take_no_anchor(): void {
+		$this->assertStringContainsString( 'id="about"', $this->render_page( array( self::hero( '', 'about' ), self::hero( 'About', 'about' ) ) ) );
+
+		salt_render_state_reset();
+		$html = $this->render_page(
+			array(
+				array(
+					'layout' => 'no-such-layout',
+					'fields' => array( 'settings' => array( 'anchorId' => 'prices' ) ),
+				),
+				self::hero( 'Prices', 'prices' ),
+			)
+		);
+		$this->assertStringContainsString( 'id="prices"', $html );
+		$this->assertStringNotContainsString( 'prices-2', $html );
+	}
+
+	public function test_a_row_hidden_past_page_one_takes_no_anchor(): void {
+		$GLOBALS['salt_test_query_vars']['paged']      = 2;
+		$hidden                                        = self::rich_text( 'First page only', '', 'foo' );
+		$hidden['fields']['settings']['firstPageOnly'] = true;
+
+		$html = $this->render_page( array( $hidden, self::rich_text( 'Every page', '', 'foo' ) ) );
+
+		$this->assertStringNotContainsString( 'First page only', $html );
+		$this->assertStringContainsString( 'id="foo" aria-labelledby="foo__heading"', $html, 'A hidden row is a row that draws nothing.' );
+	}
+
+	public function test_a_minted_id_holds_every_editors_anchor_drawn_or_not(): void {
+		$html = $this->render_page(
+			array(
+				self::rich_text( '', '', 'rich-text' ),
+				self::rich_text( 'Unanchored', '' ),
+			)
+		);
+		$this->assertStringContainsString( 'id="rich-text-2" aria-labelledby="rich-text-2__heading"', $html, 'The minted id keeps clear of the empty row\'s anchor, so it does not move when that row fills.' );
+
+		salt_render_state_reset();
+		$html = $this->render_page(
+			array(
+				self::rich_text( 'Filled', '', 'rich-text' ),
+				self::rich_text( 'Unanchored', '' ),
+			)
+		);
+		$this->assertMatchesRegularExpression( '/id="rich-text"[^>]*>.*Filled.*id="rich-text-2"[^>]*>.*Unanchored/s', $html );
+	}
+
+	public function test_an_anchor_of_zero_is_registered(): void {
+		$html = $this->render_page( array( self::rich_text( 'Zero', '', '0' ) ) );
+
+		$this->assertStringContainsString( 'id="0" aria-labelledby="0__heading"', $html );
+		$this->assertSame( '0-2', salt_anchor_id( '0' ), 'A later id never takes it.' );
+	}
+
+	public function test_an_override_of_salt_render_section_that_drops_the_id_keeps_the_plan(): void {
+		$script = (string) tempnam( sys_get_temp_dir(), 'salt-override-' );
+		file_put_contents(
+			$script,
+			<<<'PHP'
+<?php
+// A child theme's override, defined before the parent loads (ARCH07): it
+// rebuilds the loop context and drops `id`.
+function salt_render_section( string $layout, array $context = array() ): void {
+	$located = locate_template( 'template-parts/sections/' . $layout . '.php' );
+	if ( '' !== $located ) {
+		salt_render_resolved_section( $layout, $located, array( 'index' => (int) ( $context['index'] ?? 0 ), 'is_primary' => ! empty( $context['is_primary'] ) ) );
+	}
+}
+require $argv[1] . '/tests/bootstrap.php';
+require_once $argv[1] . '/tests/shims/acf.php';
+salt_test_seed_fc( json_decode( $argv[2], true ) );
+get_template_part( 'template-parts/flexible-content' );
+PHP
+		);
+		$rows = array(
+			self::rich_text( 'One', '' ),
+			self::rich_text( 'Two', '', 'rich-text' ),
+			self::rich_text( 'Three', '' ),
+		);
+		// A fresh PHP process: a pluggable function can be overridden only before the theme loads.
+		$html = (string) shell_exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( $script ) . ' ' . escapeshellarg( dirname( __DIR__, 2 ) ) . ' ' . escapeshellarg( (string) json_encode( $rows ) ) . ' 2>&1' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_shell_exec -- Test only: the override must be defined before the theme loads.
+		unlink( $script );
+
+		$this->assertMatchesRegularExpression( '/id="rich-text-2"[^>]*>.*One.*id="rich-text"[^>]*>.*Two.*id="rich-text-3"[^>]*>.*Three/s', $html, $html );
+	}
+
+	// -----------------------------------------------------------------
 	// The priority image (SC-026).
 	// -----------------------------------------------------------------
 
@@ -311,5 +433,16 @@ final class PagePlanTest extends SaltTestCase {
 		salt_render_state_reset();
 		$html = $this->render_post( array( $hero ) );
 		$this->assertSame( 1, substr_count( $html, 'fetchpriority="high"' ), 'With no featured image, the first band with an image takes it.' );
+	}
+
+	public function test_a_posts_empty_anchored_band_takes_no_anchor(): void {
+		$html = $this->render_post(
+			array(
+				self::rich_text( '', '', 'foo' ),
+				self::rich_text( 'Band', '', 'foo' ),
+			)
+		);
+
+		$this->assertStringContainsString( 'id="foo" aria-labelledby="foo__heading"', $html );
 	}
 }

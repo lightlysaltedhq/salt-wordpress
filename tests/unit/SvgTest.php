@@ -138,7 +138,7 @@ final class SvgTest extends SaltTestCase {
 	}
 
 	public function test_full_icon_set_is_bundled(): void {
-		$expected = array( 'arrow-right', 'bluesky', 'check', 'chevron-down', 'clock', 'close', 'facebook', 'github', 'globe', 'instagram', 'link', 'linkedin', 'mail', 'map-pin', 'menu', 'phone', 'pinterest', 'reddit', 'star', 'star-filled', 'tiktok', 'whatsapp', 'x', 'youtube' );
+		$expected = array( 'arrow-right', 'bluesky', 'check', 'chevron-down', 'clock', 'close', 'facebook', 'github', 'globe', 'instagram', 'link', 'linkedin', 'mail', 'map-pin', 'menu', 'moon', 'phone', 'pinterest', 'reddit', 'star', 'star-filled', 'sun', 'tiktok', 'whatsapp', 'x', 'youtube' );
 		$found    = array_keys( self::provide_bundled_icons() );
 		sort( $found );
 

@@ -1,7 +1,8 @@
 <?php
 /**
- * Features section snapshots (FLEET01) — 3-column grid with links (the
- * canonical variant) + single-item static.
+ * Features section snapshots (FLEET01) — 3-column grid with eyebrow, intro,
+ * icons and links (the canonical variant, after the contract's
+ * many-items-linked fixture) + a single item with no link.
  *
  * @package Salt\Tests
  */
@@ -49,6 +50,7 @@ final class FeaturesSectionSnapshotTest extends SaltSnapshotTestCase {
 				array(
 					'eyebrow' => 'Benefits',
 					'heading' => 'Why choose us',
+					'intro'   => 'Three things we do well, and do for a fixed price.',
 					'columns' => '3',
 					'items'   => array(
 						array(

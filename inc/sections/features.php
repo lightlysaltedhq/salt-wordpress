@@ -1,14 +1,17 @@
 <?php
 /**
- * Resolver: Feature / Benefits Grid (spec §10 #5) — the logic half of the
- * section; the view is template-parts/sections/features.php.
+ * Resolver: Feature / Benefits Grid (salt-contract features, rc.8; spec
+ * §10 #5) — the logic half of the section; the view is
+ * template-parts/sections/features.php. Drawn in the contract's shared
+ * wrapper (salt_section(), EP-72 M4).
  *
- * Fields (contract/fields/features.json): eyebrow, heading, intro (stored,
- * not drawn yet — M4), columns (2|3|4), items [icon (the site's icon
- * select), title, text (rich text), url (an address)].
- * States (COMPL02): 0 valid items => null (renders NOTHING); 1 item =>
- * valid static single-card grid; N => full grid. Items missing a title are
- * skipped and logged — never a blank card. No schema, no JS.
+ * Fields (contract/fields/features.json): eyebrow, heading, intro,
+ * columns (2|3|4), items [icon (the site's icon select), title, text (rich
+ * text), url (an address)] and the shared settings.
+ * States (COMPL02, markup zeroState): eyebrow, heading, intro and items
+ * all empty => null (renders NOTHING). Items missing a title are skipped
+ * and logged — never a blank card; with none left the grid is not drawn.
+ * No schema, no JS.
  *
  * @package Salt
  */
@@ -23,28 +26,24 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Props (contract view-props/features.json):
  *   eyebrow  string|null  Contract `eyebrow`. Null when blank.
  *   heading  string|null  Contract `heading`. Null when blank.
+ *   intro    string|null  Contract `intro`. Null when blank.
  *   columns  string       Contract `columns`: '2'|'3'|'4' (default '3').
  *   items    array<int, array{icon: string|null, title: string, text: string|null, href: string|null}>
- *                         Contract `items` (feature), never empty: `icon`
+ *                         Contract `items` (feature), possibly empty: `icon`
  *                         (an icon name), `title`, `text` (rich text:
- *                         sanitised HTML, null when blank) and `href` (the
- *                         item's url, null when none).
- *   The contract's `intro` is not supplied yet (M4).
+ *                         sanitised HTML, null when it has no words) and
+ *                         `href` (the item's url, null when none).
+ *   arrow    string|null  The site's arrow (salt_contract_arrow()).
  *
  * @param array<string,mixed> $context Loop context: index, is_primary.
  * @return array{section: array<string,mixed>, props: array<string,mixed>}|null Null = 0-state.
  */
 function salt_resolve_section_features( array $context ): ?array {
-	$sub = static function ( string $field ): string {
-		if ( ! function_exists( 'get_sub_field' ) ) {
-			return '';
-		}
-		$value = get_sub_field( $field );
-		return is_string( $value ) ? $value : '';
-	};
+	$sub = static fn( string $field ): string => function_exists( 'get_sub_field' ) && is_string( get_sub_field( $field ) ) ? (string) get_sub_field( $field ) : '';
 
-	$eyebrow = $sub( 'eyebrow' );
-	$heading = $sub( 'heading' );
+	$eyebrow = salt_nullable_text( $sub( 'eyebrow' ) );
+	$heading = salt_nullable_text( $sub( 'heading' ) );
+	$intro   = salt_nullable_text( $sub( 'intro' ) );
 
 	$columns = $sub( 'columns' );
 	if ( ! in_array( $columns, array( '2', '3', '4' ), true ) ) {
@@ -70,33 +69,35 @@ function salt_resolve_section_features( array $context ): ?array {
 			continue;
 		}
 
-		$href = is_string( $row['url'] ?? null ) ? trim( $row['url'] ) : '';
-		$text = is_string( $row['text'] ?? null ) ? $row['text'] : '';
+		// An address esc_url() would empty (a disallowed scheme) is no link.
+		$href = is_string( $row['url'] ?? null ) ? esc_url_raw( trim( $row['url'] ) ) : '';
+		$text = salt_sanitize_html( is_string( $row['text'] ?? null ) ? $row['text'] : '', salt_field_allowed( 'field_salt_features_items_text' ) );
 
 		$items[] = array(
 			'icon'  => salt_nullable_text( is_string( $row['icon'] ?? null ) ? trim( $row['icon'] ) : '' ),
 			'title' => $title,
-			// Rich text (contract `text`): sanitised HTML; null when blank.
-			'text'  => '' !== trim( $text ) ? salt_sanitize_html( $text, salt_field_allowed( 'field_salt_features_items_text' ) ) : null,
+			'text'  => salt_rich_text_has_words( $text ) ? $text : null,
 			'href'  => '' !== $href ? $href : null,
 		);
 	}
 
-	if ( array() === $items ) {
+	if ( null === $eyebrow && null === $heading && null === $intro && array() === $items ) {
 		return null; // 0-state: skip the section entirely (COMPL02).
 	}
 
 	return array(
 		'section' => array_merge(
-			salt_section_wrapper_args( 'features', $context ),
-			// A section with no heading must not claim the page H1 (A11Y01).
-			array( 'has_heading' => '' !== trim( $heading ) )
+			salt_section_contract_args( 'features', $context ),
+			// A section with no heading is a div and must not claim the page H1 (A11Y01).
+			array( 'has_heading' => null !== $heading )
 		),
 		'props'   => array(
-			'eyebrow' => salt_nullable_text( $eyebrow ),
-			'heading' => salt_nullable_text( $heading ),
+			'eyebrow' => $eyebrow,
+			'heading' => $heading,
+			'intro'   => $intro,
 			'columns' => $columns,
 			'items'   => $items,
+			'arrow'   => salt_contract_arrow(),
 		),
 	);
 }

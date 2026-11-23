@@ -362,7 +362,8 @@ function salt_post_reading_text( int $post_id ): string {
  * section's resolver and view, as on a page.
  *
  * The bands are planned as a page's are (template-parts/flexible-content.php):
- *  - every band's id is settled before any draws, editors' anchors first
+ *  - every minted id is settled before any band draws, holding every
+ *    editor's anchor, and an anchored band settles its own as it draws
  *    (salt_section_plan_rows(), section#anchors); a prose row takes no id
  *    but counts in a minted id's number, as a row that draws nothing does;
  *  - a band's index counts the rows drawn before it, prose included, as
@@ -422,6 +423,7 @@ function salt_the_post_layout( int $post_id ): void {
 			}
 			continue;
 		}
+		salt_render_state( 'set', 'plan_id', $ids[ $row ] ?? '' );
 		salt_render_section(
 			salt_section_slug_for_layout( (string) get_row_layout() ),
 			array(
@@ -430,5 +432,6 @@ function salt_the_post_layout( int $post_id ): void {
 				'id'         => $ids[ $row ] ?? '',
 			)
 		);
+		salt_render_state( 'set', 'plan_id', '' );
 	}
 }

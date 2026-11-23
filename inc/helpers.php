@@ -95,6 +95,46 @@ function salt_rating_fill( float $rating ): string {
 }
 
 /**
+ * A same-site URL as the contract's markup draws it: root-relative.
+ *
+ * The contract's fixtures write links to the site itself without scheme or
+ * host ("/journal/"), so a URL on the home URL's host (any scheme, or
+ * protocol-relative) keeps only its path, query and fragment. Everything
+ * else (another host, mailto:, tel:, an anchor or an already relative URL)
+ * is returned unchanged. Use it for links in contract markup only; feeds,
+ * canonical URLs, schema and e-mail keep absolute URLs.
+ *
+ * @param string $url URL to draw.
+ * @return string
+ */
+function salt_contract_url( string $url ): string {
+	$parts = wp_parse_url( $url );
+	if ( ! is_array( $parts ) || ! isset( $parts['host'] ) ) {
+		return $url;
+	}
+	if ( isset( $parts['scheme'] ) && ! in_array( strtolower( $parts['scheme'] ), array( 'http', 'https' ), true ) ) {
+		return $url;
+	}
+
+	$home = wp_parse_url( home_url( '/' ) );
+	if ( ! is_array( $home ) || ! isset( $home['host'] ) ) {
+		return $url;
+	}
+	if ( strtolower( $parts['host'] ) !== strtolower( $home['host'] ) || ( $parts['port'] ?? null ) !== ( $home['port'] ?? null ) ) {
+		return $url;
+	}
+
+	$relative = '/' . ltrim( $parts['path'] ?? '', '/' );
+	if ( isset( $parts['query'] ) ) {
+		$relative .= '?' . $parts['query'];
+	}
+	if ( isset( $parts['fragment'] ) ) {
+		$relative .= '#' . $parts['fragment'];
+	}
+	return $relative;
+}
+
+/**
  * Buttons from salt_contract_buttons() as the contract's button view props
  * (view-props/_shared.json button: label, href, style, newTab), the shape
  * the hero, call-to-action and media-text views and

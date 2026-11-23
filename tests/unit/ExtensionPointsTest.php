@@ -44,7 +44,7 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'data-section="call-to-action"', $html, 'Inside the parent wrapper.' );
+		$this->assertStringContainsString( 'data-track="call-to-action-1"', $html, 'Inside the parent wrapper.' );
 		$this->assertStringContainsString( '<div class="grain-cta">', $html, 'The child view drew it.' );
 		$this->assertStringContainsString( '<h1>Ready?</h1>', $html, 'From the parent resolver\'s props and plan.' );
 		$this->assertStringContainsString( 'href="https://example.test/contact/"', $html );
@@ -238,5 +238,141 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 		salt_test_use_child_theme( $empty );
 		$this->assertSame( '', $this->render( 'stats', $empty . '/template-parts/sections/stats.php' ) );
 		$this->assertSame( array(), $this->logs(), 'Drawing nothing is a 0-state, not a missing band.' );
+	}
+
+	/**
+	 * A child theme made of the grain fixture (its declaration and its
+	 * tier-logic stats.php), plus a child-only showroom-finder.php and any
+	 * other files.
+	 *
+	 * @param array<string,string> $extra Relative path => contents.
+	 * @return string Directory.
+	 */
+	private function grain_child( array $extra = array() ): string {
+		$fixture = self::fixture();
+		return $this->temp_child(
+			array_merge(
+				array(
+					'style.css'                         => (string) file_get_contents( $fixture . '/style.css' ),
+					'salt-overrides.json'               => (string) file_get_contents( $fixture . '/salt-overrides.json' ),
+					'template-parts/sections/stats.php' => (string) file_get_contents( $fixture . '/template-parts/sections/stats.php' ),
+					'template-parts/sections/showroom-finder.php' => '<?php salt_section( salt_section_wrapper_args( "showroom-finder", $args ), static function ( int $level ): void { echo "<p>Find a showroom</p>"; } );',
+				),
+				$extra
+			)
+		);
+	}
+
+	/**
+	 * A row of the given layout with heading and anchor.
+	 *
+	 * @param string $layout  Stored layout.
+	 * @param string $heading Heading.
+	 * @param string $anchor  anchorId.
+	 * @return array{layout:string,fields:array<string,mixed>}
+	 */
+	private static function row( string $layout, string $heading, string $anchor ): array {
+		return array(
+			'layout' => $layout,
+			'fields' => array(
+				'variant'  => 'minimal',
+				'heading'  => $heading,
+				'settings' => array( 'anchorId' => $anchor ),
+			),
+		);
+	}
+
+	/**
+	 * Draw the page loop over these rows.
+	 *
+	 * @param array<int,array<string,mixed>> $rows Stored rows.
+	 * @return string
+	 */
+	private function render_page( array $rows ): string {
+		salt_test_seed_fc( $rows );
+		ob_start();
+		get_template_part( 'template-parts/flexible-content' );
+		return (string) ob_get_clean();
+	}
+
+	public function test_a_childs_own_templates_keep_their_planned_anchors(): void {
+		salt_test_use_child_theme( $this->grain_child() );
+
+		$html = $this->render_page(
+			array(
+				self::row( 'hero', 'Top', 'top' ),
+				self::row( 'stats', 'Our numbers', 'numbers' ),
+				self::row( 'rich-text', 'More', 'more' ),
+				self::row( 'showroom_finder', '', 'showrooms' ),
+			)
+		);
+
+		$this->assertStringContainsString( 'grain-stats', $html, 'The child\'s stats template drew.' );
+		foreach ( array( 'top', 'numbers', 'more', 'showrooms' ) as $id ) {
+			$this->assertSame( 1, substr_count( $html, 'id="' . $id . '"' ), $id );
+			$this->assertStringNotContainsString( $id . '-2', $html );
+		}
+	}
+
+	public function test_a_child_template_in_a_post_keeps_its_anchor(): void {
+		require_once __DIR__ . '/../shims/blog.php';
+		salt_test_use_child_theme( $this->grain_child() );
+		$this->seed_posts(
+			array(
+				array(
+					'ID'         => 500,
+					'post_type'  => 'post',
+					'post_title' => 'A post',
+				),
+			)
+		);
+		salt_test_seed_fc(
+			array(
+				self::row( 'rich-text', 'Intro', 'intro' ),
+				self::row( 'stats', 'Our numbers', 'numbers' ),
+			)
+		);
+
+		ob_start();
+		salt_the_post_layout( 500 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="intro"', $html );
+		$this->assertStringContainsString( 'id="numbers"', $html );
+		$this->assertStringNotContainsString( 'numbers-2', $html );
+	}
+
+	public function test_a_child_templates_own_anchor_and_a_parent_band_share_one_registry(): void {
+		salt_test_use_child_theme(
+			$this->grain_child(
+				array( 'template-parts/sections/showroom-finder.php' => '<?php salt_section( array_merge( salt_section_wrapper_args( "showroom-finder", $args ), array( "anchor" => "foo" ) ), static function ( int $level ): void { echo "<p>Find a showroom</p>"; } );' )
+			)
+		);
+
+		$html = $this->render_page(
+			array(
+				self::row( 'rich-text', 'Parent', 'foo' ),
+				self::row( 'showroom_finder', '', '' ),
+			)
+		);
+
+		$this->assertMatchesRegularExpression( '/id="foo"[^>]*>.*Parent.*id="foo-2"[^>]*>.*Find a showroom/s', $html, 'As on f3897db: the earlier band keeps foo.' );
+	}
+
+	public function test_an_unanchored_band_never_takes_a_child_bands_anchor(): void {
+		salt_test_use_child_theme(
+			$this->grain_child(
+				array( 'template-parts/sections/showroom-finder.php' => '<?php salt_section( array_merge( salt_section_wrapper_args( "showroom-finder", $args ), array( "contract" => true, "has_heading" => false ) ), static function ( int $level ): void { echo "<p>Find a showroom</p>"; } );' )
+			)
+		);
+
+		$html = $this->render_page(
+			array(
+				self::row( 'rich-text', 'Unanchored', '' ),
+				self::row( 'showroom_finder', '', 'rich-text' ),
+			)
+		);
+
+		$this->assertMatchesRegularExpression( '/id="rich-text-2"[^>]*>.*Unanchored.*id="rich-text"[^>]*>.*Find a showroom/s', $html );
 	}
 }

@@ -1,7 +1,7 @@
 /**
  * Display preferences widget wiring (spec §14; A11Y05/06; FAIL02).
  *
- * The x-display-preferences component is server-rendered [hidden]; this
+ * The display-preferences component (.salt-display-preferences) is server-rendered [hidden]; this
  * module reveals it (no JS = no dead controls), seeds the buttons from the
  * <html> data-* attributes the pre-paint init script already applied
  * (salt_theme_init_js in inc/setup.php), and persists changes to the SAME
@@ -42,7 +42,7 @@
 	};
 
 	const init = () => {
-		const widget = document.querySelector('[data-salt-display-prefs]');
+		const widget = document.querySelector('.salt-display-preferences');
 		if (!widget) {
 			return;
 		}

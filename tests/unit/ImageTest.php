@@ -84,6 +84,83 @@ final class ImageTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------------
+	// salt_image_focal_point() (EP-72 M4 U3).
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Stored _salt_focal_point values and the focal point they give.
+	 *
+	 * @return array<string, array{0: mixed, 1: array{x: int, y: int}|null}>
+	 */
+	public static function focal_points(): array {
+		return array(
+			'whole numbers'         => array(
+				array(
+					'x' => 30,
+					'y' => 60,
+				),
+				array(
+					'x' => 30,
+					'y' => 60,
+				),
+			),
+			'numeric strings'       => array(
+				array(
+					'x' => '0',
+					'y' => '100',
+				),
+				array(
+					'x' => 0,
+					'y' => 100,
+				),
+			),
+			'clamped to 0-100'      => array(
+				array(
+					'x' => -5,
+					'y' => 150,
+				),
+				array(
+					'x' => 0,
+					'y' => 100,
+				),
+			),
+			'a fraction is invalid' => array(
+				array(
+					'x' => 30.5,
+					'y' => 60,
+				),
+				null,
+			),
+			'a boolean is invalid'  => array(
+				array(
+					'x' => true,
+					'y' => 60,
+				),
+				null,
+			),
+			'one value missing'     => array( array( 'x' => 30 ), null ),
+			'not a pair'            => array( '30% 60%', null ),
+			'nothing stored'        => array( '', null ),
+		);
+	}
+
+	/**
+	 * @param mixed                      $stored   The meta value.
+	 * @param array{x: int, y: int}|null $expected The focal point.
+	 */
+	#[DataProvider( 'focal_points' )]
+	public function test_focal_point_is_the_stored_whole_percentages_or_none( $stored, ?array $expected ): void {
+		$this->seed_attachment( 12 );
+		$GLOBALS['salt_test_meta'][12]['_salt_focal_point'] = $stored;
+		try {
+			$this->assertSame( $expected, salt_image_focal_point( 12 ) );
+			$this->assertSame( $expected, salt_image_contract( 12, '100vw' )['focalPoint'] );
+		} finally {
+			unset( $GLOBALS['salt_test_meta'][12] );
+		}
+	}
+
+	// -----------------------------------------------------------------------
 	// salt_image_data().
 	// -----------------------------------------------------------------------
 

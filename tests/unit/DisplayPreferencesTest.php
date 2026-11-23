@@ -180,9 +180,7 @@ final class DisplayPreferencesTest extends SaltTestCase {
 
 		$html = $this->render_seam();
 
-		$this->assertStringContainsString( 'x-display-preferences', $html );
-		$this->assertStringContainsString( 'hidden', $html );
-		$this->assertStringContainsString( 'data-salt-display-prefs', $html );
+		$this->assertStringContainsString( '<div class="salt-display-preferences" hidden>', $html );
 		$this->assertStringContainsString( '<details', $html );
 		$this->assertStringContainsString( '<summary', $html );
 		$this->assertStringContainsString( 'Display preferences', $html );
