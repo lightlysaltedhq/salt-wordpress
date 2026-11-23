@@ -1009,7 +1009,7 @@ try {
 			result(
 				same( seen, expect ) && saved && same( stored( work ), conflictWas ) && drawn === ( client ? 'Ashby Parish Council' : 'Ashby PC' ) && same( after.types, { client, sector } ),
 				`${ mode }: the editor offers the picker only when on, keeps the text until a record is chosen, a save rewrites nothing, and the client slot draws the ${ client ? 'record' : 'text' }`,
-				`editor ${ JSON.stringify( seen ) }; saved ${ saved }; stored ${ JSON.stringify( stored( work ) ) }; drawn \"${ drawn }\"; post types ${ JSON.stringify( after.types ) }`
+				`editor ${ JSON.stringify( seen ) }; saved ${ saved }; stored ${ JSON.stringify( stored( work ) ) }; drawn "${ drawn }"; post types ${ JSON.stringify( after.types ) }`
 			);
 			result( errors.length === 0, `no console errors in the case-study editor (${ mode })`, `${ errors.length } errors` );
 			errors.slice( 0, 10 ).forEach( info );
@@ -1071,7 +1071,7 @@ try {
 				same( stored( step2 ), { client: 'Ashby Council (edited)', clientRecord: String( ids.clientB ), sector: 'Local government', sectorRecord: String( ids.sectorA ) } ) &&
 				drawn2 === 'Ashby Estates Trust',
 			'on, the picker is searchable; clearing it shows the kept text, choosing another record keeps that text, and the slot draws the new record',
-			`chosen ${ JSON.stringify( chosen.clientRecord ) }; cleared shows ${ JSON.stringify( cleared.client ) }; search \"Estates\" offered ${ JSON.stringify( offered ) }; stored ${ JSON.stringify( stored( step2 ) ) }; drawn \"${ drawn2 }\"`
+			`chosen ${ JSON.stringify( chosen.clientRecord ) }; cleared shows ${ JSON.stringify( cleared.client ) }; search "Estates" offered ${ JSON.stringify( offered ) }; stored ${ JSON.stringify( stored( step2 ) ) }; drawn "${ drawn2 }"`
 		);
 
 		await switches( false, false );
@@ -1083,7 +1083,7 @@ try {
 		result(
 			back.client?.value === 'Ashby Council (edited)' && same( stored( step3 ), stored( step2 ) ) && ( await drawnClient( step3.url ) ) === 'Ashby Council (edited)',
 			'off again, the edited text is not overwritten by the record\'s name, the record ID is kept, and the slot draws the text',
-			`opened with \"${ back.client?.value }\"; stored ${ JSON.stringify( stored( step3 ) ) }`
+			`opened with "${ back.client?.value }"; stored ${ JSON.stringify( stored( step3 ) ) }`
 		);
 
 		// A legacy case study (text only) under both switches, and an ID that is no post.
