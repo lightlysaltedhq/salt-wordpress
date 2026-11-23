@@ -186,6 +186,15 @@ final class ContactEndpointTest extends SaltTestCase {
 	}
 
 	#[DataProvider( 'paths' )]
+	public function test_an_array_honeypot_is_treated_as_bot( string $path ): void {
+		$payload            = $this->payload_for( $path );
+		$payload['website'] = array( 'spam' );
+
+		$this->assertTrue( salt_contact_handle( $payload, $path, self::NOW )['ok'], 'Bots must see success (no oracle).' );
+		$this->assertTrue( $this->nothing_sent_or_stored() );
+	}
+
+	#[DataProvider( 'paths' )]
 	public function test_missing_honeypot_field_is_treated_as_bot( string $path ): void {
 		$payload = $this->payload_for( $path );
 		unset( $payload['website'] );
@@ -232,7 +241,7 @@ final class ContactEndpointTest extends SaltTestCase {
 		$first = salt_contact_rest_credentials();
 		$this->assertSame( 200, $first->get_status() );
 		$this->assertSame( 3, count( explode( '.', $first->get_data()['formToken'] ) ), 'A form token: time, signature, nonce.' );
-		$this->assertStringContainsString( 'no-store', $first->get_headers()['Cache-Control'] );
+		$this->assertSame( wp_get_nocache_headers(), $first->get_headers(), 'WordPress\'s whole no-cache set.' );
 
 		for ( $i = 1; $i < 20; $i++ ) {
 			salt_contact_rest_credentials();
@@ -274,6 +283,7 @@ final class ContactEndpointTest extends SaltTestCase {
 		$response = salt_contact_rest_send( $request );
 
 		$this->assertStringContainsString( 'no-store', $response->get_headers()['Cache-Control'] );
+		$this->assertSame( wp_get_nocache_headers(), $response->get_headers(), 'WordPress\'s whole no-cache set.' );
 	}
 
 	public function test_captcha_required_on_rest_path_when_provider_configured(): void {
@@ -301,6 +311,37 @@ final class ContactEndpointTest extends SaltTestCase {
 		$payload                                  = $this->valid_payload();
 		$payload['cf-turnstile-response']         = 'token-abc';
 		$this->assertTrue( salt_contact_handle( $payload, 'rest', self::NOW )['ok'] );
+	}
+
+	public function test_with_a_provider_the_page_path_takes_its_token_without_a_challenge(): void {
+		$GLOBALS['salt_test_fields']['option']['captcha_provider']           = 'turnstile';
+		$GLOBALS['salt_test_fields']['option']['captcha_turnstile_site_key'] = '1x0000';
+		if ( ! defined( 'SALT_TURNSTILE_SECRET' ) ) {
+			define( 'SALT_TURNSTILE_SECRET', 'test-secret' );
+		}
+		$payload                          = $this->valid_payload(); // A scripted visitor's native fallback: no challenge.
+		$payload['cf-turnstile-response'] = 'token-abc';
+
+		$GLOBALS['salt_test_http']['responses'][] = array(
+			'code' => 200,
+			'body' => wp_json_encode( array( 'success' => false ) ),
+		);
+		$this->assertFalse( salt_contact_handle( $payload, 'page', self::NOW )['ok'], 'A rejected provider token fails closed.' );
+		$this->assertTrue( $this->nothing_sent_or_stored() );
+
+		$GLOBALS['salt_test_http']['responses'][] = array(
+			'code' => 200,
+			'body' => wp_json_encode(
+				array(
+					'success'  => true,
+					'hostname' => 'example.test',
+				)
+			),
+		);
+		$this->assertTrue( salt_contact_handle( $payload, 'page', self::NOW )['ok'] );
+
+		unset( $payload['cf-turnstile-response'] );
+		$this->assertSame( 400, salt_contact_handle( $payload, 'page', self::NOW )['status'], 'Neither challenge nor provider token: refused.' );
 	}
 
 	public function test_the_page_path_checks_the_arithmetic_challenge(): void {
@@ -466,6 +507,7 @@ final class ContactEndpointTest extends SaltTestCase {
 	public function test_return_to_is_a_same_site_path_or_nothing(): void {
 		$this->assertSame( '/contact/', salt_contact_return_to( '/contact/' ) );
 		$this->assertSame( '/contact/?page_id=5', salt_contact_return_to( 'https://example.test/contact/?page_id=5' ) );
+		$this->assertSame( '/?page_id=5', salt_contact_return_to( '/?utm_source=x&page_id=5&fbclid=abc&salt-contact=ok' ), 'Only WordPress\'s public query vars stay.' );
 		foreach ( array( 'https://evil.example/x', '//evil.example/x', '/\\evil.example', 'javascript:alert(1)', "/a\r\nLocation: x", 'contact' ) as $raw ) {
 			$this->assertSame( '', salt_contact_return_to( $raw ), $raw );
 		}
@@ -489,6 +531,8 @@ final class ContactEndpointTest extends SaltTestCase {
 		$_GET['salt-contact-send'] = 'enquire-self';
 		$_POST                     = $this->valid_payload();
 		unset( $_POST['formToken'] ); // A no-JS visitor's first send.
+		salt_contact_self_post_aside( true, (object) array( 'public_query_vars' => array( 'name' ) ) );
+		salt_contact_self_post_restore();
 
 		salt_contact_self_post();
 
@@ -501,6 +545,75 @@ final class ContactEndpointTest extends SaltTestCase {
 		$this->assertMatchesRegularExpression( '/^[0-9a-f]{32}$/', $state['challenge']['token'] );
 		$this->assertCount( 3, explode( '.', $state['formToken'] ) );
 		$this->assertTrue( $this->nothing_sent_or_stored() );
+	}
+
+	public function test_a_self_post_keeps_its_fields_out_of_the_parsed_query(): void {
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['salt-contact-send'] = 'contact';
+		$_POST                     = array(
+			'name'    => 'Ada Lovelace',
+			'page_id' => '99',
+			'message' => 'Hello',
+		);
+		$wp                        = (object) array( 'public_query_vars' => array( 'name', 'pagename', 'page_id' ) );
+
+		$this->assertTrue( salt_contact_self_post_aside( true, $wp ) );
+		$this->assertSame( array( 'message' => 'Hello' ), $_POST, 'WordPress parses the request without the posted query vars.' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The test reads the request it built.
+		salt_contact_self_post_restore();
+		$this->assertSame( 'Ada Lovelace', $_POST['name'], 'Put back once parsed.' ); // phpcs:ignore WordPress.Security -- The test reads the request it built.
+		$this->assertSame( 'Ada Lovelace', salt_contact_self_post_fields()['name'], 'Set aside for the handler.' );
+	}
+
+	public function test_another_post_is_parsed_as_sent(): void {
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = array( 'name' => 'x' );
+
+		salt_contact_self_post_aside( true, (object) array( 'public_query_vars' => array( 'name' ) ) );
+
+		$this->assertSame( array( 'name' => 'x' ), $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The test reads the request it built.
+	}
+
+	public function test_a_self_post_with_the_form_off_handles_and_mints_nothing(): void {
+		unset( $GLOBALS['salt_test_fields']['option']['contact_recipient'] );
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['salt-contact-send'] = 'form-off';
+		$_POST                     = $this->valid_payload();
+
+		salt_contact_self_post();
+
+		$this->assertArrayNotHasKey( 'form-off', salt_contact_form_states() );
+		$this->assertSame( array(), $GLOBALS['salt_test_transients'], 'No challenge, no rate-limit entry.' );
+	}
+
+	public function test_a_limited_client_gets_no_fresh_credentials(): void {
+		$state = salt_contact_response_state(
+			array(
+				'ok'      => false,
+				'status'  => 429,
+				'message' => 'Too many.',
+				'errors'  => array(),
+				'values'  => array( 'name' => 'Ada' ),
+			)
+		);
+
+		$this->assertArrayNotHasKey( 'challenge', $state );
+		$this->assertArrayNotHasKey( 'formToken', $state );
+		$this->assertSame( array(), $GLOBALS['salt_test_transients'], 'Nothing minted.' );
+		$this->assertSame( 'Ada', $state['values']['name'], 'The entries still come back.' );
+	}
+
+	public function test_credential_less_posts_spend_the_credentials_bucket_not_the_sends(): void {
+		$bare = $this->valid_payload();
+		unset( $bare['formToken'] );
+		for ( $i = 0; $i < 6; $i++ ) {
+			$this->assertSame( 400, salt_contact_handle( $bare, 'page', self::NOW )['status'], 'A first post, refused for its credentials.' );
+		}
+		$this->assertTrue( salt_contact_handle( $this->page_payload(), 'page', self::NOW )['ok'], 'The five sends are untouched.' );
+
+		for ( $i = 6; $i < 20; $i++ ) {
+			salt_contact_handle( $bare, 'page', self::NOW );
+		}
+		$this->assertSame( 429, salt_contact_handle( $bare, 'page', self::NOW )['status'], 'The credentials bucket bounds them (20 / 10 minutes).' );
 	}
 
 	public function test_a_get_or_another_page_post_is_not_a_send(): void {
@@ -537,6 +650,13 @@ final class ContactEndpointTest extends SaltTestCase {
 
 		$this->assertSame( 'maintenance', $fields['enquiryType'], 'An old label maps to its value.' );
 		$this->assertTrue( salt_contact_handle( $fields, 'legacy', self::NOW )['ok'] );
+
+		$unmatched                       = $fields;
+		$unmatched['enquiryType']        = salt_contact_legacy_fields( array( 'salt_contact_type' => 'Old route' ) )['enquiryType'];
+		$GLOBALS['salt_test_mail']       = array();
+		$GLOBALS['salt_test_transients'] = array();
+		$this->assertTrue( salt_contact_handle( $unmatched, 'legacy', self::NOW )['ok'], 'An unmatched old label still sends.' );
+		$this->assertStringContainsString( 'general', strtolower( (string) wp_json_encode( end( $GLOBALS['salt_test_mail'] ) ) ), 'As \'general\', as before.' );
 
 		$no_hp = $fields;
 		unset( $no_hp['website'] );

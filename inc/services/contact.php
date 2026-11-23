@@ -143,42 +143,58 @@ function salt_contact_phone_mode(): string {
 }
 
 /**
- * The page the form is on, as a same-site path with its query (a site on
- * plain permalinks names its pages there), without the contact flags
- * (salt-contact, salt-contact-send): the form's returnTo, and the address
- * it posts to without script. From the request alone, so every visitor to
- * one page gets the same value.
+ * WordPress's public query vars: the query a page's own address may
+ * carry (?page_id=7 on plain permalinks, ?s= on a search). The request's
+ * WP object holds them once WordPress is loaded; the core set otherwise.
+ *
+ * @return string[]
+ */
+function salt_contact_public_query_vars(): array {
+	$vars  = isset( $GLOBALS['wp'] ) && is_object( $GLOBALS['wp'] ) && isset( $GLOBALS['wp']->public_query_vars ) && is_array( $GLOBALS['wp']->public_query_vars )
+		? $GLOBALS['wp']->public_query_vars
+		: array( 'm', 'p', 'posts', 'w', 'cat', 'withcomments', 'withoutcomments', 's', 'search', 'exact', 'sentence', 'calendar', 'page', 'paged', 'more', 'tb', 'pb', 'author', 'order', 'orderby', 'year', 'monthnum', 'day', 'hour', 'minute', 'second', 'name', 'category_name', 'tag', 'feed', 'author_name', 'pagename', 'page_id', 'error', 'attachment', 'attachment_id', 'subpost', 'subpost_id', 'preview', 'robots', 'favicon', 'taxonomy', 'term', 'cpage', 'post_type', 'embed' );
+	$given = apply_filters( 'query_vars', $vars ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress's own filter, as WP::parse_request() applies it.
+	return array_map( 'strval', is_array( $given ) ? $given : $vars );
+}
+
+/**
+ * The page the form is on, as a same-site path: the form's returnTo, and
+ * the address it posts to without script. From the request alone, so every
+ * visitor to one page gets the same value (salt_contact_return_to() keeps
+ * only WordPress's own query vars of it).
  *
  * @return string
  */
 function salt_contact_page_path(): string {
-	$uri   = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( (string) $_SERVER['REQUEST_URI'] ) : '/'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Made a same-site path by salt_contact_return_to() below.
-	$parts = wp_parse_url( $uri );
-	$path  = is_array( $parts ) ? (string) ( $parts['path'] ?? '/' ) : '/';
-	$query = array();
-	if ( is_array( $parts ) && isset( $parts['query'] ) ) {
-		parse_str( (string) $parts['query'], $query );
-		unset( $query['salt-contact'], $query['salt-contact-send'] );
-	}
-	$path .= array() !== $query ? '?' . http_build_query( $query, '', '&', PHP_QUERY_RFC3986 ) : '';
-	$safe  = salt_contact_return_to( $path );
+	$uri  = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( (string) $_SERVER['REQUEST_URI'] ) : '/'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Made a same-site path by salt_contact_return_to().
+	$safe = salt_contact_return_to( $uri );
 	return '' !== $safe ? $safe : '/';
 }
 
 /**
  * The page path a submission names in returnTo, same-site only: a path on
  * this site (an absolute URL on the home host is made relative first),
- * never a scheme-relative or foreign address. '' when it is none.
+ * never a scheme-relative or foreign address, with only WordPress's public
+ * query vars kept (a page's own address, never a requester's tracking or
+ * other parameters, which would reach the cached page and the email).
+ * '' when it is none.
  *
- * @param string $raw The submitted returnTo.
+ * @param string $raw The submitted returnTo, or the request's address.
  * @return string
  */
 function salt_contact_return_to( string $raw ): string {
-	$path = salt_contract_url( trim( $raw ) );
-	if ( 1 !== preg_match( '#^/(?![/\\\\])#', $path ) || 1 === preg_match( '/[\x00-\x1f\x7f]/', $path ) ) {
+	$url = salt_contract_url( trim( $raw ) );
+	if ( 1 !== preg_match( '#^/(?![/\\\\])#', $url ) || 1 === preg_match( '/[\x00-\x1f\x7f]/', $url ) ) {
 		return '';
 	}
-	return $path;
+	$parts = wp_parse_url( $url );
+	$path  = is_array( $parts ) ? (string) ( $parts['path'] ?? '/' ) : '/';
+	$query = array();
+	if ( is_array( $parts ) && isset( $parts['query'] ) ) {
+		parse_str( (string) $parts['query'], $query );
+		$query = array_filter( array_intersect_key( $query, array_flip( salt_contact_public_query_vars() ) ), 'is_scalar' );
+	}
+	return $path . ( array() !== $query ? '?' . http_build_query( $query, '', '&', PHP_QUERY_RFC3986 ) : '' );
 }
 
 /**
@@ -221,19 +237,30 @@ function salt_contact_handle( array $raw, string $path, ?int $now = null ): arra
 		return $fail( 404, __( 'This form is not accepting submissions.', 'salt' ) );
 	}
 
-	// 1. Rate limit (SEC10): 5 submissions / 10 minutes / client.
-	if ( ! salt_rate_limit( 'contact', 5, 600 ) ) {
-		return $fail( 429, __( 'Too many messages — please wait a few minutes and try again.', 'salt' ) );
+	$too_many      = __( 'Too many messages — please wait a few minutes and try again.', 'salt' );
+	$generic_error = __( 'Your message could not be sent. Please check the form and try again.', 'salt' );
+	$provider      = '' !== salt_captcha_provider();
+	$captcha_token = $field( 'cf-turnstile-response' );
+	$captcha_token = '' !== $captcha_token ? $captcha_token : $field( 'g-recaptcha-response' );
+
+	// 1. Credentials (SC-025): a form token, and on the page path the
+	// arithmetic challenge or, with a provider configured, its token (a
+	// visitor whose script fell back to the native post). A send without
+	// them (a no-JS visitor's first, always) is refused, and the form comes
+	// back with them and the entries kept. That refusal mints credentials,
+	// so it counts against the credentials bucket (SEC10: 20 / 10 minutes /
+	// client), not against the visitor's five sends.
+	$token = explode( '.', $field( 'formToken' ) );
+	if ( 3 !== count( $token ) || ( 'page' === $path && '' === $field( 'challengeToken' ) && ! ( $provider && '' !== $captcha_token ) ) ) {
+		if ( ! salt_rate_limit( 'contact-credentials', 20, 600 ) ) {
+			return $fail( 429, $too_many );
+		}
+		return $fail( 400, __( 'Please check your details and send the form again.', 'salt' ) );
 	}
 
-	$generic_error = __( 'Your message could not be sent. Please check the form and try again.', 'salt' );
-
-	// 2. Credentials (SC-025): a form token, and on the page path the
-	// challenge too. A send without them (a no-JS visitor's first, always)
-	// is refused, and the form comes back with them and the entries kept.
-	$token = explode( '.', $field( 'formToken' ) );
-	if ( 3 !== count( $token ) || ( 'page' === $path && '' === $field( 'challengeToken' ) ) ) {
-		return $fail( 400, __( 'Please check your details and send the form again.', 'salt' ) );
+	// 2. Rate limit (SEC10): 5 sends / 10 minutes / client.
+	if ( ! salt_rate_limit( 'contact', 5, 600 ) ) {
+		return $fail( 429, $too_many );
 	}
 
 	// 3. CSRF nonce (every path).
@@ -242,8 +269,9 @@ function salt_contact_handle( array $raw, string $path, ?int $now = null ): arra
 		return $fail( 403, $generic_error );
 	}
 
-	// 4. Honeypot: must exist in the payload AND be empty.
-	if ( ! isset( $raw['website'] ) || '' !== trim( $field( 'website' ) ) ) {
+	// 4. Honeypot: must exist in the payload, be a string AND be empty
+	// (website[]=spam is an array, never an empty field: a bot).
+	if ( ! isset( $raw['website'] ) || ! is_string( $raw['website'] ) || '' !== trim( $raw['website'] ) ) {
 		salt_log( 'contact: honeypot tripped.' );
 		// Indistinguishable from success to the bot.
 		return $sent();
@@ -275,13 +303,13 @@ function salt_contact_handle( array $raw, string $path, ?int $now = null ): arra
 	}
 	$types = salt_contact_enquiry_types();
 	$type  = 'general';
-	if ( '' !== $values['enquiryType'] || count( $types ) > 1 ) {
-		$match = array_values( array_filter( $types, static fn( array $t ): bool => $t['value'] === $values['enquiryType'] ) );
-		if ( array() === $match ) {
-			$errors['enquiryType'] = __( 'Please choose what your enquiry is about.', 'salt' );
-		} else {
-			$type = $match[0]['label'];
-		}
+	$match = array_values( array_filter( $types, static fn( array $t ): bool => $t['value'] === $values['enquiryType'] ) );
+	if ( array() !== $match ) {
+		$type = $match[0]['label'];
+	} elseif ( 'legacy' !== $path && ( '' !== $values['enquiryType'] || count( $types ) > 1 ) ) {
+		// An unknown value is a field error, never the first route. The
+		// pre-6.0 form keeps its old rule: an unmatched label is 'general'.
+		$errors['enquiryType'] = __( 'Please choose what your enquiry is about.', 'salt' );
 	}
 	if ( '' === $values['message'] || mb_strlen( $values['message'] ) > 5000 ) {
 		$errors['message'] = __( 'Please enter a message (up to 5000 characters).', 'salt' );
@@ -294,19 +322,17 @@ function salt_contact_handle( array $raw, string $path, ?int $now = null ): arra
 		);
 	}
 
-	// 7. CAPTCHA (SEC01/SEC02). The page path always answers the server's
-	// arithmetic challenge; otherwise only with a provider configured, by
-	// its token (or, on the pre-6.0 no-JS form, the challenge).
-	$provider = '' !== salt_captcha_provider();
-	if ( 'page' === $path || ( $provider && 'legacy' === $path && '' !== $field( 'challengeToken' ) ) ) {
+	// 7. CAPTCHA (SEC01/SEC02). A posted arithmetic challenge is checked
+	// on the page path always and on the pre-6.0 form with a provider;
+	// otherwise, with a provider configured, its token (the script path, and
+	// a scripted visitor's native fallback on the page path).
+	if ( '' !== $field( 'challengeToken' ) && ( 'page' === $path || ( $provider && 'legacy' === $path ) ) ) {
 		if ( ! salt_challenge_verify( $field( 'challengeToken' ), $field( 'challengeAnswer' ) ) ) {
 			$message = __( 'The anti-spam answer was wrong — please try again.', 'salt' );
 			return $fail( 400, $message, array( 'challengeAnswer' => $message ) );
 		}
 	} elseif ( $provider ) {
-		$captcha = $field( 'cf-turnstile-response' );
-		$captcha = '' !== $captcha ? $captcha : $field( 'g-recaptcha-response' );
-		$verify  = salt_captcha_verify( $captcha, salt_client_ip() );
+		$verify = salt_captcha_verify( $captcha_token, salt_client_ip() );
 		if ( ! $verify['ok'] ) {
 			salt_log( 'contact: captcha rejected (' . $verify['reason'] . ').' );
 			return $fail( 400, __( 'We could not verify you are human — please try again.', 'salt' ) );
@@ -387,7 +413,9 @@ function salt_contact_rest_credentials(): WP_REST_Response {
 			200
 		);
 	}
-	$response->header( 'Cache-Control', 'no-store, private, max-age=0' );
+	foreach ( wp_get_nocache_headers() as $name => $value ) {
+		$response->header( $name, (string) $value );
+	}
 	return $response;
 }
 
@@ -407,7 +435,9 @@ function salt_contact_rest_send( $request ): WP_REST_Response {
 		),
 		$result['status']
 	);
-	$response->header( 'Cache-Control', 'no-store, private, max-age=0' );
+	foreach ( wp_get_nocache_headers() as $name => $value ) {
+		$response->header( $name, (string) $value );
+	}
 	return $response;
 }
 
@@ -436,42 +466,120 @@ function salt_contact_form_states( ?string $anchor = null, ?array $state = null 
  * with fresh credentials (a challenge and the form token, SC-025), minted
  * for this response alone.
  *
- * @param array{ok: bool, message: string, errors: array<string,string>, values: array<string,string>} $result salt_contact_handle().
- * @return array{state: string, values: array<string,string>, errors: array<string,string>, status: array{tone: string, message: string}, challenge: array{question: string, token: string}, formToken: string}
+ * @param array{ok: bool, status: int, message: string, errors: array<string,string>, values: array<string,string>} $result salt_contact_handle().
+ * @return array{state: string, values: array<string,string>, errors: array<string,string>, status: array{tone: string, message: string}, challenge?: array{question: string, token: string}, formToken?: string}
  */
 function salt_contact_response_state( array $result ): array {
-	return array(
-		'state'     => $result['ok'] ? 'sent' : 'invalid',
-		'values'    => $result['ok'] ? array() : $result['values'],
-		'errors'    => $result['ok'] ? array() : $result['errors'],
-		'status'    => array(
+	$state = array(
+		'state'  => $result['ok'] ? 'sent' : 'invalid',
+		'values' => $result['ok'] ? array() : $result['values'],
+		'errors' => $result['ok'] ? array() : $result['errors'],
+		'status' => array(
 			'tone'    => $result['ok'] ? 'sent' : 'problem',
 			'message' => $result['message'],
 		),
-		'challenge' => salt_challenge_create(),
-		'formToken' => salt_contact_form_token(),
 	);
+	// A refused client (429) gets no fresh credentials: nothing is minted
+	// until the limit lifts, and the form is drawn without them.
+	if ( 429 !== ( $result['status'] ?? 0 ) ) {
+		$state['challenge'] = salt_challenge_create();
+		$state['formToken'] = salt_contact_form_token();
+	}
+	return $state;
 }
+
+/**
+ * Whether this request is a contact form posted to its own page
+ * (POST ?salt-contact-send=<anchor>): the anchor, or '' when it is not.
+ *
+ * @return string
+ */
+function salt_contact_self_post_anchor(): string {
+	$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_METHOD'] ) ) ) : '';
+	if ( 'POST' !== $method || ! isset( $_GET['salt-contact-send'] ) || ! is_scalar( $_GET['salt-contact-send'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing only; the form token's nonce is verified in salt_contact_handle().
+		return '';
+	}
+	return sanitize_title( wp_unslash( (string) $_GET['salt-contact-send'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- As above.
+}
+
+/**
+ * The fields a self-posted contact form sent: set aside before WordPress
+ * parses the request (salt_contact_self_post_aside()), read by
+ * salt_contact_self_post().
+ *
+ * @param array<string,mixed>|null $fields The fields, to set them aside.
+ * @return array<string,mixed>|null Null when none were set aside.
+ */
+function salt_contact_self_post_fields( ?array $fields = null ): ?array {
+	static $aside = null;
+	if ( null !== $fields ) {
+		$aside = $fields;
+	}
+	return $aside;
+}
+
+/**
+ * Keep a self-posted contact form's fields out of WordPress's query
+ * ('do_parse_request'). WP::parse_request() reads every public query var
+ * from $_POST before the address, so a posted `name` (a contact field and
+ * a public query var) would become a post slug ahead of the page's own
+ * and the page would answer 404, with no form. The posted fields are set
+ * aside for salt_contact_self_post(), and every one that is a public query
+ * var is taken out of $_POST while WordPress parses the request, so the
+ * address and its rewrite rule alone decide the query (a single post keeps
+ * its permalink's own name). $_POST is put back on 'parse_request'.
+ *
+ * @param bool $parse Whether WordPress parses the request.
+ * @param WP   $wp    The request.
+ * @return bool
+ */
+function salt_contact_self_post_aside( $parse, $wp ) {
+	if ( '' === salt_contact_self_post_anchor() ) {
+		return $parse;
+	}
+	$posted = wp_unslash( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Set aside as sent; verified + sanitised field-by-field in salt_contact_handle().
+	salt_contact_self_post_fields( is_array( $posted ) ? $posted : array() );
+	$vars = is_object( $wp ) && isset( $wp->public_query_vars ) && is_array( $wp->public_query_vars ) ? $wp->public_query_vars : array();
+	foreach ( (array) apply_filters( 'query_vars', $vars ) as $var ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress's own filter, as WP::parse_request() applies it.
+		unset( $_POST[ $var ] );
+	}
+	return $parse;
+}
+add_filter( 'do_parse_request', 'salt_contact_self_post_aside', 10, 2 );
+
+/**
+ * Put a self-posted form's fields back in $_POST once WordPress has parsed
+ * the request ('parse_request'), for any other code that reads them.
+ *
+ * @return void
+ */
+function salt_contact_self_post_restore(): void {
+	$fields = salt_contact_self_post_fields();
+	if ( null !== $fields && '' !== salt_contact_self_post_anchor() ) {
+		$_POST = wp_slash( $fields ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Restoring the request as it arrived.
+	}
+}
+add_action( 'parse_request', 'salt_contact_self_post_restore' );
 
 /**
  * The no-JS path: a contact form posted to its own page
  * (?salt-contact-send=<anchor>). Handled before the page draws, which then
  * draws that form again in its answer; never a redirect, and never cached
- * (nocache_headers(); a page cache serves GETs, never a POST).
+ * (nocache_headers(); a page cache serves GETs, never a POST). With the
+ * form off, nothing is handled and nothing minted: the page draws its
+ * closed message.
  *
  * @return void
  */
 function salt_contact_self_post(): void {
-	$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_METHOD'] ) ) ) : '';
-	if ( 'POST' !== $method || ! isset( $_GET['salt-contact-send'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing only; the form token's nonce is verified in salt_contact_handle().
-		return;
-	}
-	$anchor = sanitize_title( wp_unslash( (string) $_GET['salt-contact-send'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- As above.
-	if ( '' === $anchor ) {
+	$anchor = salt_contact_self_post_anchor();
+	if ( '' === $anchor || ! salt_contact_configured() ) {
 		return;
 	}
 	nocache_headers();
-	$result = salt_contact_handle( wp_unslash( $_POST ), 'page' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Verified + sanitised field-by-field in salt_contact_handle().
+	$fields = salt_contact_self_post_fields();
+	$fields = null !== $fields ? $fields : wp_unslash( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Verified + sanitised field-by-field in salt_contact_handle().
+	$result = salt_contact_handle( is_array( $fields ) ? $fields : array(), 'page' );
 	if ( ! headers_sent() && 200 !== $result['status'] ) {
 		status_header( $result['status'] );
 	}
