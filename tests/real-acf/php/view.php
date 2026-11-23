@@ -453,6 +453,35 @@ function salt_view_media_urls( array $media ): void {
 }
 
 /**
+ * Each attachment a case's media names gets the record's caption where
+ * WordPress keeps it, the attachment's excerpt (wp_get_attachment_caption()),
+ * as an editor sets it in the media library; the adapter's attachment shim
+ * carries it the same way.
+ *
+ * @param array<string,mixed> $media The case's media.
+ * @return void
+ */
+function salt_view_media_captions( array $media ): void {
+	foreach ( get_posts(
+		array(
+			'post_type'   => 'attachment',
+			'post_status' => 'inherit',
+			'numberposts' => -1,
+		)
+	) as $attachment ) {
+		$caption = $media[ $attachment->post_title ]['caption'] ?? null;
+		if ( is_string( $caption ) && '' !== $caption ) {
+			wp_update_post(
+				array(
+					'ID'           => $attachment->ID,
+					'post_excerpt' => $caption,
+				)
+			);
+		}
+	}
+}
+
+/**
  * The search case's results hold its query in their text, so WordPress's
  * own search finds each one (a result's title need not hold it).
  *
@@ -624,6 +653,7 @@ switch ( $salt_view_kind ) {
 }
 salt_view_case_site( $salt_view_input );
 salt_view_media_urls( $salt_view_media );
+salt_view_media_captions( $salt_view_media );
 $salt_view_stray = (string) ob_get_clean();
 if ( '' !== $salt_view_stray ) {
 	fwrite( STDERR, 'seeding printed: ' . $salt_view_stray . "\n" );
