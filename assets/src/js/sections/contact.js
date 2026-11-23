@@ -96,10 +96,19 @@
 						credentials: 'same-origin',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify(payload),
-					}).then((response) => response.json().then((body) => ({ ok: response.ok && body.ok, body })));
+					}).then((response) =>
+						response.json().then((body) => ({ ok: response.ok && body.ok, status: response.status, body }))
+					);
 				})
-				.then(({ ok, body }) => {
-					token = null; // A form token serves one send.
+				.then(({ ok, status: code, body }) => {
+					// The token stays good for a retry after a refused send: a fresh
+					// one would fail the time trap (it must be 3 seconds old). Only a
+					// send that arrived, or a refused nonce (403), takes a new one,
+					// fetched straight away so it has aged by the next send.
+					if (ok || code === 403) {
+						token = null;
+						prefetch();
+					}
 					markErrors(ok ? {} : body.errors);
 					showStatus(ok ? 'sent' : 'problem', body.message || '');
 					if (ok) {
