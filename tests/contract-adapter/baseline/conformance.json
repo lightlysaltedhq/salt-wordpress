@@ -33,7 +33,7 @@
     "problems": []
   },
   "stylesheets": {
-    "served": "assets/dist/salt.fdde23baa4/salt.css",
+    "served": "assets/dist/salt.71b124b497/salt.css",
     "bundle": "styles/salt.css",
     "contract": "1.0.0-rc.9",
     "ok": true,

@@ -24,7 +24,7 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
 
 ### Accessibility fixes
 
-- The pinned rc.9 stylesheet uses normal ink for secondary text on light alternate surfaces. On narrow screens without JavaScript, the header links wrap and open submenus stay within the page.
+- The pinned rc.9 stylesheet uses normal ink for secondary text on light alternate surfaces. On narrow screens without JavaScript, the header links wrap, open submenus stay within the page, and the header scrolls away rather than covering the focused contact reply.
 - Without JavaScript, a contact reply opens at the submitted form’s message and moves focus there. Opening the page normally still starts at the top.
 - On posts, Copy link now announces success or failure under the site’s existing content security policy.
 

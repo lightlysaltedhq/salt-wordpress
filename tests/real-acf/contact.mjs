@@ -44,7 +44,10 @@ const wait = ( ms ) => new Promise( ( resolve ) => setTimeout( resolve, ms ) );
 const landing = ( page ) => page.evaluate( () => {
 	const status = document.getElementById( 'enquire__status' );
 	const box = status.getBoundingClientRect();
-	return { hash: window.location.hash, scrollY: Math.round( window.scrollY ), inView: box.top >= 0 && box.bottom <= window.innerHeight, focused: document.activeElement === status, active: document.activeElement.id || document.activeElement.tagName };
+	const headerBottom = document.querySelector( '.salt-header' ).getBoundingClientRect().bottom;
+	// Fragment scroll offsets are rounded, but layout bounds may be fractional.
+	const inView = Math.round( box.top ) >= Math.max( 0, Math.round( headerBottom ) ) && Math.round( box.bottom ) <= window.innerHeight;
+	return { hash: window.location.hash, scrollY: Math.round( window.scrollY ), inView, focused: document.activeElement === status, active: document.activeElement.id || document.activeElement.tagName };
 } );
 const landed = ( where ) => where.hash === '#enquire__status' && where.inView && where.focused && where.scrollY > 0;
 
@@ -59,7 +62,7 @@ try {
 
 		// Without script.
 		const name = `Ada NoScript ${ permalinks }`;
-		const context = await browser.newContext( { javaScriptEnabled: false } );
+		const context = await browser.newContext( { javaScriptEnabled: false, viewport: { width: 320, height: 256 } } );
 		const page = await context.newPage();
 		await page.goto( url );
 		const opened = await landing( page );

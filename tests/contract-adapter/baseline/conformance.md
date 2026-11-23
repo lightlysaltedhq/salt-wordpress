@@ -36,7 +36,7 @@
 
 ## Stylesheet pin
 
-Pass: `assets/dist/salt.fdde23baa4/salt.css` against this contract's `styles/salt.css` (1.0.0-rc.9): identical.
+Pass: `assets/dist/salt.71b124b497/salt.css` against this contract's `styles/salt.css` (1.0.0-rc.9): identical.
 
 ## Field parity
 
