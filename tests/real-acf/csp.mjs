@@ -9,6 +9,8 @@
 //    theme's own file (no blob: worker, which the CSP would refuse), and
 //    the map draws its raster tiles (answered here, one colour) on its
 //    canvas.
+//    The map adds no CSP refusal of any kind (MapLibre styles its marker
+//    and canvas through the CSSOM, which the CSP allows).
 //  - Map settings that are not addresses load nothing.
 /* global document, window */
 import { execFileSync } from 'node:child_process';
@@ -54,6 +56,11 @@ try {
 		return route.fulfill( { status: 200, contentType: 'image/png', body: tile, headers: { 'access-control-allow-origin': '*' } } );
 	} );
 	// Keep the map the theme creates, with its drawing buffer kept, to read its canvas.
+	// Every CSP refusal on the page, as the browser reports it.
+	await context.addInitScript( () => {
+		window.saltHarnessRefusals = [];
+		document.addEventListener( 'securitypolicyviolation', ( e ) => window.saltHarnessRefusals.push( `${ e.effectiveDirective } ${ e.blockedURI } at ${ e.sourceFile }:${ e.lineNumber }` ) );
+	} );
 	await context.addInitScript( () => {
 		let library;
 		Object.defineProperty( window, 'maplibregl', {
@@ -103,6 +110,7 @@ try {
 		window.wp_consent_type = 'optin';
 		window.wp_has_consent = ( category ) => category === 'marketing';
 	} );
+	const refusalsBefore = await page.evaluate( () => window.saltHarnessRefusals.length );
 	await load();
 	const drawn = await page.waitForFunction( () => window.saltHarnessMap && window.saltHarnessMap.loaded() && window.saltHarnessMap.areTilesLoaded(), null, { timeout: 20000 } ).then( () => true, () => false );
 	const workerUrls = workers.join( ', ' );
@@ -119,6 +127,10 @@ try {
 	result( drawn && tiles > 0 && pixel.every( ( c, i ) => Math.abs( c - TILE_RGB[ i ] ) <= 4 ), 'a consented map draws its tiles on its canvas', `${ tiles } tiles served; canvas pixel ${ JSON.stringify( pixel ) }` );
 	const blocked = errors.filter( ( e ) => /worker|blob:|Content Security Policy/i.test( e ) && ! /Applying inline style/.test( e ) );
 	result( blocked.length === 0, 'the CSP refuses no worker and no blob:', blocked.join( ' | ' ) );
+	// The page's own refusals at load (core's inline styles, the band
+	// wrapper's style attribute) are not the map's: a drawn map adds none.
+	const refusedByMap = await page.evaluate( ( from ) => window.saltHarnessRefusals.slice( from ), refusalsBefore );
+	result( drawn && refusedByMap.length === 0, 'a consented map adds no CSP refusal (style, script or worker)', refusedByMap.join( ' | ' ) || `none; ${ refusalsBefore } at page load` );
 	await context.close();
 
 	// Map settings that are not addresses (another script overwrote them):
