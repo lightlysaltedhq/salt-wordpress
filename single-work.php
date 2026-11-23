@@ -1,16 +1,27 @@
 <?php
 /**
- * Single work item (spec §6, case-study build-out) — hero (work_type eyebrow
- * → H1 → summary lede → client/services meta + live link), featured image,
- * challenge/solution, results stats (x-stat), gallery grid + CreativeWork
+ * Single case study, as the contract draws it (salt-contract rc.8
+ * markup/case-study.json): the article with its header (the link back to
+ * the case studies' index, the title as the document's h1, the client, the
+ * summary, the results and the project details), the featured image as the
+ * view's priority image, the challenge, solution and gallery as sections
+ * named case-study__<part>-heading (SC-012), the live-site link opening in
+ * a new tab, and the delivered services as cards; then the CreativeWork
  * schema.
  *
+ * The layout is the site's, set once for every case study on Site Settings
+ * → Case Studies (salt_case_study_settings(), the contract's
+ * site.caseStudy): the header plain or a toned band (data-header="band"),
+ * and the featured image in the flow or aside (data-media="aside", with
+ * --salt-case-study-view-aside-rows, the parts beside the image, and
+ * --salt-case-study-view-measure, a default band's 64rem). The aside needs
+ * an image and a part beside it; otherwise the image stays in the flow.
+ *
  * Reads salt-contract's case study (collections/case-studies.json): the
- * title, topics (the work_type terms), summary (the excerpt) and
- * featuredImage (the featured image) from WordPress, and client, gallery,
- * challenge, solution, results, services and externalUrl from the
- * generated group. A case study has no page body. details is stored but
- * not drawn yet (M4).
+ * title, summary (the excerpt) and featuredImage (the featured image) from
+ * WordPress, and client, results, details, challenge, solution, gallery,
+ * externalUrl and services from the generated group. A case study has no
+ * page body.
  *
  * @package Salt
  */
@@ -21,223 +32,174 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 get_header();
 
+$salt_labels = salt_contract_labels( 'case-study' );
+$salt_layout = salt_case_study_settings();
+
 while ( have_posts() ) {
 	the_post();
 
 	$salt_work_id   = (int) get_the_ID();
 	$salt_permalink = (string) get_permalink();
+	$salt_text      = static fn( $value ): string => is_string( $value ) ? trim( $value ) : '';
 
-	$salt_client       = (string) get_field( 'client', $salt_work_id );
-	$salt_summary      = salt_post_summary( $salt_work_id );
-	$salt_challenge    = (string) get_field( 'challenge', $salt_work_id );
-	$salt_solution     = (string) get_field( 'solution', $salt_work_id );
-	$salt_external_url = (string) get_field( 'externalUrl', $salt_work_id );
+	$salt_client       = $salt_text( get_field( 'client', $salt_work_id ) );
+	$salt_summary      = trim( salt_post_summary( $salt_work_id ) );
+	$salt_external_url = $salt_text( get_field( 'externalUrl', $salt_work_id ) );
+	$salt_index        = salt_collection_index_url( 'case-studies' );
 
-	$salt_results = get_field( 'results', $salt_work_id );
-	$salt_results = is_array( $salt_results ) ? $salt_results : array();
-
-	$salt_gallery = get_field( 'gallery', $salt_work_id );
-	$salt_gallery = is_array( $salt_gallery ) ? array_map( 'intval', $salt_gallery ) : array();
-
-	$salt_service_ids = get_field( 'services', $salt_work_id );
-	$salt_service_ids = is_array( $salt_service_ids ) ? array_map( 'intval', $salt_service_ids ) : array();
-
-	$salt_work_types = get_the_terms( $salt_work_id, 'work_type' );
-	$salt_work_types = is_array( $salt_work_types ) ? $salt_work_types : array();
-
-	// ------------------------------------------------------------------
-	// Hero.
-	// ------------------------------------------------------------------
-	echo '<header class="x-work-hero bg-surface-alt py-14 md:py-20">';
-	echo '<div class="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">';
-
-	if ( array() !== $salt_work_types ) {
-		salt_component(
-			'eyebrow',
-			array(
-				'text'    => implode( ' · ', wp_list_pluck( $salt_work_types, 'name' ) ),
-				'classes' => 'mb-3',
-			)
-		);
+	$salt_results = array();
+	foreach ( (array) get_field( 'results', $salt_work_id ) as $salt_row ) {
+		$salt_stat = is_array( $salt_row ) ? $salt_text( $salt_row['stat'] ?? null ) : '';
+		if ( '' !== $salt_stat ) {
+			$salt_results[] = array( $salt_stat, $salt_text( $salt_row['label'] ?? null ) );
+		}
+	}
+	$salt_details = array();
+	foreach ( (array) get_field( 'details', $salt_work_id ) as $salt_row ) {
+		$salt_label = is_array( $salt_row ) ? $salt_text( $salt_row['label'] ?? null ) : '';
+		$salt_value = is_array( $salt_row ) ? $salt_text( $salt_row['value'] ?? null ) : '';
+		if ( '' !== $salt_label && '' !== $salt_value ) {
+			$salt_details[] = array( $salt_label, $salt_value );
+		}
 	}
 
-	salt_the_document_h1( get_the_title(), 'x-heading text-4xl md:text-5xl font-bold tracking-tight' );
-
-	if ( '' !== trim( $salt_summary ) ) {
-		printf(
-			'<p class="x-work-summary mt-4 max-w-prose text-lg text-ink-muted">%s</p>',
-			esc_html( $salt_summary )
-		);
-	}
-
-	// Fact strip: client / services (linked) / live link.
-	$salt_facts = array();
-	if ( '' !== trim( $salt_client ) ) {
-		$salt_facts[] = array( __( 'Client', 'salt' ), esc_html( $salt_client ) );
-	}
-	if ( array() !== $salt_service_ids ) {
-		$salt_service_links = array();
-		foreach ( $salt_service_ids as $salt_service_id ) {
-			$salt_service_title = (string) get_the_title( $salt_service_id );
-			if ( '' === $salt_service_title ) {
-				continue;
-			}
-			$salt_service_links[] = sprintf(
-				'<a class="text-brand hover:text-brand-strong" href="%s">%s</a>',
-				esc_url( (string) get_permalink( $salt_service_id ) ),
-				esc_html( $salt_service_title )
+	// The parts beside the aside: challenge, solution, gallery and the live link.
+	$salt_parts = array();
+	foreach ( array(
+		'challenge' => 'field_salt_collection_case_studies_challenge',
+		'solution'  => 'field_salt_collection_case_studies_solution',
+	) as $salt_name => $salt_key ) {
+		// Stored HTML with paragraphs added, without the_content's other filters
+		// (no curly quotes, shortcodes or embeds), kept to the field's list.
+		$salt_html = salt_sanitize_html( wpautop( $salt_text( get_field( $salt_name, $salt_work_id, false ) ) ), salt_field_allowed( $salt_key ) );
+		if ( salt_rich_text_has_words( $salt_html ) ) {
+			$salt_parts[] = sprintf(
+				'<section class="salt-case-study-view__section" aria-labelledby="case-study__%1$s-heading"><h2 id="case-study__%1$s-heading">%2$s</h2><div class="salt-rich-text">%3$s</div></section>',
+				esc_attr( $salt_name ),
+				esc_html( (string) $salt_labels[ $salt_name ] ),
+				salt_render_rich_text_headings( $salt_html, 2 )
 			);
 		}
-		if ( array() !== $salt_service_links ) {
-			$salt_facts[] = array( __( 'Services', 'salt' ), implode( ', ', $salt_service_links ) );
+	}
+	$salt_frames = array();
+	foreach ( (array) get_field( 'gallery', $salt_work_id ) as $salt_image_id ) {
+		$salt_image = salt_image_contract( (int) ( is_array( $salt_image_id ) ? ( $salt_image_id['ID'] ?? 0 ) : $salt_image_id ), salt_image_slot_sizes( 'content' ) );
+		if ( null !== $salt_image ) {
+			$salt_frames[] = '<li><div class="salt-case-study-view__frame">' . salt_image_contract_html( $salt_image ) . '</div></li>';
+		}
+	}
+	if ( array() !== $salt_frames ) {
+		$salt_parts[] = '<section class="salt-case-study-view__section" aria-labelledby="case-study__gallery-heading"><h2 id="case-study__gallery-heading">' . esc_html( (string) $salt_labels['gallery'] ) . '</h2><ul class="salt-grid" role="list">' . implode( '', $salt_frames ) . '</ul></section>';
+	}
+	if ( '' !== $salt_external_url && '' !== esc_url( $salt_external_url, array( 'http', 'https' ) ) ) {
+		$salt_parts[] = '<p class="salt-case-study-view__live">' . salt_get_component(
+			'contract-button',
+			array(
+				'button' => array(
+					'label'  => (string) $salt_labels['liveSite'],
+					'href'   => $salt_external_url,
+					'style'  => 'secondary',
+					'newTab' => true,
+				),
+				'arrow'  => null,
+			)
+		) . '</p>';
+	}
+
+	// The featured image: the view's priority image, in the flow or aside.
+	$salt_aside    = 'aside' === $salt_layout['media'] && array() !== $salt_parts;
+	$salt_thumb_id = (int) get_post_thumbnail_id( $salt_work_id );
+	$salt_featured = salt_image_contract( $salt_thumb_id, $salt_aside ? salt_image_slot_sizes( 'aside', 'default' ) : salt_image_slot_sizes( 'content' ) );
+	$salt_aside    = $salt_aside && null !== $salt_featured;
+
+	$salt_services = array();
+	$salt_sizes    = $salt_aside ? salt_image_slot_sizes( 'aside-card' ) : salt_image_slot_sizes( 'card', 'full', '3' );
+	foreach ( (array) get_field( 'services', $salt_work_id ) as $salt_service_id ) {
+		$salt_service = get_post( (int) ( $salt_service_id instanceof WP_Post ? $salt_service_id->ID : $salt_service_id ) );
+		$salt_card    = $salt_service instanceof WP_Post && 'publish' === $salt_service->post_status ? salt_contract_view_card( $salt_service, 'services', $salt_sizes ) : null;
+		if ( null !== $salt_card ) {
+			$salt_services[] = $salt_card;
 		}
 	}
 
-	if ( array() !== $salt_facts ) {
-		echo '<dl class="x-work-facts mt-8 flex flex-wrap gap-x-10 gap-y-4 text-sm">';
-		foreach ( $salt_facts as $salt_fact ) {
-			echo '<div class="flex flex-col gap-1">';
-			echo '<dt class="font-semibold uppercase tracking-widest text-ink-muted">' . esc_html( $salt_fact[0] ) . '</dt>';
-			echo '<dd class="text-ink">' . $salt_fact[1] . '</dd>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped where each fact value is built above.
-			echo '</div>';
+	$salt_band = 'band' === $salt_layout['header'];
+	printf(
+		'<article class="salt-case-study-view"%1$s%2$s>',
+		$salt_band ? ' data-header="band"' : '',
+		$salt_aside ? sprintf( ' data-media="aside" style="%s"', esc_attr( '--salt-case-study-view-aside-rows: ' . count( $salt_parts ) . '; --salt-case-study-view-measure: 64rem' ) ) : ''
+	);
+
+	// The header: plain, or a toned band as a section draws one.
+	if ( $salt_band ) {
+		printf(
+			'<header class="salt-section salt-case-study-view__header" data-tone="%1$s" data-tone-dark="%2$s" data-spacing="md" data-width="default" style="--salt-section-space: var(--space-section-md)"><div class="salt-section__content">',
+			esc_attr( $salt_layout['headerTone'] ),
+			esc_attr( $salt_layout['headerToneDark'] )
+		);
+	} else {
+		echo '<header class="salt-case-study-view__header">';
+	}
+	if ( null !== $salt_index && '' !== esc_url( $salt_index ) ) {
+		echo '<p class="salt-case-study-view__back"><a class="salt-case-study-view__back-link" href="' . esc_url( salt_contract_url( $salt_index ) ) . '">' . esc_html( (string) $salt_labels['back'] ) . '</a></p>';
+	}
+	salt_the_document_h1( salt_view_title( $salt_work_id ) );
+	if ( '' !== $salt_client ) {
+		echo '<p class="salt-case-study-view__client">' . esc_html( $salt_client ) . '</p>';
+	}
+	if ( '' !== $salt_summary ) {
+		echo '<p class="salt-case-study-view__summary">' . esc_html( $salt_summary ) . '</p>';
+	}
+	if ( array() !== $salt_results ) {
+		$salt_count = count( $salt_results );
+		printf(
+			'<ul class="salt-grid salt-case-study-view__results" role="list" aria-label="%1$s"%2$s>',
+			esc_attr( (string) $salt_labels['results'] ),
+			$salt_count <= 2 ? ' data-columns="2"' : ( $salt_count >= 4 ? ' data-columns="4"' : '' )
+		);
+		foreach ( $salt_results as $salt_result ) {
+			echo '<li class="salt-stat"><p class="salt-stat__value">' . esc_html( $salt_result[0] ) . '</p>';
+			if ( '' !== $salt_result[1] ) {
+				echo '<p class="salt-stat__label">' . esc_html( $salt_result[1] ) . '</p>';
+			}
+			echo '</li>';
+		}
+		echo '</ul>';
+	}
+	if ( array() !== $salt_details ) {
+		echo '<dl class="salt-case-study-view__details">';
+		foreach ( $salt_details as $salt_detail ) {
+			echo '<div class="salt-case-study-view__detail"><dt class="salt-case-study-view__detail-label">' . esc_html( $salt_detail[0] ) . '</dt><dd class="salt-case-study-view__detail-value">' . esc_html( $salt_detail[1] ) . '</dd></div>';
 		}
 		echo '</dl>';
 	}
+	echo $salt_band ? '</div></header>' : '</header>';
 
-	if ( '' !== trim( $salt_external_url ) ) {
-		echo '<div class="mt-8">';
-		salt_component(
-			'button',
-			array(
-				'label'  => __( 'Visit live site', 'salt' ),
-				'url'    => $salt_external_url,
-				'style'  => 'secondary',
-				'target' => '_blank',
-			)
-		);
-		echo '</div>';
+	if ( null !== $salt_featured ) {
+		echo '<div class="salt-case-study-view__media">' . salt_image_contract_html( $salt_featured, true ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped attribute by attribute.
 	}
+	echo implode( '', $salt_parts ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each part escaped as it was built; rich text sanitised to its field's contract list.
 
-	echo '</div>';
-	echo '</header>';
-
-	// ------------------------------------------------------------------
-	// Featured image — standardised crop, THE LCP candidate.
-	// ------------------------------------------------------------------
-	$salt_thumbnail_id = (int) get_post_thumbnail_id( $salt_work_id );
-	if ( $salt_thumbnail_id > 0 ) {
-		echo '<div class="x-work-media mx-auto w-full max-w-5xl px-4 pt-10 sm:px-6 lg:px-8 md:pt-14">';
-		salt_component(
-			'image',
-			array(
-				'image_id'      => $salt_thumbnail_id,
-				'alt'           => '',
-				'priority'      => true,
-				'sizes_context' => 'hero',
-				'classes'       => 'aspect-[16/9] w-full rounded-lg object-cover',
-			)
-		);
-		echo '</div>';
-	}
-
-	// ------------------------------------------------------------------
-	// Challenge / solution.
-	// ------------------------------------------------------------------
-	if ( '' !== trim( $salt_challenge ) || '' !== trim( $salt_solution ) ) {
-		echo '<div class="mx-auto w-full max-w-5xl px-4 pb-14 sm:px-6 lg:px-8 md:pb-20">';
-		echo '<div class="grid gap-10 md:grid-cols-2">';
-		foreach ( array(
-			array( __( 'The challenge', 'salt' ), $salt_challenge, 'field_salt_collection_case_studies_challenge' ),
-			array( __( 'The solution', 'salt' ), $salt_solution, 'field_salt_collection_case_studies_solution' ),
-		) as $salt_block ) {
-			if ( '' === trim( $salt_block[1] ) ) {
-				continue;
-			}
-			echo '<div class="x-work-block">';
+	if ( array() !== $salt_services ) {
+		echo '<section class="salt-case-study-view__section salt-case-study-view__services" aria-labelledby="case-study__services-heading">';
+		echo '<h2 id="case-study__services-heading">' . esc_html( (string) $salt_labels['services'] ) . '</h2>';
+		echo '<ul class="salt-grid salt-showcase" role="list" data-layout="grid">';
+		foreach ( $salt_services as $salt_card ) {
+			echo '<li>';
 			salt_component(
-				'heading',
+				'contract-card',
 				array(
-					'text'    => $salt_block[0],
-					'level'   => 2,
-					'size'    => 'md',
-					'classes' => 'mb-4',
+					'card'   => $salt_card,
+					'style'  => 'generic',
+					'level'  => 3,
+					'labels' => $salt_labels,
+					'arrow'  => salt_contract_arrow(),
 				)
 			);
-			echo '<div class="x-prose">' . salt_sanitize_html( $salt_block[1], salt_field_allowed( $salt_block[2] ) ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised to the field's contract list.
-			echo '</div>';
+			echo '</li>';
 		}
-		echo '</div>';
-		echo '</div>';
+		echo '</ul></section>';
 	}
-
-	// ------------------------------------------------------------------
-	// Results — x-stat strip.
-	// ------------------------------------------------------------------
-	$salt_stats = array();
-	foreach ( $salt_results as $salt_row ) {
-		$salt_stat  = is_array( $salt_row ) ? trim( (string) ( $salt_row['stat'] ?? '' ) ) : '';
-		$salt_label = is_array( $salt_row ) ? trim( (string) ( $salt_row['label'] ?? '' ) ) : '';
-		if ( '' === $salt_stat ) {
-			continue;
-		}
-		$salt_stats[] = array( $salt_stat, $salt_label );
-	}
-	if ( array() !== $salt_stats ) {
-		echo '<div class="x-work-results bg-surface-alt py-14 md:py-20">';
-		echo '<div class="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">';
-		salt_component(
-			'heading',
-			array(
-				'text'    => __( 'Results', 'salt' ),
-				'level'   => 2,
-				'size'    => 'lg',
-				'classes' => 'mb-8',
-			)
-		);
-		// Literal class strings only — Tailwind cannot detect concatenated names.
-		$salt_stats_grid = array(
-			2 => 'grid gap-8 sm:grid-cols-2',
-			3 => 'grid gap-8 sm:grid-cols-3',
-			4 => 'grid gap-8 sm:grid-cols-2 lg:grid-cols-4',
-		);
-		echo '<div class="' . esc_attr( $salt_stats_grid[ min( 4, max( 2, count( $salt_stats ) ) ) ] ) . '">';
-		foreach ( $salt_stats as $salt_stat ) {
-			salt_component(
-				'stat',
-				array(
-					'number' => $salt_stat[0],
-					'label'  => $salt_stat[1],
-				)
-			);
-		}
-		echo '</div>';
-		echo '</div>';
-		echo '</div>';
-	}
-
-	// ------------------------------------------------------------------
-	// Gallery grid.
-	// ------------------------------------------------------------------
-	if ( array() !== $salt_gallery ) {
-		echo '<div class="x-work-gallery mx-auto w-full max-w-5xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
-		echo '<div class="grid gap-6 sm:grid-cols-2">';
-		foreach ( $salt_gallery as $salt_image_id ) {
-			if ( $salt_image_id <= 0 ) {
-				continue;
-			}
-			salt_component(
-				'image',
-				array(
-					'image_id'      => $salt_image_id,
-					'alt'           => '',
-					'sizes_context' => 'half',
-					'classes'       => 'aspect-[4/3] w-full rounded-lg object-cover',
-				)
-			);
-		}
-		echo '</div>';
-		echo '</div>';
-	}
+	echo '</article>';
 
 	// ------------------------------------------------------------------
 	// CreativeWork schema (queued into the single page @graph — SEO §15).
@@ -250,11 +212,11 @@ while ( have_posts() ) {
 		'author'           => array( '@id' => home_url( '/' ) . '#organization' ),
 		'mainEntityOfPage' => array( '@id' => $salt_permalink . '#webpage' ),
 	);
-	if ( '' !== trim( $salt_summary ) ) {
+	if ( '' !== $salt_summary ) {
 		$salt_node['description'] = $salt_summary;
 	}
-	if ( $salt_thumbnail_id > 0 ) {
-		$salt_image_url = wp_get_attachment_image_url( $salt_thumbnail_id, 'large' );
+	if ( $salt_thumb_id > 0 ) {
+		$salt_image_url = wp_get_attachment_image_url( $salt_thumb_id, 'large' );
 		if ( is_string( $salt_image_url ) && '' !== $salt_image_url ) {
 			$salt_node['image'] = $salt_image_url;
 		}

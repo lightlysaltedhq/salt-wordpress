@@ -53,7 +53,7 @@ function salt_share_services(): array {
 	return array(
 		'x'         => array(
 			'label'    => __( 'Share on X', 'salt' ),
-			'template' => 'https://x.com/intent/post?url={url}&text={title}',
+			'template' => 'https://x.com/intent/post?url={url}',
 			'icon'     => 'x',
 		),
 		'facebook'  => array(
@@ -358,7 +358,8 @@ function salt_post_reading_text( int $post_id ): string {
 /**
  * Draw a post's layout (salt-contract rc.8 section#sections-in-a-post), in
  * stored order: a rich-text row that is prose alone as the post's own
- * prose, in the reading column; every other row as a band, through the
+ * prose, a bare div.salt-rich-text in the article (markup/post.json body,
+ * base level 1); every other row as a band, through the
  * section's resolver and view, as on a page.
  *
  * The bands are planned as a page's are (template-parts/flexible-content.php):
@@ -415,7 +416,7 @@ function salt_the_post_layout( int $post_id ): void {
 			$body = (string) get_sub_field( 'body' );
 			if ( '' !== trim( $body ) ) {
 				printf(
-					'<div class="x-post-prose mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8"><div class="x-prose">%s</div></div>',
+					'<div class="salt-rich-text">%s</div>',
 					salt_render_rich_text_headings( salt_sanitize_html( $body, salt_field_allowed( 'field_salt_collection_posts_layout_rich_text_body' ) ), 1 ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised to the field's contract list before adjusting ranks.
 				);
 				salt_render_state( 'set', 'last_background', '' );

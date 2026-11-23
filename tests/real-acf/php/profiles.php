@@ -86,7 +86,7 @@ $private_post          = wp_insert_post(
 	)
 );
 list( $status, $body ) = salt_profile_http( get_permalink( $private_post ) );
-salt_harness_result( 200 === $status && str_contains( $body, '>Private writer</span>' ) && ! str_contains( $body, 'x-author-box' ), 'unticked native author is credited as plain text only' );
+salt_harness_result( 200 === $status && str_contains( $body, '<span class="salt-post__byline">By Private writer</span>' ) && ! str_contains( $body, 'salt-author-box' ), 'unticked native author is credited as plain text only' );
 foreach ( array( '/team/' . get_user_meta( $private, 'slug', true ) . '/', '/journal/author/' . get_userdata( $private )->user_nicename . '/', '/?author=' . $private, '/team/not-a-profile/', '/team/' ) as $path ) {
 	list( $status ) = salt_profile_http( home_url( $path ) );
 	salt_harness_result( 404 === $status, 'private, unknown and unconfigured collection addresses are direct 404s', (string) $status );

@@ -435,7 +435,7 @@ PHP
 			)
 		);
 
-		$this->assertStringStartsWith( '<div class="x-post-prose', $html, 'Prose draws no wrapper and so no id.' );
+		$this->assertStringStartsWith( '<div class="salt-rich-text">', $html, 'Prose draws no wrapper and so no id.' );
 		$this->assertMatchesRegularExpression( '/id="rich-text-2"[^>]*>.*First band.*id="rich-text"[^>]*>.*Anchored band/s', $html, 'The editor\'s anchor settles first; the prose row is place 1 among unanchored rich-text rows, so the band asks for -2.' );
 	}
 

@@ -108,22 +108,30 @@ function salt_collection_index_url( string $source ): ?string {
  *
  * The founder's ruling: translatable theme strings, in the contract
  * fixtures' English. The `salt_contract_labels` filter is this one seam;
- * the contract adapter feeds it the case's site.labels.
+ * the contract adapter feeds it the case's site.labels. A view's own
+ * labels (salt_view_label_defaults()) are merged over these for that view,
+ * and the filter is told which view asks. A label may be a map of labels
+ * (the share links' services).
  *
- * @return array<string,string>
+ * @param string $view A view's id, or '' for the sections and the chrome.
+ * @return array<string,string|array<string,string>>
  */
-function salt_contract_labels(): array {
-	$labels = array(
-		'viewAll'  => __( 'View all', 'salt' ),
-		'slide'    => __( 'Slide', 'salt' ),
-		'rating'   => __( 'Rated', 'salt' ),
-		'results'  => __( 'Results', 'salt' ),
-		'social'   => __( 'Social profiles', 'salt' ),
-		'previous' => __( 'Previous', 'salt' ),
-		'next'     => __( 'Next', 'salt' ),
+function salt_contract_labels( string $view = '' ): array {
+	$labels = array_merge(
+		array(
+			'viewAll'  => __( 'View all', 'salt' ),
+			'slide'    => __( 'Slide', 'salt' ),
+			'rating'   => __( 'Rated', 'salt' ),
+			'results'  => __( 'Results', 'salt' ),
+			'social'   => __( 'Social profiles', 'salt' ),
+			'previous' => __( 'Previous', 'salt' ),
+			'next'     => __( 'Next', 'salt' ),
+		),
+		'' !== $view ? salt_view_label_defaults( $view ) : array()
 	);
-	$given  = apply_filters( 'salt_contract_labels', $labels );
-	return is_array( $given ) ? array_map( 'strval', $given ) : $labels;
+	$given  = apply_filters( 'salt_contract_labels', $labels, $view );
+	$string = static fn( $label ) => is_array( $label ) ? array_map( 'strval', $label ) : (string) $label;
+	return is_array( $given ) ? array_map( $string, $given ) : $labels;
 }
 
 /**

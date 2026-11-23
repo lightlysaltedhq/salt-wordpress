@@ -68,7 +68,7 @@ foreach ( $salt_modules as $salt_module ) {
 unset( $salt_modules, $salt_module );
 
 // Modules that land via parallel build agents — loaded once present.
-foreach ( array( '/inc/media.php', '/inc/schema/graph.php', '/inc/services/svg.php', '/inc/services/post-meta.php' ) as $salt_pending ) {
+foreach ( array( '/inc/media.php', '/inc/schema/graph.php', '/inc/services/svg.php', '/inc/services/post-meta.php', '/inc/services/views.php' ) as $salt_pending ) {
 	if ( file_exists( dirname( __DIR__ ) . $salt_pending ) ) {
 		require dirname( __DIR__ ) . $salt_pending;
 	}

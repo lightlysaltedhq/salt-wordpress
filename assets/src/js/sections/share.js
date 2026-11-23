@@ -1,43 +1,51 @@
 /**
- * Share-row copy-link enhancement (single post build-out; FAIL02).
+ * The share links' copy control (salt-contract markup/share-links.json).
  *
- * Progressive enhancement over a FUNCTIONAL no-JS base: the x-share-links
- * component renders its copy button inside a `hidden` <li> — without this
- * file (or without a clipboard API) the button simply never appears, so
- * there is no dead control. This module reveals the button, copies the URL
- * on click, and flips the accessible label to a "copied" confirmation for
- * a moment.
+ * Progressive enhancement: the server draws span.salt-copy-link with its
+ * button not ready (data-ready="false"), which the shared stylesheet hides,
+ * so without this file, or without a clipboard API, there is no dead
+ * control. This module marks each button ready, copies the page's address
+ * (its canonical link, else the address bar) on click and writes the result
+ * into the control's status (role=status, aria-live=polite), which the
+ * theme hands over as window.saltShare.labels (salt_share_script_labels()).
  *
- * Self-contained IIFE, plain ES2020, no imports. No-ops gracefully when
- * the DOM trigger ([data-share-copy]) or navigator.clipboard is absent.
+ * Self-contained IIFE, plain ES2020, no imports.
  */
 (() => {
 	'use strict';
 
 	if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
-		return; // No clipboard API — button stays hidden (no dead control).
+		return; // No clipboard API: the button stays not ready (hidden).
 	}
 
-	document.querySelectorAll('[data-share-copy]').forEach((button) => {
-		const item = button.closest('[data-share-copy-item]');
-		if (item) {
-			item.hidden = false;
-		}
+	const labels = (window.saltShare && window.saltShare.labels) || {};
+	const canonical = document.querySelector('link[rel="canonical"]');
+	const url = canonical && canonical.href ? canonical.href : window.location.href;
 
-		const idleLabel = button.getAttribute('aria-label') || '';
-		const copiedLabel = button.dataset.copiedLabel || idleLabel;
+	document.querySelectorAll('.salt-copy-link').forEach((control) => {
+		const button = control.querySelector('.salt-copy-link__button');
+		const status = control.querySelector('.salt-copy-link__status');
+		if (!button) {
+			return;
+		}
+		button.dataset.ready = 'true';
 		let timer = 0;
 
 		button.addEventListener('click', () => {
-			navigator.clipboard.writeText(button.dataset.shareUrl || window.location.href).then(() => {
-				button.setAttribute('aria-label', copiedLabel);
-				button.classList.add('text-brand', 'border-brand');
+			const say = (text) => {
+				if (!status) {
+					return;
+				}
+				status.textContent = text || '';
 				window.clearTimeout(timer);
 				timer = window.setTimeout(() => {
-					button.setAttribute('aria-label', idleLabel);
-					button.classList.remove('text-brand', 'border-brand');
-				}, 2000);
-			});
+					status.textContent = '';
+				}, 4000);
+			};
+			navigator.clipboard.writeText(url).then(
+				() => say(labels.copied),
+				() => say(labels.copyFailed),
+			);
 		});
 	});
 })();

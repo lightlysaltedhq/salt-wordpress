@@ -1,22 +1,19 @@
 <?php
 /**
- * x-author-box — post author attribution card (photo and bio from the
- * credited team member; the caller resolves both).
+ * The author box, as the contract draws it (salt-contract rc.8
+ * markup/author-box.json): an aside named by labels.author, the author's
+ * photo (thumb slot, lazy) when they have one, then the "Written by" label,
+ * the name (linked when the author has an archive), the role and the bio.
+ * Not drawn without a name. A view: it draws its args and nothing else.
  *
- * ARGS CONTRACT (v1 — changing this signature or the markup structure is a
- * MAJOR semver bump, §4/§12):
- *   name    string required  Author display name (escaped here).
- *   bio     string ''        Plain-text bio (the team member's bio; escaped here).
- *   url     string ''        Author archive URL — the name links when present.
- *   role    string ''        Role line under the name (escaped here).
- *   media   string ''        PRE-RENDERED HTML slot (an x-image render
- *                            of the avatar). Printed raw —
- *                            the producer escapes at print.
- *   classes string ''        Extra utility classes appended to the class list.
- *
- * Empty name renders nothing (contract violation already logged by
- * salt_require_args) — never a hollow attribution card.
- * Render via salt_component( 'author-box', … ) / salt_get_component().
+ * ARGS:
+ *   name   string      The author's name (required).
+ *   href   string      The author's archive, or '' for none.
+ *   role   string      The role, or ''.
+ *   bio    string      The bio, or ''.
+ *   photo  array|null  The photo as a contract image (salt_image_contract(),
+ *                      thumb slot), or null.
+ *   labels array       labels.author, labels.writtenBy.
  *
  * @package Salt
  */
@@ -25,75 +22,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$args = salt_require_args( // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- $args is WordPress's load_template() template variable.
-	$args ?? array(),
-	array(
-		'name'    => array(
-			'type'     => 'string',
-			'required' => true,
-		),
-		'bio'     => array(
-			'type'    => 'string',
-			'default' => '',
-		),
-		'url'     => array(
-			'type'    => 'string',
-			'default' => '',
-		),
-		'role'    => array(
-			'type'    => 'string',
-			'default' => '',
-		),
-		'media'   => array(
-			'type'    => 'string',
-			'default' => '',
-		),
-		'classes' => array(
-			'type'    => 'string',
-			'default' => '',
-		),
-		'slots'   => array(
-			'type'    => 'array',
-			'default' => array(),
-		),
-	),
-	'author-box'
-);
-
-if ( '' === trim( $args['name'] ) ) {
-	salt_log( 'x-author-box: empty name — rendered nothing.' );
+$salt_args   = $args ?? array();
+$salt_name   = trim( (string) ( $salt_args['name'] ?? '' ) );
+$salt_labels = (array) ( $salt_args['labels'] ?? array() );
+if ( '' === $salt_name ) {
 	return;
 }
+$salt_href = (string) ( $salt_args['href'] ?? '' );
+$salt_role = trim( (string) ( $salt_args['role'] ?? '' ) );
+$salt_bio  = trim( (string) ( $salt_args['bio'] ?? '' ) );
 
-$salt_classes = salt_classnames(
-	array(
-		'x-author-box flex flex-col gap-4 rounded-lg border border-border bg-surface-alt p-6 sm:flex-row sm:items-start',
-		$args['classes'],
-	)
-);
-
-$salt_name = '' !== trim( $args['url'] )
-	? sprintf(
-		'<a class="hover:text-brand" href="%s">%s</a>',
-		esc_url( $args['url'] ),
-		esc_html( $args['name'] )
-	)
-	: esc_html( $args['name'] );
-?>
-<aside class="<?php echo esc_attr( $salt_classes ); ?>">
-	<?php if ( '' !== $args['media'] ) : ?>
-	<div class="x-author-box-media size-16 shrink-0 overflow-hidden rounded-full">
-		<?php echo $args['media']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-rendered slot HTML; the producing component escapes at print. ?>
-	</div>
-	<?php endif; ?>
-	<div class="x-author-box-body flex flex-col gap-1">
-		<p class="x-author-box-label text-xs font-semibold uppercase tracking-widest text-ink-muted"><?php esc_html_e( 'Written by', 'salt' ); ?></p>
-		<p class="x-author-box-name font-semibold"><?php echo $salt_name; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built above from esc_url()/esc_html() parts. ?></p>
-		<?php if ( '' !== trim( $args['role'] ) ) : ?>
-		<p class="x-author-box-role text-sm text-ink-muted"><?php echo esc_html( $args['role'] ); ?></p>
-		<?php endif; ?>
-		<?php if ( '' !== trim( $args['bio'] ) ) : ?>
-		<p class="x-author-box-bio text-sm text-ink-muted"><?php echo esc_html( $args['bio'] ); ?></p>
-		<?php endif; ?>
-	</div>
-</aside>
+echo '<aside class="salt-author-box" aria-label="' . esc_attr( (string) ( $salt_labels['author'] ?? '' ) ) . '">';
+if ( is_array( $salt_args['photo'] ?? null ) ) {
+	echo '<div class="salt-author-box__media">' . salt_image_contract_html( $salt_args['photo'] ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped attribute by attribute.
+}
+echo '<div class="salt-author-box__body">';
+echo '<p class="salt-author-box__label">' . esc_html( (string) ( $salt_labels['writtenBy'] ?? '' ) ) . '</p>';
+echo '<p class="salt-author-box__name">' . ( '' !== $salt_href ? '<a href="' . esc_url( $salt_href ) . '">' . esc_html( $salt_name ) . '</a>' : esc_html( $salt_name ) ) . '</p>';
+if ( '' !== $salt_role ) {
+	echo '<p class="salt-author-box__role">' . esc_html( $salt_role ) . '</p>';
+}
+if ( '' !== $salt_bio ) {
+	echo '<p class="salt-author-box__bio">' . esc_html( $salt_bio ) . '</p>';
+}
+echo '</div></aside>';

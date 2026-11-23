@@ -360,6 +360,142 @@ function salt_view_card( array $card, array $media, array $more ): int {
 	return $id;
 }
 
+/**
+ * A view case's site as WordPress holds it, and the rest for the theme's
+ * seams (tests/real-acf/site/salt-harness-case.php):
+ *  - site.home (a path, or `{ href, title }`) as a published static front
+ *    page, and none as a static front page that is not chosen, so a site
+ *    with no home page has none (salt_contract_home()); a page case at /
+ *    keeps its own page as the front page;
+ *  - site.collectionIndexes.post as the posts page, with its title;
+ *  - the case's site, document, route and context in the `salt_harness_case` option,
+ *    which the mu-plugin reads.
+ *
+ * @param array<string,mixed> $input The case.
+ * @return void
+ */
+function salt_view_case_site( array $input ): void {
+	$site = (array) ( $input['site'] ?? array() );
+	$page = static function ( string $href, string $title ): int {
+		$slug = salt_harness_slug( $href );
+		return (int) wp_insert_post(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_title'  => $title,
+				'post_name'   => '' !== $slug ? $slug : sanitize_title( $title ),
+			)
+		);
+	};
+	// A page case at / is already the front page, and the home page itself.
+	$front = (int) get_option( 'page_on_front' );
+	if ( 'page' !== get_option( 'show_on_front' ) || 'publish' !== get_post_status( $front ) ) {
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', 0 );
+		if ( isset( $site['home'] ) ) {
+			$home = is_array( $site['home'] ) ? $site['home'] : array( 'href' => (string) $site['home'] );
+			update_option( 'page_on_front', $page( (string) ( $home['href'] ?? '/' ), (string) ( $home['title'] ?? 'Home' ) ) );
+		}
+	}
+	if ( isset( $site['collectionIndexes']['post'] ) ) {
+		$index = (array) $site['collectionIndexes']['post'];
+		update_option( 'page_for_posts', $page( (string) $index['href'], (string) ( $index['title'] ?? '' ) ) );
+	}
+	update_option(
+		'salt_harness_case',
+		array(
+			'site'     => $site,
+			'document' => (array) ( $input['document'] ?? array() ),
+			'route'    => (array) ( $input['route'] ?? array() ),
+			'context'  => (array) ( $input['context'] ?? array() ),
+		)
+	);
+}
+
+/**
+ * Each attachment a case's media names (its title is the media name, as
+ * seed.php makes them) served from the record's `{width}` template, as
+ * the adapter's upload URL filter serves it: the template on the
+ * attachment (the mu-plugin draws it), and a `salt-<width>` sub-size for
+ * every contract candidate below the upload's width (salt_image_candidates()).
+ *
+ * @param array<string,mixed> $media The case's media.
+ * @return void
+ */
+function salt_view_media_urls( array $media ): void {
+	foreach ( get_posts(
+		array(
+			'post_type'   => 'attachment',
+			'post_status' => 'inherit',
+			'numberposts' => -1,
+		)
+	) as $attachment ) {
+		$record = $media[ $attachment->post_title ] ?? null;
+		if ( ! is_array( $record ) || ! isset( $record['url'] ) ) {
+			continue;
+		}
+		$meta   = (array) wp_get_attachment_metadata( $attachment->ID );
+		$width  = (int) ( $meta['width'] ?? 0 );
+		$height = (int) ( $meta['height'] ?? 0 );
+		foreach ( salt_image_candidates() as $candidate ) {
+			if ( $candidate < $width ) {
+				$meta['sizes'][ 'salt-' . $candidate ] = array(
+					'file'      => $attachment->post_title . '-' . $candidate . '.png',
+					'width'     => $candidate,
+					'height'    => (int) round( $height * $candidate / max( 1, $width ) ),
+					'mime-type' => 'image/png',
+				);
+			}
+		}
+		wp_update_attachment_metadata( $attachment->ID, $meta );
+		update_post_meta( $attachment->ID, '_salt_harness_url', (string) $record['url'] );
+	}
+}
+
+/**
+ * The search case's results hold its query in their text, so WordPress's
+ * own search finds each one (a result's title need not hold it).
+ *
+ * @param array<string,mixed> $doc The case's document.
+ * @return void
+ */
+function salt_view_search_text( array $doc ): void {
+	foreach ( (array) ( $doc['results'] ?? array() ) as $result ) {
+		$found = get_posts(
+			array(
+				'post_type'   => 'any',
+				'title'       => (string) $result['title'],
+				'numberposts' => 1,
+			)
+		);
+		if ( array() !== $found ) {
+			wp_update_post(
+				array(
+					'ID'           => $found[0]->ID,
+					'post_content' => (string) ( $doc['query'] ?? '' ),
+				)
+			);
+		}
+	}
+}
+
+/**
+ * A case's site.caseStudy (the layout a site sets once for its case
+ * studies) on Site Settings → Case Studies, as an editor saves it
+ * (inc/fields/options-case-studies.php): each setting the case gives, a dark
+ * tone left out as automatic, and the defaults (plain, flow) otherwise.
+ *
+ * @param array<string,mixed> $site The case's `site`.
+ * @return void
+ */
+function salt_view_case_study_options( array $site ): void {
+	$layout = (array) ( $site['caseStudy'] ?? array() );
+	update_field( 'field_salt_options_case_study_header', (string) ( $layout['header'] ?? 'plain' ), 'option' );
+	update_field( 'field_salt_options_case_study_header_tone', (string) ( $layout['headerTone'] ?? 'surface' ), 'option' );
+	update_field( 'field_salt_options_case_study_header_tone_dark', (string) ( $layout['headerToneDark'] ?? 'auto' ), 'option' );
+	update_field( 'field_salt_options_case_study_media', (string) ( $layout['media'] ?? 'flow' ), 'option' );
+}
+
 ob_start();
 $GLOBALS['salt_harness_media'] = (array) ( $salt_view_input['media'] ?? array() );
 $salt_view_doc                 = (array) ( $salt_view_input['document'] ?? array() );
@@ -414,6 +550,7 @@ switch ( $salt_view_kind ) {
 		break;
 	case 'case-study':
 		salt_harness_seed_case_study( $salt_view_input );
+		salt_view_case_study_options( (array) ( $salt_view_input['site'] ?? array() ) );
 		break;
 	case 'archive':
 		$salt_view_slug = salt_harness_slug( (string) ( $salt_view_doc['href'] ?? $salt_view_path ) );
@@ -475,6 +612,7 @@ switch ( $salt_view_kind ) {
 				)
 			);
 		}
+		salt_view_search_text( $salt_view_doc );
 		$salt_view_path = '/?s=' . rawurlencode( (string) ( $salt_view_doc['query'] ?? '' ) );
 		break;
 	case 'not-found':
@@ -483,6 +621,10 @@ switch ( $salt_view_kind ) {
 		// As the adapter's exit 4: a kind of case it cannot render yet, not input that is no case.
 		fwrite( STDERR, "salt harness: the view {$salt_view_kind} is not rendered by the harness yet: view.php has no seeding for it\n" );
 		exit( 4 );
+}
+if ( 'page' !== $salt_view_kind ) {
+	salt_view_case_site( $salt_view_input );
+	salt_view_media_urls( $salt_view_media );
 }
 $salt_view_stray = (string) ob_get_clean();
 if ( '' !== $salt_view_stray ) {

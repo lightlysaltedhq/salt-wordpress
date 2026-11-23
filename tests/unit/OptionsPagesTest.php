@@ -1,7 +1,8 @@
 <?php
 /**
  * Tests for inc/fields/options.php + the inc/fields/options-*.php page files
- * — the Site Settings IA (parent + seven sub-pages) and the v3 retarget
+ * — the Site Settings IA (parent + eight sub-pages, seven without the work
+ * module's Case Studies) and the v3 retarget
  * contract: every options field group targets a declared sub-page slug and
  * every frozen field NAME survived the consolidation (DATA02/FLEET07).
  *
@@ -78,9 +79,9 @@ final class OptionsPagesTest extends SaltTestCase {
 		$this->assertTrue( $parent['redirect'], 'The parent holds no groups — it must redirect to the first sub-page.' );
 	}
 
-	public function test_seven_subpages_register_uniquely_in_declared_order(): void {
+	public function test_eight_subpages_register_uniquely_in_declared_order(): void {
 		$subpages = $GLOBALS['salt_test_acf_subpages'];
-		$this->assertCount( 7, $subpages );
+		$this->assertCount( 8, $subpages );
 
 		$slugs = array_column( $subpages, 'menu_slug' );
 		$this->assertSame( $slugs, array_values( array_unique( $slugs ) ), 'Sub-page slugs must be unique.' );
@@ -90,6 +91,20 @@ final class OptionsPagesTest extends SaltTestCase {
 			$this->assertSame( 'manage_options', $subpage['capability'] );
 			$this->assertSame( 'salt-settings', $subpage['parent_slug'] );
 		}
+	}
+
+	public function test_case_studies_page_and_group_are_the_work_modules(): void {
+		$this->assertContains( 'salt-settings-case-studies', array_column( $GLOBALS['salt_test_acf_subpages'], 'menu_slug' ) );
+		$this->assertContains( 'group_salt_options_case_studies', array_column( $GLOBALS['salt_test_acf_groups'], 'key' ) );
+
+		add_filter( 'salt_module_enabled', static fn( bool $on, string $slug ): bool => 'work' === $slug ? false : $on, 10, 2 );
+		$GLOBALS['salt_test_acf_groups']   = array();
+		$GLOBALS['salt_test_acf_subpages'] = array();
+		salt_test_do_action( 'acf/init' );
+
+		$this->assertCount( 7, $GLOBALS['salt_test_acf_subpages'] );
+		$this->assertNotContains( 'salt-settings-case-studies', array_column( $GLOBALS['salt_test_acf_subpages'], 'menu_slug' ) );
+		$this->assertNotContains( 'group_salt_options_case_studies', array_column( $GLOBALS['salt_test_acf_groups'], 'key' ) );
 	}
 
 	public function test_every_options_group_targets_a_declared_subpage(): void {

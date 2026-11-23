@@ -14,6 +14,16 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
 
 ### Added
 
+- **Site Settings → Case Studies (ID-3672, EP-72 M4).** One layout for
+  every case study, the contract's `site.caseStudy`: the header plain or a
+  coloured band (with its tone, and a dark-mode tone that by default keeps
+  it), and the featured image in the flow or aside, beside the challenge,
+  solution, gallery and live-site link on wide screens. The page shows only
+  when the Work module is on; its settings are kept while the module is
+  off. Two image slots come with it, `aside` and `aside-card` (`inc/media.php`),
+  for the aside image and the services cards beside it. They use the
+  existing candidate widths, so no thumbnails need regenerating.
+
 - **Editor targets and publish limits (ID-3971, contract rc.8).** Text fields
   and suggested list sizes now show a live count, including fields added to
   section layouts. Exceeding a target never cuts pasted text or refuses a save.
