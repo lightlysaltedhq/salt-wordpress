@@ -161,3 +161,18 @@ function salt_styles_inline_size_limit(): int {
 	return 0;
 }
 add_filter( 'styles_inline_size_limit', 'salt_styles_inline_size_limit' );
+
+/**
+ * Dequeue core's sizes="auto" image fix ('wp_enqueue_scripts').
+ * wp_enqueue_img_auto_sizes_contain_css_fix() (wp-includes/media.php,
+ * wp_head 0) registers wp-img-auto-sizes-contain as an inline-only style,
+ * which prints as a <style> with no nonce that the CSP refuses. Its one rule
+ * is in the theme's stylesheet instead (assets/src/css/app.css), so the
+ * images keep core's intrinsic size.
+ *
+ * @return void
+ */
+function salt_dequeue_img_auto_sizes_contain(): void {
+	wp_dequeue_style( 'wp-img-auto-sizes-contain' );
+}
+add_action( 'wp_enqueue_scripts', 'salt_dequeue_img_auto_sizes_contain' );

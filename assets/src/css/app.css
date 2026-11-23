@@ -371,6 +371,18 @@
 	--color-focus: var(--color-primary-400);
 }
 
+/*
+ * WordPress core's fix for images with sizes="auto" (WordPress 6.7+,
+ * wp_enqueue_img_auto_sizes_contain_css_fix() in wp-includes/media.php),
+ * carried here verbatim. Core prints it as an inline <style> with no nonce,
+ * which the CSP refuses, so salt_dequeue_img_auto_sizes_contain()
+ * (inc/security.php) dequeues it and this stylesheet supplies the rule.
+ * Unlayered, as core's is.
+ */
+img:is([sizes="auto" i], [sizes^="auto," i]) {
+	contain-intrinsic-size: 3000px 1500px;
+}
+
 /* ---------------------------------------------------------------------- */
 
 /* Base layer                                                              */
