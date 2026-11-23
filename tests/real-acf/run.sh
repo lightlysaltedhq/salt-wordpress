@@ -267,7 +267,7 @@ phase "install" "$PHP" "$HERE/php/install.php"
 # The conformance run: the site serves the contract's view and page cases while salt-conformance runs.
 # Its timeout is per case and includes the wait for view.php's lock (the cases take the one site in
 # turn), so it is ten minutes, not the runner's default minute. The report goes to report/ like any
-# run's, and is copied to the committed baseline only when every case rendered.
+# run's, and is copied to the committed baseline only when the whole run conforms.
 conformance() {
 	(cd "$REPO" && PATH="$(dirname "$PHP"):$PATH" npm run --silent conformance:contract -- --timeout 600000 >"$TMP/conformance.md") || { cat "$TMP/conformance.md"; return 1; }
 	mkdir -p "$REPO/tests/contract-adapter/baseline"

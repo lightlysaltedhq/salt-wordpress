@@ -18,7 +18,7 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
 - **Clients and Sectors.** Under Site Settings → Advanced → Modules → Content modules, each switch defaults to off. With a switch off the editor uses the saved text; with it on the editor can choose a private, name-only record. An available choice supplies its current name, never a link. An unavailable choice falls back to the saved text and stays selected until explicitly removed or replaced. Toggling does not create, match or delete records.
 - **Sections and anchors.** Recheck every child section view against the new props and `.salt-*` markup ([override guide](docs/contracts/OVERRIDES.md)). `settings.anchorId` reserves a name even for a row that does not draw. `main` now resolves to `main-section`, `site-navigation` is reserved and `primary-navigation` is free. Unanchored bands get deterministic IDs; prose does not claim a band ID. Check bookmarked fragments, including paginated pages and duplicate anchors. The first eligible image, not necessarily the first row, gets priority.
 - **Presentation.** Use the contract stylesheet's data attributes for spacing, scrim strength, focal position (5% steps) and ratings instead of inline CSS. Same-site card and button links are root-relative. Named label placeholders (`{n}`, `{N}`, `{q}`, `{kind}`, `{name}`) are replaced in place: update translated overrides, including gallery, rating, view and directions labels. No implicit suffix is appended.
-- **Chrome and consent.** Header and footer draw the contract's menu tree; child menu CSS classes and `wp_nav_menu_items` additions no longer apply there. `Salt_Nav_Walker::walk()` renders it; use `salt_menu()` on the walker for its tree. The optional header phone defaults off. The preferences control needs both an active consent provider and an integration that uses consent. There is one checkbox per category in use, not per integration; without an answering provider integrations stay denied. Use `salt_consent_categories_in_use` for categories; `salt_consent_panel` supplies words only.
+- **Chrome and consent.** Header and footer draw the contract's menu tree; child menu CSS classes and `wp_nav_menu_items` additions no longer apply there. `Salt_Nav_Walker::walk()` renders it; use `Salt_Nav_Walker::salt_menu()` for its tree. The optional header phone defaults off. The preferences control needs both an active consent provider and an integration that uses consent. It draws one checkbox per WP Consent API category in use (statistics or marketing), not per integration. Use `salt_consent_categories_in_use` for categories; `salt_consent_panel` supplies words only.
 - **Contact, maps and gallery.** Update overrides to the emitted contact fields and contract markup. The closed state replaces the old email button. Scripted contact uses the site's REST address on plain permalinks and refreshes expired credentials. Enquiry dates are now stored for retention; this does not repair historical records. Maps use the same-origin MapLibre worker. Gallery no longer loads `gallery.js` or supplies `data-salt-carousel`. Core styles and speculation rules follow the existing CSP without granting arbitrary inline styles or scripts.
 - **Removed parts and styles.** Old card, button and other `x-*` parts, utilities generated only for the old views, and booking hooks are no longer supplied. See the [removed parts and migration paths](docs/contracts/OVERRIDES.md#removed-template-parts-and-css-600-id-3946--breaking). Recheck child copies of sections, site chrome, archives and single templates before updating a site.
 
@@ -68,20 +68,7 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
   section views, CTA clicks, accordion opens and carousel controls on the
   bands drawn to the contract's markup (`data-track`).
 
-- **A PHP fixture adapter and a partial contract conformance baseline
-  (ID-3626, EP-72 M3 unit 5).** `tests/contract-adapter/adapter.php` is
-  the command adapter for the pinned salt-contract's conformance runner.
-  It reads one fixture case on stdin and seeds its values into the ACF
-  shims in the contract's stored shape. It then renders the case through
-  the theme's resolver and view, or the chrome's template part, without
-  WordPress. Any PHP diagnostic fails the case. `npm run
-  conformance:contract` runs it with `--partial`; it always exits 1, as
-  every partial run does (SC-017). It checks field parity against
-  `inc/fields/generated/sections.json` and the stylesheet pin against the
-  served `salt.css`; `tabs`, `listing` and `pricing` are not shipped.
-  The baseline report against salt-contract 1.0.0-rc.6 is committed in
-  `tests/contract-adapter/baseline/` as M4's worklist. Views and the page
-  are not rendered yet. See `tests/contract-adapter/README.md`.
+- **Full contract conformance.** `npm run conformance:harness` runs the rc.9 contract checks against all 14 shipped sections and all chrome, view and page fixtures. A failed check exits non-zero. The baseline in `tests/contract-adapter/baseline/` includes the ACF field and served stylesheet checks; `tabs`, `listing` and `pricing` are explicitly not shipped. The gate is local until the founder applies `docs/ci/contract-conformance.patch` to run it and compare the baseline on both PHP versions in CI.
 - **The contract's view and page cases render on the real-ACF harness's
   WordPress (ID-3626, EP-72 M3 unit 5b).** `npm run conformance:harness`
   (`tests/real-acf/run.sh --conformance`) builds the harness's site with
@@ -91,8 +78,7 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
   case's document, site, route, media and documents into posts, terms,
   options and routes, requests `context.path` (a search at WordPress's own
   `/?s=`), and returns `main#main`, or the whole document for the page.
-  Without the harness, those cases still exit 4. All 23 view and page cases in salt-contract 1.0.0-rc.7 now render
-  with no PHP diagnostic and differ only in their markup. Any PHP notice,
+  Without the harness, those cases still exit 4. Any PHP notice,
   warning, deprecation or error fails the case (exit 70) and the run. The
   committed baseline is regenerated from this run, and it is the same byte
   for byte on PHP 8.2 and 8.5. The harness's phases now share their seeding

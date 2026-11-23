@@ -10,7 +10,7 @@ diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
 +          composer install --prefer-dist --no-progress
 +          tests/real-acf/run.sh --php ${{ matrix.php }} --report real-acf-report.txt
 +          npm run conformance:harness -- --php ${{ matrix.php }}
-+          git diff --exit-code -- tests/contract-adapter/baseline
++          test -z "$(git status --porcelain --untracked-files=all -- tests/contract-adapter/baseline)"
  
        - name: Keep the report
          if: always()
