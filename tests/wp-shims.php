@@ -1138,14 +1138,16 @@ if ( ! function_exists( 'status_header' ) ) {
 
 if ( ! function_exists( 'wp_get_nocache_headers' ) ) {
 	/**
-	 * wp_get_nocache_headers shim: WordPress's own set.
+	 * wp_get_nocache_headers shim: WordPress's own set, with core's
+	 * 'Last-Modified' => false ("send none").
 	 *
-	 * @return array<string,string>
+	 * @return array<string,string|false>
 	 */
 	function wp_get_nocache_headers(): array {
 		return array(
 			'Expires'       => 'Wed, 11 Jan 1984 05:00:00 GMT',
 			'Cache-Control' => 'no-cache, must-revalidate, max-age=0, no-store, private',
+			'Last-Modified' => false,
 		);
 	}
 }

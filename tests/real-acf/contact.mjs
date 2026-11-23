@@ -130,7 +130,9 @@ try {
 	// A form-encoded REST send with the self-post flag in its address: its
 	// fields are back in $_POST before the REST API reads them.
 	const rest = new URL( '/wp-json/salt/v1/contact', post );
-	const credentials = await ( await scripted.request.get( `${ rest }/credentials` ) ).json();
+	const credentialsResponse = await scripted.request.get( `${ rest }/credentials` );
+	const credentials = await credentialsResponse.json();
+	result( /no-store/.test( credentialsResponse.headers()[ 'cache-control' ] || '' ) && ! ( 'last-modified' in credentialsResponse.headers() ), 'the credentials are not cacheable, with no empty Last-Modified', JSON.stringify( credentialsResponse.headers() ) );
 	await wait( 3500 );
 	const encoded = await scripted.request.post( `${ rest }?salt-contact-send=enquire`, { form: { name: 'Ada Encoded', email: 'ada@example.org', enquiryType: 'maintenance', message: 'Form-encoded.', website: '', returnTo: '/contact-check/', formToken: credentials.formToken } } );
 	// Another form posted to the answered page (its address keeps the flag):

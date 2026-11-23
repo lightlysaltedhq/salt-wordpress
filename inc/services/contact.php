@@ -413,6 +413,23 @@ function salt_contact_register_rest(): void {
 add_action( 'rest_api_init', 'salt_contact_register_rest' );
 
 /**
+ * WordPress's no-cache headers on a REST response, leaving out those core
+ * sets to false or '' to mean "send none" (Last-Modified), so no empty
+ * header goes out.
+ *
+ * @param WP_REST_Response $response The response.
+ * @return WP_REST_Response
+ */
+function salt_contact_nocache( WP_REST_Response $response ): WP_REST_Response {
+	foreach ( wp_get_nocache_headers() as $name => $value ) {
+		if ( false !== $value && '' !== $value ) {
+			$response->header( $name, (string) $value );
+		}
+	}
+	return $response;
+}
+
+/**
  * GET /salt/v1/contact/credentials: a fresh form token, rate limited
  * (SEC10: 20 / 10 minutes / client), never cached.
  *
@@ -432,10 +449,7 @@ function salt_contact_rest_credentials(): WP_REST_Response {
 			200
 		);
 	}
-	foreach ( wp_get_nocache_headers() as $name => $value ) {
-		$response->header( $name, (string) $value );
-	}
-	return $response;
+	return salt_contact_nocache( $response );
 }
 
 /**
@@ -454,10 +468,7 @@ function salt_contact_rest_send( $request ): WP_REST_Response {
 		),
 		$result['status']
 	);
-	foreach ( wp_get_nocache_headers() as $name => $value ) {
-		$response->header( $name, (string) $value );
-	}
-	return $response;
+	return salt_contact_nocache( $response );
 }
 
 /**

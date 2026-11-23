@@ -94,6 +94,19 @@ final class ContactEndpointTest extends SaltTestCase {
 		);
 	}
 
+	/**
+	 * The headers a no-cache response sends: WordPress's set, without the
+	 * Last-Modified core marks false (send none).
+	 *
+	 * @return array<string,string>
+	 */
+	private function nocache_sent(): array {
+		return array(
+			'Expires'       => 'Wed, 11 Jan 1984 05:00:00 GMT',
+			'Cache-Control' => 'no-cache, must-revalidate, max-age=0, no-store, private',
+		);
+	}
+
 	private function payload_for( string $path ): array {
 		return 'page' === $path ? $this->page_payload() : $this->valid_payload();
 	}
@@ -254,7 +267,7 @@ final class ContactEndpointTest extends SaltTestCase {
 		$first = salt_contact_rest_credentials();
 		$this->assertSame( 200, $first->get_status() );
 		$this->assertSame( 3, count( explode( '.', $first->get_data()['formToken'] ) ), 'A form token: time, signature, nonce.' );
-		$this->assertSame( wp_get_nocache_headers(), $first->get_headers(), 'WordPress\'s whole no-cache set.' );
+		$this->assertSame( $this->nocache_sent(), $first->get_headers(), 'WordPress\'s no-cache set, no empty Last-Modified.' );
 
 		for ( $i = 1; $i < 20; $i++ ) {
 			salt_contact_rest_credentials();
@@ -296,7 +309,7 @@ final class ContactEndpointTest extends SaltTestCase {
 		$response = salt_contact_rest_send( $request );
 
 		$this->assertStringContainsString( 'no-store', $response->get_headers()['Cache-Control'] );
-		$this->assertSame( wp_get_nocache_headers(), $response->get_headers(), 'WordPress\'s whole no-cache set.' );
+		$this->assertSame( $this->nocache_sent(), $response->get_headers(), 'WordPress\'s no-cache set, no empty Last-Modified.' );
 	}
 
 	public function test_captcha_required_on_rest_path_when_provider_configured(): void {
