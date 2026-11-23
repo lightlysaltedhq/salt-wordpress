@@ -6,8 +6,9 @@
  *
  *   1. Checks consent CLIENT-SIDE and fail-closed: the click is user
  *      intent, but the tiles are a third-party load, so the maps→marketing
- *      consent category still gates. No window.wp_has_consent on the page
- *      (no CMP) or a denied verdict → dispatch 'salt:consent-required'
+ *      consent category still gates. No window.wp_has_consent on the page,
+ *      no consent type set (the WP Consent API then grants everything), or
+ *      a denied verdict → dispatch 'salt:consent-required'
  *      (bubbling, so a CMP integration can open its banner) + show the
  *      inline i18n'd notice from the facade's data attribute, and abort.
  *   2. Granted → injects a <script> for the SAME-origin MapLibre bundle
@@ -79,12 +80,35 @@
 	};
 
 	/**
-	 * Fail-closed consent verdict for the maps→marketing category.
+	 * The consent type a consent management plugin set through the WP
+	 * Consent API: window.wp_consent_type, else the API's fallback from the
+	 * server's wp_get_consent_type filter (wp_fallback_consent_type, or
+	 * consent_api.consent_type before the API's script ran). '' when none.
 	 *
-	 * @return {boolean} True only on an explicit CMP grant.
+	 * @return {string} The consent type, such as 'optin' or 'optout'.
+	 */
+	const consentType = () => {
+		const api = window.consent_api || {};
+		const type =
+			typeof window.wp_consent_type !== 'undefined'
+				? window.wp_consent_type
+				: typeof window.wp_fallback_consent_type !== 'undefined'
+					? window.wp_fallback_consent_type
+					: api.consent_type;
+		return typeof type === 'string' ? type : '';
+	};
+
+	/**
+	 * Fail-closed consent verdict for the maps→marketing category. The WP
+	 * Consent API grants every category when no consent management plugin
+	 * has set a consent type, so a grant counts only when a type is set.
+	 *
+	 * @return {boolean} True only when a CMP set a consent type and grants marketing.
 	 */
 	const hasConsent = () =>
-		typeof window.wp_has_consent === 'function' && window.wp_has_consent('marketing') === true;
+		typeof window.wp_has_consent === 'function' &&
+		consentType() !== '' &&
+		window.wp_has_consent('marketing') === true;
 
 	/**
 	 * Build the raster map inside the facade (post-click, post-consent).
