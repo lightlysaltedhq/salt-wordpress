@@ -1,9 +1,9 @@
 <?php
 /**
  * The contract's section wrapper (salt-contract markup/section.json), for
- * the sections whose markup is the contract's (collection-showcase and
- * carousel since unit 8). Every other section keeps x-section
- * (components/section.php) until it moves (M4).
+ * every parent section (EP-72 M4). components/section.php, the x-section
+ * band, is left only for a child theme's own whole sections and is
+ * deprecated (docs/contracts/OVERRIDES.md, tier 5).
  *
  * Render via salt_section() with `contract` true, which settles the id,
  * the heading level, the track and the collapse — not directly.
@@ -81,7 +81,6 @@ $salt_attributes = array(
 	'data-divider'      => $salt_args['divider'] ? '' : null,
 	'data-media'        => null !== $salt_background ? '' : null,
 	'data-track'        => $salt_args['track'],
-	'style'             => 'none' !== $salt_args['spacing'] ? '--salt-section-space: var(--space-section-' . $salt_args['spacing'] . ')' : null,
 );
 
 echo '<' . $salt_element; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 'section' or 'div'.
@@ -93,39 +92,38 @@ foreach ( $salt_attributes as $salt_name => $salt_value ) {
 echo '>';
 
 if ( null !== $salt_background ) {
-	// The nine positions as keyword pairs; focal-point is the image's stored
-	// focal point as <x>% <y>% (salt_image_focal_point()), and with none the
-	// declaration is left out for the stylesheet's centre (markup/media.json).
+	// The fit and position as data attributes, never a style
+	// (section#background-position, section#no-inline-style): the nine
+	// positions as their steps; focal-point as the stored focal point,
+	// already snapped (salt_image_focal_point()), and with none neither
+	// attribute, for the stylesheet's centre.
 	$salt_positions = array(
-		'top-left'     => 'top left',
-		'top'          => 'top',
-		'top-right'    => 'top right',
-		'left'         => 'left',
-		'centre'       => 'center',
-		'right'        => 'right',
-		'bottom-left'  => 'bottom left',
-		'bottom'       => 'bottom',
-		'bottom-right' => 'bottom right',
+		'top-left'     => array( 0, 0 ),
+		'top'          => array( 50, 0 ),
+		'top-right'    => array( 100, 0 ),
+		'left'         => array( 0, 50 ),
+		'centre'       => array( 50, 50 ),
+		'right'        => array( 100, 50 ),
+		'bottom-left'  => array( 0, 100 ),
+		'bottom'       => array( 50, 100 ),
+		'bottom-right' => array( 100, 100 ),
 	);
-	$salt_style     = 'object-fit: ' . $salt_background['fit'];
 	$salt_focal     = $salt_background['image']['focalPoint'] ?? null;
-	if ( isset( $salt_positions[ $salt_background['position'] ] ) ) {
-		$salt_style .= '; object-position: ' . $salt_positions[ $salt_background['position'] ];
-	} elseif ( 'focal-point' === $salt_background['position'] && is_array( $salt_focal ) ) {
-		$salt_style .= '; object-position: ' . (int) $salt_focal['x'] . '% ' . (int) $salt_focal['y'] . '%';
-	}
+	$salt_xy        = $salt_positions[ $salt_background['position'] ] ?? ( 'focal-point' === $salt_background['position'] && is_array( $salt_focal ) ? array( $salt_focal['x'], $salt_focal['y'] ) : null );
 	echo salt_image_contract_html( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped attribute by attribute.
 		$salt_background['image'],
 		$salt_args['background_priority'],
 		array(
-			'class'       => 'salt-section__media',
-			'alt'         => '',
-			'aria-hidden' => 'true',
-			'style'       => $salt_style,
+			'class'        => 'salt-section__media',
+			'alt'          => '',
+			'aria-hidden'  => 'true',
+			'data-fit'     => $salt_background['fit'],
+			'data-focal-x' => null !== $salt_xy ? (string) $salt_xy[0] : null,
+			'data-focal-y' => null !== $salt_xy ? (string) $salt_xy[1] : null,
 		)
 	);
 	if ( $salt_background['scrim'] ) {
-		echo '<div class="salt-section__scrim" style="' . esc_attr( '--salt-scrim-alpha: var(--scrim-' . $salt_background['scrimStrength'] . ')' ) . '"></div>';
+		echo '<div class="salt-section__scrim" data-strength="' . esc_attr( $salt_background['scrimStrength'] ) . '"></div>';
 	}
 }
 

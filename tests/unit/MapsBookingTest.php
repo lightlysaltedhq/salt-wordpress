@@ -318,12 +318,12 @@ final class MapsBookingTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// x-booking facade.
+	// Booking facade (markup/booking.json).
 	// -----------------------------------------------------------------
 
 	public function test_booking_unconfigured_renders_nothing_and_logs(): void {
 		$this->assertSame( '', salt_get_component( 'booking' ) );
-		$this->assertStringContainsString( 'x-booking', implode( ' ', $this->logs() ) );
+		$this->assertStringContainsString( 'booking: no booking provider configured', implode( ' ', $this->logs() ) );
 	}
 
 	public function test_booking_facade_is_a_plain_provider_link(): void {
@@ -331,31 +331,24 @@ final class MapsBookingTest extends SaltTestCase {
 
 		$html = salt_get_component( 'booking' );
 
-		$this->assertStringContainsString( 'href="https://calendly.com/acme/intro"', $html );
-		$this->assertStringContainsString( 'target="_blank"', $html );
-		$this->assertStringContainsString( 'rel="noopener noreferrer"', $html );
-		$this->assertStringContainsString( 'data-salt-booking', $html );
-		$this->assertStringContainsString( 'data-provider="calendly"', $html );
-		$this->assertStringContainsString( '>Book a call</a>', $html );
+		$this->assertSame( '<a class="salt-button salt-booking" href="https://calendly.com/acme/intro" target="_blank" rel="noopener noreferrer" data-style="primary" data-track-control="cta" data-provider="calendly">Book a call</a>', trim( $html ) );
 		// The href is the ONE allowed third-party URL; nothing loads.
 		$this->assertStringNotContainsString( '<script', $html );
 		$this->assertStringNotContainsString( '<iframe', $html );
 		$this->assertStringNotContainsString( 'assets.calendly.com', $html );
 	}
 
-	public function test_booking_custom_label_and_classes(): void {
+	public function test_booking_custom_label(): void {
 		$this->configure_booking( 'calcom', 'https://cal.com/acme/intro' );
 
 		$html = salt_get_component(
 			'booking',
 			array(
-				'label'   => 'Grab a slot <now>',
-				'classes' => 'w-full',
+				'label' => 'Grab a slot <now>',
 			)
 		);
 
 		$this->assertStringContainsString( '>Grab a slot &lt;now&gt;</a>', $html );
-		$this->assertStringContainsString( 'w-full', $html );
 		$this->assertStringContainsString( 'data-provider="calcom"', $html );
 	}
 

@@ -61,9 +61,9 @@ if ( $salt_quote ) {
 	if ( null !== ( $salt_card['rating'] ?? null ) ) {
 		$salt_rating = (float) $salt_card['rating'];
 		printf(
-			'<p class="salt-showcase__rating" role="img" aria-label="%1$s"><span class="salt-showcase__stars" aria-hidden="true" style="%2$s">☆☆☆☆☆<span class="salt-showcase__stars-fill">★★★★★</span></span></p>',
+			'<p class="salt-showcase__rating" role="img" aria-label="%1$s"><span class="salt-showcase__stars" aria-hidden="true" data-fill="%2$d">☆☆☆☆☆<span class="salt-showcase__stars-fill">★★★★★</span></span></p>',
 			esc_attr( salt_contract_n_of( $salt_label( 'rating' ), $salt_rating, 5 ) ),
-			esc_attr( '--salt-rating-fill: ' . salt_rating_fill( $salt_rating ) )
+			(int) salt_rating_fill( $salt_rating )
 		);
 	}
 	echo '<blockquote class="salt-showcase__text"><p>' . esc_html( (string) $salt_card['text'] ) . '</p></blockquote>';

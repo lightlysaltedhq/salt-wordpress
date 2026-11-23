@@ -1,6 +1,9 @@
 <?php
 /**
- * x-booking — progressive booking FACADE (spec §9; PRIV01/§7).
+ * Booking — progressive booking FACADE (spec §9; PRIV01/§7), drawn as the
+ * salt-contract's markup/booking.json: a salt-button link with the
+ * salt-booking hook, data-style primary, data-track-control cta and the
+ * provider in data-provider. The href carries the booking URL.
  *
  * When a provider + URL are configured (Site Settings → Booking) this
  * renders a button-styled PLAIN LINK to the booking page — the single
@@ -10,10 +13,10 @@
  * marketing consent is granted; denied / no CMP simply follows the link.
  * Unconfigured → renders NOTHING (logged by salt_booking_config()).
  *
- * ARGS CONTRACT (v1 — changing this signature or the markup structure is a
- * MAJOR semver bump, §4/§12):
+ * ARGS CONTRACT (v2 — changing this signature or the markup structure is a
+ * MAJOR semver bump, §4/§12; v1's `classes` went with the contract markup,
+ * which fixes the element's classes):
  *   label   string ''  Visible text; empty falls back to "Book a call" (i18n).
- *   classes string ''  Extra utility classes appended verbatim.
  *
  * Render via salt_component( 'booking', … ) / salt_get_component().
  *
@@ -27,15 +30,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 $salt_args = salt_require_args(
 	$args ?? array(),
 	array(
-		'label'   => array(
+		'label' => array(
 			'type'    => 'string',
 			'default' => '',
 		),
-		'classes' => array(
-			'type'    => 'string',
-			'default' => '',
-		),
-		'slots'   => array(
+		'slots' => array(
 			'type'    => 'array',
 			'default' => array(),
 		),
@@ -46,29 +45,15 @@ $salt_args = salt_require_args(
 $salt_config = salt_booking_config();
 
 if ( null === $salt_config ) {
-	salt_log( 'x-booking: no booking provider configured — rendered nothing.' );
+	salt_log( 'booking: no booking provider configured — rendered nothing.' );
 	return;
 }
 
 $salt_label = '' === $salt_args['label'] ? __( 'Book a call', 'salt' ) : $salt_args['label'];
 
-$salt_classes = salt_classnames(
-	array(
-		'x-booking',
-		'x-button x-button-primary',
-		'inline-flex items-center justify-center gap-2 rounded-md font-medium',
-		'bg-brand text-on-brand hover:bg-brand-strong',
-		'px-5 py-2.5',
-		$salt_args['classes'],
-	)
+printf(
+	'<a class="salt-button salt-booking" href="%1$s" target="_blank" rel="noopener noreferrer" data-style="primary" data-track-control="cta" data-provider="%2$s">%3$s</a>',
+	esc_url( $salt_config['url'] ),
+	esc_attr( $salt_config['provider'] ),
+	esc_html( $salt_label )
 );
-?>
-<a
-	class="<?php echo esc_attr( $salt_classes ); ?>"
-	href="<?php echo esc_url( $salt_config['url'] ); ?>"
-	target="_blank"
-	rel="noopener noreferrer"
-	data-salt-booking
-	data-provider="<?php echo esc_attr( $salt_config['provider'] ); ?>"
-	data-url="<?php echo esc_attr( $salt_config['url'] ); ?>"
-><?php echo esc_html( $salt_label ); ?></a>

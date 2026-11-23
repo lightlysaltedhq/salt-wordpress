@@ -1,6 +1,11 @@
 <?php
 /**
- * x-section — the shared section wrapper (spec §11).
+ * x-section — the old section wrapper (spec §11). DEPRECATED (6.0.0,
+ * ID-3946): no parent section draws it. salt_section() draws it only for a
+ * child theme's own whole section built on salt_section_wrapper_args();
+ * such a section should pass salt_section_contract_args() and get the
+ * contract's band (components/contract-section.php) instead
+ * (docs/contracts/OVERRIDES.md, tier 5). A later major release removes it.
  *
  * ARGS CONTRACT (v1 — changing this signature or the markup structure is a
  * MAJOR semver bump, §4/§12):

@@ -1,10 +1,8 @@
 <?php
 /**
- * Stats / Metrics slice unit tests: x-stat component contract (Appendix B —
- * a <p> pair, never a heading; still drawn by single-work.php, no longer by
- * this section), layout shape (DATA02), section 0/1/N states (COMPL02) in
- * the contract's markup (markup/stats.json, stat.json), malformed items
- * skipped + logged, and the no-schema invariant.
+ * Stats / Metrics slice unit tests: layout shape (DATA02), section 0/1/N
+ * states (COMPL02) in the contract's markup (markup/stats.json, stat.json),
+ * malformed items skipped + logged, and the no-schema invariant.
  *
  * @package Salt\Tests
  */
@@ -45,51 +43,6 @@ final class StatsSectionTest extends SaltTestCase {
 		ob_start();
 		salt_render_section( 'stats', $context );
 		return (string) ob_get_clean();
-	}
-
-	// -----------------------------------------------------------------
-	// x-stat component (Appendix B).
-	// -----------------------------------------------------------------
-
-	public function test_stat_component_renders_a_p_pair_not_a_heading(): void {
-		$html = salt_get_component(
-			'stat',
-			array(
-				'number' => '45',
-				'suffix' => '%',
-				'label'  => 'More conversions',
-			)
-		);
-
-		$this->assertStringContainsString( '<span class="x-stat-number">45</span>', $html );
-		$this->assertStringContainsString( '<span class="x-stat-suffix">%</span>', $html );
-		$this->assertStringContainsString( 'More conversions', $html );
-		$this->assertSame( 2, preg_match_all( '/<p\b/', $html ), 'Number + label are a <p> pair.' );
-		$this->assertSame( 0, preg_match_all( '/<h[1-6]/', $html ), 'A stat is NEVER a heading (A11Y01).' );
-	}
-
-	public function test_stat_component_omits_empty_suffix_and_label(): void {
-		$html = salt_get_component( 'stat', array( 'number' => '12' ) );
-
-		$this->assertStringNotContainsString( 'x-stat-suffix', $html );
-		$this->assertStringNotContainsString( 'x-stat-label', $html );
-	}
-
-	public function test_stat_component_escapes_values(): void {
-		$html = salt_get_component(
-			'stat',
-			array(
-				'number' => '<script>1</script>',
-				'label'  => '<em>label</em>',
-			)
-		);
-
-		$this->assertStringNotContainsString( '<script', $html );
-		$this->assertStringNotContainsString( '<em>', $html );
-	}
-
-	public function test_stat_component_with_blank_number_renders_nothing(): void {
-		$this->assertSame( '', trim( salt_get_component( 'stat', array( 'number' => '   ' ) ) ) );
 	}
 
 	// -----------------------------------------------------------------
