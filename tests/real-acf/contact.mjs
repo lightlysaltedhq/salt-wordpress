@@ -18,11 +18,12 @@
 //    answers, by its permalink's own name.
 //  - With script on plain permalinks: the send uses ?rest_route= (the
 //    script's addresses come from rest_url()) and arrives in place.
+//  - Script settings that are not addresses: no request, the native post.
 //  - A form-encoded REST send with the self-post flag in its address: the
 //    REST API reads every field it was sent (they are back in $_POST first).
 //  - Another form posted to the answered page, whose address keeps the
 //    flag: not handled as a contact send.
-/* global document */
+/* global document, window */
 import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright';
 
@@ -148,6 +149,22 @@ try {
 	result( plainTone === 'sent' && plainRest.length >= 2 && plainRest.every( ( u ) => u.includes( '?rest_route=/salt/v1/contact' ) ) && plainPosts.every( ( u ) => u.includes( 'rest_route=' ) ) && site( 'stored', 'Ada Plain' ) === '1', 'script on plain permalinks: the send goes to ?rest_route= and arrives without the fallback', `tone ${ plainTone }; ${ [ ...plainRest, ...plainPosts.filter( ( u ) => ! u.includes( 'rest_route=' ) ) ].join( ', ' ) }` );
 	await plain.close();
 	site( 'permalinks', 'pretty' );
+	// Settings that are not addresses (another script overwrote them): the
+	// script asks nothing of anywhere and the form posts natively.
+	const tampered = await browser.newContext();
+	await tampered.addInitScript( () => {
+		Object.defineProperty( window, 'saltContact', { get: () => ( { send: { url: '/x' }, credentials: [ 'elsewhere' ] } ), set: () => {} } );
+	} );
+	const odd = await tampered.newPage();
+	const oddRequests = [];
+	odd.on( 'request', ( r ) => r.resourceType() !== 'document' && /fetch|xhr/.test( r.resourceType() ) && oddRequests.push( r.url() ) );
+	await odd.goto( site( 'permalinks', 'pretty' ) );
+	const oddForm = odd.locator( 'form#enquire__form' );
+	await oddForm.locator( '[name=name]' ).fill( 'Ada Odd' );
+	const [ native ] = await Promise.all( [ odd.waitForResponse( ( r ) => r.request().method() === 'POST' ), oddForm.locator( '.salt-contact__submit' ).click() ] );
+	await odd.waitForLoadState();
+	result( oddRequests.length === 0 && native.url().includes( 'salt-contact-send=enquire' ) && await odd.locator( 'form#enquire__form [name=name]' ).inputValue() === 'Ada Odd', 'settings that are not addresses: no request, the native post instead', `${ oddRequests.join( ', ' ) || 'no fetch' }; posted ${ native.url() } (${ native.status() })` );
+	await tampered.close();
 	// A single post posted a contact `name`: WordPress queries it by its permalink.
 	const post = site( 'post' );
 	const posted = await scripted.request.post( `${ post }?salt-contact-send=enquire`, { form: { name: 'Ada Lovelace', message: 'x', returnTo: new URL( post ).pathname } } );

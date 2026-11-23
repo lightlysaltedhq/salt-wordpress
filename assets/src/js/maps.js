@@ -47,7 +47,7 @@
 		if (window.maplibregl) {
 			return Promise.resolve();
 		}
-		if (!src || !worker) {
+		if (typeof src !== 'string' || src === '' || typeof worker !== 'string' || worker === '') {
 			return Promise.reject(new Error('maps: no MapLibre bundle or worker address.'));
 		}
 		if (!libraryLoading) {
@@ -177,8 +177,10 @@
 			}
 
 			button.disabled = true;
+			// Only non-empty strings are addresses (loadLibrary() refuses
+			// anything else and the facade shows its error message).
 			const settings = window.saltMaps || {};
-			loadLibrary(settings.maplibre || '', settings.worker || '')
+			loadLibrary(settings.maplibre, settings.worker)
 				.then(() => {
 					button.remove();
 					const label = container.querySelector('.salt-map__label');

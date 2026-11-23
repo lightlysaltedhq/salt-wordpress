@@ -15,12 +15,16 @@
 
 	// The REST addresses, from rest_url() (salt_contact_script_settings()):
 	// ?rest_route= on plain permalinks, never a hard-coded /wp-json/.
+	// Only a non-empty string is an address; anything else sends nothing
+	// to the REST API and the form falls back to its native post.
+	const address = (value) => (typeof value === 'string' && value !== '' ? value : '');
 	const settings = window.saltContact || {};
-	const endpoint = settings.send || '';
+	const endpoint = address(settings.send);
+	const credentialsUrl = address(settings.credentials);
 
 	const credentials = () =>
-		(settings.credentials
-			? fetch(settings.credentials, { credentials: 'same-origin', cache: 'no-store' })
+		(endpoint && credentialsUrl
+			? fetch(credentialsUrl, { credentials: 'same-origin', cache: 'no-store' })
 			: Promise.reject(new Error('contact: no REST address')))
 			.then((response) => response.json())
 			.then((body) => (body && body.ok && typeof body.formToken === 'string' ? body.formToken : ''));

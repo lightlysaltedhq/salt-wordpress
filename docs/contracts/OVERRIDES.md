@@ -70,6 +70,11 @@ Documented limits:
   that applies `query_vars` itself between `do_parse_request` and
   `WP::parse_request()` triggers the strip early, and core's own pass then
   reads the fields from `$_POST`.
+- Maps worker origin (I3): browsers start a worker only from the page's own
+  origin, so a site that serves the theme's assets from a CDN host gets no
+  map (the facade shows its error message). If another script has already
+  put `window.maplibregl` on the page, maps.js uses it as it is and does not
+  set its worker URL.
 
 ## v3 chrome seams
 
