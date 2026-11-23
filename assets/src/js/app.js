@@ -15,8 +15,9 @@
  *   flips the same salt-theme preference the pre-paint script reads;
  * - a sticky-focus guard and the measured header height (--header-height);
  * - the consent control, drawn only when a cookie plugin is wired to the
- *   WP Consent API (founder ruling C), opens the preferences dialog. Save
- *   writes each category through the plugin's wp_set_consent(); the theme
+ *   WP Consent API (founder ruling C), opens the preferences dialog, one
+ *   box per WP Consent API category. Save writes each through the plugin's
+ *   wp_set_consent(); the theme
  *   stores nothing itself. Cancel closes without writing.
  *
  * The words and glyphs come from the inert JSON in #salt-chrome-data
@@ -364,12 +365,13 @@ const mountConsent = (wrap) => {
 		};
 		form.addEventListener('submit', (event) => {
 			event.preventDefault();
-			// Several of the theme's categories may share one API category
-			// (maps and embeds are marketing): allowed if any box allows it.
+			// One box per WP Consent API category (salt_consent_api_choices()).
+			// Should two boxes ever share one, it is allowed only when every box
+			// for it is ticked: a partial tick never grants.
 			const verdicts = {};
 			for (const category of consent.categories) {
 				const checked = form.elements.namedItem(category.id)?.checked === true;
-				verdicts[category.api] = verdicts[category.api] === true || checked;
+				verdicts[category.api] = (verdicts[category.api] ?? true) && checked;
 			}
 			for (const [api, allowed] of Object.entries(verdicts)) {
 				window.wp_set_consent(api, allowed ? 'allow' : 'deny');

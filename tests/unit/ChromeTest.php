@@ -384,20 +384,41 @@ final class ChromeTest extends SaltTestCase {
 		$this->assertStringNotContainsString( '<dialog', $html, 'Only script opens the panel.' );
 	}
 
-	public function test_consent_script_data_maps_each_category_to_the_consent_api(): void {
+	public function test_consent_choices_are_one_box_per_consent_api_category(): void {
 		require_once __DIR__ . '/../shims/consent-api.php';
 		$GLOBALS['salt_test_wp_consent_type'] = 'optin';
 
 		$data = salt_chrome_script_data();
 		unset( $GLOBALS['salt_test_wp_consent_type'] );
 
+		// Embeds and marketing are both the API's marketing: one box covers
+		// both, so ticking embedded content alone cannot grant marketing on
+		// behalf of a Marketing box the visitor left clear.
 		$this->assertSame(
 			array(
-				'analytics' => 'statistics',
-				'embeds'    => 'marketing',
-				'marketing' => 'marketing',
+				array(
+					'id'          => 'analytics',
+					'label'       => 'Analytics',
+					'description' => 'Helps us see which pages are read, with no personal details.',
+					'api'         => 'statistics',
+				),
+				array(
+					'id'          => 'embeds',
+					'label'       => 'Embedded content and Marketing',
+					'description' => 'Maps, videos and booking tools from other sites. Lets us measure how our adverts perform.',
+					'api'         => 'marketing',
+				),
 			),
-			array_column( $data['consent']['categories'], 'api', 'id' )
+			$data['consent']['categories']
 		);
+	}
+
+	public function test_consent_choices_follow_a_sites_category_remap(): void {
+		add_filter( 'salt_consent_api_category', static fn( string $api, string $salt ): string => 'embeds' === $salt ? 'preferences' : $api, 20, 2 );
+
+		$choices = salt_consent_api_choices( salt_consent_panel()['categories'] );
+
+		$this->assertSame( array( 'statistics', 'preferences', 'marketing' ), array_column( $choices, 'api' ) );
+		$this->assertSame( array( 'Analytics', 'Embedded content', 'Marketing' ), array_column( $choices, 'label' ) );
 	}
 }
