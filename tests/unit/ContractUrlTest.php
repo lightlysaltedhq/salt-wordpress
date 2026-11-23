@@ -8,6 +8,8 @@
 
 declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 final class ContractUrlTest extends SaltTestCase {
 
 	/**
@@ -34,9 +36,7 @@ final class ContractUrlTest extends SaltTestCase {
 		);
 	}
 
-	/**
-	 * @dataProvider urls
-	 */
+	#[DataProvider( 'urls' )]
 	public function test_contract_url( string $url, string $expected ): void {
 		$this->assertSame( $expected, salt_contract_url( $url ) );
 	}
