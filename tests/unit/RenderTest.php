@@ -122,8 +122,10 @@ final class RenderTest extends SaltTestCase {
 		$this->assertSame( 'pricing-3', salt_anchor_id( 'pricing' ) );
 	}
 
-	public function test_reserved_theme_ids_are_dodged(): void {
-		$this->assertSame( 'main-2', salt_anchor_id( 'Main' ) );
+	public function test_a_landmark_anchor_becomes_its_section_form(): void {
+		$this->assertSame( 'main-section', salt_anchor_id( 'Main' ), 'section#anchors: a landmark id becomes <anchor>-section.' );
+		$this->assertSame( 'main-section-2', salt_anchor_id( 'main' ) );
+		$this->assertSame( 'site-navigation-section', salt_anchor_id( 'Site navigation' ) );
 	}
 
 	public function test_empty_anchor_stays_empty(): void {

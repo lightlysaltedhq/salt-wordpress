@@ -52,7 +52,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Plan (returned under `plan`, merged into the view's $args['plan']):
  *   priorityMedia  true         Contract plan `priorityMedia`: the hero image
  *                               is THE LCP image — eager + fetchpriority=high
- *                               (§8). Always true for hero today.
+ *                               (§8). True only when it draws one (SC-026).
  *
  * @param array<string,mixed> $context Loop context: index, is_primary.
  * @return array{section: array<string,mixed>, props: array<string,mixed>, plan: array{priorityMedia: bool}}|null Null = 0-state.
@@ -129,6 +129,6 @@ function salt_resolve_section_hero( array $context ): ?array {
 			'image_id'   => $image_id,
 			'ctas'       => $ctas,
 		),
-		'plan'    => array( 'priorityMedia' => true ),
+		'plan'    => array( 'priorityMedia' => $image_id > 0 ),
 	);
 }

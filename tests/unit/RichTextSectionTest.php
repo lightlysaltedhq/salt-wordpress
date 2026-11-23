@@ -94,6 +94,7 @@ final class RichTextSectionTest extends SaltTestCase {
 				),
 			),
 			'wrapper fields'  => array( array( 'tone' => 'surface-alt' ) ),
+			'empty paragraph' => array( array( 'body' => '<p>&nbsp;</p>' ) ),
 		);
 	}
 
@@ -114,8 +115,9 @@ final class RichTextSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( array( 'heading', 'body' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( array( 'eyebrow', 'heading', 'body', 'alignment' ), array_keys( $resolved['props'] ) );
 		$this->assertSame( 'About us', $resolved['props']['heading'] );
+		$this->assertSame( 'left', $resolved['props']['alignment'] );
 		$this->assertStringContainsString( '<strong>bold</strong>', $resolved['props']['body'] );
 	}
 
@@ -157,8 +159,9 @@ final class RichTextSectionTest extends SaltTestCase {
 		);
 
 		$this->assertSame( 'rich-text', $resolved['section']['name'] );
+		$this->assertTrue( $resolved['section']['contract'], 'Drawn in the contract\'s wrapper (M4).' );
 		$this->assertSame( 'lg', $resolved['section']['spacing'] );
-		$this->assertSame( 'surface-alt', $resolved['section']['background'] );
+		$this->assertSame( 'surface-alt', $resolved['section']['tone'] );
 		$this->assertSame( 'About', $resolved['section']['anchor'], 'Raw anchor: the wrapper settles it (EDIT02).' );
 		$this->assertTrue( $resolved['section']['is_primary'] );
 		$this->assertFalse( $resolved['section']['has_heading'], 'Heading-less section must not claim the H1 (A11Y01).' );
@@ -176,9 +179,10 @@ final class RichTextSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'data-section="rich-text"', $html );
+		$this->assertStringStartsWith( '<section class="salt-section" id="rich-text" aria-labelledby="rich-text__heading"', $html );
+		$this->assertStringContainsString( '<h1 id="rich-text__heading">Welcome</h1>', $html );
 		$this->assertSame( 1, preg_match_all( '/<h1[\s>]/', $html ) );
-		$this->assertStringContainsString( '<div class="x-prose max-w-prose text-ink"><p>Hello.</p></div>', $html );
+		$this->assertStringContainsString( '<div class="salt-rich-text"><p>Hello.</p></div>', $html );
 	}
 
 	// -----------------------------------------------------------------
@@ -192,22 +196,24 @@ final class RichTextSectionTest extends SaltTestCase {
 			false,
 			array(
 				'props' => array(
-					'heading' => 'From props',
-					'body'    => '<p>Already sanitised.</p>',
+					'eyebrow'   => null,
+					'heading'   => 'From props',
+					'body'      => '<p>Already sanitised.</p>',
+					'alignment' => 'centre',
 				),
 				'plan'  => array(
 					'index'         => 0,
+					'anchor'        => 'about',
 					'headingLevel'  => 2,
+					'headingId'     => 'about__heading',
+					'bodyBaseLevel' => 2,
 					'priorityMedia' => false,
 				),
 			)
 		);
 		$html = (string) ob_get_clean();
 
-		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
-		$this->assertStringContainsString( 'From props', $html );
-		$this->assertStringContainsString( '<p>Already sanitised.</p>', $html );
-		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+		$this->assertSame( '<div class="salt-block" data-block="rich-text" data-align="centre"><h2 id="about__heading">From props</h2><div class="salt-rich-text"><p>Already sanitised.</p></div></div>', $html, 'The block only: the band is the entry\'s, not the view\'s.' );
 	}
 	public function test_resolver_keeps_headings_two_to_six(): void {
 		$resolved = $this->resolve_rich_text( array( 'body' => '<h2>Two</h2><h5>Five</h5><h6>Six</h6>' ) );

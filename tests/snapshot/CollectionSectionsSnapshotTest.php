@@ -46,6 +46,8 @@ final class CollectionSectionsSnapshotTest extends SaltSnapshotTestCase {
 			)
 		);
 		the_row();
+		// The second band on the page, below one that took the priority image.
+		salt_render_state( 'set', 'priority_media', true );
 		ob_start();
 		salt_render_section( $layout, array( 'index' => 1 ) );
 		return (string) ob_get_clean();
