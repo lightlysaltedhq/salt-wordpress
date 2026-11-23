@@ -204,6 +204,67 @@ final class CollectionSectionsTest extends SaltTestCase {
 		$this->assertStringNotContainsString( 'salt-showcase__view-all', $this->render_row( 'collection-showcase', $row ), 'No index page, no link.' );
 	}
 
+	public function test_drawn_links_are_root_relative_and_the_schema_keeps_absolute_urls(): void {
+		$this->seed_posts(
+			array(
+				array(
+					'ID'         => 201,
+					'post_type'  => 'service',
+					'post_title' => 'Design',
+					'menu_order' => 1,
+				),
+				array(
+					'ID'         => 202,
+					'post_type'  => 'service',
+					'post_title' => 'Build',
+					'menu_order' => 2,
+				),
+			)
+		);
+		// One page on the site itself (home_url() is https://example.test), one elsewhere.
+		$GLOBALS['salt_test_permalinks']    = array(
+			201 => 'https://example.test/services/design/?from=home#top',
+			202 => 'https://partner.example/build/',
+		);
+		$GLOBALS['salt_test_archive_links'] = array( 'service' => 'https://example.test/services/' );
+		salt_schema_queue( 'reset' );
+
+		$grid = $this->render_row(
+			'collection-showcase',
+			array(
+				'heading' => 'Services',
+				'source'  => 'services',
+			)
+		);
+
+		// Drawn: the site's own pages root-relative (salt_contract_url()), another host kept.
+		$this->assertStringContainsString( 'class="salt-card__link" href="/services/design/?from=home#top"', $grid );
+		$this->assertStringContainsString( 'class="salt-card__link" href="https://partner.example/build/"', $grid );
+		$this->assertStringContainsString( 'class="salt-button" href="/services/" data-style="link"', $grid, 'The view-all link.' );
+		$this->assertStringNotContainsString( 'href="https://example.test/', $grid );
+
+		// The schema the resolver queued keeps the absolute addresses.
+		$urls = array_map( static fn( array $node ): array => array( $node['@id'] ?? null, $node['url'] ?? null ), salt_schema_queue() );
+		$this->assertSame(
+			array(
+				array( 'https://example.test/services/design/?from=home#top#service', 'https://example.test/services/design/?from=home#top' ),
+				array( 'https://partner.example/build/#service', 'https://partner.example/build/' ),
+			),
+			$urls
+		);
+
+		$index = $this->render_row(
+			'collection-showcase',
+			array(
+				'heading' => 'Services',
+				'source'  => 'services',
+				'layout'  => 'index',
+			)
+		);
+		$this->assertStringContainsString( 'class="salt-showcase__link" href="/services/design/?from=home#top"', $index, 'The index layout\'s links.' );
+		$this->assertStringContainsString( 'class="salt-showcase__link" href="https://partner.example/build/"', $index );
+	}
+
 	// -----------------------------------------------------------------
 	// Cards and groups.
 	// -----------------------------------------------------------------

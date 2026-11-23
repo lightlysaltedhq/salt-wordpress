@@ -46,7 +46,7 @@ if ( null !== ( $salt_props['intro'] ?? null ) ) {
 $salt_index_list = static function ( array $cards ): void {
 	echo '<ul class="salt-showcase__index" role="list">';
 	foreach ( $cards as $salt_card ) {
-		echo '<li><a class="salt-showcase__link" href="' . esc_url( (string) $salt_card['href'] ) . '">' . esc_html( (string) $salt_card['title'] ) . '</a></li>';
+		echo '<li><a class="salt-showcase__link" href="' . esc_url( salt_contract_url( (string) $salt_card['href'] ) ) . '">' . esc_html( (string) $salt_card['title'] ) . '</a></li>';
 	}
 	echo '</ul>';
 };
@@ -114,7 +114,7 @@ if ( is_array( $salt_props['viewAll'] ?? null ) ) {
 	$salt_view_all = $salt_props['viewAll'];
 	printf(
 		'<p class="salt-showcase__view-all"><a class="salt-button" href="%1$s"%2$s data-style="link" data-track-control="cta"><span class="salt-button__label">%3$s%4$s</span></a></p>',
-		esc_url( (string) $salt_view_all['href'] ),
+		esc_url( salt_contract_url( (string) $salt_view_all['href'] ) ),
 		! empty( $salt_view_all['newTab'] ) ? ' target="_blank" rel="noopener"' : '',
 		esc_html( (string) $salt_view_all['label'] ),
 		$salt_arrow_h // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
