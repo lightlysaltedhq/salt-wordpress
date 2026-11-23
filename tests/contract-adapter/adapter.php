@@ -736,14 +736,17 @@ function salt_adapter_seed_chrome( array $input, array $ids ): void {
 	}
 	$GLOBALS['salt_test_menu_items']['footer'] = salt_adapter_menu_items( $footer_menu, $path );
 
-	$toggle    = $site['themeToggle'] ?? null;
-	$placement = true === $toggle ? 'header' : ( is_array( $toggle ) ? ( $toggle['placed'] ?? null ) : null );
-	add_filter( 'salt_theme_toggle_placement', static fn() => $placement );
+	// Site Settings the editor sets (Header & Footer; Company & Schema's
+	// phone and its header switch), seeded as options, not filters.
+	$toggle = $site['themeToggle'] ?? null;
+	$option( 'theme_toggle_placement', true === $toggle ? 'header' : ( is_array( $toggle ) ? ( $toggle['placed'] ?? '' ) : '' ) );
+	$option( 'company_phone', $header['phone']['text'] ?? null );
+	$option( 'header_show_phone', isset( $header['phone']['text'] ) );
+	$option( 'footer_tone', $footer['tone'] ?? 'surface' );
+	$option( 'footer_show_logo', ! empty( $footer['showLogo'] ) );
+	// State only script or the request knows: still through the seams.
 	add_filter( 'salt_theme_scheme', static fn() => $state['themeScheme'] ?? null );
-	add_filter( 'salt_header_phone', static fn() => $header['phone']['text'] ?? null );
 	add_filter( 'salt_header_drawer_open', static fn() => ! empty( $state['drawerOpen'] ) );
-	add_filter( 'salt_footer_tone', static fn() => $footer['tone'] ?? 'surface' );
-	add_filter( 'salt_footer_show_logo', static fn() => ! empty( $footer['showLogo'] ) );
 	if ( isset( $footer['copyright'] ) ) {
 		add_filter( 'salt_footer_copyright', static fn() => (string) $footer['copyright'] );
 	}

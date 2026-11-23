@@ -92,14 +92,17 @@ Chrome seams (filters):
   `submenu`, `menu`, `closeMenu`, `theme`, `social`, `preferences`,
   `phone`). `submenu` may carry `%s` for the item's label; the default is
   "Show submenu for %s".
-- `salt_header_phone( ?string )` — the header's phone number; defaults to
-  Company & Schema's company phone; `null` or `''` for none.
+- `salt_header_phone( ?string )` — the header's phone number. Defaults to
+  Company & Schema's phone when its "Show phone in header" switch is on
+  (off by default); `null` or `''` for none.
 - `salt_theme_toggle_placement( ?string )` — `header`, `footer` or `null`
-  (default, none). `salt_theme_scheme( ?string )` — `light`|`dark` when a
+  (none). Defaults to Site Settings → Header & Footer's "Dark mode switch"
+  (none by default). `salt_theme_scheme( ?string )` — `light`|`dark` when a
   site knows the visitor's scheme on the server.
-- `salt_footer_tone( string )` — `surface`, `surface-alt` (default),
-  `brand-tint`, `surface-inverse`. `salt_footer_show_logo( bool )` — off
-  by default.
+- `salt_footer_tone( string )` — `surface`, `surface-alt`, `brand-tint`,
+  `surface-inverse`; defaults to the "Footer background" setting
+  (`surface-alt`). `salt_footer_show_logo( bool )` — defaults to the
+  "Show logo in footer" setting (off).
 - `salt_consent_control( bool )` — turns the footer's cookie-preferences
   control and panel off. It cannot turn them on: they are drawn only when a
   cookie plugin is wired to the WP Consent API (`salt_consent_plugin_active()`).
