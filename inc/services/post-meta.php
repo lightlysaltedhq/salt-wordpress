@@ -362,10 +362,10 @@ function salt_post_reading_text( int $post_id ): string {
  * section's resolver and view, as on a page.
  *
  * The bands are planned as a page's are (template-parts/flexible-content.php):
- *  - every band's id is settled once the bands have drawn, over the rows
- *    that drew one, editors' anchors first (salt_section_plan_settle(),
- *    section#anchors); a prose row takes no id but counts in a minted id's
- *    number, as a row that draws nothing does;
+ *  - every minted id is settled before any band draws, holding every
+ *    editor's anchor, and an anchored band settles its own as it draws
+ *    (salt_section_plan_rows(), section#anchors); a prose row takes no id
+ *    but counts in a minted id's number, as a row that draws nothing does;
  *  - a band's index counts the rows drawn before it, prose included, as
  *    the contract's post/band-* cases number them; a row that draws
  *    nothing takes no place;
@@ -386,32 +386,32 @@ function salt_the_post_layout( int $post_id ): void {
 		return;
 	}
 	$defaults = salt_post_prose_defaults();
+	$is_prose = static fn(): bool => 'rich-text' === (string) get_row_layout() && salt_post_row_is_prose(
+		array(
+			'eyebrow'   => get_sub_field( 'eyebrow' ),
+			'heading'   => get_sub_field( 'heading' ),
+			'alignment' => get_sub_field( 'alignment' ),
+			'settings'  => salt_section_settings(),
+		),
+		$defaults
+	);
 
 	$thumbnail = (int) get_post_thumbnail_id( $post_id );
 	if ( $thumbnail > 0 && is_array( wp_get_attachment_image_src( $thumbnail, 'full' ) ) ) {
 		salt_render_state( 'set', 'priority_media', true );
 	}
 
+	$ids   = salt_section_plan_rows( $field, $post_id, static fn(): bool => ! $is_prose() );
 	$first = salt_render_state()['section_index'];
-	$rows  = array();
 	$prose = 0;
 	$row   = -1;
-	ob_start();
 	while ( have_rows( $field, $post_id ) ) {
 		the_row();
 		++$row;
-		$rows[ $row ] = salt_section_plan_row();
 		if ( salt_section_hidden_on_this_page() ) {
 			continue;
 		}
-		$layout = (string) get_row_layout();
-		$fields = array(
-			'eyebrow'   => get_sub_field( 'eyebrow' ),
-			'heading'   => get_sub_field( 'heading' ),
-			'alignment' => get_sub_field( 'alignment' ),
-			'settings'  => salt_section_settings(),
-		);
-		if ( 'rich-text' === $layout && salt_post_row_is_prose( $fields, $defaults ) ) {
+		if ( $is_prose() ) {
 			$body = (string) get_sub_field( 'body' );
 			if ( '' !== trim( $body ) ) {
 				printf(
@@ -423,16 +423,15 @@ function salt_the_post_layout( int $post_id ): void {
 			}
 			continue;
 		}
-		$before = salt_render_state()['section_index'];
+		salt_render_state( 'set', 'plan_id', $ids[ $row ] ?? '' );
 		salt_render_section(
-			salt_section_slug_for_layout( $layout ),
+			salt_section_slug_for_layout( (string) get_row_layout() ),
 			array(
-				'index'      => $prose + $before - $first,
+				'index'      => $prose + salt_render_state()['section_index'] - $first,
 				'is_primary' => false,
-				'id'         => salt_section_plan_placeholder( $row ),
+				'id'         => $ids[ $row ] ?? '',
 			)
 		);
-		$rows[ $row ]['on_page'] = salt_render_state()['section_index'] > $before;
+		salt_render_state( 'set', 'plan_id', '' );
 	}
-	echo salt_section_plan_settle( (string) ob_get_clean(), $rows ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped where each part was drawn; only planned ids change.
 }

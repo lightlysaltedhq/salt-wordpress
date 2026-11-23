@@ -147,9 +147,10 @@ function salt_component( string $name, array $args = array(), array $slots = arr
  * with `contract`) needs of the page so far: each section id's count for
  * data-track (`tracks`), the previous band's dark tone, background image
  * and spacing for the adjacency collapse, and whether a section has taken
- * the page's priority image (`priority_media`).
+ * the page's priority image (`priority_media`); and the page plan's minted
+ * id for the row a loop is drawing (`plan_id`, salt_section_plan_rows()).
  *
- * @return array{h1_claimed: bool, h1_source: string, section_index: int, anchors: array<string,bool>, last_background: string, last_divider: bool, last_tone_dark: string, last_media: bool, last_spacing: string, tracks: array<string,int>, priority_media: bool}
+ * @return array{h1_claimed: bool, h1_source: string, section_index: int, anchors: array<string,bool>, last_background: string, last_divider: bool, last_tone_dark: string, last_media: bool, last_spacing: string, tracks: array<string,int>, priority_media: bool, plan_id: string}
  */
 function salt_render_state( string $op = 'get', ?string $key = null, $value = null ): array {
 	static $state = null;
@@ -167,6 +168,7 @@ function salt_render_state( string $op = 'get', ?string $key = null, $value = nu
 			'last_spacing'    => '',
 			'tracks'          => array(),
 			'priority_media'  => false,
+			'plan_id'         => '',
 		);
 	}
 
@@ -282,10 +284,11 @@ function salt_anchor_settle( string $slug, array $taken, int $from = 1 ): string
  * Settle an id in one pass down the page (EDIT02): slug it, then take the
  * next free id as salt_anchor_settle() does, and register it.
  *
- * Bands drawn by a page's loop or a post's layout take their id from the
- * page plan (salt_section_plan_settle()) instead; this is for the rest: a band drawn
- * outside the loop (a post's sections, a child's template) and any other
- * id a view mints.
+ * Every anchored band settles its id here as it draws (section#anchors:
+ * among the anchored bands drawn so far, the loop's minted ids already
+ * registered). An unanchored band in a page's loop or a post's layout takes
+ * the plan's minted id (salt_section_plan_rows()) instead; one drawn
+ * outside a loop, and any other id a view mints, settles here too.
  *
  * @param string $raw Editor input.
  * @return string Sanitised unique ID, or '' when input yields nothing.
@@ -323,11 +326,11 @@ function salt_anchor_id( string $raw ): string {
  *        section id, raw anchor, and whether the row draws a band here
  *        (false for a row that draws nothing, a firstPageOnly row past
  *        page 1 or a post's prose row; default true).
+ * @param array<string,bool> $taken Ids already settled on the page, which neither step takes.
  * @return array<int,string> Each row's id, by the rows' keys; '' for a row that draws no band.
  */
-function salt_section_plan_ids( array $rows ): array {
+function salt_section_plan_ids( array $rows, array $taken = array() ): array {
 	$ids    = array();
-	$taken  = array();
 	$places = array();
 
 	foreach ( $rows as $key => $row ) {
@@ -348,7 +351,11 @@ function salt_section_plan_ids( array $rows ): array {
 		if ( false === ( $row['on_page'] ?? true ) ) {
 			continue;
 		}
-		$ids[ $key ]           = salt_anchor_settle( $row['section'], $taken, $places[ $row['section'] ] );
+		$base = sanitize_title( $row['section'] );
+		if ( '' === $base ) {
+			continue;
+		}
+		$ids[ $key ]           = salt_anchor_settle( $base, $taken, $places[ $row['section'] ] );
 		$taken[ $ids[ $key ] ] = true;
 	}
 
@@ -356,69 +363,49 @@ function salt_section_plan_ids( array $rows ): array {
 }
 
 /**
- * The current Flexible Content row as salt_section_plan_ids() reads it:
- * its section id and raw anchor, not yet drawn (`on_page` false until the
- * loop sees it draw a band).
+ * Plan a loop's minted ids (the first walk of a page's loop and of a post's
+ * layout): salt_section_plan_ids() over every stored row, with every
+ * anchored row's name held, so a minted id avoids each editor's anchor
+ * whether or not its row draws, and does not move when one above it
+ * empties or fills. The minted ids are registered before any band draws;
+ * an anchored band's own id is settled as it draws (salt_section()), so a
+ * row that draws nothing never takes an editor's anchor. Walks the rows to
+ * the end, which ends the ACF loop: the caller's own have_rows() loop then
+ * starts afresh.
  *
- * @return array{section: string, anchor: string, on_page: bool}
+ * @param string        $selector The Flexible Content field (name or key).
+ * @param int|false     $post_id  The post, or false for the current one.
+ * @param callable|null $is_band  function(): bool, read on the current row:
+ *                                whether it draws as a band at all (a post's
+ *                                prose row does not). Such a row is counted,
+ *                                as one that draws nothing is, but takes no
+ *                                id. Null: every row is a band.
+ * @return array<int,string> Each stored row's minted id, by its place from 0; '' for an anchored row or one with none.
  */
-function salt_section_plan_row(): array {
-	$anchor = salt_section_settings()['anchorId'] ?? '';
-	return array(
-		'section' => salt_section_slug_for_layout( (string) get_row_layout() ),
-		'anchor'  => is_string( $anchor ) ? $anchor : '',
-		'on_page' => false,
-	);
-}
-
-/**
- * The id a loop's row draws with before the page's ids are settled: a
- * placeholder, unique to the request and the row, that
- * salt_section_plan_settle() swaps for the row's settled id. It ends in a
- * hyphen, so no row's placeholder starts another's, and the parts a view
- * appends (<anchor>__heading) are swapped with it.
- *
- * @param int $row The row's place in the stored layout, from 0.
- * @return string
- */
-function salt_section_plan_placeholder( int $row ): string {
-	static $nonce = null;
-	if ( null === $nonce ) {
-		$nonce = bin2hex( random_bytes( 6 ) );
+function salt_section_plan_rows( string $selector, $post_id = false, ?callable $is_band = null ): array {
+	$rows = array();
+	while ( have_rows( $selector, $post_id ) ) {
+		the_row();
+		$anchor = salt_section_settings()['anchorId'] ?? '';
+		$anchor = is_string( $anchor ) ? $anchor : '';
+		$rows[] = array(
+			'section' => salt_section_slug_for_layout( (string) get_row_layout() ),
+			'anchor'  => $anchor,
+			'on_page' => '' !== sanitize_title( $anchor ) || ( ! salt_section_hidden_on_this_page() && ( null === $is_band || $is_band() ) ),
+		);
 	}
-	return 'salt-plan-' . $nonce . '-' . $row . '-';
-}
 
-/**
- * Settle the ids of a loop's bands once they have drawn (the page plan,
- * salt_section_plan_ids()), and put them in the drawn HTML in place of
- * each row's placeholder (salt_section_plan_placeholder()). Only the rows
- * that drew a band take part in step 1, so a row that draws nothing never
- * takes an editor's anchor from a later one; every row still counts in a
- * minted id's number. The settled ids are registered, so an id the page
- * mints later never takes one.
- *
- * Every row is resolved once: the ids are decided after drawing, not
- * before, which is why the bands draw with placeholders.
- *
- * @param string                                                             $html The loop's drawn HTML.
- * @param array<int, array{section: string, anchor: string, on_page: bool}> $rows Every stored row, by its place from 0
- *        (salt_section_plan_row()), on_page true for those that drew a band.
- * @return string The HTML with every placeholder replaced.
- */
-function salt_section_plan_settle( string $html, array $rows ): string {
-	$ids     = salt_section_plan_ids( $rows );
+	$ids     = array();
 	$anchors = salt_render_state()['anchors'];
-	$swap    = array();
-	foreach ( $ids as $row => $id ) {
-		if ( '' !== $id ) {
-			$anchors[ $id ]                                      = true;
-			$swap[ salt_section_plan_placeholder( (int) $row ) ] = $id;
+	foreach ( salt_section_plan_ids( $rows, $anchors ) as $row => $id ) {
+		$ids[ $row ] = '' === sanitize_title( $rows[ $row ]['anchor'] ) ? $id : '';
+		if ( '' !== $ids[ $row ] ) {
+			$anchors[ $ids[ $row ] ] = true;
 		}
 	}
 	salt_render_state( 'set', 'anchors', $anchors );
 
-	return array() === $swap ? $html : strtr( $html, $swap );
+	return $ids;
 }
 
 // ---------------------------------------------------------------------------
@@ -459,12 +446,11 @@ function salt_section_plan_settle( string $html, array $rows ): string {
  * With `contract` the band (components/contract-section.php) is:
  *  - a section named by its heading (aria-labelledby <anchor>__heading)
  *    when has_heading, otherwise a div.salt-section (section#labelled-by);
- *  - id: `id`, which a loop passes through the shared entry (and
- *    salt_section_wrapper_args() for a child's own template): a placeholder
- *    that salt_section_plan_settle() swaps for the page plan's settled id
- *    once the loop has drawn (salt_section_plan_ids(): the contract's two
- *    steps, editors' anchors first); a band drawn outside a loop gets its
- *    anchor, or one minted from its name, in one pass (salt_anchor_id());
+ *  - id: an editor's anchor, settled as the band draws among the anchored
+ *    bands drawn so far (salt_anchor_id()); with none, the page plan's
+ *    minted id (salt_section_plan_rows(): the contract's two steps, every
+ *    editor's anchor held), from `id` or the loop's `plan_id`; a band drawn
+ *    outside a loop mints one from its name in one pass;
  *  - data-tone, data-tone-dark (auto is the tone itself, SC-016),
  *    data-spacing, data-width, data-divider, data-media (a background image
  *    drawn), --salt-section-space when spacing is not none;
@@ -473,8 +459,8 @@ function salt_section_plan_settle( string $html, array $rows ): string {
  *  - data-collapse-top as section#adjacent-collapse says: the previous band
  *    shares the tone and dark tone, neither has a background image, this
  *    band has no divider and neither spacing is none.
- * An x-section band with an editor's anchor takes the plan's id too; one
- * without draws no id, as before.
+ * An x-section band with an editor's anchor settles it the same way, as it
+ * draws; one without draws no id, as before.
  *
  * The content callback receives the heading level and the settled id:
  * function( int $heading_level, string $anchor ): void.
@@ -569,16 +555,21 @@ function salt_section( array $args, callable $content ): void {
 	salt_render_state( 'set', 'section_index', $index + 1 );
 
 	// The id is settled before the body draws, so the body can name its
-	// heading <anchor>__heading (SC-012): the page plan's, already settled
-	// and registered, or one settled here in one pass.
-	$anchored = '' !== sanitize_title( $args['anchor'] );
-	if ( '' !== $args['id'] && ( $args['contract'] || $anchored ) ) {
-		$anchor = $args['id'];
-	} else {
+	// heading <anchor>__heading (SC-012). An editor's anchor settles now, as
+	// the band draws, among the anchored bands drawn so far and the page
+	// plan's minted ids (section#anchors): a row that draws nothing never
+	// takes one. A contract band with none takes the plan's minted id: its
+	// `id`, or else the one the loop holds for its row (`plan_id`), which a
+	// child's own template or an override of salt_render_section() reaches
+	// without passing it on. The row's id is this band's alone.
+	$planned = '' !== $args['id'] ? $args['id'] : $state['plan_id'];
+	salt_render_state( 'set', 'plan_id', '' );
+	if ( '' !== sanitize_title( $args['anchor'] ) ) {
 		$anchor = salt_anchor_id( $args['anchor'] );
-		if ( $args['contract'] && '' === $anchor ) {
-			$anchor = salt_anchor_id( $args['name'] );
-		}
+	} elseif ( $args['contract'] ) {
+		$anchor = '' !== $planned ? $planned : salt_anchor_id( $args['name'] );
+	} else {
+		$anchor = '';
 	}
 
 	$tracks                  = $state['tracks'];
@@ -695,8 +686,8 @@ function salt_section_wrapper_args( string $name, array $context = array() ): ar
 		'anchor'     => $setting( 'anchorId', '' ),
 		'divider'    => (bool) ( $settings['divider'] ?? false ),
 		'is_primary' => (bool) ( $context['is_primary'] ?? false ),
-		// The loop's id for the band, so a child's own template keeps the
-		// planned one (salt_section_plan_settle()).
+		// The loop's minted id for the band (salt_section_plan_rows()), so a
+		// child's own template keeps it.
 		'id'         => (string) ( $context['id'] ?? '' ),
 	);
 }
