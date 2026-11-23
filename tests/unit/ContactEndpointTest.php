@@ -707,6 +707,23 @@ final class ContactEndpointTest extends SaltTestCase {
 		$this->assertSame( 429, salt_contact_handle( $bare, 'page', self::NOW )['status'], 'The credentials bucket bounds them (20 / 10 minutes).' );
 	}
 
+	public function test_another_form_posted_to_the_answered_page_is_not_a_send(): void {
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['salt-contact-send'] = 'enquire-other';
+		$_POST                     = array(
+			'name'    => 'Ada Lovelace',
+			'comment' => 'Another form on the page.',
+		);
+
+		$this->assertTrue( $this->parse_request( array( 'name' ) ) );
+		salt_contact_self_post();
+
+		$this->assertSame( $_POST, $this->parsed, 'WordPress parses it as sent.' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The test reads the request it built.
+		$this->assertArrayNotHasKey( 'enquire-other', salt_contact_form_states() );
+		$this->assertFalse( $GLOBALS['salt_test_nocache'] );
+		$this->assertSame( array(), $GLOBALS['salt_test_transients'], 'No credentials bucket spent, nothing minted.' );
+	}
+
 	public function test_a_get_or_another_page_post_is_not_a_send(): void {
 		$_SERVER['REQUEST_METHOD'] = 'GET';
 		$_GET['salt-contact-send'] = 'enquire-get';

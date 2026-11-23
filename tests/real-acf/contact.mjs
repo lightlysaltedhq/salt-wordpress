@@ -16,6 +16,8 @@
 //    answers, by its permalink's own name.
 //  - A form-encoded REST send with the self-post flag in its address: the
 //    REST API reads every field it was sent (they are back in $_POST first).
+//  - Another form posted to the answered page, whose address keeps the
+//    flag: not handled as a contact send.
 /* global document */
 import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright';
@@ -102,7 +104,7 @@ try {
 	result( third.status() === 200 && await status.getAttribute( 'data-tone' ) === 'sent' && site( 'stored', 'Ada Script again' ) === '1', 'script: a second message after a send arrives', `status ${ third.status() }` );
 	// A single post posted a contact `name`: WordPress queries it by its permalink.
 	const post = site( 'post' );
-	const posted = await scripted.request.post( `${ post }?salt-contact-send=enquire`, { form: { name: 'Ada Lovelace', message: 'x' } } );
+	const posted = await scripted.request.post( `${ post }?salt-contact-send=enquire`, { form: { name: 'Ada Lovelace', message: 'x', returnTo: new URL( post ).pathname } } );
 	// The handler refuses the credential-less send (400); the post's own page is drawn, never a 404.
 	result( posted.status() !== 404 && ( await posted.text() ).includes( 'Contact check post' ), 'a single post keeps its own name under a posted contact name', `status ${ posted.status() } at ${ post }` );
 	// A form-encoded REST send with the self-post flag in its address: its
@@ -111,6 +113,12 @@ try {
 	const credentials = await ( await scripted.request.get( `${ rest }/credentials` ) ).json();
 	await wait( 3500 );
 	const encoded = await scripted.request.post( `${ rest }?salt-contact-send=enquire`, { form: { name: 'Ada Encoded', email: 'ada@example.org', enquiryType: 'maintenance', message: 'Form-encoded.', website: '', returnTo: '/contact-check/', formToken: credentials.formToken } } );
+	// Another form posted to the answered page (its address keeps the flag):
+	// not a contact send, so the page draws as usual and spends nothing.
+	const answered = `${ site( 'permalinks', 'pretty' ) }?salt-contact-send=enquire`;
+	const other = await scripted.request.post( answered, { form: { comment: 'Another form on the page.' } } );
+	const otherHtml = await other.text();
+	result( other.status() === 200 && otherHtml.includes( 'id="enquire__form"' ) && ! otherHtml.includes( 'name="formToken"' ) && ! /data-tone="problem"/.test( otherHtml ), 'another form posted to the answered page is not a contact send', `status ${ other.status() }` );
 	result( encoded.status() === 200 && site( 'stored', 'Ada Encoded' ) === '1', 'a form-encoded REST send flagged as a self-post keeps its name', `status ${ encoded.status() } ${ await encoded.text() }` );
 	// Not this check's: WordPress core's speculation rules and the band
 	// wrapper's style attribute, which the CSP refuses on every page, and

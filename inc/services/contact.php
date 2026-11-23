@@ -490,13 +490,16 @@ function salt_contact_response_state( array $result ): array {
 
 /**
  * Whether this request is a contact form posted to its own page
- * (POST ?salt-contact-send=<anchor>): the anchor, or '' when it is not.
+ * (POST ?salt-contact-send=<anchor>, with the form's returnTo in the body):
+ * the anchor, or '' when it is not. The flag stays in an answered page's
+ * address, so another form on that page posts there too; without the
+ * contact form's own field it is not a contact send, and spends nothing.
  *
  * @return string
  */
 function salt_contact_self_post_anchor(): string {
 	$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_METHOD'] ) ) ) : '';
-	if ( 'POST' !== $method || ! isset( $_GET['salt-contact-send'] ) || ! is_scalar( $_GET['salt-contact-send'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing only; the form token's nonce is verified in salt_contact_handle().
+	if ( 'POST' !== $method || ! isset( $_GET['salt-contact-send'], $_POST['returnTo'] ) || ! is_scalar( $_GET['salt-contact-send'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification -- Routing only; the form token's nonce is verified in salt_contact_handle().
 		return '';
 	}
 	return sanitize_title( wp_unslash( (string) $_GET['salt-contact-send'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- As above.
