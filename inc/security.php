@@ -124,3 +124,22 @@ function salt_consent_api_script_nonce( array $attributes ): array {
 	return $attributes;
 }
 add_filter( 'wp_inline_script_attributes', 'salt_consent_api_script_nonce' );
+
+/**
+ * Stamp the CSP nonce on WordPress core's speculation rules
+ * ('wp_inline_script_attributes'). Core prints them (wp_print_speculation_rules())
+ * as an inline <script type="speculationrules"> with no id and no nonce,
+ * so the CSP refused them and the prefetch they ask for never happened.
+ * Matched by that type alone: any other inline script stays refused
+ * unless it carries the nonce itself.
+ *
+ * @param array<string,string|bool> $attributes The inline script's attributes.
+ * @return array<string,string|bool>
+ */
+function salt_speculation_rules_script_nonce( array $attributes ): array {
+	if ( 'speculationrules' === ( $attributes['type'] ?? '' ) ) {
+		$attributes['nonce'] = salt_csp_nonce();
+	}
+	return $attributes;
+}
+add_filter( 'wp_inline_script_attributes', 'salt_speculation_rules_script_nonce' );

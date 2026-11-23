@@ -142,10 +142,10 @@ try {
 	const otherHtml = await other.text();
 	result( other.status() === 200 && otherHtml.includes( 'id="enquire__form"' ) && ! otherHtml.includes( 'name="formToken"' ) && ! /data-tone="problem"/.test( otherHtml ), 'another form posted to the answered page is not a contact send', `status ${ other.status() }` );
 	result( encoded.status() === 200 && site( 'stored', 'Ada Encoded' ) === '1', 'a form-encoded REST send flagged as a self-post keeps its name', `status ${ encoded.status() } ${ await encoded.text() }` );
-	// Not this check's: WordPress core's speculation rules and the band
+	// Not this check's: the band
 	// wrapper's style attribute, which the CSP refuses on every page, and
 	// the refused sends' own 400 and 403.
-	const own = errors.filter( ( e ) => ! /speculation rules|Applying inline style|status of 40[03]/.test( e ) );
+	const own = errors.filter( ( e ) => ! /Applying inline style|status of 40[03]/.test( e ) );
 	result( own.length === 0, 'script: no other console error', own.join( ' | ' ) );
 	await scripted.close();
 } finally {
