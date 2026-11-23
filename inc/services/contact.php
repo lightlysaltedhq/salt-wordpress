@@ -145,16 +145,16 @@ function salt_contact_phone_mode(): string {
 /**
  * WordPress's public query vars: the query a page's own address may
  * carry (?page_id=7 on plain permalinks, ?s= on a search). The request's
- * WP object holds them once WordPress is loaded; the core set otherwise.
+ * WP object holds them, as filtered when it parsed the request; the core
+ * set when there is none.
  *
  * @return string[]
  */
 function salt_contact_public_query_vars(): array {
-	$vars  = isset( $GLOBALS['wp'] ) && is_object( $GLOBALS['wp'] ) && isset( $GLOBALS['wp']->public_query_vars ) && is_array( $GLOBALS['wp']->public_query_vars )
+	$vars = isset( $GLOBALS['wp'] ) && is_object( $GLOBALS['wp'] ) && isset( $GLOBALS['wp']->public_query_vars ) && is_array( $GLOBALS['wp']->public_query_vars )
 		? $GLOBALS['wp']->public_query_vars
 		: array( 'm', 'p', 'posts', 'w', 'cat', 'withcomments', 'withoutcomments', 's', 'search', 'exact', 'sentence', 'calendar', 'page', 'paged', 'more', 'tb', 'pb', 'author', 'order', 'orderby', 'year', 'monthnum', 'day', 'hour', 'minute', 'second', 'name', 'category_name', 'tag', 'feed', 'author_name', 'pagename', 'page_id', 'error', 'attachment', 'attachment_id', 'subpost', 'subpost_id', 'preview', 'robots', 'favicon', 'taxonomy', 'term', 'cpage', 'post_type', 'embed' );
-	$given = apply_filters( 'query_vars', $vars ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress's own filter, as WP::parse_request() applies it.
-	return array_map( 'strval', is_array( $given ) ? $given : $vars );
+	return array_map( 'strval', $vars );
 }
 
 /**
@@ -519,47 +519,85 @@ function salt_contact_self_post_fields( ?array $fields = null ): ?array {
 }
 
 /**
+ * The posted fields taken out of $_POST while WordPress parses a
+ * self-posted contact form's request, as they were in $_POST, for
+ * salt_contact_self_post_restore() to put back.
+ *
+ * @param array<string,mixed>|null $removed The fields taken out, to hold them.
+ * @return array<string,mixed>
+ */
+function salt_contact_self_post_removed( ?array $removed = null ): array {
+	static $held = array();
+	if ( null !== $removed ) {
+		$held = $removed;
+	}
+	return $held;
+}
+
+/**
  * Keep a self-posted contact form's fields out of WordPress's query
- * ('do_parse_request'). WP::parse_request() reads every public query var
- * from $_POST before the address, so a posted `name` (a contact field and
- * a public query var) would become a post slug ahead of the page's own
- * and the page would answer 404, with no form. The posted fields are set
- * aside for salt_contact_self_post(), and every one that is a public query
- * var is taken out of $_POST while WordPress parses the request, so the
+ * ('do_parse_request', last, and only when WordPress goes on to parse the
+ * request). WP::parse_request() reads every public query var from $_POST
+ * before the address, so a posted `name` (a contact field and a public
+ * query var) would become a post slug ahead of the page's own and the page
+ * would answer 404, with no form. The posted fields are set aside for
+ * salt_contact_self_post(), and salt_contact_self_post_strip() takes each
+ * public query var out of $_POST once WordPress has its final list, so the
  * address and its rewrite rule alone decide the query (a single post keeps
- * its permalink's own name). $_POST is put back on 'parse_request'.
+ * its permalink's own name). They are put back first thing on
+ * 'parse_request', before anything there (the REST API) reads $_POST.
  *
  * @param bool $parse Whether WordPress parses the request.
- * @param WP   $wp    The request.
  * @return bool
  */
-function salt_contact_self_post_aside( $parse, $wp ) {
-	if ( '' === salt_contact_self_post_anchor() ) {
+function salt_contact_self_post_aside( $parse ) {
+	if ( ! $parse || '' === salt_contact_self_post_anchor() ) {
 		return $parse;
 	}
 	$posted = wp_unslash( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Set aside as sent; verified + sanitised field-by-field in salt_contact_handle().
 	salt_contact_self_post_fields( is_array( $posted ) ? $posted : array() );
-	$vars = is_object( $wp ) && isset( $wp->public_query_vars ) && is_array( $wp->public_query_vars ) ? $wp->public_query_vars : array();
-	foreach ( (array) apply_filters( 'query_vars', $vars ) as $var ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress's own filter, as WP::parse_request() applies it.
-		unset( $_POST[ $var ] );
-	}
+	add_filter( 'query_vars', 'salt_contact_self_post_strip', PHP_INT_MAX );
 	return $parse;
 }
-add_filter( 'do_parse_request', 'salt_contact_self_post_aside', 10, 2 );
+add_filter( 'do_parse_request', 'salt_contact_self_post_aside', PHP_INT_MAX );
 
 /**
- * Put a self-posted form's fields back in $_POST once WordPress has parsed
- * the request ('parse_request'), for any other code that reads them.
+ * Take the public query vars out of a self-posted form's $_POST ('query_vars',
+ * last, once: WP::parse_request() applies it just before it reads $_POST),
+ * holding what it takes for salt_contact_self_post_restore(). The list
+ * passes through unchanged.
+ *
+ * @param mixed $vars WordPress's public query vars.
+ * @return mixed
+ */
+function salt_contact_self_post_strip( $vars ) {
+	remove_filter( 'query_vars', 'salt_contact_self_post_strip', PHP_INT_MAX );
+	$removed = array();
+	foreach ( is_array( $vars ) ? $vars : array() as $var ) {
+		if ( is_string( $var ) && array_key_exists( $var, $_POST ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Held, not read; put back on 'parse_request'.
+			$removed[ $var ] = $_POST[ $var ]; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- As above.
+			unset( $_POST[ $var ] );
+		}
+	}
+	salt_contact_self_post_removed( $removed );
+	return $vars;
+}
+
+/**
+ * Put back the fields salt_contact_self_post_strip() took out of $_POST,
+ * exactly as they were, and nothing else ('parse_request', priority 0:
+ * before core's rest_api_loaded, so a REST request with the flag in its
+ * address still reads every field it was sent).
  *
  * @return void
  */
 function salt_contact_self_post_restore(): void {
-	$fields = salt_contact_self_post_fields();
-	if ( null !== $fields && '' !== salt_contact_self_post_anchor() ) {
-		$_POST = wp_slash( $fields ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Restoring the request as it arrived.
+	foreach ( salt_contact_self_post_removed() as $var => $value ) {
+		$_POST[ $var ] = $value; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Restoring the request as it arrived.
 	}
+	salt_contact_self_post_removed( array() );
 }
-add_action( 'parse_request', 'salt_contact_self_post_restore' );
+add_action( 'parse_request', 'salt_contact_self_post_restore', 0 );
 
 /**
  * The no-JS path: a contact form posted to its own page

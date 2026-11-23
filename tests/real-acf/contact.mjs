@@ -14,6 +14,8 @@
 //    message after it arrives too (a new token is fetched at once).
 //  - A single post's own address, posted a contact `name`: the post still
 //    answers, by its permalink's own name.
+//  - A form-encoded REST send with the self-post flag in its address: the
+//    REST API reads every field it was sent (they are back in $_POST first).
 /* global document */
 import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright';
@@ -103,6 +105,13 @@ try {
 	const posted = await scripted.request.post( `${ post }?salt-contact-send=enquire`, { form: { name: 'Ada Lovelace', message: 'x' } } );
 	// The handler refuses the credential-less send (400); the post's own page is drawn, never a 404.
 	result( posted.status() !== 404 && ( await posted.text() ).includes( 'Contact check post' ), 'a single post keeps its own name under a posted contact name', `status ${ posted.status() } at ${ post }` );
+	// A form-encoded REST send with the self-post flag in its address: its
+	// fields are back in $_POST before the REST API reads them.
+	const rest = new URL( '/wp-json/salt/v1/contact', post );
+	const credentials = await ( await scripted.request.get( `${ rest }/credentials` ) ).json();
+	await wait( 3500 );
+	const encoded = await scripted.request.post( `${ rest }?salt-contact-send=enquire`, { form: { name: 'Ada Encoded', email: 'ada@example.org', enquiryType: 'maintenance', message: 'Form-encoded.', website: '', returnTo: '/contact-check/', formToken: credentials.formToken } } );
+	result( encoded.status() === 200 && site( 'stored', 'Ada Encoded' ) === '1', 'a form-encoded REST send flagged as a self-post keeps its name', `status ${ encoded.status() } ${ await encoded.text() }` );
 	// Not this check's: WordPress core's speculation rules and the band
 	// wrapper's style attribute, which the CSP refuses on every page, and
 	// the refused send's own 400.

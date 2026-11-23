@@ -88,6 +88,26 @@ if ( ! function_exists( 'add_filter' ) ) {
 	}
 }
 
+if ( ! function_exists( 'remove_filter' ) ) {
+	/**
+	 * Remove a filter callback at a priority.
+	 *
+	 * @param string   $hook_name Hook name.
+	 * @param callable $callback  Callback.
+	 * @param int      $priority  Priority.
+	 * @return bool
+	 */
+	function remove_filter( string $hook_name, $callback, int $priority = 10 ): bool {
+		foreach ( $GLOBALS['salt_test_hooks'][ $hook_name ][ $priority ] ?? array() as $i => $registered ) {
+			if ( $registered[0] === $callback ) {
+				unset( $GLOBALS['salt_test_hooks'][ $hook_name ][ $priority ][ $i ] );
+				return true;
+			}
+		}
+		return false;
+	}
+}
+
 if ( ! function_exists( 'apply_filters' ) ) {
 	/**
 	 * Run registered filter callbacks in priority order.
