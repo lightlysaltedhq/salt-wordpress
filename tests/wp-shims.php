@@ -108,6 +108,20 @@ if ( ! function_exists( 'remove_filter' ) ) {
 	}
 }
 
+if ( ! function_exists( 'remove_action' ) ) {
+	/**
+	 * Remove an action callback at a priority (same registry).
+	 *
+	 * @param string   $hook_name Hook name.
+	 * @param callable $callback  Callback.
+	 * @param int      $priority  Priority.
+	 * @return bool
+	 */
+	function remove_action( string $hook_name, $callback, int $priority = 10 ): bool {
+		return remove_filter( $hook_name, $callback, $priority );
+	}
+}
+
 if ( ! function_exists( 'apply_filters' ) ) {
 	/**
 	 * Run registered filter callbacks in priority order.
