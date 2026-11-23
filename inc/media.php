@@ -361,9 +361,11 @@ function salt_image_contract( int $image_id, string $sizes ): ?array {
 
 /**
  * An attachment's stored focal point (view-props/_shared.json focalPoint):
- * the `_salt_focal_point` meta { x, y }, each a whole percentage of the
- * image's width and height, clamped to 0-100. Null when none is stored or
- * either value is not a whole number. Nothing sets it from the editor yet.
+ * the `_salt_focal_point` meta { x, y }, percentages of the image's width
+ * and height, each snapped to the contract's step of 5 and held to 0-100
+ * (section#background-position): min(100, max(0, 5 × floor(v ÷ 5 + 0.5))),
+ * so 32.5 gives 35 and 2.4 gives 0. Null when none is stored or either
+ * value is not a finite number. Nothing sets it from the editor yet.
  *
  * @param int $image_id Attachment ID.
  * @return array{x: int, y: int}|null
@@ -373,15 +375,18 @@ function salt_image_focal_point( int $image_id ): ?array {
 	if ( ! is_array( $stored ) ) {
 		return null;
 	}
-	$whole = static fn( $value ) => is_int( $value ) || is_string( $value ) ? filter_var( $value, FILTER_VALIDATE_INT ) : false;
-	$x     = $whole( $stored['x'] ?? null );
-	$y     = $whole( $stored['y'] ?? null );
-	if ( false === $x || false === $y ) {
-		return null;
-	}
-	return array(
-		'x' => max( 0, min( 100, $x ) ),
-		'y' => max( 0, min( 100, $y ) ),
+	$step = static function ( $value ): ?int {
+		if ( ! is_int( $value ) && ! is_float( $value ) && ! ( is_string( $value ) && is_numeric( $value ) ) ) {
+			return null;
+		}
+		$value = (float) $value;
+		return is_finite( $value ) ? (int) min( 100, max( 0, 5 * floor( $value / 5 + 0.5 ) ) ) : null;
+	};
+	$x    = $step( $stored['x'] ?? null );
+	$y    = $step( $stored['y'] ?? null );
+	return null === $x || null === $y ? null : array(
+		'x' => $x,
+		'y' => $y,
 	);
 }
 
@@ -392,7 +397,7 @@ function salt_image_focal_point( int $image_id ): ?array {
  *
  * @param array<string,mixed>  $image    salt_image_contract().
  * @param bool                 $priority The page's priority image.
- * @param array<string,string> $extra    Further attributes (class, alt override, aria-hidden, style).
+ * @param array<string,string> $extra    Further attributes (class, alt override, aria-hidden, data-*).
  * @return string
  */
 function salt_image_contract_html( array $image, bool $priority = false, array $extra = array() ): string {

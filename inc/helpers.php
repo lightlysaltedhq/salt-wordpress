@@ -84,14 +84,15 @@ function salt_post_summary( $post ): string {
 
 /**
  * The share of five stars a rating fills, as the contract's card writes it
- * in --salt-rating-fill (markup/card.json, rating): the rating as a
- * percentage of 5, so 4.5 is "90%" and 4 is "80%".
+ * in data-fill (markup/card.json, rating; section#no-inline-style): the
+ * rating as a percentage of 5 rounded to the nearest step of 10, halves
+ * up, held to 0-100, so 4.5 is 90 and 4.24 is 80.
  *
  * @param float $rating Rating, 0..5.
- * @return string CSS percentage.
+ * @return int 0..100 in steps of 10.
  */
-function salt_rating_fill( float $rating ): string {
-	return (string) round( $rating / 5 * 100, 2 ) . '%';
+function salt_rating_fill( float $rating ): int {
+	return (int) min( 100, max( 0, 10 * floor( $rating * 2 + 0.5 ) ) );
 }
 
 /**
