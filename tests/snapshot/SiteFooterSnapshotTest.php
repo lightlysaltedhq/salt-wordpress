@@ -3,7 +3,7 @@
  * Site-footer part snapshots (FLEET01) — the §12a chrome markup child
  * themes couple to when they override the part (OVERRIDES.md).
  *
- * Determinism: frozen fixture menu <ul>, fixture org_name, fixture sameAs
+ * Determinism: fixture menu items, fixture org_name, fixture sameAs
  * URLs. The © line contains the LIVE gmdate('Y') year, so the captured
  * HTML is normalised — the current year is replaced with the literal
  * 'YYYY' before comparing/writing the snapshot (the year itself is
@@ -21,10 +21,31 @@ require_once dirname( __DIR__, 2 ) . '/inc/class-salt-nav-walker.php';
 
 final class SiteFooterSnapshotTest extends SaltSnapshotTestCase {
 
-	private const FIXTURE_MENU = '<ul class="x-footer-menu flex flex-wrap gap-x-6 gap-y-2">'
-		. '<li class="x-nav-item menu-item"><a class="x-nav-link inline-flex items-center py-2 text-ink hover:text-brand" href="https://example.test/privacy/">Privacy</a></li>'
-		. '<li class="x-nav-item menu-item"><a class="x-nav-link inline-flex items-center py-2 text-ink hover:text-brand" href="https://example.test/terms/">Terms</a></li>'
-		. '</ul>';
+	/**
+	 * The fixture menu as the items wp_nav_menu() hands the walker.
+	 *
+	 * @return array<int,object>
+	 */
+	private static function fixture_menu(): array {
+		return array(
+			(object) array(
+				'db_id'            => 1,
+				'menu_item_parent' => 0,
+				'title'            => 'Privacy',
+				'url'              => 'https://example.test/privacy/',
+				'current'          => false,
+				'target'           => '',
+			),
+			(object) array(
+				'db_id'            => 2,
+				'menu_item_parent' => 0,
+				'title'            => 'Terms',
+				'url'              => 'https://example.test/terms/',
+				'current'          => false,
+				'target'           => '',
+			),
+		);
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -51,7 +72,7 @@ final class SiteFooterSnapshotTest extends SaltSnapshotTestCase {
 	}
 
 	public function test_footer_with_text_social_and_menu(): void {
-		$GLOBALS['salt_test_menus']['footer'] = self::FIXTURE_MENU;
+		$GLOBALS['salt_test_menu_items']['footer'] = self::fixture_menu();
 
 		$GLOBALS['salt_test_fields']['option']['org_name']           = 'Salt Fixture Org';
 		$GLOBALS['salt_test_fields']['option']['footer_text']        = "Handcrafted in the fixture kitchen.\nRegistered office: 1 Example Way.";
@@ -67,7 +88,7 @@ final class SiteFooterSnapshotTest extends SaltSnapshotTestCase {
 	public function test_footer_minimal_copyright_only(): void {
 		// No menu fixture (fallback renders nothing), no text, social off:
 		// the footer still carries the auto © line — never an empty landmark.
-		$GLOBALS['salt_test_menus']['footer'] = self::FIXTURE_MENU;
+		$GLOBALS['salt_test_menu_items']['footer'] = self::fixture_menu();
 
 		$GLOBALS['salt_test_fields']['option']['footer_show_social'] = false;
 

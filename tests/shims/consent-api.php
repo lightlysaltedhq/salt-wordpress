@@ -23,3 +23,15 @@ if ( ! function_exists( 'wp_has_consent' ) ) {
 		return true === ( $GLOBALS['salt_test_wp_consent'][ $category ] ?? false );
 	}
 }
+
+if ( ! function_exists( 'wp_get_consent_type' ) ) {
+	/**
+	 * wp_get_consent_type shim — reads $GLOBALS['salt_test_wp_consent_type']
+	 * ('' or unset: no cookie plugin has set a consent type).
+	 *
+	 * @return string
+	 */
+	function wp_get_consent_type(): string {
+		return (string) ( $GLOBALS['salt_test_wp_consent_type'] ?? '' );
+	}
+}

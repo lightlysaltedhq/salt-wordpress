@@ -2,7 +2,10 @@
 /**
  * Site header — opens the document, skip link, and <main>.
  *
- * Stub — the header/nav region (x-nav, spec §12a) lands in Phase 1/2.
+ * The skip link moves focus to <main>, which takes tabindex="-1" so it can
+ * hold focus (salt-contract markup/page.json). The header itself is
+ * template-parts/header/site-header.php; the head's scriptless header style
+ * is salt_output_header_noscript() (wp_head).
  *
  * @package Salt
  */
@@ -18,4 +21,4 @@
 <?php wp_body_open(); ?>
 <a class="visually-hidden" href="#main"><?php esc_html_e( 'Skip to content', 'salt' ); ?></a>
 <?php get_template_part( 'template-parts/header/site-header' ); ?>
-<main id="main">
+<main id="main" tabindex="-1">

@@ -18,8 +18,9 @@
  *    names, so what the theme fails to read is a finding for M4, not
  *    something hidden here. The row is then rendered through
  *    salt_render_section(): the theme's resolver and view for that section;
- *  - a chrome case (site-header, site-footer): the case's `site` is seeded
- *    into the theme's options and bloginfo, and the template part rendered;
+ *  - a chrome case (site-header, site-footer): the case's `site` and
+ *    `state` are seeded into the theme's options, menus and chrome seams
+ *    (salt_adapter_seed_chrome()), and the template part rendered;
  *  - a view or the page: these need WordPress's loop and document head, so
  *    they are rendered by the real-ACF harness's running WordPress when one
  *    is up (tests/real-acf/run.sh --conformance sets SALT_HARNESS_WP and
@@ -608,19 +609,54 @@ function salt_adapter_render_section( array $input, array $ids ): string {
 }
 
 /**
- * Render a chrome case: the case's site data seeded into the theme's
- * options, then the template part. The menus are not seeded: the theme
- * draws them through wp_nav_menu() and its walker, which the shims do not
- * run, so a case's menu is drawn by the fallback (nothing).
+ * A chrome case's menu as the menu items wp_nav_menu() hands the theme's
+ * walker (the nav shim's salt_test_menu_items): each item's current state
+ * is whether its href is the case's path, as WordPress marks the current
+ * page's item.
+ *
+ * @param array<int,array<string,mixed>> $items  The case's items ({ label, href?, children? }).
+ * @param string                         $path   The case's context.path.
+ * @param int                            $parent_id The parent item's ID (0 for the top level).
+ * @param int                            $next   The next item ID, by reference.
+ * @return array<int,object>
+ */
+function salt_adapter_menu_items( array $items, string $path, int $parent_id = 0, int &$next = 1 ): array {
+	$out = array();
+	foreach ( $items as $item ) {
+		$id    = $next++;
+		$href  = isset( $item['href'] ) ? (string) $item['href'] : '';
+		$out[] = (object) array(
+			'ID'               => $id,
+			'db_id'            => $id,
+			'menu_item_parent' => $parent_id,
+			'title'            => (string) ( $item['label'] ?? '' ),
+			'url'              => $href,
+			'current'          => '' !== $href && $href === $path,
+			'target'           => '',
+		);
+		$out   = array_merge( $out, salt_adapter_menu_items( (array) ( $item['children'] ?? array() ), $path, $id, $next ) );
+	}
+	return $out;
+}
+
+/**
+ * Seed a chrome case's site data into the theme's options and the chrome's
+ * seams: the header's menu and the footer's columns (as menus), the
+ * phone, the theme toggle's placement and known scheme, the footer's tone,
+ * logo, profiles, copyright and display preferences, the consent panel,
+ * and the case's state (the drawer or the consent panel open). Kept apart
+ * from the section and page seeding (EP-72 M4 U5).
  *
  * @param array<string,mixed> $input The case.
  * @param array<string,array> $ids   ID maps.
- * @return string
+ * @return void
  */
-function salt_adapter_render_chrome( array $input, array $ids ): string {
+function salt_adapter_seed_chrome( array $input, array $ids ): void {
 	$site   = (array) ( $input['site'] ?? array() );
 	$header = (array) ( $site['header'] ?? array() );
 	$footer = (array) ( $site['footer'] ?? array() );
+	$state  = (array) ( $input['state'] ?? array() );
+	$path   = (string) ( $input['context']['path'] ?? '/' );
 	$option = static function ( string $name, $value ): void {
 		$GLOBALS['salt_test_fields']['option'][ $name ] = $value;
 	};
@@ -642,6 +678,96 @@ function salt_adapter_render_chrome( array $input, array $ids ): string {
 	}
 	$option( 'footer_text', $footer['text'] ?? null );
 	$option( 'footer_show_social', ! empty( $footer['profiles'] ) );
+
+	// Menus: the header's as given; the footer's columns as a menu the
+	// theme reads back as columns (a titled column is a parent without an
+	// address, an untitled one its links at the top level).
+	$GLOBALS['salt_test_menu_items']['primary'] = salt_adapter_menu_items( (array) ( $header['menu'] ?? array() ), $path );
+	$footer_menu                                = array();
+	foreach ( (array) ( $footer['columns'] ?? array() ) as $column ) {
+		if ( isset( $column['title'] ) && '' !== (string) $column['title'] ) {
+			$footer_menu[] = array(
+				'label'    => $column['title'],
+				'children' => (array) ( $column['links'] ?? array() ),
+			);
+		} else {
+			$footer_menu = array_merge( $footer_menu, (array) ( $column['links'] ?? array() ) );
+		}
+	}
+	$GLOBALS['salt_test_menu_items']['footer'] = salt_adapter_menu_items( $footer_menu, $path );
+
+	$toggle    = $site['themeToggle'] ?? null;
+	$placement = true === $toggle ? 'header' : ( is_array( $toggle ) ? ( $toggle['placed'] ?? null ) : null );
+	add_filter( 'salt_theme_toggle_placement', static fn() => $placement );
+	add_filter( 'salt_theme_scheme', static fn() => $state['themeScheme'] ?? null );
+	add_filter( 'salt_header_phone', static fn() => $header['phone']['text'] ?? null );
+	add_filter( 'salt_header_drawer_open', static fn() => ! empty( $state['drawerOpen'] ) );
+	add_filter( 'salt_footer_tone', static fn() => $footer['tone'] ?? 'surface' );
+	add_filter( 'salt_footer_show_logo', static fn() => ! empty( $footer['showLogo'] ) );
+	if ( isset( $footer['copyright'] ) ) {
+		add_filter( 'salt_footer_copyright', static fn() => (string) $footer['copyright'] );
+	}
+	if ( isset( $footer['profiles'] ) ) {
+		add_filter(
+			'salt_footer_social_links',
+			static fn() => array_map(
+				static fn( array $profile ): array => array(
+					'url'   => (string) $profile['url'],
+					'icon'  => (string) ( $profile['icon'] ?? '' ),
+					'label' => (string) $profile['name'],
+				),
+				(array) $footer['profiles']
+			)
+		);
+	}
+
+	// Consent, founder ruling C: the footer draws its consent control and
+	// panel only when a cookie plugin is wired to the WP Consent API. The
+	// contract's site-footer.json makes the consent block non-optional, and
+	// every footer fixture draws the control, though only consent-panel-open
+	// carries site.consent. So every footer case is a site with a plugin:
+	// the WP Consent API is seeded as present for all of them. The contract
+	// gap (consent optional, and a no-plugin fixture) is with the founder;
+	// the no-plugin path is proved by the unit suite (ChromeMarkupTest).
+	if ( 'site-footer' === ( $input['chrome'] ?? '' ) ) {
+		require_once SALT_ADAPTER_THEME . '/tests/shims/consent-api.php';
+		$GLOBALS['salt_test_wp_consent_type'] = 'optin';
+	}
+	add_filter( 'salt_consent_panel_open', static fn() => ! empty( $state['consentPanelOpen'] ) );
+	if ( isset( $site['consent'] ) ) {
+		add_filter(
+			'salt_consent_panel',
+			static fn() => array(
+				'labels'     => (array) ( $site['consent']['labels'] ?? array() ),
+				'categories' => (array) ( $site['consent']['categories'] ?? array() ),
+			)
+		);
+	}
+
+	$prefs = $site['displayPreferences'] ?? null;
+	if ( is_array( $prefs ) ) {
+		$controls = ! empty( $prefs['scale'] ) ? array( 'font_size' ) : array();
+		foreach ( (array) ( $prefs['toggles'] ?? array() ) as $toggle_name ) {
+			$controls[] = 'theme' === $toggle_name ? 'dark_mode' : (string) $toggle_name;
+		}
+		$option( 'display_preferences_enabled', true );
+		$option( 'display_controls', $controls );
+		$option( 'dark_mode', in_array( 'dark_mode', $controls, true ) );
+		$option( 'reduce_motion', 'reduce' === ( $prefs['motionDefault'] ?? null ) );
+		add_filter( 'salt_display_preferences_labels', static fn() => (array) ( $prefs['labels'] ?? array() ) );
+	}
+}
+
+/**
+ * Render a chrome case: the case's site data seeded into the theme's
+ * options and seams (salt_adapter_seed_chrome()), then the template part.
+ *
+ * @param array<string,mixed> $input The case.
+ * @param array<string,array> $ids   ID maps.
+ * @return string
+ */
+function salt_adapter_render_chrome( array $input, array $ids ): string {
+	salt_adapter_seed_chrome( $input, $ids );
 
 	$part = 'site-header' === $input['chrome'] ? 'template-parts/header/site-header.php' : 'template-parts/footer/site-footer.php';
 	ob_start();

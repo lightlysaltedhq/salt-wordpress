@@ -68,13 +68,27 @@ function salt_logo_height(): int {
 }
 
 /**
+ * The logo height the site sets (px), or null when it sets none: the
+ * contract's site-logo then draws no style and the stylesheet's 2rem
+ * applies.
+ *
+ * @return int|null
+ */
+function salt_logo_height_set(): ?int {
+	$raw = salt_acf_active() ? salt_option( 'logo_height' ) : null;
+	return null === $raw || '' === $raw || false === $raw ? null : salt_logo_height_value( $raw );
+}
+
+/**
  * Header runtime CSS — the seam salt_output_theme_vars_css() composes.
  *
- * Always emits the validated --logo-height (the x-logo CSS in app.css
- * consumes it); adds the sticky-header anchor offset --salt-scroll-padding
- * ONLY when the header is sticky (scroll-padding-top in app.css defaults
- * to 0 otherwise). Numeric tokens only — safe to print unescaped inside
- * the nonce-stamped <style>.
+ * Emits the validated --logo-height on .salt-logo when the site sets one.
+ * The logo draws it as its contract style attribute too, which the CSP
+ * blocks (no 'unsafe-inline' for style attributes, SEC06), so this
+ * nonce-stamped rule is what applies it; it prints after salt.css, so it
+ * wins over the stylesheet's 2rem default. Adds the sticky-header anchor
+ * offset --salt-scroll-padding ONLY when the header is sticky. Numeric
+ * tokens only — safe to print unescaped inside the nonce-stamped <style>.
  *
  * @return string CSS, '' when ACF is absent (compiled defaults apply).
  */
@@ -83,10 +97,12 @@ function salt_header_runtime_css(): string {
 		return '';
 	}
 
-	$css = sprintf( ':root{--logo-height:%dpx}', salt_logo_height() );
+	$height = salt_logo_height_set();
+	$css    = null === $height ? '' : sprintf( '.salt-logo{--logo-height:%dpx}', $height );
 
 	if ( (bool) salt_option( 'header_sticky' ) ) {
-		$css .= ':root{--salt-scroll-padding:calc(var(--logo-height,3rem) + 2.5rem)}';
+		// The logo's height (salt.css's 2rem when none is set) plus the bar's padding.
+		$css .= sprintf( ':root{--salt-scroll-padding:calc(%dpx + 2.5rem)}', $height ?? 32 );
 	}
 
 	return $css;
@@ -97,11 +113,13 @@ function salt_header_runtime_css(): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Build the x-logo component args from the Logo & Fonts options.
+ * The site-logo component args from the Logo & Fonts options, for the
+ * header or the footer (salt-contract markup/site-logo.json).
  *
- * @return array{light_id:int,dark_id:int,text:string,url:string}
+ * @param string $context header|footer: the header's default-scheme logo loads eagerly, the footer's never.
+ * @return array{light_id:int,dark_id:int,text:string,url:string,height:int,context:string}
  */
-function salt_logo_args(): array {
+function salt_logo_args( string $context = 'header' ): array {
 	$light = 0;
 	$dark  = 0;
 	$text  = '';
@@ -117,6 +135,8 @@ function salt_logo_args(): array {
 		'dark_id'  => $dark,
 		'text'     => $text,
 		'url'      => home_url( '/' ),
+		'height'   => salt_logo_height_set() ?? 0,
+		'context'  => 'footer' === $context ? 'footer' : 'header',
 	);
 }
 
@@ -226,7 +246,9 @@ function salt_footer_copyright(): string {
 		$name = (string) get_bloginfo( 'name' );
 	}
 
-	return trim( sprintf( '© %s %s', gmdate( 'Y' ), $name ) );
+	$line  = trim( sprintf( '© %s %s', gmdate( 'Y' ), $name ) );
+	$given = apply_filters( 'salt_footer_copyright', $line );
+	return is_string( $given ) ? $given : $line;
 }
 
 /**
@@ -398,18 +420,410 @@ function salt_footer_social_links(): array {
 		return array();
 	}
 
-	$rows = salt_option( 'org_same_as' );
-	if ( ! is_array( $rows ) ) {
-		return array();
-	}
-
+	$rows  = salt_option( 'org_same_as' );
 	$links = array();
-	foreach ( $rows as $row ) {
+	foreach ( is_array( $rows ) ? $rows : array() as $row ) {
 		$link = salt_social_link( is_array( $row ) ? (string) ( $row['url'] ?? '' ) : '' );
 		if ( null !== $link ) {
 			$links[] = $link;
 		}
 	}
 
-	return $links;
+	// The contract adapter's seam: a case names each profile itself.
+	$given = apply_filters( 'salt_footer_social_links', $links );
+	return is_array( $given ) ? $given : $links;
 }
+
+// ---------------------------------------------------------------------------
+// The contract's chrome (salt-contract markup/site-header.json,
+// site-footer.json): labels and the seams pending the founder's rulings.
+// ---------------------------------------------------------------------------
+
+/**
+ * The chrome's labels (the contract's `labels.<name>`): translatable theme
+ * strings, as the founder ruled for the collection labels, merged under
+ * salt_contract_labels() so the one `salt_contract_labels` seam (and the
+ * contract adapter) can give any of them.
+ *
+ * @param string $context header|footer: their navigation names differ.
+ * @return array<string,string>
+ */
+function salt_chrome_labels( string $context ): array {
+	$defaults = array(
+		'navigation'  => 'footer' === $context ? __( 'Footer', 'salt' ) : __( 'Main', 'salt' ),
+		'submenu'     => __( 'Show submenu', 'salt' ),
+		'menu'        => __( 'Menu', 'salt' ),
+		'closeMenu'   => __( 'Close menu', 'salt' ),
+		'theme'       => __( 'Dark mode', 'salt' ),
+		'social'      => __( 'Social media', 'salt' ),
+		'preferences' => __( 'Cookie preferences', 'salt' ),
+	);
+	return array_merge( $defaults, salt_contract_labels() );
+}
+
+/**
+ * Where the theme toggle is placed: 'header', 'footer' or null for none.
+ *
+ * PENDING FOUNDER RULING: WordPress has no setting for this yet (whether
+ * editors set it in Site Settings or a code filter does). Until then the
+ * `salt_theme_toggle_placement` filter is the seam; the default is none,
+ * so no site changes. A placed toggle takes the place of the display
+ * preferences' dark-mode control.
+ *
+ * @return string|null
+ */
+function salt_theme_toggle_placement(): ?string {
+	$placement = apply_filters( 'salt_theme_toggle_placement', null );
+	return in_array( $placement, array( 'header', 'footer' ), true ) ? $placement : null;
+}
+
+/**
+ * The theme toggle as the contract draws it: the empty span[aria-hidden]
+ * until script knows the scheme (SC-019), or the button form with the
+ * scheme's glyph when the server knows it. The theme keeps the visitor's
+ * choice in localStorage, which the server cannot read, so the server form
+ * is the span; the `salt_theme_scheme` filter ('light'|'dark') is the seam
+ * for a site that can know it (pending the same ruling).
+ *
+ * @param string $label The toggle's name (labels.theme).
+ * @return string
+ */
+function salt_theme_toggle_html( string $label ): string {
+	$scheme = apply_filters( 'salt_theme_scheme', null );
+	if ( ! in_array( $scheme, array( 'light', 'dark' ), true ) ) {
+		return '<span class="salt-theme-toggle" aria-hidden="true"></span>';
+	}
+	return '<button class="salt-theme-toggle" type="button" aria-pressed="' . ( 'dark' === $scheme ? 'true' : 'false' ) . '" aria-label="' . esc_attr( $label ) . '">'
+		. salt_contract_icon( 'dark' === $scheme ? 'moon' : 'sun', 'sm' )
+		. '</button>';
+}
+
+/**
+ * The header's phone number, or null for none: the site's company phone
+ * (Company & Schema, company_phone), with the `salt_header_phone` filter
+ * as a site's override (null or '' for none). Drawn only when it
+ * normalises to a tel: link (salt_contract_tel(), section#display-forms).
+ *
+ * @return array{text:string,tel:string}|null
+ */
+function salt_header_phone(): ?array {
+	$stored = salt_acf_active() ? salt_option( 'company_phone' ) : null;
+	$phone  = apply_filters( 'salt_header_phone', is_string( $stored ) ? $stored : null );
+	if ( ! is_string( $phone ) || '' === trim( $phone ) ) {
+		return null;
+	}
+	$tel = salt_contract_tel( $phone );
+	if ( null === $tel ) {
+		salt_log( sprintf( 'chrome: header phone "%s" gives no tel: link — not drawn.', $phone ) );
+		return null;
+	}
+	return array(
+		'text' => trim( $phone ),
+		'tel'  => $tel,
+	);
+}
+
+/**
+ * The header's navigation as the contract's markup, in the bar or the
+ * drawer. Ids are fixed (SC-012): the bar's nav is site-navigation, the
+ * drawer's site-header__drawer-navigation, and a submenu's <n> is its
+ * item's position in the top-level menu counting from 1.
+ *
+ * @param array<int,array<string,mixed>> $menu   Salt_Nav_Walker tree.
+ * @param array<string,string>           $labels salt_chrome_labels( 'header' ).
+ * @param bool                           $drawer The drawer's copy.
+ * @return string
+ */
+function salt_header_nav_html( array $menu, array $labels, bool $drawer = false ): string {
+	$prefix = $drawer ? 'site-header__drawer-submenu-' : 'site-header__submenu-';
+	$html   = '<nav class="salt-nav" id="' . ( $drawer ? 'site-header__drawer-navigation' : 'site-navigation' ) . '" aria-label="' . esc_attr( $labels['navigation'] ) . '">';
+	$html  .= '<ul class="salt-nav__list" role="list">';
+	foreach ( array_values( $menu ) as $i => $item ) {
+		$children = (array) $item['children'];
+		$section  = array() !== array_filter( $children, static fn( $child ) => ! empty( $child['current'] ) );
+		$id       = $prefix . ( $i + 1 );
+
+		$html .= '<li class="salt-nav__item"' . ( $section ? ' data-current-section' : '' ) . '>';
+		$html .= salt_nav_link_html( $item, 'salt-nav__link', array() !== $children );
+		if ( array() !== $children ) {
+			$html .= '<span class="salt-nav__toggle" aria-expanded="false" aria-controls="' . esc_attr( $id ) . '" aria-label="' . esc_attr( $labels['submenu'] ) . '" aria-hidden="true">'
+				. salt_contract_icon( 'chevron-down', 'sm' ) . '</span>';
+			$html .= '<ul class="salt-nav__submenu" id="' . esc_attr( $id ) . '" role="list">';
+			foreach ( $children as $child ) {
+				$html .= '<li class="salt-nav__subitem">' . salt_nav_link_html( $child, 'salt-nav__sublink', false ) . '</li>';
+			}
+			$html .= '</ul>';
+		}
+		$html .= '</li>';
+	}
+	return $html . '</ul></nav>';
+}
+
+/**
+ * A menu item's link: an a with its address, or the span form for an item
+ * with no address (tabindex 0 when it opens a submenu, so the keyboard can
+ * reach the submenu before script).
+ *
+ * @param array<string,mixed> $item      Tree node.
+ * @param string              $class_name The link's class.
+ * @param bool                $opens_sub Whether it opens a submenu.
+ * @return string
+ */
+function salt_nav_link_html( array $item, string $class_name, bool $opens_sub ): string {
+	$label = esc_html( (string) $item['label'] );
+	if ( null === $item['href'] ) {
+		return '<span class="' . $class_name . '"' . ( $opens_sub ? ' tabindex="0"' : '' ) . '>' . $label . '</span>';
+	}
+	$atts  = ' href="' . esc_url( (string) $item['href'] ) . '"';
+	$atts .= empty( $item['current'] ) ? '' : ' aria-current="page"';
+	$atts .= '_blank' === ( $item['target'] ?? '' ) ? ' target="_blank" rel="noopener noreferrer"' : '';
+	return '<a class="' . $class_name . '"' . $atts . '>' . $label . '</a>';
+}
+
+/**
+ * The header's call to action as the contract's button (link form).
+ *
+ * @param array{label:string,url:string,target:string} $cta salt_header_cta_args().
+ * @return string
+ */
+function salt_header_cta_html( array $cta ): string {
+	$atts = '_blank' === $cta['target'] ? ' target="_blank" rel="noopener noreferrer"' : '';
+	return '<a class="salt-button salt-header__cta" href="' . esc_url( $cta['url'] ) . '" data-style="primary" data-track-control="cta"' . $atts . '>' . esc_html( $cta['label'] ) . '</a>';
+}
+
+/**
+ * The header's phone link.
+ *
+ * @param array{text:string,tel:string} $phone  salt_header_phone().
+ * @param array<string,string>          $labels salt_chrome_labels( 'header' ).
+ * @return string
+ */
+function salt_header_phone_html( array $phone, array $labels ): string {
+	$name = isset( $labels['phone'] ) && '' !== $labels['phone'] ? ' aria-label="' . esc_attr( $labels['phone'] ) . '"' : '';
+	return '<a class="salt-header__phone" href="' . esc_url( $phone['tel'], array( 'tel' ) ) . '"' . $name . '>'
+		. salt_contract_icon( 'phone', '' )
+		. '<span class="salt-header__phone-number">' . esc_html( $phone['text'] ) . '</span></a>';
+}
+
+/**
+ * The menu glyph the burger and the drawer's close button share
+ * (salt-menu-morph): three bars the stylesheet turns into a cross.
+ *
+ * @return string
+ */
+function salt_menu_morph_html(): string {
+	$bars = '';
+	foreach ( array( 'M4 6h16', 'M4 12h16', 'M4 18h16' ) as $d ) {
+		$bars .= '<path class="salt-menu-morph__bar" d="' . $d . '" stroke-width="2" stroke-linecap="round"></path>';
+	}
+	return '<svg class="salt-icon salt-menu-morph" data-icon="menu" aria-hidden="true" fill="none" stroke="currentColor">' . $bars . '</svg>';
+}
+
+/**
+ * Whether the drawer is drawn open by the server. Only script opens it, so
+ * never on a real request; the `salt_header_drawer_open` filter lets the
+ * contract adapter draw the case that shows it.
+ *
+ * @return bool
+ */
+function salt_header_drawer_open(): bool {
+	return true === apply_filters( 'salt_header_drawer_open', false );
+}
+
+/**
+ * The footer's link columns from its menu (SC-006): a top-level item with
+ * children is a titled column of its children; a run of top-level items
+ * without children is one untitled column. A single flat menu, as most
+ * sites have, is therefore one untitled column.
+ *
+ * @param array<int,array<string,mixed>> $menu Salt_Nav_Walker tree.
+ * @return array<int,array{title:?string,links:array<int,array<string,mixed>>}>
+ */
+function salt_footer_columns( array $menu ): array {
+	$columns = array();
+	$flat    = null;
+	foreach ( $menu as $item ) {
+		if ( array() !== (array) $item['children'] ) {
+			if ( null !== $flat ) {
+				$columns[] = $flat;
+				$flat      = null;
+			}
+			$columns[] = array(
+				'title' => (string) $item['label'],
+				'links' => array_values( (array) $item['children'] ),
+			);
+			continue;
+		}
+		$flat            = $flat ?? array(
+			'title' => null,
+			'links' => array(),
+		);
+		$flat['links'][] = $item;
+	}
+	if ( null !== $flat ) {
+		$columns[] = $flat;
+	}
+	return $columns;
+}
+
+/**
+ * The footer's tone (data-tone and data-tone-dark).
+ *
+ * PENDING FOUNDER RULING: no Site Setting yet; the `salt_footer_tone`
+ * filter is the seam. The default is surface-alt, the footer's colour
+ * before the contract.
+ *
+ * @return string
+ */
+function salt_footer_tone(): string {
+	$tone = apply_filters( 'salt_footer_tone', 'surface-alt' );
+	return in_array( $tone, array( 'surface', 'surface-alt', 'brand-tint', 'surface-inverse' ), true ) ? $tone : 'surface-alt';
+}
+
+/**
+ * Whether the footer shows the logo (the `salt_footer_show_logo` seam,
+ * pending the same ruling; off by default, as before).
+ *
+ * @return bool
+ */
+function salt_footer_show_logo(): bool {
+	return true === apply_filters( 'salt_footer_show_logo', false );
+}
+
+/**
+ * The footer text (footer_text) as the contract's rich text: the theme's
+ * allow-list for a line of prose (paragraphs, bold, italic, links), with
+ * paragraphs added to text that has none. '' when it has no words.
+ *
+ * @return string
+ */
+function salt_footer_text_html(): string {
+	$text = salt_acf_active() ? trim( (string) ( salt_option( 'footer_text' ) ?? '' ) ) : '';
+	if ( '' === $text ) {
+		return '';
+	}
+	if ( 1 !== preg_match( '/<p[\s>]/i', $text ) ) {
+		$text = wpautop( $text );
+	}
+	$html = salt_sanitize_html( $text, array( 'paragraph', 'bold', 'italic', 'link' ) );
+	return '' === trim( wp_strip_all_tags( $html ) ) ? '' : $html;
+}
+
+/**
+ * The consent preferences panel's words and categories (site.consent).
+ *
+ * Drawn only when a cookie plugin is wired to the WP Consent API
+ * (salt_consent_plugin_active(), founder ruling C). The categories are the
+ * contract's ids, each written through salt_consent_api_category(); the
+ * `salt_consent_panel` filter is the seam.
+ *
+ * @return array{labels:array<string,string>,categories:array<int,array{id:string,label:string,description:string}>}
+ */
+function salt_consent_panel(): array {
+	$panel = array(
+		'labels'     => array(
+			'title'  => __( 'Cookie preferences', 'salt' ),
+			'save'   => __( 'Save preferences', 'salt' ),
+			'cancel' => __( 'Cancel', 'salt' ),
+			'saved'  => __( 'Your cookie preferences are saved.', 'salt' ),
+		),
+		'categories' => array(
+			array(
+				'id'          => 'analytics',
+				'label'       => __( 'Analytics', 'salt' ),
+				'description' => __( 'Helps us see which pages are read, with no personal details.', 'salt' ),
+			),
+			array(
+				'id'          => 'embeds',
+				'label'       => __( 'Embedded content', 'salt' ),
+				'description' => __( 'Maps, videos and booking tools from other sites.', 'salt' ),
+			),
+			array(
+				'id'          => 'marketing',
+				'label'       => __( 'Marketing', 'salt' ),
+				'description' => __( 'Lets us measure how our adverts perform.', 'salt' ),
+			),
+		),
+	);
+	$given = apply_filters( 'salt_consent_panel', $panel );
+	return is_array( $given ) && isset( $given['labels'], $given['categories'] ) ? $given : $panel;
+}
+
+/**
+ * The scriptless phone layout (salt-contract markup/page.json, scriptless):
+ * the custom properties chrome.css reads to show the full nav in place of
+ * the burger when script is off.
+ *
+ * @return string
+ */
+function salt_header_noscript_css(): string {
+	return '.salt-header{--salt-header-phone-menu:inline-flex;--salt-header-phone-burger:none;--salt-header-phone-wrap:wrap}';
+}
+
+/**
+ * Print the scriptless phone layout in the document head as the contract
+ * writes it: noscript > style, after the stylesheet link ('wp_head', 21).
+ * A style inside noscript is conforming HTML only in head
+ * (site-header.json ruling). It carries no nonce, so its markup is the
+ * contract's; the CSP allows it by its hash instead (salt_security_headers()).
+ *
+ * @return void
+ */
+function salt_output_header_noscript(): void {
+	echo '<noscript><style>' . salt_header_noscript_css() . "</style></noscript>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- A fixed string.
+}
+add_action( 'wp_head', 'salt_output_header_noscript', 21 );
+
+/**
+ * What the chrome's script (assets/src/js/app.js) needs that the page does
+ * not draw: the labels it names the controls it mounts with, the theme
+ * toggle's two glyphs, and the consent panel (only when the footer draws
+ * its control).
+ *
+ * @return array<string,mixed>
+ */
+function salt_chrome_script_data(): array {
+	$labels = salt_chrome_labels( 'header' );
+	$data   = array(
+		'labels' => array(
+			'submenu'   => $labels['submenu'],
+			'closeMenu' => $labels['closeMenu'],
+			'theme'     => $labels['theme'],
+		),
+		'glyphs' => array(
+			'sun'  => salt_contract_icon( 'sun', 'sm' ),
+			'moon' => salt_contract_icon( 'moon', 'sm' ),
+		),
+	);
+	if ( true === apply_filters( 'salt_consent_control', function_exists( 'salt_consent_plugin_active' ) && salt_consent_plugin_active() ) ) {
+		$panel      = salt_consent_panel();
+		$categories = array();
+		foreach ( $panel['categories'] as $category ) {
+			$id           = sanitize_key( (string) $category['id'] );
+			$categories[] = array(
+				'id'          => $id,
+				'label'       => (string) $category['label'],
+				'description' => (string) $category['description'],
+				'api'         => function_exists( 'salt_consent_api_category' ) ? salt_consent_api_category( $id ) : $id,
+			);
+		}
+		$data['consent'] = array(
+			'labels'     => array_map( 'strval', $panel['labels'] ),
+			'categories' => $categories,
+		);
+	}
+	return $data;
+}
+
+/**
+ * Print the chrome's script data as inert JSON ('wp_footer', 5): a
+ * script of type application/json is data, not code, so the CSP does not
+ * govern it, and the contract's page comparison drops it with the body's
+ * other script elements.
+ *
+ * @return void
+ */
+function salt_output_chrome_script_data(): void {
+	echo '<script type="application/json" id="salt-chrome-data">' . wp_json_encode( salt_chrome_script_data(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES ) . "</script>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON with < > & hex-escaped, so it cannot close the element.
+}
+add_action( 'wp_footer', 'salt_output_chrome_script_data', 5 );

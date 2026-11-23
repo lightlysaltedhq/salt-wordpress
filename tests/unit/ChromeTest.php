@@ -69,19 +69,20 @@ final class ChromeTest extends SaltTestCase {
 	// The header runtime CSS seam.
 	// -----------------------------------------------------------------------
 
-	public function test_runtime_css_always_emits_the_validated_logo_height(): void {
-		$this->assertSame( ':root{--logo-height:48px}', salt_header_runtime_css() );
+	public function test_runtime_css_emits_the_logo_height_only_when_set(): void {
+		$this->assertSame( '', salt_header_runtime_css(), 'No height set: salt.css\'s 2rem applies.' );
 
 		$GLOBALS['salt_test_fields']['option']['logo_height'] = 72;
-		$this->assertSame( ':root{--logo-height:72px}', salt_header_runtime_css() );
+		$this->assertSame( '.salt-logo{--logo-height:72px}', salt_header_runtime_css() );
 	}
 
 	public function test_runtime_css_adds_scroll_padding_only_when_sticky(): void {
-		$this->assertStringNotContainsString( '--salt-scroll-padding', salt_header_runtime_css() );
-
 		$GLOBALS['salt_test_fields']['option']['header_sticky'] = true;
+		$this->assertSame( ':root{--salt-scroll-padding:calc(32px + 2.5rem)}', salt_header_runtime_css() );
+
+		$GLOBALS['salt_test_fields']['option']['logo_height'] = 48;
 		$this->assertSame(
-			':root{--logo-height:48px}:root{--salt-scroll-padding:calc(var(--logo-height,3rem) + 2.5rem)}',
+			'.salt-logo{--logo-height:48px}:root{--salt-scroll-padding:calc(48px + 2.5rem)}',
 			salt_header_runtime_css()
 		);
 	}
@@ -89,7 +90,7 @@ final class ChromeTest extends SaltTestCase {
 	public function test_runtime_css_clamps_out_of_range_height_and_logs(): void {
 		$GLOBALS['salt_test_fields']['option']['logo_height'] = 9999;
 
-		$this->assertSame( ':root{--logo-height:200px}', salt_header_runtime_css() );
+		$this->assertSame( '.salt-logo{--logo-height:200px}', salt_header_runtime_css() );
 		$this->assertCount( 1, $this->logs() );
 		$this->assertStringContainsString( 'clamped', $this->logs()[0] );
 	}
@@ -253,115 +254,150 @@ final class ChromeTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------------
-	// Salt_Nav_Walker — direct unit calls (§12a).
+	// Salt_Nav_Walker reads a menu into a tree (§12a).
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Build a menu-item fixture (the decorated-WP_Post shape the walker reads).
+	 * A menu item as wp_nav_menu() hands it to the walker.
 	 *
-	 * @param array<string,mixed> $props Property overrides.
-	 * @return WP_Post
+	 * @param int                 $id     Item ID.
+	 * @param int                 $parent Parent item ID.
+	 * @param array<string,mixed> $props  Overrides.
+	 * @return object
 	 */
-	private function menu_item( array $props = array() ): WP_Post {
-		return new WP_Post(
-			array_merge(
-				array(
-					'ID'      => 10,
-					'title'   => 'About',
-					'url'     => 'https://example.test/about/',
-					'classes' => array( 'menu-item' ),
-					'current' => false,
-					'target'  => '',
-				),
-				$props
-			)
-		);
-	}
-
-	public function test_walker_renders_a_plain_top_level_item(): void {
-		$walker = new Salt_Nav_Walker();
-		$html   = '';
-		$walker->start_el( $html, $this->menu_item() );
-		$walker->end_el( $html, $this->menu_item() );
-
-		$this->assertStringContainsString( '<li class="x-nav-item menu-item">', $html );
-		$this->assertStringContainsString( 'href="https://example.test/about/"', $html );
-		$this->assertStringContainsString( '>About</a></li>', $html );
-		$this->assertStringNotContainsString( 'x-nav-toggle', $html );
-		$this->assertStringNotContainsString( 'aria-current', $html );
-	}
-
-	public function test_walker_marks_the_current_item(): void {
-		$walker = new Salt_Nav_Walker();
-		$html   = '';
-		$walker->start_el( $html, $this->menu_item( array( 'current' => true ) ) );
-
-		$this->assertStringContainsString( 'aria-current="page"', $html );
-	}
-
-	public function test_walker_hardens_blank_target_links(): void {
-		$walker = new Salt_Nav_Walker();
-		$html   = '';
-		$walker->start_el( $html, $this->menu_item( array( 'target' => '_blank' ) ) );
-
-		$this->assertStringContainsString( 'target="_blank" rel="noopener noreferrer"', $html );
-	}
-
-	public function test_walker_renders_disclosure_markup_for_submenu_parents(): void {
-		$walker = new Salt_Nav_Walker();
-		$parent = $this->menu_item(
+	private static function item( int $id, int $parent = 0, array $props = array() ): object {
+		return (object) array_merge(
 			array(
-				'ID'      => 42,
-				'title'   => 'Services',
-				'classes' => array( 'menu-item', 'menu-item-has-children' ),
-			)
+				'db_id'            => $id,
+				'menu_item_parent' => $parent,
+				'title'            => 'Item ' . $id,
+				'url'              => 'https://example.test/' . $id . '/',
+				'current'          => false,
+				'target'           => '',
+			),
+			$props
+		);
+	}
+
+	public function test_walker_reads_one_submenu_level_and_drops_deeper_items(): void {
+		$GLOBALS['salt_test_menu_items']['primary'] = array(
+			self::item( 1 ),
+			self::item( 2, 0, array( 'url' => '#' ) ),
+			self::item( 3, 2, array( 'current' => true ) ),
+			self::item( 4, 3 ),
+			self::item( 5, 0, array( 'target' => '_blank' ) ),
 		);
 
-		$html = '';
-		$walker->start_el( $html, $parent );
-		$walker->start_lvl( $html, 0 );
-		$walker->start_el( $html, $this->menu_item( array( 'ID' => 43 ) ), 1 );
-		$walker->end_el( $html, $this->menu_item( array( 'ID' => 43 ) ), 1 );
-		$walker->end_lvl( $html, 0 );
-		$walker->end_el( $html, $parent );
+		$tree = Salt_Nav_Walker::salt_menu( 'primary' );
 
-		// Disclosure button: inert until the future JS, correct pre-enhancement state.
-		$this->assertStringContainsString( '<button type="button" class="x-nav-toggle', $html );
-		$this->assertStringContainsString( 'aria-expanded="false"', $html );
-		$this->assertStringContainsString( 'aria-controls="x-nav-submenu-42"', $html );
-		$this->assertStringContainsString( 'data-salt-nav-toggle', $html );
-
-		// Submenu id pairs with the toggle's aria-controls.
-		$this->assertStringContainsString( '<ul id="x-nav-submenu-42" class="x-nav-submenu', $html );
-
-		// No-JS reveal: focus-within arbitrary variant on the parent li.
-		$this->assertStringContainsString( '[&amp;:focus-within&gt;.x-nav-submenu]:block', $html );
-
-		// Depth-1 items use the sublink treatment.
-		$this->assertStringContainsString( 'x-nav-sublink', $html );
-	}
-
-	public function test_walker_respects_the_has_children_walker_property(): void {
-		$walker               = new Salt_Nav_Walker();
-		$walker->has_children = true;
-
-		$html = '';
-		$walker->start_el( $html, $this->menu_item( array( 'ID' => 7 ) ) );
-
-		$this->assertStringContainsString( 'aria-controls="x-nav-submenu-7"', $html );
-	}
-
-	public function test_walker_caps_submenus_at_one_level(): void {
-		$walker = new Salt_Nav_Walker();
-
-		$html = '';
-		$walker->start_lvl( $html, 1 );
-		$walker->end_lvl( $html, 1 );
-		$walker->start_el( $html, $this->menu_item( array( 'ID' => 99 ) ), 2 );
-		$walker->end_el( $html, $this->menu_item( array( 'ID' => 99 ) ), 2 );
-
-		$this->assertSame( '', $html );
+		$this->assertCount( 3, $tree );
+		$this->assertNull( $tree[1]['href'], 'A # address is no address: the label draws as a span.' );
+		$this->assertSame( array( 'Item 3' ), array_column( $tree[1]['children'], 'label' ) );
+		$this->assertTrue( $tree[1]['children'][0]['current'] );
+		$this->assertSame( '_blank', $tree[2]['target'] );
 		$this->assertCount( 1, $this->logs() );
 		$this->assertStringContainsString( 'deeper than one submenu level', $this->logs()[0] );
+	}
+
+	public function test_header_nav_marks_the_current_section_and_numbers_submenus_from_one(): void {
+		$GLOBALS['salt_test_menu_items']['primary'] = array(
+			self::item( 1 ),
+			self::item( 2, 0, array( 'url' => '' ) ),
+			self::item( 3, 2, array( 'current' => true ) ),
+		);
+
+		$html = salt_header_nav_html( Salt_Nav_Walker::salt_menu( 'primary' ), salt_chrome_labels( 'header' ) );
+
+		$this->assertStringContainsString( '<li class="salt-nav__item" data-current-section><span class="salt-nav__link" tabindex="0">Item 2</span>', $html );
+		$this->assertStringContainsString( 'aria-controls="site-header__submenu-2"', $html );
+		$this->assertStringContainsString( 'id="site-header__submenu-2"', $html );
+		$this->assertStringContainsString( 'aria-current="page">Item 3</a>', $html );
+	}
+
+	public function test_footer_columns_group_titled_parents_and_runs_of_flat_links(): void {
+		$GLOBALS['salt_test_menu_items']['footer'] = array(
+			self::item( 1 ),
+			self::item( 2 ),
+			self::item( 3, 0, array( 'title' => 'Studio' ) ),
+			self::item( 4, 3 ),
+			self::item( 5 ),
+		);
+
+		$columns = salt_footer_columns( Salt_Nav_Walker::salt_menu( 'footer' ) );
+
+		$this->assertSame( array( null, 'Studio', null ), array_column( $columns, 'title' ) );
+		$this->assertSame( array( 'Item 1', 'Item 2' ), array_column( $columns[0]['links'], 'label' ) );
+		$this->assertSame( array( 'Item 4' ), array_column( $columns[1]['links'], 'label' ) );
+		$this->assertSame( array( 'Item 5' ), array_column( $columns[2]['links'], 'label' ) );
+	}
+
+	// -----------------------------------------------------------------------
+	// The header phone and the footer's consent control (ruling C).
+	// -----------------------------------------------------------------------
+
+	public function test_header_phone_reads_the_company_phone_and_the_filter_overrides_it(): void {
+		$this->assertNull( salt_header_phone() );
+
+		$GLOBALS['salt_test_fields']['option']['company_phone'] = '+44 1935 123456';
+		$this->assertSame(
+			array(
+				'text' => '+44 1935 123456',
+				'tel'  => 'tel:+441935123456',
+			),
+			salt_header_phone()
+		);
+
+		add_filter( 'salt_header_phone', static fn() => null );
+		$this->assertNull( salt_header_phone(), 'A site can turn the header phone off.' );
+	}
+
+	/**
+	 * Render the site-footer part.
+	 *
+	 * @return string
+	 */
+	private function render_footer(): string {
+		ob_start();
+		load_template( locate_template( 'template-parts/footer/site-footer.php' ), false, array() );
+		return (string) ob_get_clean();
+	}
+
+	public function test_footer_draws_no_consent_control_without_a_consent_plugin(): void {
+		require_once __DIR__ . '/../shims/consent-api.php';
+		$GLOBALS['salt_test_wp_consent_type'] = '';
+
+		$html = $this->render_footer();
+
+		$this->assertStringNotContainsString( 'salt-footer__consent', $html );
+		$this->assertStringNotContainsString( 'data-salt-consent-preferences', $html );
+		$this->assertArrayNotHasKey( 'consent', salt_chrome_script_data() );
+	}
+
+	public function test_footer_draws_the_disabled_consent_control_with_a_consent_plugin(): void {
+		require_once __DIR__ . '/../shims/consent-api.php';
+		$GLOBALS['salt_test_wp_consent_type'] = 'optin';
+
+		$html = $this->render_footer();
+		unset( $GLOBALS['salt_test_wp_consent_type'] );
+
+		$this->assertStringContainsString( 'data-salt-consent-preferences="" aria-disabled="true">Cookie preferences</button>', $html );
+		$this->assertStringNotContainsString( '<dialog', $html, 'Only script opens the panel.' );
+	}
+
+	public function test_consent_script_data_maps_each_category_to_the_consent_api(): void {
+		require_once __DIR__ . '/../shims/consent-api.php';
+		$GLOBALS['salt_test_wp_consent_type'] = 'optin';
+
+		$data = salt_chrome_script_data();
+		unset( $GLOBALS['salt_test_wp_consent_type'] );
+
+		$this->assertSame(
+			array(
+				'analytics' => 'statistics',
+				'embeds'    => 'marketing',
+				'marketing' => 'marketing',
+			),
+			array_column( $data['consent']['categories'], 'api', 'id' )
+		);
 	}
 }
