@@ -182,6 +182,40 @@ final class SecurityTest extends SaltTestCase {
 		$this->assertStringContainsString( '.salt-logo{--logo-height:48px}</style>', (string) ob_get_clean() );
 	}
 
+	/**
+	 * Core's global styles print inside the theme's nonce'd style, ahead of
+	 * the theme's own rules. A
+	 * stylesheet that would close the element early is left out, as core's
+	 * own printer leaves it out. Separate process: the stand-in
+	 * wp_get_global_stylesheet() outlives the test.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_core_global_styles_print_in_the_nonced_theme_style(): void {
+		require_once dirname( __DIR__, 2 ) . '/inc/services/chrome.php';
+		$GLOBALS['salt_test_global_stylesheet'] = ':root{--wp--preset--color--black:#000000}';
+		if ( ! function_exists( 'wp_get_global_stylesheet' ) ) {
+			/**
+			 * Stand-in for core's global stylesheet.
+			 *
+			 * @return string
+			 */
+			function wp_get_global_stylesheet(): string {
+				return $GLOBALS['salt_test_global_stylesheet'];
+			}
+		}
+
+		ob_start();
+		salt_output_theme_vars_css();
+		$this->assertMatchesRegularExpression( '#<style id="salt-theme-vars" nonce="[^"]+">:root\{--wp--preset--color--black:\#000000\}\.salt-logo\{--logo-height:48px\}</style>#', (string) ob_get_clean() );
+
+		$GLOBALS['salt_test_global_stylesheet'] = 'a{}</style><script>x()</script>';
+		ob_start();
+		salt_output_theme_vars_css();
+		$this->assertStringContainsString( 'nonce="', $out = (string) ob_get_clean() );
+		$this->assertStringNotContainsString( '<script>', $out );
+	}
+
 	public function test_acf_notice_message_covers_absent_outdated_and_ok(): void {
 		$this->assertNull( salt_acf_notice_message( true, true, '6.4.1' ), 'Healthy ACF: no notice.' );
 
