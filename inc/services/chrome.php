@@ -377,7 +377,7 @@ function salt_chrome_icon_exists( string $name ): bool {
  * Resolve one sameAs URL into a footer social link (PURE — unit-tested).
  *
  * Known hosts (including their subdomains) get the platform label and —
- * when the built-in set ships one — an x-icon name; unknown hosts label as
+ * when the built-in set ships one — a bundled icon name; unknown hosts label as
  * their bare domain (www. stripped). URLs without a usable host are
  * dropped LOUDLY.
  *

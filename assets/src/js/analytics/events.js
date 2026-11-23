@@ -2,7 +2,7 @@
  * Rich salt-instrumented events adapter.
  *
  * Pure DOM delegation over the section markup contracts (x-button,
- * x-accordion-item, salt-contact__form, [data-section], [data-salt-carousel])
+ * salt-contact__form, [data-section], [data-salt-carousel])
  * and, for bands drawn to the salt-contract's markup, their equivalents
  * ([data-track], [data-track-control="cta"], details.salt-accordion__item,
  * [data-track-control^="carousel-"]) — NO section-file changes, passive listeners,
@@ -97,7 +97,7 @@
 			'toggle',
 			(event) => {
 				const item = event.target;
-				if (item instanceof HTMLElement && item.matches('details.x-accordion-item, details.salt-accordion__item') && item.open) {
+				if (item instanceof HTMLElement && item.matches('details.salt-accordion__item') && item.open) {
 					track('accordion_open', { section: sectionOf(item) });
 				}
 			},
