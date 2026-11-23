@@ -365,7 +365,8 @@ function salt_view_card( array $card, array $media, array $more ): int {
  * seams (tests/real-acf/site/salt-harness-case.php):
  *  - site.home (a path, or `{ href, title }`) as a published static front
  *    page, and none as a static front page that is not chosen, so a site
- *    with no home page has none (salt_contract_home());
+ *    with no home page has none (salt_contract_home()); a page case at /
+ *    keeps its own page as the front page;
  *  - site.collectionIndexes.post as the posts page, with its title;
  *  - the case's site, document, route and context in the `salt_harness_case` option,
  *    which the mu-plugin reads.
@@ -386,11 +387,15 @@ function salt_view_case_site( array $input ): void {
 			)
 		);
 	};
-	update_option( 'show_on_front', 'page' );
-	update_option( 'page_on_front', 0 );
-	if ( isset( $site['home'] ) ) {
-		$home = is_array( $site['home'] ) ? $site['home'] : array( 'href' => (string) $site['home'] );
-		update_option( 'page_on_front', $page( (string) ( $home['href'] ?? '/' ), (string) ( $home['title'] ?? 'Home' ) ) );
+	// A page case at / is already the front page, and the home page itself.
+	$front = (int) get_option( 'page_on_front' );
+	if ( 'page' !== get_option( 'show_on_front' ) || 'publish' !== get_post_status( $front ) ) {
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', 0 );
+		if ( isset( $site['home'] ) ) {
+			$home = is_array( $site['home'] ) ? $site['home'] : array( 'href' => (string) $site['home'] );
+			update_option( 'page_on_front', $page( (string) ( $home['href'] ?? '/' ), (string) ( $home['title'] ?? 'Home' ) ) );
+		}
 	}
 	if ( isset( $site['collectionIndexes']['post'] ) ) {
 		$index = (array) $site['collectionIndexes']['post'];
