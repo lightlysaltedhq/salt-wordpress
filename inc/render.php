@@ -320,8 +320,9 @@ function salt_anchor_id( string $raw ): string {
  * two sit, and a minted id never moves when a row above it empties.
  *
  * @param array<int, array{section: string, anchor: string, on_page?: bool}> $rows The stored rows in order:
- *        section id, raw anchor, and whether the row is on this page (false
- *        for a firstPageOnly row past page 1; default true).
+ *        section id, raw anchor, and whether the row draws as a band here
+ *        (false for a firstPageOnly row past page 1 or a post's prose row;
+ *        default true).
  * @return array<int,string> Each row's id, by the rows' keys; '' for a row not on this page.
  */
 function salt_section_plan_ids( array $rows ): array {
@@ -355,23 +356,30 @@ function salt_section_plan_ids( array $rows ): array {
 }
 
 /**
- * Plan the ids of the Flexible Content rows in $selector (the page loop's
- * first pass, salt_section_plan_ids()) and register them, so an id the
- * page mints later never takes one. Walks the rows to the end, which ends
- * the ACF loop: the caller's own have_rows() loop then starts afresh.
+ * Plan the ids of the Flexible Content rows in $selector (the first pass
+ * of a page's loop and of a post's layout, salt_section_plan_ids()) and
+ * register them, so an id the page mints later never takes one. Walks the
+ * rows to the end, which ends the ACF loop: the caller's own have_rows()
+ * loop then starts afresh.
  *
- * @param string $selector The Flexible Content field.
- * @return array<int,string> Each stored row's id, by its place from 0; '' for a row not on this page.
+ * @param string        $selector The Flexible Content field (name or key).
+ * @param int|false     $post_id  The post, or false for the current one.
+ * @param callable|null $is_band  function(): bool, read on the current row:
+ *                                whether it draws as a band at all (a post's
+ *                                prose row does not). A row that does not is
+ *                                counted, as one that draws nothing is, but
+ *                                takes no id. Null: every row is a band.
+ * @return array<int,string> Each stored row's id, by its place from 0; '' for a row with none.
  */
-function salt_section_plan_rows( string $selector ): array {
+function salt_section_plan_rows( string $selector, $post_id = false, ?callable $is_band = null ): array {
 	$rows = array();
-	while ( have_rows( $selector ) ) {
+	while ( have_rows( $selector, $post_id ) ) {
 		the_row();
 		$anchor = salt_section_settings()['anchorId'] ?? '';
 		$rows[] = array(
 			'section' => salt_section_slug_for_layout( (string) get_row_layout() ),
 			'anchor'  => is_string( $anchor ) ? $anchor : '',
-			'on_page' => ! salt_section_hidden_on_this_page(),
+			'on_page' => ! salt_section_hidden_on_this_page() && ( null === $is_band || $is_band() ),
 		);
 	}
 
