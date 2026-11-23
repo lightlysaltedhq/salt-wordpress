@@ -109,9 +109,27 @@ export SALT_HARNESS_DB_HOST
 export SALT_HARNESS_DB_USER="${SALT_HARNESS_DB_USER:-$(id -un)}"
 export SALT_HARNESS_DB_PASSWORD="${SALT_HARNESS_DB_PASSWORD:-}"
 
+# The server runs in its own process group (job control gives a background job one), so the
+# group holds the PHP_CLI_SERVER_WORKERS children too; stopping the group stops them all and
+# touches nothing another run started.
+start_server() {
+	set -m
+	PHP_CLI_SERVER_WORKERS=4 "$@" >"$TMP/server.log" 2>&1 &
+	SERVER_PID=$!
+	set +m
+}
+stop_server() {
+	[ -n "$SERVER_PID" ] || return 0
+	kill -TERM -- "-$SERVER_PID" 2>/dev/null || true
+	for _ in 1 2 3 4 5 6 7 8 9 10; do kill -0 -- "-$SERVER_PID" 2>/dev/null || break; sleep 0.2; done
+	kill -KILL -- "-$SERVER_PID" 2>/dev/null || true
+	wait "$SERVER_PID" 2>/dev/null || true
+	SERVER_PID=""
+}
+
 cleanup() {
 	local status=$?
-	if [ -n "$SERVER_PID" ]; then kill "$SERVER_PID" 2>/dev/null || true; wait "$SERVER_PID" 2>/dev/null || true; fi
+	stop_server
 	if [ "$KEEP" = 1 ]; then
 		echo "kept: site $WP, database $DB (drop it with: $PHP $HERE/php/db.php drop $DB)"
 	else
@@ -262,8 +280,7 @@ conformance() {
 }
 if [ "$CONFORMANCE" = 1 ]; then
 	phase "the site for the view and page cases" "$PHP" "$HERE/php/view.php" setup
-	PHP_CLI_SERVER_WORKERS=4 "$PHP" -S "127.0.0.1:$PORT" -t "$WP" >"$TMP/server.log" 2>&1 &
-	SERVER_PID=$!
+	start_server "$PHP" -S "127.0.0.1:$PORT" -t "$WP"
 	for _ in $(seq 1 50); do
 		curl -fs -o /dev/null "$SERVER/wp-login.php" && break
 		sleep 0.2
@@ -286,8 +303,7 @@ fi
 # case; browser.mjs reports how many variables the form posts against this limit.
 export SALT_HARNESS_MAX_INPUT_VARS="${SALT_HARNESS_MAX_INPUT_VARS:-20000}"
 # A browser save of that page also outlasts the default 30-second max_execution_time.
-PHP_CLI_SERVER_WORKERS=4 "$PHP" -d max_input_vars="$SALT_HARNESS_MAX_INPUT_VARS" -d max_execution_time=600 -S "127.0.0.1:$PORT" -t "$WP" "$HERE/php/router.php" >"$TMP/server.log" 2>&1 &
-SERVER_PID=$!
+start_server "$PHP" -d max_input_vars="$SALT_HARNESS_MAX_INPUT_VARS" -d max_execution_time=600 -S "127.0.0.1:$PORT" -t "$WP" "$HERE/php/router.php"
 for _ in $(seq 1 50); do
 	curl -fs -o /dev/null "$URL/wp-login.php" && break
 	sleep 0.2
