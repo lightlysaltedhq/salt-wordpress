@@ -388,10 +388,13 @@ final class ChromeTest extends SaltTestCase {
 	// The header phone and the footer's consent control (ruling C).
 	// -----------------------------------------------------------------------
 
-	public function test_header_phone_reads_the_company_phone_and_the_filter_overrides_it(): void {
+	public function test_header_phone_shows_the_company_phone_only_when_switched_on(): void {
 		$this->assertNull( salt_header_phone() );
 
 		$GLOBALS['salt_test_fields']['option']['company_phone'] = '+44 1935 123456';
+		$this->assertNull( salt_header_phone(), 'Off by default: a phone in Company & Schema alone draws nothing.' );
+
+		$GLOBALS['salt_test_fields']['option']['header_show_phone'] = true;
 		$this->assertSame(
 			array(
 				'text' => '+44 1935 123456',
@@ -402,6 +405,34 @@ final class ChromeTest extends SaltTestCase {
 
 		add_filter( 'salt_header_phone', static fn() => null );
 		$this->assertNull( salt_header_phone(), 'A site can turn the header phone off.' );
+	}
+
+	public function test_chrome_settings_apply_and_their_filters_override_them(): void {
+		$this->assertNull( salt_theme_toggle_placement() );
+		$this->assertSame( 'surface-alt', salt_footer_tone() );
+		$this->assertFalse( salt_footer_show_logo() );
+
+		$GLOBALS['salt_test_fields']['option']['theme_toggle_placement'] = 'footer';
+		$GLOBALS['salt_test_fields']['option']['footer_tone']            = 'brand-tint';
+		$GLOBALS['salt_test_fields']['option']['footer_show_logo']       = true;
+		$this->assertSame( 'footer', salt_theme_toggle_placement() );
+		$this->assertSame( 'brand-tint', salt_footer_tone() );
+		$this->assertTrue( salt_footer_show_logo() );
+
+		add_filter( 'salt_theme_toggle_placement', static fn() => 'header' );
+		add_filter( 'salt_footer_tone', static fn() => 'surface-inverse' );
+		add_filter( 'salt_footer_show_logo', static fn() => false );
+		$this->assertSame( 'header', salt_theme_toggle_placement() );
+		$this->assertSame( 'surface-inverse', salt_footer_tone() );
+		$this->assertFalse( salt_footer_show_logo() );
+	}
+
+	public function test_chrome_settings_ignore_values_outside_their_choices(): void {
+		$GLOBALS['salt_test_fields']['option']['theme_toggle_placement'] = 'sidebar';
+		$GLOBALS['salt_test_fields']['option']['footer_tone']            = 'neon';
+
+		$this->assertNull( salt_theme_toggle_placement() );
+		$this->assertSame( 'surface-alt', salt_footer_tone() );
 	}
 
 	/**

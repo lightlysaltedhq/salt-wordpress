@@ -55,6 +55,15 @@ function salt_register_company_options(): void {
 					'type'  => 'text',
 				),
 				array(
+					'key'           => 'field_salt_options_company_header_show_phone',
+					'name'          => 'header_show_phone',
+					'label'         => __( 'Show phone in header', 'salt' ),
+					'instructions'  => __( 'Shows the phone number above as a call link in the site header.', 'salt' ),
+					'type'          => 'true_false',
+					'ui'            => 1,
+					'default_value' => 0,
+				),
+				array(
 					'key'   => 'field_salt_options_company_email',
 					'name'  => 'company_email',
 					'label' => __( 'Email', 'salt' ),

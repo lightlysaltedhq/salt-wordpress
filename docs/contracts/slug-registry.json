@@ -155,6 +155,7 @@
 			"company_address",
 			"company_email",
 			"company_phone",
+			"header_show_phone",
 			"org_legal_name",
 			"org_logo",
 			"org_name",
@@ -192,12 +193,15 @@
 			"weight"
 		],
 		"group_salt_options_footer": [
+			"footer_show_logo",
 			"footer_show_social",
-			"footer_text"
+			"footer_text",
+			"footer_tone"
 		],
 		"group_salt_options_header": [
 			"header_cta",
-			"header_sticky"
+			"header_sticky",
+			"theme_toggle_placement"
 		],
 		"group_salt_options_logo": [
 			"logo_dark",
@@ -518,6 +522,7 @@
 			"company_address",
 			"company_email",
 			"company_phone",
+			"header_show_phone",
 			"org_legal_name",
 			"org_logo",
 			"org_name",
@@ -558,12 +563,15 @@
 			"font_heading_files_N_weight"
 		],
 		"group_salt_options_footer": [
+			"footer_show_logo",
 			"footer_show_social",
-			"footer_text"
+			"footer_text",
+			"footer_tone"
 		],
 		"group_salt_options_header": [
 			"header_cta",
-			"header_sticky"
+			"header_sticky",
+			"theme_toggle_placement"
 		],
 		"group_salt_options_logo": [
 			"logo_dark",

@@ -145,17 +145,22 @@ function salt_view_site( array $site ): void {
 		update_option( 'timezone_string', (string) $site['timezone'] );
 	}
 	$options = array(
-		'org_name'           => $site['organisation'] ?? null,
-		'logo_light'         => isset( $site['logo']['light'] ) ? salt_harness_attachment( (string) $site['logo']['light'] ) : null,
-		'logo_dark'          => isset( $site['logo']['dark'] ) ? salt_harness_attachment( (string) $site['logo']['dark'] ) : null,
-		'logo_height'        => $site['logoHeight'] ?? null,
-		'header_sticky'      => $site['header']['sticky'] ?? null,
-		'header_cta'         => isset( $site['header']['cta']['label'], $site['header']['cta']['href'] ) ? array(
+		'org_name'               => $site['organisation'] ?? null,
+		'logo_light'             => isset( $site['logo']['light'] ) ? salt_harness_attachment( (string) $site['logo']['light'] ) : null,
+		'logo_dark'              => isset( $site['logo']['dark'] ) ? salt_harness_attachment( (string) $site['logo']['dark'] ) : null,
+		'logo_height'            => $site['logoHeight'] ?? null,
+		'header_sticky'          => $site['header']['sticky'] ?? null,
+		'header_cta'             => isset( $site['header']['cta']['label'], $site['header']['cta']['href'] ) ? array(
 			'title' => $site['header']['cta']['label'],
 			'url'   => $site['header']['cta']['href'],
 		) : null,
-		'footer_text'        => $site['footer']['text'] ?? null,
-		'footer_show_social' => isset( $site['footer'] ) ? ! empty( $site['footer']['profiles'] ) : null,
+		'footer_text'            => $site['footer']['text'] ?? null,
+		'footer_show_social'     => isset( $site['footer'] ) ? ! empty( $site['footer']['profiles'] ) : null,
+		'company_phone'          => $site['header']['phone']['text'] ?? null,
+		'header_show_phone'      => isset( $site['header']['phone']['text'] ) ? true : null,
+		'theme_toggle_placement' => true === ( $site['themeToggle'] ?? null ) ? 'header' : ( $site['themeToggle']['placed'] ?? null ),
+		'footer_tone'            => isset( $site['footer'] ) ? ( $site['footer']['tone'] ?? 'surface' ) : null,
+		'footer_show_logo'       => isset( $site['footer'] ) ? ! empty( $site['footer']['showLogo'] ) : null,
 	);
 	foreach ( $options as $name => $value ) {
 		if ( null !== $value ) {

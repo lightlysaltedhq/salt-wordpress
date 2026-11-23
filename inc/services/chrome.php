@@ -468,16 +468,16 @@ function salt_chrome_labels( string $context ): array {
 /**
  * Where the theme toggle is placed: 'header', 'footer' or null for none.
  *
- * PENDING FOUNDER RULING: WordPress has no setting for this yet (whether
- * editors set it in Site Settings or a code filter does). Until then the
- * `salt_theme_toggle_placement` filter is the seam; the default is none,
- * so no site changes. A placed toggle takes the place of the display
- * preferences' dark-mode control.
+ * Site Settings → Header & Footer, theme_toggle_placement (default none,
+ * so no site changes); the `salt_theme_toggle_placement` filter is a
+ * site's code override on top. A placed toggle takes the place of the
+ * display preferences' dark-mode control.
  *
  * @return string|null
  */
 function salt_theme_toggle_placement(): ?string {
-	$placement = apply_filters( 'salt_theme_toggle_placement', null );
+	$stored    = salt_acf_active() ? salt_option( 'theme_toggle_placement' ) : null;
+	$placement = apply_filters( 'salt_theme_toggle_placement', in_array( $stored, array( 'header', 'footer' ), true ) ? $stored : null );
 	return in_array( $placement, array( 'header', 'footer' ), true ) ? $placement : null;
 }
 
@@ -504,14 +504,16 @@ function salt_theme_toggle_html( string $label ): string {
 
 /**
  * The header's phone number, or null for none: the site's company phone
- * (Company & Schema, company_phone), with the `salt_header_phone` filter
- * as a site's override (null or '' for none). Drawn only when it
- * normalises to a tel: link (salt_contract_tel(), section#display-forms).
+ * (Company & Schema, company_phone) when its "Show phone in header" switch
+ * (header_show_phone, off by default) is on, with the `salt_header_phone`
+ * filter as a site's code override (a number, or null or '' for none).
+ * Drawn only when it normalises to a tel: link (salt_contract_tel(),
+ * section#display-forms).
  *
  * @return array{text:string,tel:string}|null
  */
 function salt_header_phone(): ?array {
-	$stored = salt_acf_active() ? salt_option( 'company_phone' ) : null;
+	$stored = salt_acf_active() && true === (bool) salt_option( 'header_show_phone' ) ? salt_option( 'company_phone' ) : null;
 	$phone  = apply_filters( 'salt_header_phone', is_string( $stored ) ? $stored : null );
 	if ( ! is_string( $phone ) || '' === trim( $phone ) ) {
 		return null;
@@ -693,27 +695,30 @@ function salt_footer_columns( array $menu ): array {
 }
 
 /**
- * The footer's tone (data-tone and data-tone-dark).
- *
- * PENDING FOUNDER RULING: no Site Setting yet; the `salt_footer_tone`
- * filter is the seam. The default is surface-alt, the footer's colour
+ * The footer's tone (data-tone and data-tone-dark): Site Settings →
+ * Header & Footer, footer_tone, with the `salt_footer_tone` filter as a
+ * site's code override. The default is surface-alt, the footer's colour
  * before the contract.
  *
  * @return string
  */
 function salt_footer_tone(): string {
-	$tone = apply_filters( 'salt_footer_tone', 'surface-alt' );
-	return in_array( $tone, array( 'surface', 'surface-alt', 'brand-tint', 'surface-inverse' ), true ) ? $tone : 'surface-alt';
+	$tones  = array( 'surface', 'surface-alt', 'brand-tint', 'surface-inverse' );
+	$stored = salt_acf_active() ? salt_option( 'footer_tone' ) : null;
+	$tone   = apply_filters( 'salt_footer_tone', in_array( $stored, $tones, true ) ? $stored : 'surface-alt' );
+	return in_array( $tone, $tones, true ) ? $tone : 'surface-alt';
 }
 
 /**
- * Whether the footer shows the logo (the `salt_footer_show_logo` seam,
- * pending the same ruling; off by default, as before).
+ * Whether the footer shows the logo: Site Settings → Header & Footer,
+ * footer_show_logo (off by default, as before), with the
+ * `salt_footer_show_logo` filter as a site's code override.
  *
  * @return bool
  */
 function salt_footer_show_logo(): bool {
-	return true === apply_filters( 'salt_footer_show_logo', false );
+	$stored = salt_acf_active() && true === (bool) salt_option( 'footer_show_logo' );
+	return true === apply_filters( 'salt_footer_show_logo', $stored );
 }
 
 /**
