@@ -140,7 +140,8 @@ final class LogosSectionTest extends SaltTestCase {
 		);
 
 		$this->assertSame( 1, substr_count( $html, '<li' ) );
-		$this->assertStringContainsString( 'x-image', $html );
+		$this->assertStringContainsString( 'class="salt-logos__image" loading="lazy"', $html );
+		$this->assertStringContainsString( '<span class="salt-logos__frame"><img ', $html );
 		$this->assertStringNotContainsString( '<script', $html, 'No JS in the logo strip, ever.' );
 	}
 
@@ -179,8 +180,7 @@ final class LogosSectionTest extends SaltTestCase {
 				'greyscale' => 1,
 			)
 		);
-		$this->assertStringContainsString( 'grayscale', $on );
-		$this->assertStringContainsString( 'hover:grayscale-0', $on );
+		$this->assertStringContainsString( 'data-greyscale="true"', $on );
 
 		$off = $this->render_logos_section(
 			array(
@@ -188,7 +188,10 @@ final class LogosSectionTest extends SaltTestCase {
 				'greyscale' => 0,
 			)
 		);
-		$this->assertStringNotContainsString( 'grayscale', $off );
+		$this->assertStringContainsString( 'data-greyscale="false"', $off );
+
+		$unsaved = $this->render_logos_section( array( 'items' => array( array( 'image' => 7 ) ) ) );
+		$this->assertStringContainsString( 'data-greyscale="true"', $unsaved, 'The field defaults on.' );
 	}
 
 	public function test_name_feeds_alt_only_when_attachment_alt_is_empty(): void {
@@ -272,8 +275,9 @@ final class LogosSectionTest extends SaltTestCase {
 	}
 
 	public function test_resolver_returns_null_without_resolvable_logos(): void {
-		$this->assertNull( $this->resolve_logos( array( 'heading' => 'As featured in' ) ) );
 		$this->assertNull( $this->resolve_logos( array( 'items' => array( array( 'image' => 99 ), 'not-a-row' ) ) ) );
+		// markup/logos.json zeroState: heading, intro and logos all empty; a heading alone draws.
+		$this->assertSame( array(), $this->resolve_logos( array( 'heading' => 'As featured in' ) )['props']['items'] );
 	}
 
 	public function test_resolver_props_use_the_contract_names(): void {
@@ -299,33 +303,26 @@ final class LogosSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( array( 'heading', 'greyscale', 'items' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( array( 'heading', 'intro', 'columns', 'greyscale', 'items' ), array_keys( $resolved['props'] ) );
 		$this->assertSame( 'As featured in', $resolved['props']['heading'] );
+		$this->assertNull( $resolved['props']['intro'] );
+		$this->assertSame( '4', $resolved['props']['columns'], 'The contract\'s default.' );
 		$this->assertTrue( $resolved['props']['greyscale'] );
-		$this->assertSame(
-			array(
-				array(
-					'image_id'   => 7,
-					'alt'        => 'Acme',
-					'href'       => 'https://acme.test/',
-					'link_label' => 'Acme',
-				),
-				array(
-					'image_id'   => 8,
-					'alt'        => '',
-					'href'       => '',
-					'link_label' => '',
-				),
-			),
-			$resolved['props']['items']
-		);
+		$items = $resolved['props']['items'];
+		$this->assertSame( array( 'image', 'name', 'href' ), array_keys( $items[0] ) );
+		$this->assertSame( 'Acme', $items[0]['name'] );
+		$this->assertSame( 'https://acme.test/', $items[0]['href'] );
+		$this->assertSame( 'Acme', $items[0]['image']['alt'], 'No stored alt: the name.' );
+		$this->assertSame( '8rem', $items[0]['image']['sizes'], 'The thumb slot.' );
+		$this->assertSame( 'Beta', $items[1]['name'] );
+		$this->assertNull( $items[1]['href'] );
+		$this->assertSame( 'Stored alt', $items[1]['image']['alt'], 'The stored alt wins over the name.' );
 		$this->assertFalse( $resolved['section']['is_primary'] );
 		$this->assertTrue( $resolved['section']['has_heading'] );
 	}
 
 	public function test_resolver_leaves_a_nameless_link_unlinked_and_logs_it(): void {
-		// Pre-split behaviour kept: with a stored alt but no name, alt stays
-		// '' (it is only ever filled from the name), so the link is dropped.
+		// The link's accessible name is the name (markup/logos.json): without one the logo is unlinked.
 		$this->seed_attachment( 8, 'Stored alt' );
 
 		$resolved = $this->resolve_logos(
@@ -339,10 +336,10 @@ final class LogosSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( '', $resolved['props']['items'][0]['href'] );
-		$this->assertSame( '', $resolved['props']['items'][0]['link_label'] );
+		$this->assertNull( $resolved['props']['items'][0]['href'] );
+		$this->assertNull( $resolved['props']['items'][0]['name'] );
 		$this->assertNull( $resolved['props']['heading'] );
-		$this->assertStringContainsString( 'linked logo has no name or alt', implode( ' ', $this->logs() ) );
+		$this->assertStringContainsString( 'linked logo has no name', implode( ' ', $this->logs() ) );
 	}
 
 	public function test_unlinked_logo_log_follows_every_row_skip_log(): void {
@@ -363,11 +360,18 @@ final class LogosSectionTest extends SaltTestCase {
 		$logs = $this->logs();
 		$this->assertCount( 2, $logs );
 		$this->assertStringContainsString( 'logo row has no image', $logs[0] );
-		$this->assertStringContainsString( 'linked logo has no name or alt', $logs[1] );
+		$this->assertStringContainsString( 'linked logo has no name', $logs[1] );
 	}
 
 	public function test_view_draws_from_props_alone(): void {
-		$this->seed_attachment( 7 );
+		$image = array(
+			'src'    => 'https://u.test/logo.png',
+			'srcset' => null,
+			'sizes'  => '8rem',
+			'width'  => 200,
+			'height' => 100,
+			'alt'    => 'Drawn logo',
+		);
 
 		ob_start();
 		load_template(
@@ -376,37 +380,39 @@ final class LogosSectionTest extends SaltTestCase {
 			array(
 				'props' => array(
 					'heading'   => 'From props',
-					'greyscale' => true,
+					'intro'     => 'An intro.',
+					'columns'   => '3',
+					'greyscale' => false,
 					'items'     => array(
 						array(
-							'image_id'   => 7,
-							'alt'        => 'Drawn logo',
-							'href'       => 'https://drawn.test/',
-							'link_label' => 'Drawn label',
+							'image' => $image,
+							'name'  => 'Drawn label',
+							'href'  => 'https://drawn.test/',
 						),
 						array(
-							'image_id'   => 7,
-							'alt'        => '',
-							'href'       => '',
-							'link_label' => '',
+							'image' => $image,
+							'name'  => null,
+							'href'  => null,
 						),
 					),
 				),
 				'plan'  => array(
 					'index'         => 0,
+					'anchor'        => 'press',
 					'headingLevel'  => 2,
-					'priorityMedia' => false,
+					'headingId'     => 'press__heading',
+					'bodyBaseLevel' => 2,
+					'priorityMedia' => true,
 				),
 			)
 		);
 		$html = (string) ob_get_clean();
 
-		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
-		$this->assertStringContainsString( 'From props', $html );
-		$this->assertStringContainsString( '<a href="https://drawn.test/" aria-label="Drawn label">', $html );
-		$this->assertSame( 1, substr_count( $html, '<a ' ), 'Only the logo with an href is linked.' );
-		$this->assertSame( 2, substr_count( $html, 'x-logos-item' ) );
-		$this->assertStringContainsString( 'grayscale', $html );
-		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+		$this->assertStringContainsString( '<h2 id="press__heading">From props</h2><p class="salt-intro">An intro.</p>', $html );
+		$this->assertStringContainsString( '<ul class="salt-grid salt-logos" role="list" data-columns="3" data-greyscale="false">', $html );
+		$this->assertStringContainsString( '<a class="salt-logos__frame" href="https://drawn.test/" aria-label="Drawn label">', $html );
+		$this->assertSame( 1, substr_count( $html, '<span class="salt-logos__frame">' ), 'Unlinked: a span frame.' );
+		$this->assertStringNotContainsString( 'fetchpriority', $html, 'Logos never take the priority image.' );
+		$this->assertStringNotContainsString( 'salt-section', $html, 'The band is the entry\'s, not the view\'s.' );
 	}
 }
