@@ -93,21 +93,14 @@ docblock at the top of its partial (enforced at runtime by
 
 | Component | File | Notes |
 |---|---|---|
-| x-section | components/section.php | Render via `salt_section()` only |
-| x-heading | components/heading.php | Level clamped 1–6; size derivable |
-| x-eyebrow | components/eyebrow.php | |
-| x-button | components/button.php | `_blank` ⇒ `rel="noopener noreferrer"` |
-| x-cta | components/cta.php | Level arrives from the section |
+| x-section | components/section.php | Deprecated: only a child's own whole section draws it (OVERRIDES.md, tier 5) |
 | x-image | components/image.php | **`<img srcset>` default; `<picture>` opt-in (AMBIG01)** |
-| x-icon | components/icon.php | Built-in set or pre-sanitised SVG |
-| x-accordion | components/accordion.php | Native `<details>`, zero JS |
-| x-card | components/card.php | Base for the Phase 2 card family |
-| x-logo | components/logo.php | Light/dark display logos, text fallback; dark swap via `[data-theme=dark]` CSS |
-| x-display-preferences | components/display-preferences.php | §14 widget; server-rendered `hidden`, JS-activated (FAIL02) |
-| x-map | components/map.php | Click-to-load facade; consent-gated (v2) |
-| x-booking | components/booking.php | Provider facade; plain link until consent (v2) |
-| x-share-links | components/share-links.php | Social share intents (x/facebook/linkedin/whatsapp/bluesky/reddit/email + pinterest opt-in); copy-link button `hidden` until sections/share.js activates it (FAIL02) |
-| x-author-box | components/author-box.php | Post author attribution (name, role, bio and photo from the credited team member, never the WordPress user; ID-3952) |
+| logo | components/logo.php | `salt-logo`: light/dark display logos, text fallback; dark swap by salt.css |
+| display-preferences | components/display-preferences.php | §14 widget; server-rendered `hidden`, JS-activated (FAIL02) |
+| map | components/map.php | `salt-map` click-to-load facade; consent-gated; facade rules in app.css until salt.css has them |
+| booking | components/booking.php | Provider facade (salt-contract markup/booking.json: `salt-button salt-booking`); plain link until consent |
+| share-links | components/share-links.php | Social share intents (x/facebook/linkedin/whatsapp/bluesky/reddit/email + pinterest opt-in); copy-link button `hidden` until sections/share.js activates it (FAIL02) |
+| author-box | components/author-box.php | Post author attribution (name, role, bio and photo from the credited team member, never the WordPress user; ID-3952) |
 
 Changing any args signature or markup structure = MAJOR (RELEASE-POLICY.md;
 snapshot diff is the trigger).

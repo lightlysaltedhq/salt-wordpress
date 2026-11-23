@@ -2,9 +2,7 @@
 /**
  * Call to Action SECTION snapshots (FLEET01) — the canonical brand-tint
  * band with two buttons and the site's arrow, in the contract's markup
- * (salt-contract markup/call-to-action.json, rc.8). The x-cta component,
- * which this section no longer draws, keeps its own snapshots in
- * CtaSnapshotTest.php.
+ * (salt-contract markup/call-to-action.json, rc.8).
  *
  * @package Salt\Tests
  */

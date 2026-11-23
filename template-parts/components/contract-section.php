@@ -1,9 +1,9 @@
 <?php
 /**
  * The contract's section wrapper (salt-contract markup/section.json), for
- * the sections whose markup is the contract's (collection-showcase and
- * carousel since unit 8). Every other section keeps x-section
- * (components/section.php) until it moves (M4).
+ * every parent section (EP-72 M4). components/section.php, the x-section
+ * band, is left only for a child theme's own whole sections and is
+ * deprecated (docs/contracts/OVERRIDES.md, tier 5).
  *
  * Render via salt_section() with `contract` true, which settles the id,
  * the heading level, the track and the collapse — not directly.
