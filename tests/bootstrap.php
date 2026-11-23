@@ -61,6 +61,7 @@ $salt_modules = array(
 	'/inc/acf.php',
 	'/inc/services/character-count.php',
 	'/inc/cpt/topics.php',
+	'/inc/cpt/records.php',
 	'/inc/security.php',
 );
 foreach ( $salt_modules as $salt_module ) {

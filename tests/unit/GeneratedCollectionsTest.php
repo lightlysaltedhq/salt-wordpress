@@ -38,6 +38,8 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 		'team'         => '', // A user form, not a post type.
 		'faqs'         => 'faq',
 		'locations'    => 'location',
+		'clients'      => 'client',
+		'sectors'      => 'sector',
 	);
 
 	protected function setUp(): void {
@@ -59,6 +61,8 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 	}
 
 	public function test_one_group_per_collection_is_registered_verbatim(): void {
+		$GLOBALS['salt_test_fields']['option']['module_client'] = true;
+		$GLOBALS['salt_test_fields']['option']['module_sector'] = true;
 		salt_register_collection_fields();
 
 		$this->assertSame( array_slice( self::committed(), 1 ), $GLOBALS['salt_test_acf_groups'], 'The groups after the empty page group, exactly as generated.' );
@@ -70,6 +74,23 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 			)
 		);
 		$this->assertSame( array(), $this->logs() );
+	}
+
+	/**
+	 * Clients and sectors are off by default (SC-035): no group for either
+	 * record, and the case study offers no picker, so ACF keeps any stored
+	 * ID. The free texts stay.
+	 */
+	public function test_by_default_no_record_group_or_picker_is_registered(): void {
+		salt_register_collection_fields();
+
+		$groups = array_column( $GLOBALS['salt_test_acf_groups'], null, 'key' );
+		$this->assertSame( array( 'services', 'case-studies', 'testimonials', 'posts', 'team', 'faqs', 'locations' ), array_column( array_column( $groups, 'salt' ), 'collection' ) );
+		$names = array_column( $groups['group_salt_collection_case_studies']['fields'], 'name' );
+		$this->assertContains( 'client', $names );
+		$this->assertContains( 'sector', $names );
+		$this->assertNotContains( 'clientRecord', $names );
+		$this->assertNotContains( 'sectorRecord', $names );
 	}
 
 	public function test_a_disabled_module_registers_no_group_for_its_post_type(): void {
@@ -123,6 +144,9 @@ final class GeneratedCollectionsTest extends SaltTestCase {
 		foreach ( array( 'service', 'work', 'testimonial', 'faq', 'location' ) as $cpt ) {
 			call_user_func( 'salt_register_cpt_' . $cpt );
 		}
+		$GLOBALS['salt_test_fields']['option']['module_client'] = true;
+		$GLOBALS['salt_test_fields']['option']['module_sector'] = true;
+		salt_register_cpt_records();
 		$registered = $GLOBALS['salt_test_cpts'] + $GLOBALS['salt_test_post_types'];
 		$supports   = array(
 			'title'          => 'title',

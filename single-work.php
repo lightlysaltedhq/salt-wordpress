@@ -46,7 +46,7 @@ while ( have_posts() ) {
 	$salt_permalink = (string) get_permalink();
 	$salt_text      = static fn( $value ): string => is_string( $value ) ? trim( $value ) : '';
 
-	$salt_client       = $salt_text( get_field( 'client', $salt_work_id ) );
+	$salt_client       = salt_case_study_name( $salt_work_id, 'client' );
 	$salt_summary      = trim( salt_post_summary( $salt_work_id ) );
 	$salt_external_url = $salt_text( get_field( 'externalUrl', $salt_work_id ) );
 	$salt_index        = salt_collection_index_url( 'case-studies' );
