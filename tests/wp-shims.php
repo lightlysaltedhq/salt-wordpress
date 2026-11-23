@@ -88,6 +88,26 @@ if ( ! function_exists( 'add_filter' ) ) {
 	}
 }
 
+if ( ! function_exists( 'remove_filter' ) ) {
+	/**
+	 * Remove a filter callback at a priority.
+	 *
+	 * @param string   $hook_name Hook name.
+	 * @param callable $callback  Callback.
+	 * @param int      $priority  Priority.
+	 * @return bool
+	 */
+	function remove_filter( string $hook_name, $callback, int $priority = 10 ): bool {
+		foreach ( $GLOBALS['salt_test_hooks'][ $hook_name ][ $priority ] ?? array() as $i => $registered ) {
+			if ( $registered[0] === $callback ) {
+				unset( $GLOBALS['salt_test_hooks'][ $hook_name ][ $priority ][ $i ] );
+				return true;
+			}
+		}
+		return false;
+	}
+}
+
 if ( ! function_exists( 'apply_filters' ) ) {
 	/**
 	 * Run registered filter callbacks in priority order.
@@ -901,6 +921,19 @@ if ( ! function_exists( 'home_url' ) ) {
 	}
 }
 
+if ( ! function_exists( 'rest_url' ) ) {
+	/**
+	 * rest_url shim: the plain-permalink form (?rest_route=), so a caller
+	 * that assumes /wp-json/ shows up.
+	 *
+	 * @param string $path REST route.
+	 * @return string
+	 */
+	function rest_url( string $path = '' ): string {
+		return home_url( '/index.php?rest_route=/' . ltrim( $path, '/' ) );
+	}
+}
+
 if ( ! function_exists( 'is_singular' ) ) {
 	/**
 	 * is_singular shim (fixture-controlled; defaults true).
@@ -1118,14 +1151,16 @@ if ( ! function_exists( 'status_header' ) ) {
 
 if ( ! function_exists( 'wp_get_nocache_headers' ) ) {
 	/**
-	 * wp_get_nocache_headers shim: WordPress's own set.
+	 * wp_get_nocache_headers shim: WordPress's own set, with core's
+	 * 'Last-Modified' => false ("send none").
 	 *
-	 * @return array<string,string>
+	 * @return array<string,string|false>
 	 */
 	function wp_get_nocache_headers(): array {
 		return array(
 			'Expires'       => 'Wed, 11 Jan 1984 05:00:00 GMT',
 			'Cache-Control' => 'no-cache, must-revalidate, max-age=0, no-store, private',
+			'Last-Modified' => false,
 		);
 	}
 }

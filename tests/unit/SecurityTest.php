@@ -28,6 +28,16 @@ final class SecurityTest extends SaltTestCase {
 		$this->assertArrayNotHasKey( 'nonce', $other );
 	}
 
+	public function test_only_core_speculation_rules_get_the_csp_nonce(): void {
+		$stamped = salt_speculation_rules_script_nonce( array( 'type' => 'speculationrules' ) );
+		$other   = salt_speculation_rules_script_nonce( array( 'type' => 'text/javascript' ) );
+		$untyped = salt_speculation_rules_script_nonce( array( 'id' => 'some-plugin-js-after' ) );
+
+		$this->assertSame( salt_csp_nonce(), $stamped['nonce'] ?? null );
+		$this->assertArrayNotHasKey( 'nonce', $other );
+		$this->assertArrayNotHasKey( 'nonce', $untyped );
+	}
+
 	public function test_security_headers_ship_the_baseline_set(): void {
 		$headers = salt_security_headers();
 

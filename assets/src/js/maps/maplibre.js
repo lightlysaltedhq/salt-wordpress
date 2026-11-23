@@ -2,6 +2,13 @@
  * On-demand MapLibre bundle (spec §9; loaded by maps.js post-click,
  * post-consent — NEVER on initial page load; it is large by nature).
  *
+ * MapLibre's CSP build: the standard build starts its worker from a blob:
+ * URL, which the theme's CSP refuses (worker-src falls back to script-src,
+ * 'self' and the nonce). This build runs its worker from a file instead,
+ * the same-origin maps/maplibre-worker.js the asset build copies from the
+ * package, whose address maps.js hands to maplibregl.setWorkerUrl() before
+ * it creates a map. Neither needs blob: or a worker-src.
+ *
  * Exposes the library as window.maplibregl for maps.js and installs the
  * ESSENTIAL subset of maplibre-gl.css. Our esbuild pipeline emits JS only,
  * so the styles ship as a string and are installed via a constructable
@@ -11,7 +18,7 @@
  * the policy. Browsers without constructable-stylesheet support get a
  * degraded but functional marker map.
  */
-import maplibregl from 'maplibre-gl';
+import maplibregl from 'maplibre-gl/dist/maplibre-gl-csp.js';
 
 // Essential rules distilled from maplibre-gl.css: canvas sizing, marker
 // positioning, attribution + control corners. Decorative control skinning

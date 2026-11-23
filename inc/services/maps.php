@@ -188,11 +188,19 @@ function salt_maps_enqueue(): void {
 			)
 		);
 		// The same-origin MapLibre bundle's address, which the contract's
-		// markup no longer carries (map.json drops data-maplibre, SC-006).
-		// A manifest miss is already logged by salt_asset(); the script then
-		// shows the facade's error message on a click.
+		// markup no longer carries (map.json drops data-maplibre, SC-006),
+		// and its worker's: MapLibre's CSP build runs its worker from this
+		// file, never a blob: URL the CSP would refuse. A browser starts a
+		// worker only from the page's own origin, so both are served with the
+		// theme. A manifest miss is already logged by salt_asset(); the
+		// script then shows the facade's error message on a click.
 		$maplibre = salt_asset( 'maps/maplibre.js' );
-		wp_add_inline_script( 'salt-maps', 'window.saltMaps = ' . wp_json_encode( array( 'maplibre' => null !== $maplibre ? esc_url_raw( $maplibre ) : '' ), JSON_HEX_TAG | JSON_UNESCAPED_SLASHES ) . ';', 'before' );
+		$worker   = salt_asset( 'maps/maplibre-worker.js' );
+		$settings = array(
+			'maplibre' => null !== $maplibre ? esc_url_raw( $maplibre ) : '',
+			'worker'   => null !== $worker ? esc_url_raw( $worker ) : '',
+		);
+		wp_add_inline_script( 'salt-maps', 'window.saltMaps = ' . wp_json_encode( $settings, JSON_HEX_TAG | JSON_UNESCAPED_SLASHES ) . ';', 'before' );
 	}
 }
 add_action( 'wp_enqueue_scripts', 'salt_maps_enqueue', 20 );

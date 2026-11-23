@@ -13,6 +13,8 @@
  *                      comes from one address) and the stored submissions.
  *   stored <name>      prints how many stored submissions carry that name.
  *   post               a published post (once); prints its address.
+ *   clock <seconds>    moves the clock form tokens are minted by
+ *                      (site/salt-harness-contact.php); 0 puts it back.
  *
  * @package Salt\Tests\RealAcf
  */
@@ -117,5 +119,10 @@ if ( 'post' === $salt_contact_mode ) {
 	exit( 0 );
 }
 
-fwrite( STDERR, "usage: contact-form.php seed|permalinks <plain|pretty>|reset|stored <name>|post\n" );
+if ( 'clock' === $salt_contact_mode ) {
+	update_option( 'salt_harness_contact_clock', (int) ( $argv[2] ?? 0 ), false );
+	exit( 0 );
+}
+
+fwrite( STDERR, "usage: contact-form.php seed|permalinks <plain|pretty>|reset|stored <name>|post|clock <seconds>\n" );
 exit( 2 );

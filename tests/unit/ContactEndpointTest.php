@@ -94,6 +94,19 @@ final class ContactEndpointTest extends SaltTestCase {
 		);
 	}
 
+	/**
+	 * The headers a no-cache response sends: WordPress's set, without the
+	 * Last-Modified core marks false (send none).
+	 *
+	 * @return array<string,string>
+	 */
+	private function nocache_sent(): array {
+		return array(
+			'Expires'       => 'Wed, 11 Jan 1984 05:00:00 GMT',
+			'Cache-Control' => 'no-cache, must-revalidate, max-age=0, no-store, private',
+		);
+	}
+
 	private function payload_for( string $path ): array {
 		return 'page' === $path ? $this->page_payload() : $this->valid_payload();
 	}
@@ -163,6 +176,19 @@ final class ContactEndpointTest extends SaltTestCase {
 			$this->assertFalse( $result['ok'], $why );
 			$this->assertTrue( $this->nothing_sent_or_stored(), $why );
 		}
+	}
+
+	#[DataProvider( 'paths' )]
+	public function test_a_stale_form_token_is_a_403_and_one_too_young_a_400( string $path ): void {
+		$payload              = $this->payload_for( $path );
+		$payload['formToken'] = salt_contact_form_token( self::NOW - 5 * HOUR_IN_SECONDS );
+		$stale                = salt_contact_handle( $payload, $path, self::NOW );
+		$this->assertSame( 403, $stale['status'], 'Stale: the script takes a fresh token and sends again.' );
+		$this->assertSame( 'Ada Lovelace', $stale['values']['name'], 'The entries come back.' );
+
+		$payload['formToken'] = salt_contact_form_token( self::NOW - 1 );
+		$this->assertSame( 400, salt_contact_handle( $payload, $path, self::NOW )['status'], 'Too young: a bot, still the generic refusal.' );
+		$this->assertTrue( $this->nothing_sent_or_stored() );
 	}
 
 	#[DataProvider( 'paths' )]
@@ -241,7 +267,7 @@ final class ContactEndpointTest extends SaltTestCase {
 		$first = salt_contact_rest_credentials();
 		$this->assertSame( 200, $first->get_status() );
 		$this->assertSame( 3, count( explode( '.', $first->get_data()['formToken'] ) ), 'A form token: time, signature, nonce.' );
-		$this->assertSame( wp_get_nocache_headers(), $first->get_headers(), 'WordPress\'s whole no-cache set.' );
+		$this->assertSame( $this->nocache_sent(), $first->get_headers(), 'WordPress\'s no-cache set, no empty Last-Modified.' );
 
 		for ( $i = 1; $i < 20; $i++ ) {
 			salt_contact_rest_credentials();
@@ -283,7 +309,22 @@ final class ContactEndpointTest extends SaltTestCase {
 		$response = salt_contact_rest_send( $request );
 
 		$this->assertStringContainsString( 'no-store', $response->get_headers()['Cache-Control'] );
-		$this->assertSame( wp_get_nocache_headers(), $response->get_headers(), 'WordPress\'s whole no-cache set.' );
+		$this->assertSame( $this->nocache_sent(), $response->get_headers(), 'WordPress\'s no-cache set, no empty Last-Modified.' );
+	}
+
+	public function test_the_script_gets_its_rest_addresses_from_rest_url_in_a_nonced_script(): void {
+		salt_contact_script_settings();
+		$this->assertArrayNotHasKey( 'salt-section-contact', $GLOBALS['salt_test_inline_scripts'], 'Nothing without the contact script.' );
+
+		$GLOBALS['salt_test_enqueued']['scripts']['salt-section-contact'] = true;
+		salt_contact_script_settings();
+
+		$this->assertSame(
+			array( 'window.saltContact = {"send":"https://example.test/index.php?rest_route=/salt/v1/contact","credentials":"https://example.test/index.php?rest_route=/salt/v1/contact/credentials"};' ),
+			$GLOBALS['salt_test_inline_scripts']['salt-section-contact']['before']
+		);
+		$this->assertSame( salt_csp_nonce(), salt_contact_inline_script_nonce( array( 'id' => 'salt-section-contact-js-before' ) )['nonce'] ?? null );
+		$this->assertArrayNotHasKey( 'nonce', salt_contact_inline_script_nonce( array( 'id' => 'salt-section-contact-js-after' ) ) );
 	}
 
 	public function test_captcha_required_on_rest_path_when_provider_configured(): void {
@@ -531,7 +572,8 @@ final class ContactEndpointTest extends SaltTestCase {
 		$_GET['salt-contact-send'] = 'enquire-self';
 		$_POST                     = $this->valid_payload();
 		unset( $_POST['formToken'] ); // A no-JS visitor's first send.
-		salt_contact_self_post_aside( true, (object) array( 'public_query_vars' => array( 'name' ) ) );
+		salt_contact_self_post_aside( true );
+		apply_filters( 'query_vars', array( 'name' ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- As WP::parse_request() applies it.
 		salt_contact_self_post_restore();
 
 		salt_contact_self_post();
@@ -547,30 +589,120 @@ final class ContactEndpointTest extends SaltTestCase {
 		$this->assertTrue( $this->nothing_sent_or_stored() );
 	}
 
+	/**
+	 * WP::parse_request() as far as a self-post meets it: 'do_parse_request',
+	 * then its final 'query_vars', then (after reading $_POST) 'parse_request'.
+	 *
+	 * @param string[]      $vars   The public query vars.
+	 * @param callable|null $during What other code does to $_POST before 'parse_request'.
+	 * @return bool What 'do_parse_request' answered.
+	 */
+	private function parse_request( array $vars, ?callable $during = null ): bool {
+		$parse = salt_contact_self_post_aside( true );
+		apply_filters( 'query_vars', $vars ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- As WP::parse_request() applies it.
+		$this->parsed = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The test reads the request it built.
+		if ( null !== $during ) {
+			$during();
+		}
+		salt_contact_self_post_restore();
+		return $parse;
+	}
+
+	/**
+	 * $_POST as WordPress read it while parsing.
+	 *
+	 * @var array<string,mixed>
+	 */
+	private array $parsed = array();
+
 	public function test_a_self_post_keeps_its_fields_out_of_the_parsed_query(): void {
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		$_GET['salt-contact-send'] = 'contact';
 		$_POST                     = array(
-			'name'    => 'Ada Lovelace',
-			'page_id' => '99',
-			'message' => 'Hello',
+			'name'     => 'Ada Lovelace',
+			'page_id'  => '99',
+			'message'  => 'Hello',
+			'returnTo' => '/contact/',
 		);
-		$wp                        = (object) array( 'public_query_vars' => array( 'name', 'pagename', 'page_id' ) );
 
-		$this->assertTrue( salt_contact_self_post_aside( true, $wp ) );
-		$this->assertSame( array( 'message' => 'Hello' ), $_POST, 'WordPress parses the request without the posted query vars.' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The test reads the request it built.
-		salt_contact_self_post_restore();
+		$this->assertTrue( $this->parse_request( array( 'name', 'pagename', 'page_id' ) ) );
+		$this->assertSame(
+			array(
+				'message'  => 'Hello',
+				'returnTo' => '/contact/',
+			),
+			$this->parsed,
+			'WordPress parses the request without the posted query vars.'
+		);
 		$this->assertSame( 'Ada Lovelace', $_POST['name'], 'Put back once parsed.' ); // phpcs:ignore WordPress.Security -- The test reads the request it built.
+		$this->assertSame( '99', $_POST['page_id'] ); // phpcs:ignore WordPress.Security -- As above.
 		$this->assertSame( 'Ada Lovelace', salt_contact_self_post_fields()['name'], 'Set aside for the handler.' );
+	}
+
+	public function test_only_the_fields_taken_out_are_put_back(): void {
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['salt-contact-send'] = 'contact';
+		$_POST                     = array(
+			'name'     => 'Ada Lovelace',
+			'message'  => 'Hello',
+			'returnTo' => '/contact/',
+		);
+
+		$this->parse_request(
+			array( 'name' ),
+			static function (): void {
+				// Other code at work on $_POST while WordPress parses.
+				$_POST['message'] = 'Changed';
+				$_POST['added']   = 'Kept';
+			}
+		);
+
+		$this->assertEquals( // Order aside: the request as WordPress and that code left it, with `name` back.
+			array(
+				'name'     => 'Ada Lovelace',
+				'message'  => 'Changed',
+				'returnTo' => '/contact/',
+				'added'    => 'Kept',
+			),
+			$_POST // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The test reads the request it built.
+		);
+	}
+
+	public function test_the_set_aside_neither_applies_query_vars_itself_nor_acts_when_wordpress_will_not_parse(): void {
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['salt-contact-send'] = 'contact';
+		$_POST                     = array(
+			'name'     => 'Ada Lovelace',
+			'returnTo' => '/contact/',
+		);
+		$applied                   = 0;
+		add_filter(
+			'query_vars', // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress's own filter.
+			static function ( $vars ) use ( &$applied ) {
+				++$applied;
+				return $vars;
+			}
+		);
+
+		$this->assertFalse( salt_contact_self_post_aside( false ), 'Another handler answers the request.' );
+		$this->assertSame( 0, $applied, 'WordPress\'s query_vars filter is not applied by the theme.' );
+		apply_filters( 'query_vars', array( 'name' ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Were WordPress to parse after all.
+		$this->assertSame( 'Ada Lovelace', $_POST['name'], 'Nothing taken out.' ); // phpcs:ignore WordPress.Security -- The test reads the request it built.
+
+		$applied       = 0;
+		$GLOBALS['wp'] = (object) array( 'public_query_vars' => array( 'page_id' ) );
+		$this->assertSame( '/contact/?page_id=7', salt_contact_return_to( '/contact/?page_id=7&utm=x' ) );
+		unset( $GLOBALS['wp'] );
+		$this->assertSame( 0, $applied, 'Nor to keep a page\'s own query.' );
 	}
 
 	public function test_another_post_is_parsed_as_sent(): void {
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		$_POST                     = array( 'name' => 'x' );
 
-		salt_contact_self_post_aside( true, (object) array( 'public_query_vars' => array( 'name' ) ) );
+		$this->parse_request( array( 'name' ) );
 
-		$this->assertSame( array( 'name' => 'x' ), $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The test reads the request it built.
+		$this->assertSame( array( 'name' => 'x' ), $this->parsed );
 	}
 
 	public function test_a_self_post_with_the_form_off_handles_and_mints_nothing(): void {
@@ -614,6 +746,23 @@ final class ContactEndpointTest extends SaltTestCase {
 			salt_contact_handle( $bare, 'page', self::NOW );
 		}
 		$this->assertSame( 429, salt_contact_handle( $bare, 'page', self::NOW )['status'], 'The credentials bucket bounds them (20 / 10 minutes).' );
+	}
+
+	public function test_another_form_posted_to_the_answered_page_is_not_a_send(): void {
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['salt-contact-send'] = 'enquire-other';
+		$_POST                     = array(
+			'name'    => 'Ada Lovelace',
+			'comment' => 'Another form on the page.',
+		);
+
+		$this->assertTrue( $this->parse_request( array( 'name' ) ) );
+		salt_contact_self_post();
+
+		$this->assertSame( $_POST, $this->parsed, 'WordPress parses it as sent.' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The test reads the request it built.
+		$this->assertArrayNotHasKey( 'enquire-other', salt_contact_form_states() );
+		$this->assertFalse( $GLOBALS['salt_test_nocache'] );
+		$this->assertSame( array(), $GLOBALS['salt_test_transients'], 'No credentials bucket spent, nothing minted.' );
 	}
 
 	public function test_a_get_or_another_page_post_is_not_a_send(): void {
