@@ -214,6 +214,62 @@ final class RenderTest extends SaltTestCase {
 		$this->assertNotEmpty( $this->logs() );
 	}
 
+	/**
+	 * Draw one minimal hero row through the page loop.
+	 *
+	 * @param array<string,mixed> $fields Fields beside the heading.
+	 * @return string
+	 */
+	private function render_hero_row( array $fields ): string {
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'hero',
+					'fields' => array_merge(
+						array(
+							'variant' => 'minimal',
+							'heading' => 'Welcome',
+						),
+						$fields
+					),
+				),
+			)
+		);
+		ob_start();
+		get_template_part( 'template-parts/flexible-content' );
+		return (string) ob_get_clean();
+	}
+
+	public function test_a_stored_inverse_tone_draws_as_surface_inverse(): void {
+		$this->assertStringContainsString(
+			'data-tone="surface-inverse" data-tone-dark="surface-inverse"',
+			$this->render_hero_row( array( 'settings' => array( 'tone' => 'inverse' ) ) ),
+			'WordPress\'s stored inverse is the contract\'s surface-inverse, and an unset dark tone follows it.'
+		);
+		$this->assertStringContainsString(
+			'data-tone="brand-tint" data-tone-dark="surface-inverse"',
+			$this->render_hero_row(
+				array(
+					'settings' => array(
+						'tone'     => 'brand-tint',
+						'toneDark' => 'inverse',
+					),
+				)
+			)
+		);
+	}
+
+	public function test_a_link_esc_url_refuses_is_no_link(): void {
+		foreach ( array( 'javascript:alert(1)', 'data:text/html,x' ) as $url ) {
+			$this->assertNull( salt_contract_link( salt_test_button( 'Go', $url )['link'] ), $url );
+		}
+		$this->assertSame( 'https://example.test/out/', salt_contract_link( salt_test_button( 'Go', 'https://example.test/out/' )['link'] )['url'] ?? null );
+
+		$html = $this->render_hero_row( array( 'buttons' => array( salt_test_button( 'Go', 'javascript:alert(1)' ) ) ) );
+		$this->assertStringNotContainsString( 'href=""', $html );
+		$this->assertStringNotContainsString( 'salt-button', $html );
+	}
+
 	// -----------------------------------------------------------------------
 	// salt_render_section + fallback (ARCH05).
 	// -----------------------------------------------------------------------

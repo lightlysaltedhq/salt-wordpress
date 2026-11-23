@@ -375,4 +375,19 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 
 		$this->assertMatchesRegularExpression( '/id="rich-text-2"[^>]*>.*Unanchored.*id="rich-text"[^>]*>.*Find a showroom/s', $html );
 	}
+
+	public function test_a_rows_second_band_mints_its_own_id(): void {
+		$band = 'salt_section( array_merge( salt_section_wrapper_args( "showroom-finder", $args ), array( "contract" => true, "has_heading" => false ) ), static function ( int $level ): void { echo "<p>Band</p>"; } );';
+		salt_test_use_child_theme( $this->grain_child( array( 'template-parts/sections/showroom-finder.php' => '<?php ' . $band . ' ' . $band ) ) );
+
+		$html = $this->render_page(
+			array(
+				self::row( 'showroom_finder', '', '' ),
+				self::row( 'showroom_finder', '', '' ),
+			)
+		);
+
+		preg_match_all( '/ id="([^"]+)"/', $html, $ids );
+		$this->assertSame( array( 'showroom-finder', 'showroom-finder-3', 'showroom-finder-2', 'showroom-finder-4' ), $ids[1], 'Each row\'s first band keeps its planned id; a second band mints one in one pass, so no id repeats.' );
+	}
 }

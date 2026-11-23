@@ -277,6 +277,22 @@ final class PagePlanTest extends SaltTestCase {
 		$this->assertStringContainsString( 'id="foo" aria-labelledby="foo__heading"', $html, 'A hidden row is a row that draws nothing.' );
 	}
 
+	public function test_a_minted_id_is_the_same_on_every_page(): void {
+		$hidden                                        = self::rich_text( 'First page only', '' );
+		$hidden['fields']['settings']['firstPageOnly'] = true;
+		$rows = array( $hidden, self::rich_text( 'Every page', '' ), self::rich_text( 'Anchored', '', 'rich-text' ) );
+
+		$html = $this->render_page( $rows );
+		$this->assertMatchesRegularExpression( '/id="rich-text-2"[^>]*>.*First page only.*id="rich-text-3"[^>]*>.*Every page.*id="rich-text"[^>]*>.*Anchored/s', $html );
+
+		salt_render_state_reset();
+		$GLOBALS['salt_test_query_vars']['paged'] = 2;
+		$html                                     = $this->render_page( $rows );
+		$this->assertStringNotContainsString( 'First page only', $html );
+		$this->assertMatchesRegularExpression( '/id="rich-text-3"[^>]*>.*Every page.*id="rich-text"[^>]*>.*Anchored/s', $html, 'The hidden row still holds its minted id, so the next one does not move on page 2.' );
+		$this->assertStringNotContainsString( 'id="rich-text-2"', $html );
+	}
+
 	public function test_a_minted_id_holds_every_editors_anchor_drawn_or_not(): void {
 		$html = $this->render_page(
 			array(
