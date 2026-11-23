@@ -880,7 +880,7 @@ try {
 		errors.slice( 0, 10 ).forEach( info );
 		await close( page );
 
-		// The case-study view draws what was saved: the band in its tones, the featured image the band's last part (SC-034).
+		// The case-study view draws what was saved: the band in its tones, the featured image the story's first part (SC-034, SC-036).
 		const { page: view } = await open( saved.url.replace( url, '' ) );
 		const drawn = await view.evaluate( () => {
 			const article = document.querySelector( 'article.salt-case-study-view' );
@@ -889,13 +889,13 @@ try {
 				header: article?.dataset.header ?? null,
 				tone: header?.dataset.tone ?? null,
 				toneDark: header?.dataset.toneDark ?? null,
-				heroLast: header?.querySelector( ':scope > .salt-section__content > :last-child' )?.matches( '.salt-case-study-view__media' ) ?? false,
+				heroFirst: article?.querySelector( ':scope > .salt-case-study-view__story > :first-child' )?.matches( '.salt-case-study-view__media' ) ?? false,
 				priority: [ ...document.querySelectorAll( 'img[fetchpriority="high"]' ) ].map( ( img ) => img.closest( '.salt-case-study-view__media' ) !== null ),
 				inlineStyle: article?.hasAttribute( 'style' ) ?? false,
 			};
 		} );
 		result(
-			drawn.header === 'band' && drawn.tone === 'brand-tint' && drawn.toneDark === 'surface-inverse' && drawn.heroLast && JSON.stringify( drawn.priority ) === '[true]' && ! drawn.inlineStyle,
+			drawn.header === 'band' && drawn.tone === 'brand-tint' && drawn.toneDark === 'surface-inverse' && drawn.heroFirst && JSON.stringify( drawn.priority ) === '[true]' && ! drawn.inlineStyle,
 			'the case-study view reads the saved settings',
 			`${ saved.url.replace( url, '' ) }: ${ JSON.stringify( drawn ) }`
 		);
@@ -968,7 +968,7 @@ try {
 		};
 		const drawnClient = async ( target ) => {
 			const { page } = await open( target.replace( url, '' ) );
-			const text = await page.locator( '.salt-case-study-view__client' ).first().textContent().catch( () => null );
+			const text = await page.locator( '.salt-case-study-view__client .salt-case-study-view__detail-value' ).first().textContent().catch( () => null );
 			await close( page );
 			return text?.trim() ?? null;
 		};

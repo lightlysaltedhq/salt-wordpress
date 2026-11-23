@@ -100,6 +100,11 @@ function salt_harness_single_image( string $name, array $media ): int {
 /**
  * A published service per fixture id, made once (a related or listed one).
  *
+ * A card whose href is null is a service with no public page. While the
+ * service module is on, WordPress gives every published service one, so
+ * the harness marks it (_salt_harness_no_page) and the case mu-plugin
+ * filters its permalink away, as a site that withholds a page would.
+ *
  * @param array<string,mixed> $item  The fixture's card: id, title, text, image.
  * @param array<string,mixed> $media The case's media.
  * @return int Post ID.
@@ -120,6 +125,9 @@ function salt_harness_single_service( array $item, array $media ): int {
 		);
 		if ( isset( $item['image'] ) ) {
 			set_post_thumbnail( $ids[ $slug ], salt_harness_single_image( (string) $item['image'], $media ) );
+		}
+		if ( array_key_exists( 'href', $item ) && null === $item['href'] ) {
+			update_post_meta( $ids[ $slug ], '_salt_harness_no_page', '1' );
 		}
 	}
 	return $ids[ $slug ];
@@ -398,7 +406,7 @@ function salt_harness_seed_case_study( array $input ): int {
 	if ( isset( $doc['image'] ) ) {
 		set_post_thumbnail( $work, salt_harness_single_image( (string) $doc['image'], $media ) );
 	}
-	foreach ( array( 'client', 'challenge', 'solution', 'externalUrl' ) as $name ) {
+	foreach ( array( 'client', 'sector', 'challenge', 'solution', 'externalUrl' ) as $name ) {
 		if ( isset( $doc[ $name ] ) ) {
 			update_field( $name, (string) $doc[ $name ], $work );
 		}
