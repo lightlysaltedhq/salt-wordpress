@@ -44,6 +44,7 @@ $salt_modules = array(
 	'/inc/query/cards.php',
 	'/inc/services/consent.php',
 	'/inc/services/location-status.php',
+	'/inc/services/maps.php',
 	'/inc/services/updater.php',
 	'/inc/services/override-flag.php',
 	'/inc/services/rate-limit.php',

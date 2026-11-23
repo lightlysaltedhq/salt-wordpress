@@ -62,7 +62,7 @@ final class MapsBookingTest extends SaltTestCase {
 	}
 
 	/**
-	 * Render x-map with valid default coordinates.
+	 * Render the map facade with valid default coordinates.
 	 *
 	 * @param array<string,mixed> $overrides Arg overrides.
 	 * @return string
@@ -108,17 +108,15 @@ final class MapsBookingTest extends SaltTestCase {
 
 		$html = $this->render_map( array( 'label' => 'Salt HQ' ) );
 
-		$this->assertStringContainsString( 'data-salt-map', $html );
-		$this->assertStringContainsString( 'bg-surface-alt', $html );
+		$this->assertStringStartsWith( '<div class="salt-map" ', $html );
 		$this->assertStringContainsString( 'data-lat="51.5074"', $html );
 		$this->assertStringContainsString( 'data-lng="-0.1278"', $html );
 		$this->assertStringContainsString( 'data-zoom="14"', $html );
 		$this->assertStringContainsString( 'data-tile="https://tile.openstreetmap.org/{z}/{x}/{y}.png"', $html );
-		$this->assertStringContainsString( '>Load map</button>', $html );
-		$this->assertStringContainsString( 'aria-label=', $html );
-		$this->assertStringContainsString( '<p class="x-map-label font-medium">Salt HQ</p>', $html );
-		// The MapLibre loader reference is SAME-origin (hashed dist asset).
-		$this->assertStringContainsString( 'data-maplibre="https://example.test/wp-content/themes/salt-wordpress/assets/dist/maps/maplibre.', $html );
+		$this->assertStringContainsString( '<button class="salt-button salt-map__load" type="button" data-style="primary" aria-label="Load the map">Load map</button>', $html );
+		$this->assertStringContainsString( '<p class="salt-map__label">Salt HQ</p>', $html );
+		// The bundle's address is the script's (window.saltMaps), never the markup's (SC-006).
+		$this->assertStringNotContainsString( 'maplibre', $html );
 	}
 
 	public function test_map_facade_loads_nothing_third_party_at_render(): void {
@@ -197,7 +195,8 @@ final class MapsBookingTest extends SaltTestCase {
 
 		$html = $this->render_map( array( 'zoom' => 40 ) );
 
-		$this->assertStringContainsString( 'data-zoom="22"', $html );
+		$this->assertStringContainsString( 'data-zoom="20"', $html, 'The contract\'s zoom is 1 to 20.' );
+		$this->assertStringContainsString( 'data-zoom="1"', $this->render_map( array( 'zoom' => 0 ) ) );
 		$this->assertStringContainsString( 'clamped', implode( ' ', $this->logs() ) );
 	}
 

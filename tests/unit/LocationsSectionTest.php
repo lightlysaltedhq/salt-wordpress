@@ -178,7 +178,7 @@ final class LocationsSectionTest extends SaltTestCase {
 		// Primary section heading claims the H1; office names are styled
 		// spans inside <summary> (not headings — AT exposure is unreliable).
 		$this->assertSame( 1, preg_match_all( '/<h1[\s>]/', $html ) );
-		$this->assertMatchesRegularExpression( '/<span class="text-lg font-semibold">Bath office<\/span>/', $html );
+		$this->assertStringContainsString( '<span class="salt-locations__name">Bath office</span>', $html );
 
 		// Contact surface.
 		$this->assertStringContainsString( 'href="tel:+441225000000"', $html );
@@ -211,7 +211,7 @@ final class LocationsSectionTest extends SaltTestCase {
 		$this->assertSame( 0, preg_match_all( '/<h1[\s>]/', $html ) );
 		$this->assertFalse( salt_h1_claimed() );
 		// Office names sit one level below the (unrendered, level-2) main heading.
-		$this->assertMatchesRegularExpression( '/<span class="text-lg font-semibold">Bath office<\/span>/', $html, 'Office names are styled spans, not headings — heading semantics in <summary> are unreliably exposed to AT.' );
+		$this->assertStringContainsString( '<span class="salt-locations__name">Bath office</span>', $html, 'Office names are styled spans, not headings — heading semantics in <summary> are unreliably exposed to AT.' );
 		$this->assertDoesNotMatchRegularExpression( '/<h[1-6][^>]*>Bath office/', $html );
 	}
 
@@ -251,7 +251,7 @@ final class LocationsSectionTest extends SaltTestCase {
 
 		$html = $this->render_locations( array( 'heading' => 'Find us' ) );
 
-		$this->assertMatchesRegularExpression( '/<span class="x-status-pill[^"]*text-success" data-status="open">Open now<\/span>/', $html );
+		$this->assertMatchesRegularExpression( '/<span class="salt-locations__status" data-status="open" [^>]*>Open now<\/span>/', $html );
 	}
 
 	public function test_closed_office_renders_a_muted_pill(): void {
@@ -266,7 +266,7 @@ final class LocationsSectionTest extends SaltTestCase {
 
 		$html = $this->render_locations( array( 'heading' => 'Find us' ) );
 
-		$this->assertMatchesRegularExpression( '/<span class="x-status-pill[^"]*text-ink-muted" data-status="closed">Closed<\/span>/', $html );
+		$this->assertMatchesRegularExpression( '/<span class="salt-locations__status" data-status="closed" [^>]*>Closed<\/span>/', $html );
 	}
 
 	public function test_appointment_office_renders_an_info_pill(): void {
@@ -281,7 +281,7 @@ final class LocationsSectionTest extends SaltTestCase {
 
 		$html = $this->render_locations( array( 'heading' => 'Find us' ) );
 
-		$this->assertMatchesRegularExpression( '/<span class="x-status-pill[^"]*text-info" data-status="appointment">By appointment<\/span>/', $html );
+		$this->assertMatchesRegularExpression( '/<span class="salt-locations__status" data-status="appointment" [^>]*>By appointment<\/span>/', $html );
 	}
 
 	public function test_unknown_status_renders_no_pill_at_all(): void {
@@ -289,7 +289,7 @@ final class LocationsSectionTest extends SaltTestCase {
 
 		$html = $this->render_locations( array( 'heading' => 'Find us' ) );
 
-		$this->assertStringNotContainsString( 'x-status-pill', $html );
+		$this->assertStringNotContainsString( 'salt-locations__status', $html );
 		$this->assertStringContainsString( 'Bath office', $html );
 	}
 
@@ -548,7 +548,7 @@ final class LocationsSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( array( 'eyebrow', 'heading', 'offices', 'details_group' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( array( 'eyebrow', 'heading', 'offices', 'timezone', 'labels' ), array_keys( $resolved['props'] ) );
 		$this->assertNull( $resolved['props']['eyebrow'] );
 		$this->assertSame( ' Find us ', $resolved['props']['heading'], 'Optional text is never trimmed.' );
 		$this->assertTrue( $resolved['section']['has_heading'] );
@@ -556,7 +556,7 @@ final class LocationsSectionTest extends SaltTestCase {
 
 		$bath = $resolved['props']['offices'][0];
 		$this->assertSame(
-			array( 'id', 'title', 'address', 'phone', 'phoneHref', 'email', 'opening_hours', 'status', 'status_label', 'directionsHref' ),
+			array( 'id', 'title', 'address', 'phone', 'phoneHref', 'email', 'hours', 'opening_hours', 'status', 'coordinates', 'directionsHref' ),
 			array_keys( $bath )
 		);
 		$this->assertSame( '301', $bath['id'] );
@@ -565,9 +565,17 @@ final class LocationsSectionTest extends SaltTestCase {
 		$this->assertSame( '+44 (0)1225 000000', $bath['phone'] );
 		$this->assertSame( 'tel:+4401225000000', $bath['phoneHref'] );
 		$this->assertNull( $bath['email'] );
-		$this->assertSame( self::always_appointment_hours(), $bath['opening_hours'], 'Stored rows, as x-opening-hours takes them.' );
+		$this->assertSame( self::always_appointment_hours(), $bath['opening_hours'], 'Stored rows, as the opening-hours component takes them.' );
+		$this->assertSame(
+			array(
+				'day'         => 'monday',
+				'appointment' => true,
+			),
+			$bath['hours'][0],
+			'data-hours: an appointment row has no times.'
+		);
 		$this->assertSame( 'appointment', $bath['status'] );
-		$this->assertSame( 'By appointment', $bath['status_label'] );
+		$this->assertNull( $bath['coordinates'], 'No lat or lng: no map.' );
 		$this->assertSame( 'https://www.openstreetmap.org/directions?to=' . rawurlencode( '1 High Street, Bath, BA1 1AA' ), $bath['directionsHref'] );
 
 		$wells = $resolved['props']['offices'][1];
@@ -576,23 +584,20 @@ final class LocationsSectionTest extends SaltTestCase {
 		$this->assertSame( array(), $wells['address'] );
 		$this->assertNull( $wells['directionsHref'] );
 		$this->assertSame( 'unknown', $wells['status'] );
-		$this->assertSame( '', $wells['status_label'] );
 
 		$this->assertCount( 2, salt_schema_queue(), 'One LocalBusiness node per office, queued by the resolver.' );
 	}
 
-	public function test_details_group_is_always_locations_0_whatever_the_index(): void {
-		// Pre-split behaviour kept (CONVENTIONS.md rule 2): the old template
-		// read $args['index'] inside a closure that never captured $args, so
-		// every page emitted locations-0. Reported as a Work Item.
+	public function test_details_group_is_locations_and_the_plan_index(): void {
+		// markup/locations.json: every office's details carries
+		// locations-<plan index>, so two location bands on a page never
+		// share exclusive-open state.
 		$this->seed_offices(
 			array(
 				array( 'title' => 'Bath office' ),
 				array( 'title' => 'Wells office' ),
 			)
 		);
-
-		$this->assertSame( 'locations-0', $this->resolve_locations( array(), 7 )['props']['details_group'] );
 
 		salt_test_seed_fc(
 			array(
@@ -613,8 +618,60 @@ final class LocationsSectionTest extends SaltTestCase {
 		);
 		$html = (string) ob_get_clean();
 
-		$this->assertSame( 2, substr_count( $html, 'name="locations-0"' ), 'Rendered at index 7, still locations-0.' );
-		$this->assertStringNotContainsString( 'locations-7', $html );
+		$this->assertSame( 2, substr_count( $html, 'name="locations-7"' ) );
+		$this->assertStringNotContainsString( 'locations-0', $html );
+	}
+
+	public function test_map_draws_from_the_stored_coordinates_and_zoom(): void {
+		// ID-3967: the map starts at the office's stored lat, lng and zoom;
+		// an office with no zoom starts at the contract's 14; one without
+		// both coordinates has none, and maps off draws none at all.
+		$GLOBALS['salt_test_fields']['option']['maps_enabled'] = true;
+		$this->seed_offices(
+			array(
+				array( 'title' => 'Bath office' ),
+				array( 'title' => 'Wells office' ),
+				array( 'title' => 'Frome office' ),
+			)
+		);
+		$GLOBALS['salt_test_fields']['100'] = array(
+			'lat'  => 51.3822,
+			'lng'  => -2.359,
+			'zoom' => 16,
+		);
+		$GLOBALS['salt_test_fields']['101'] = array(
+			'lat' => '51.2094',
+			'lng' => '-2.6450',
+		);
+		$GLOBALS['salt_test_fields']['102'] = array( 'lat' => 51.23 );
+
+		$offices = $this->resolve_locations( array( 'heading' => 'Find us' ) )['props']['offices'];
+		$this->assertSame(
+			array(
+				'lat'  => 51.3822,
+				'lng'  => -2.359,
+				'zoom' => 16,
+			),
+			$offices[0]['coordinates']
+		);
+		$this->assertSame(
+			array(
+				'lat'  => 51.2094,
+				'lng'  => -2.645,
+				'zoom' => 14,
+			),
+			$offices[1]['coordinates'],
+			'No zoom stored: the contract\'s 14.'
+		);
+		$this->assertNull( $offices[2]['coordinates'], 'Only a latitude: no map.' );
+
+		$html = $this->render_locations( array( 'heading' => 'Find us' ) );
+		$this->assertStringContainsString( 'data-lat="51.3822" data-lng="-2.359" data-zoom="16"', $html );
+		$this->assertStringContainsString( 'data-lat="51.2094" data-lng="-2.645" data-zoom="14"', $html );
+		$this->assertSame( 2, substr_count( $html, 'class="salt-map"' ) );
+
+		$GLOBALS['salt_test_fields']['option']['maps_enabled'] = false;
+		$this->assertStringNotContainsString( 'salt-map', $this->render_locations( array( 'heading' => 'Find us' ) ), 'Maps off: no facade.' );
 	}
 
 	public function test_view_draws_from_props_alone(): void {
@@ -624,9 +681,9 @@ final class LocationsSectionTest extends SaltTestCase {
 			false,
 			array(
 				'props' => array(
-					'eyebrow'       => null,
-					'heading'       => 'From props',
-					'offices'       => array(
+					'eyebrow'  => null,
+					'heading'  => 'From props',
+					'offices'  => array(
 						array(
 							'id'             => '9',
 							'title'          => 'Bath <office>',
@@ -634,32 +691,51 @@ final class LocationsSectionTest extends SaltTestCase {
 							'phone'          => 'Ask',
 							'phoneHref'      => null,
 							'email'          => 'bath@example.test',
+							'hours'          => array(
+								array(
+									'day'   => 'monday',
+									'open'  => '09:00',
+									'close' => '17:00',
+								),
+							),
 							'opening_hours'  => array(),
 							'status'         => 'closed',
-							'status_label'   => 'Closed',
+							'coordinates'    => null,
 							'directionsHref' => 'https://www.openstreetmap.org/directions?to=1%20High%20Street',
 						),
 					),
-					'details_group' => 'group-from-props',
+					'timezone' => 'Europe/Paris',
+					'labels'   => array(
+						'open'          => 'Ouvert',
+						'appointment'   => 'Sur rendez-vous',
+						'closed'        => 'Fermé',
+						'getDirections' => 'Itinéraire',
+						'directions'    => 'Itinéraire vers',
+					),
 				),
 				'plan'  => array(
 					'index'         => 3,
+					'anchor'        => 'bureaux',
 					'headingLevel'  => 2,
+					'headingId'     => 'bureaux__heading',
+					'bodyBaseLevel' => 2,
 					'priorityMedia' => false,
 				),
 			)
 		);
 		$html = (string) ob_get_clean();
 
-		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
-		$this->assertStringContainsString( "\t\t\t<details class=\"x-accordion-item group border-b border-border\" name=\"group-from-props\">", $html, 'Rule 1: the block keeps its three tabs.' );
+		$this->assertSame( 1, preg_match_all( '/<h2 id="bureaux__heading">/', $html ) );
+		$this->assertSame( 1, substr_count( $html, '<details class="salt-accordion__item" name="locations-3">' ) );
 		$this->assertStringContainsString( 'Bath &lt;office&gt;', $html );
-		$this->assertStringContainsString( 'data-status="closed">Closed</span>', $html );
+		$this->assertStringContainsString( 'data-status="closed" data-hours="[{&quot;day&quot;:&quot;monday&quot;,&quot;open&quot;:&quot;09:00&quot;,&quot;close&quot;:&quot;17:00&quot;}]" data-timezone="Europe/Paris"', $html );
+		$this->assertStringContainsString( '>Fermé</span>', $html, 'The status word is the labels\'.' );
 		$this->assertStringContainsString( '<li>Ask</li>', $html, 'No phoneHref: the number is text.' );
 		$this->assertStringContainsString( 'href="mailto:bath@example.test"', $html );
-		$this->assertStringContainsString( 'Get directions', $html );
-		$this->assertStringNotContainsString( '<dl', $html, 'No hours: no x-opening-hours.' );
-		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+		$this->assertStringContainsString( 'aria-label="Itinéraire vers Bath &lt;office&gt;">Itinéraire</a>', $html );
+		$this->assertStringNotContainsString( '<dl', $html, 'No stored hours: no opening hours.' );
+		$this->assertStringNotContainsString( 'salt-map', $html, 'No coordinates: no map.' );
+		$this->assertStringNotContainsString( 'salt-section', $html, 'The band is the entry\'s, not the view\'s.' );
 		$this->assertSame( array(), salt_schema_queue(), 'The view never queues schema.' );
 	}
 }

@@ -143,12 +143,11 @@ final class GallerySectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'x-gallery-single', $html );
+		$this->assertStringContainsString( '<div class="salt-block" data-block="gallery"><figure class="salt-gallery__figure">', $html );
 		$this->assertSame( 1, substr_count( $html, '<figure' ) );
-		$this->assertStringNotContainsString( 'data-salt-carousel', $html, '1 image: no JS trigger attribute (FAIL02).' );
-		$this->assertStringNotContainsString( 'snap-x', $html );
+		$this->assertStringNotContainsString( 'salt-carousel', $html, '1 image: no track (FAIL02).' );
 		$this->assertStringNotContainsString( '<button', $html );
-		$this->assertStringContainsString( 'sizes="100vw"', $html, "The single figure uses the 'full' sizes context." );
+		$this->assertStringContainsString( 'sizes="' . salt_image_slot_sizes( 'content', 'default' ) . '"', $html, 'A lone image fills the content box.' );
 	}
 
 	public function test_single_image_in_grid_layout_is_also_the_static_figure(): void {
@@ -161,8 +160,8 @@ final class GallerySectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'x-gallery-single', $html );
-		$this->assertStringNotContainsString( 'x-gallery-grid', $html );
+		$this->assertStringContainsString( '<figure class="salt-gallery__figure">', $html );
+		$this->assertStringNotContainsString( 'salt-gallery__item', $html );
 	}
 
 	// -----------------------------------------------------------------
@@ -180,10 +179,10 @@ final class GallerySectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'x-gallery-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3', $html );
-		$this->assertSame( 3, substr_count( $html, '<figure' ) );
-		$this->assertStringNotContainsString( 'data-salt-carousel', $html );
-		$this->assertSame( 3, substr_count( $html, 'sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"' ), "x-image 'gallery' sizes context." );
+		$this->assertStringContainsString( '<ul class="salt-grid salt-gallery" role="list" data-layout="grid" data-columns="3">', $html );
+		$this->assertSame( 3, substr_count( $html, '<li class="salt-gallery__item"><figure class="salt-gallery__figure">' ) );
+		$this->assertStringNotContainsString( 'salt-carousel', $html );
+		$this->assertSame( 3, substr_count( $html, 'sizes="' . salt_image_slot_sizes( 'card', 'default', '3' ) . '"' ), 'A card at three columns.' );
 	}
 
 	public function test_grid_columns_four(): void {
@@ -197,7 +196,7 @@ final class GallerySectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'lg:grid-cols-4', $html );
+		$this->assertStringContainsString( 'data-columns="4"', $html );
 	}
 
 	public function test_invalid_columns_falls_back_to_three_and_logs(): void {
@@ -211,7 +210,7 @@ final class GallerySectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'lg:grid-cols-3', $html );
+		$this->assertStringContainsString( 'data-columns="3"', $html );
 		$this->assertStringContainsString( 'invalid columns', implode( ' ', $this->logs() ) );
 	}
 
@@ -226,10 +225,9 @@ final class GallerySectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'x-gallery-masonry gap-4 columns-2 lg:columns-3', $html );
-		$this->assertSame( 3, substr_count( $html, 'break-inside-avoid' ) );
-		$this->assertStringNotContainsString( 'data-salt-carousel', $html, 'Masonry has NO JS hook — pure CSS columns.' );
-		$this->assertStringNotContainsString( 'data-salt-', $html );
+		$this->assertStringContainsString( 'data-layout="masonry" data-columns="3"', $html );
+		$this->assertSame( 3, substr_count( $html, 'salt-gallery__item' ) );
+		$this->assertStringNotContainsString( 'salt-carousel', $html, 'Masonry has no script: the stylesheet lays it out.' );
 		$this->assertStringNotContainsString( '<button', $html );
 	}
 
@@ -239,20 +237,26 @@ final class GallerySectionTest extends SaltTestCase {
 		$html = $this->render_gallery(
 			array(
 				'layout' => 'carousel',
+				'label'  => 'Garden photographs',
 				'images' => $ids,
 			)
 		);
 
-		$this->assertStringContainsString( 'data-salt-carousel', $html );
-		$this->assertStringContainsString( 'snap-x', $html );
-		$this->assertStringContainsString( 'overflow-x-auto', $html );
-		$this->assertSame( 3, substr_count( $html, 'snap-start' ) );
-		$this->assertStringContainsString( 'role="region"', $html );
-		$this->assertStringContainsString( 'tabindex="0"', $html );
-		$this->assertStringContainsString( 'aria-label="Image gallery"', $html );
-		$this->assertStringContainsString( 'data-salt-prev-label="Previous images"', $html );
-		$this->assertStringContainsString( 'data-salt-next-label="Next images"', $html );
-		$this->assertStringNotContainsString( '<button', $html, 'FAIL02: buttons are JS-injected only — no dead buttons no-JS.' );
+		$this->assertStringContainsString( '<div class="salt-carousel" role="region" aria-roledescription="carousel" aria-label="Garden photographs"><ul class="salt-carousel__track" role="list" tabindex="0">', $html );
+		$this->assertSame( 3, substr_count( $html, '<li class="salt-carousel__slide">' ) );
+		$this->assertStringContainsString( 'aria-label="Slide 2 of 3"', $html );
+		$this->assertSame( 3, substr_count( $html, 'sizes="' . salt_image_slot_sizes( 'card' ) . '"' ), 'A slide is an unbanded card.' );
+		$this->assertStringNotContainsString( '<button', $html, 'FAIL02: the controls are the script\'s — no dead buttons without it.' );
+
+		// Unnamed (no heading, no label): the grid in place of the carousel (view-props named).
+		$unnamed = $this->render_gallery(
+			array(
+				'layout' => 'carousel',
+				'images' => $ids,
+			)
+		);
+		$this->assertStringNotContainsString( 'salt-carousel', $unnamed );
+		$this->assertStringContainsString( 'data-layout="grid"', $unnamed );
 	}
 
 	public function test_invalid_layout_falls_back_to_grid_and_logs(): void {
@@ -265,7 +269,7 @@ final class GallerySectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'x-gallery-grid', $html );
+		$this->assertStringContainsString( 'data-layout="grid"', $html );
 		$this->assertStringContainsString( 'invalid layout', implode( ' ', $this->logs() ) );
 	}
 
@@ -288,7 +292,7 @@ final class GallerySectionTest extends SaltTestCase {
 		);
 
 		$this->assertSame( 1, substr_count( $html, '<figcaption' ), 'Only the image WITH a caption gets a figcaption.' );
-		$this->assertStringContainsString( '<figcaption class="mt-2 text-sm text-ink-muted">Sunset over the harbour</figcaption>', $html );
+		$this->assertStringContainsString( '<figcaption class="salt-gallery__caption">Sunset over the harbour</figcaption>', $html );
 	}
 
 	public function test_captions_off_renders_no_figcaption(): void {
@@ -343,7 +347,7 @@ final class GallerySectionTest extends SaltTestCase {
 			true
 		);
 
-		$this->assertSame( 0, preg_match_all( '/<h[1-6][\s>]/', $html ), 'No heading field, no headings.' );
+		$this->assertSame( 0, preg_match_all( '/<h[1-6][\s>]/', $html ), 'No heading set, no headings.' );
 		$this->assertFalse( salt_h1_claimed(), 'has_heading false: the page-level fallback H1 must still fire (A11Y01).' );
 	}
 
@@ -395,6 +399,8 @@ final class GallerySectionTest extends SaltTestCase {
 	public function test_resolver_returns_null_when_no_image_resolves(): void {
 		$this->assertNull( $this->resolve_gallery( array( 'images' => array( 0, 999 ) ) ) );
 		$this->assertNull( $this->resolve_gallery( array() ) );
+		// markup/gallery.json zeroState: a heading-only gallery is drawn.
+		$this->assertSame( array(), $this->resolve_gallery( array( 'heading' => 'Recent gardens' ) )['props']['images'] );
 	}
 
 	public function test_resolver_props_and_wrapper_inputs(): void {
@@ -412,31 +418,22 @@ final class GallerySectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( array( 'layout', 'columns', 'captions', 'items' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( array( 'heading', 'intro', 'layout', 'columns', 'label', 'named', 'captions', 'images', 'labels' ), array_keys( $resolved['props'] ) );
 		$this->assertSame( 'masonry', $resolved['props']['layout'] );
-		$this->assertSame( 4, $resolved['props']['columns'] );
+		$this->assertSame( '4', $resolved['props']['columns'] );
+		$this->assertFalse( $resolved['props']['named'] );
 		$this->assertTrue( $resolved['props']['captions'] );
-		$this->assertSame(
-			array(
-				array(
-					'image_id' => 41,
-					'caption'  => 'First caption',
-				),
-				array(
-					'image_id' => 42,
-					'caption'  => '',
-				),
-			),
-			$resolved['props']['items'],
-			'Malformed entry skipped; captions trimmed; IDs in field order.'
-		);
+		$images = $resolved['props']['images'];
+		$this->assertSame( array( 'https://example.test/uploads/gallery-41.jpg', 'https://example.test/uploads/gallery-42.jpg' ), array_column( $images, 'src' ), 'Malformed entry skipped; field order kept.' );
+		$this->assertSame( 'First caption', $images[0]['caption'], 'Captions trimmed.' );
+		$this->assertNull( $images[1]['caption'] );
 		$this->assertContains( 'section gallery: malformed image entry — skipped.', $this->logs() );
 
 		$this->assertSame( 'gallery', $resolved['section']['name'] );
 		$this->assertSame( 'lg', $resolved['section']['spacing'] );
 		$this->assertTrue( $resolved['section']['is_primary'] );
-		$this->assertFalse( $resolved['section']['has_heading'], 'No heading field: never claims the H1 (A11Y01).' );
-		$this->assertArrayNotHasKey( 'plan', $resolved );
+		$this->assertFalse( $resolved['section']['has_heading'], 'No heading: never claims the H1 (A11Y01).' );
+		$this->assertTrue( $resolved['plan']['priorityMedia'], 'The first image asks for the page\'s priority image.' );
 	}
 
 	public function test_resolver_falls_back_on_invalid_layout_and_columns(): void {
@@ -451,9 +448,8 @@ final class GallerySectionTest extends SaltTestCase {
 		);
 
 		$this->assertSame( 'grid', $resolved['props']['layout'] );
-		$this->assertSame( 3, $resolved['props']['columns'] );
-		$this->assertFalse( $resolved['props']['captions'] );
-		$this->assertSame( '', $resolved['props']['items'][0]['caption'], 'Captions off: no caption read.' );
+		$this->assertSame( '3', $resolved['props']['columns'] );
+		$this->assertTrue( $resolved['props']['captions'], 'An unsaved toggle is on (field default).' );
 	}
 
 	/**
@@ -468,65 +464,87 @@ final class GallerySectionTest extends SaltTestCase {
 			dirname( __DIR__, 2 ) . '/template-parts/sections/gallery.php',
 			false,
 			array(
-				'props' => $props,
+				'props' => array_merge(
+					array(
+						'heading'  => null,
+						'intro'    => null,
+						'label'    => null,
+						'named'    => false,
+						'captions' => true,
+						'labels'   => array( 'slide' => 'Diapo' ),
+					),
+					$props
+				),
 				'plan'  => array(
 					'index'         => 0,
+					'anchor'        => 'photos',
 					'headingLevel'  => 2,
-					'priorityMedia' => false,
+					'headingId'     => 'photos__heading',
+					'bodyBaseLevel' => 2,
+					'priorityMedia' => true,
 				),
 			)
 		);
 		return (string) ob_get_clean();
 	}
 
-	public function test_view_draws_from_props_alone(): void {
-		$this->seed_attachments( 3 );
+	/**
+	 * A resolved image (salt_image_contract()'s shape).
+	 *
+	 * @param string      $src     Its address.
+	 * @param string|null $caption Its caption.
+	 * @return array<string,mixed>
+	 */
+	private static function image( string $src, ?string $caption = null ): array {
+		return array(
+			'src'     => $src,
+			'srcset'  => null,
+			'sizes'   => '100vw',
+			'width'   => 800,
+			'height'  => 600,
+			'alt'     => 'Alt',
+			'caption' => $caption,
+		);
+	}
 
+	public function test_view_draws_from_props_alone(): void {
 		$html = $this->draw_gallery_view(
 			array(
-				'layout'   => 'carousel',
-				'columns'  => 3,
-				'captions' => true,
-				'items'    => array(
-					array(
-						'image_id' => 41,
-						'caption'  => 'From <props>',
-					),
-					array(
-						'image_id' => 42,
-						'caption'  => '',
-					),
+				'heading' => 'Photos',
+				'named'   => true,
+				'layout'  => 'carousel',
+				'columns' => '3',
+				'images'  => array(
+					self::image( 'https://u.test/a.jpg', 'From <props>' ),
+					self::image( 'https://u.test/b.jpg' ),
 				),
 			)
 		);
 
-		$this->assertStringContainsString( 'data-salt-carousel="gallery"', $html );
-		$this->assertSame( 2, substr_count( $html, 'class="x-gallery-slide' ) );
-		$this->assertSame( 1, substr_count( $html, '<figcaption' ), 'Empty caption draws no figcaption.' );
+		$this->assertStringContainsString( '<h2 id="photos__heading">Photos</h2>', $html );
+		$this->assertStringContainsString( 'aria-roledescription="carousel" aria-label="Photos"', $html );
+		$this->assertStringContainsString( 'aria-label="Diapo 1 of 2"', $html, 'The slide word is the labels\'.' );
+		$this->assertSame( 1, substr_count( $html, '<figcaption' ), 'No caption: no figcaption.' );
 		$this->assertStringContainsString( 'From &lt;props&gt;', $html );
-		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+		$this->assertSame( 1, substr_count( $html, 'fetchpriority="high"' ), 'Only the first image is the priority image.' );
+		$this->assertStringNotContainsString( 'salt-section', $html, 'The band is the entry\'s, not the view\'s.' );
 	}
 
 	public function test_view_draws_one_item_as_a_single_figure_in_any_layout(): void {
-		$this->seed_attachments( 1 );
-
 		foreach ( array( 'grid', 'masonry', 'carousel' ) as $layout ) {
 			$html = $this->draw_gallery_view(
 				array(
-					'layout'   => $layout,
-					'columns'  => 2,
-					'captions' => false,
-					'items'    => array(
-						array(
-							'image_id' => 41,
-							'caption'  => '',
-						),
-					),
+					'named'   => true,
+					'label'   => 'Photos',
+					'layout'  => $layout,
+					'columns' => '2',
+					'images'  => array( self::image( 'https://u.test/a.jpg' ) ),
 				)
 			);
 
-			$this->assertStringStartsWith( '<div class="x-gallery-single">', $html, $layout );
-			$this->assertStringNotContainsString( 'data-salt-carousel', $html, $layout );
+			$this->assertStringStartsWith( '<div class="salt-block" data-block="gallery"><figure class="salt-gallery__figure">', $html, $layout );
+			$this->assertStringNotContainsString( 'salt-carousel', $html, $layout );
+			$this->assertStringNotContainsString( '<ul', $html, $layout );
 		}
 	}
 }

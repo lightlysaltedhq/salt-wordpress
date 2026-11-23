@@ -6,22 +6,26 @@
  *
  *   1. Checks consent CLIENT-SIDE and fail-closed: the click is user
  *      intent, but the tiles are a third-party load, so the maps→marketing
- *      consent category still gates. No window.wp_has_consent on the page
- *      (no CMP) or a denied verdict → dispatch 'salt:consent-required'
+ *      consent category still gates. No window.wp_has_consent on the page,
+ *      no consent type set (the WP Consent API then grants everything), or
+ *      a denied verdict → dispatch 'salt:consent-required'
  *      (bubbling, so a CMP integration can open its banner) + show the
  *      inline i18n'd notice from the facade's data attribute, and abort.
  *   2. Granted → injects a <script> for the SAME-origin MapLibre bundle
- *      (data-maplibre; CSP script-src 'self' allows it — no third-party
- *      script ever) and initialises a raster map from the facade's
- *      data-lat/lng/zoom/tile with a marker. OpenStreetMap attribution is
+ *      (window.saltMaps.maplibre, from the nonce-stamped inline script
+ *      salt_maps_enqueue() adds; CSP script-src 'self' allows it — no
+ *      third-party script ever) and initialises a raster map from the
+ *      facade's data-lat/lng/zoom/tile with a marker. OpenStreetMap attribution is
  *      REQUIRED and always rendered via the raster source.
  *
- * No-ops gracefully when [data-salt-map] is absent.
+ * The facade is the contract's (salt-contract markup/map.json):
+ * div.salt-map with an optional p.salt-map__label and the
+ * button.salt-map__load. No-ops gracefully when no .salt-map is present.
  */
 (() => {
 	'use strict';
 
-	const containers = document.querySelectorAll('[data-salt-map]');
+	const containers = document.querySelectorAll('.salt-map');
 	if (!containers.length) {
 		return;
 	}
@@ -38,6 +42,9 @@
 	const loadLibrary = (src) => {
 		if (window.maplibregl) {
 			return Promise.resolve();
+		}
+		if (!src) {
+			return Promise.reject(new Error('maps: no MapLibre bundle address.'));
 		}
 		if (!libraryLoading) {
 			libraryLoading = new Promise((resolve, reject) => {
@@ -58,14 +65,14 @@
 	/**
 	 * Show (or update) the facade's inline notice.
 	 *
-	 * @param {HTMLElement} container The [data-salt-map] facade.
+	 * @param {HTMLElement} container The .salt-map facade.
 	 * @param {string}      message   Pre-translated message text.
 	 */
 	const showNotice = (container, message) => {
-		let notice = container.querySelector('.x-map-notice');
+		let notice = container.querySelector('.salt-map__notice');
 		if (!notice) {
 			notice = document.createElement('p');
-			notice.className = 'x-map-notice text-sm';
+			notice.className = 'salt-map__notice';
 			notice.setAttribute('role', 'status');
 			container.appendChild(notice);
 		}
@@ -73,25 +80,52 @@
 	};
 
 	/**
-	 * Fail-closed consent verdict for the maps→marketing category.
+	 * The consent type a consent management plugin set through the WP
+	 * Consent API, read as the API's own wp-consent-api.js reads it (and as
+	 * the theme's other consent checks do): window.wp_consent_type, else
+	 * window.wp_fallback_consent_type. '' when none.
 	 *
-	 * @return {boolean} True only on an explicit CMP grant.
+	 * @return {string} The consent type, such as 'optin' or 'optout'.
+	 */
+	const consentType = () => {
+		const type =
+			typeof window.wp_consent_type !== 'undefined'
+				? window.wp_consent_type
+				: window.wp_fallback_consent_type;
+		return typeof type === 'string' ? type : '';
+	};
+
+	/**
+	 * Fail-closed consent verdict for the maps→marketing category. The WP
+	 * Consent API grants every category when no consent management plugin
+	 * has set a consent type, so a grant counts only when a type is set.
+	 *
+	 * @return {boolean} True only when a CMP set a consent type and grants marketing.
 	 */
 	const hasConsent = () =>
-		typeof window.wp_has_consent === 'function' && window.wp_has_consent('marketing') === true;
+		typeof window.wp_has_consent === 'function' &&
+		consentType() !== '' &&
+		window.wp_has_consent('marketing') === true;
 
 	/**
 	 * Build the raster map inside the facade (post-click, post-consent).
 	 *
-	 * @param {HTMLElement} container The [data-salt-map] facade.
+	 * @param {HTMLElement} container The .salt-map facade.
 	 */
 	const initMap = (container) => {
 		const lat = parseFloat(container.dataset.lat);
 		const lng = parseFloat(container.dataset.lng);
 		const zoom = parseInt(container.dataset.zoom, 10);
 
+		// The shared stylesheets have no salt-map rules yet (map.json,
+		// stylesheet-owes): until they do, the canvas sizes itself here
+		// (CSSOM, which the CSP's style-src allows) to fill a 16:9 facade.
+		container.style.position = 'relative';
+		container.style.aspectRatio = '16 / 9';
 		const target = document.createElement('div');
-		target.className = 'x-map-canvas absolute inset-0';
+		target.className = 'salt-map__canvas';
+		target.style.position = 'absolute';
+		target.style.inset = '0';
 		container.appendChild(target);
 
 		const map = new window.maplibregl.Map({
@@ -117,7 +151,7 @@
 	};
 
 	containers.forEach((container) => {
-		const button = container.querySelector('.x-map-load');
+		const button = container.querySelector('.salt-map__load');
 		if (!button) {
 			return;
 		}
@@ -136,10 +170,10 @@
 			}
 
 			button.disabled = true;
-			loadLibrary(container.dataset.maplibre)
+			loadLibrary((window.saltMaps && window.saltMaps.maplibre) || '')
 				.then(() => {
 					button.remove();
-					const label = container.querySelector('.x-map-label');
+					const label = container.querySelector('.salt-map__label');
 					if (label) {
 						label.remove();
 					}

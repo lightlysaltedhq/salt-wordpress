@@ -1,18 +1,17 @@
 <?php
 /**
- * View: Logo / Trust Strip (spec §10 #9).
+ * View: Logo / Trust Strip (salt-contract markup/logos.json, rc.8; spec §10 #9).
  *
- * Draws the props from salt_resolve_section_logos() (inc/sections/logos.php),
- * inside the x-section wrapper the shared entry opens: a flex row of logos
- * through x-image (the single image authority), each wrapped in a plain <a>
- * when it has an href. No field reads, validation or logging here: a child
- * theme overriding this file overrides the markup only.
+ * Draws the props from salt_resolve_section_logos() (inc/sections/logos.php)
+ * as the contract's block, inside the band the shared entry opens: a grid
+ * of logos, each in a frame (a plain <a> when it has an href, a span
+ * otherwise). No field reads, validation or logging here: a child theme
+ * overriding this file overrides the markup only.
  *
  * $args:
- *   props  array{ heading: string|null, greyscale: bool,
- *                 items: array<int, array{image_id: int, alt: string, href: string, link_label: string}> }
- *          items is never empty; href '' means draw the logo unlinked.
- *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
+ *   props  array{ heading: string|null, intro: string|null, columns: string, greyscale: bool,
+ *                 items: array<int, array{image: array, name: string|null, href: string|null}> }
+ *   plan   array{ index: int, anchor: string, headingLevel: int, headingId: string|null, bodyBaseLevel: int, priorityMedia: bool }
  *
  * @package Salt
  */
@@ -23,55 +22,46 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $salt_props = $args['props'];
 $salt_plan  = $args['plan'];
+$salt_level = max( 1, min( 6, (int) $salt_plan['headingLevel'] ) );
+$salt_id    = $salt_plan['headingId'] ?? null;
+
+echo '<div class="salt-block" data-block="logos">';
 
 if ( null !== $salt_props['heading'] ) {
-	salt_component(
-		'heading',
-		array(
-			'text'    => $salt_props['heading'],
-			'level'   => $salt_plan['headingLevel'],
-			'size'    => 'sm',
-			'classes' => 'mb-6 text-ink-muted',
-		)
+	printf(
+		'<h%1$d%2$s>%3$s</h%1$d>',
+		(int) $salt_level,
+		is_string( $salt_id ) ? ' id="' . esc_attr( $salt_id ) . '"' : '',
+		esc_html( (string) $salt_props['heading'] )
 	);
 }
+if ( null !== $salt_props['intro'] ) {
+	echo '<p class="salt-intro">' . esc_html( (string) $salt_props['intro'] ) . '</p>';
+}
 
-// Explicit small rendering: height-capped, width auto — a logo
-// never renders at its intrinsic (potentially huge) size.
-$salt_image_classes = salt_classnames(
-	array(
-		'h-10 md:h-12 w-auto object-contain',
-		$salt_props['greyscale'] ? 'grayscale transition hover:grayscale-0' : '',
-	)
-);
-
-echo '<ul class="x-logos flex flex-wrap items-center justify-center gap-x-10 gap-y-6" data-section-component="logos">';
-
-foreach ( $salt_props['items'] as $salt_logo ) {
-	$salt_img = salt_get_component(
-		'image',
-		array(
-			'image_id'      => $salt_logo['image_id'],
-			'alt'           => $salt_logo['alt'],
-			'sizes_context' => 'card',
-			'classes'       => $salt_image_classes,
-		)
+if ( array() !== $salt_props['items'] ) {
+	printf(
+		'<ul class="salt-grid salt-logos" role="list" data-columns="%1$s" data-greyscale="%2$s">',
+		esc_attr( (string) $salt_props['columns'] ),
+		$salt_props['greyscale'] ? 'true' : 'false'
 	);
-
-	echo '<li class="x-logos-item flex items-center">';
-	if ( '' !== $salt_logo['href'] ) {
-		// External logo links are allowed (plain <a>). The accessible name
-		// comes from the label; the resolver leaves a nameless link unlinked.
-		printf(
-			'<a href="%1$s" aria-label="%2$s">%3$s</a>',
-			esc_url( $salt_logo['href'] ),
-			esc_attr( $salt_logo['link_label'] ),
-			$salt_img // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- x-image escapes internally.
-		);
-	} else {
-		echo $salt_img; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- x-image escapes internally.
+	foreach ( $salt_props['items'] as $salt_logo ) {
+		// Logos never take the page's priority image (markup/logos.json).
+		$salt_img = salt_image_contract_html( $salt_logo['image'], false, array( 'class' => 'salt-logos__image' ) );
+		echo '<li class="salt-logos__item">';
+		if ( null !== $salt_logo['href'] ) {
+			printf(
+				'<a class="salt-logos__frame" href="%1$s" aria-label="%2$s">%3$s</a>',
+				esc_url( (string) $salt_logo['href'] ),
+				esc_attr( (string) $salt_logo['name'] ),
+				$salt_img // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped attribute by attribute.
+			);
+		} else {
+			echo '<span class="salt-logos__frame">' . $salt_img . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped attribute by attribute.
+		}
+		echo '</li>';
 	}
-	echo '</li>';
+	echo '</ul>';
 }
 
-echo '</ul>';
+echo '</div>';

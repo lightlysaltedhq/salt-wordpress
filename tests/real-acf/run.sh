@@ -312,6 +312,7 @@ done
 if [ "$LIMITS" = 0 ]; then
 phase "single templates over HTTP (the contract's service, case-study and post fixtures)" "$PHP" "$HERE/php/singles.php"
 if [ "$BROWSER" = 1 ]; then
+	phase "contact form over real requests in Chromium, with and without script (CSP on)" node "$HERE/contact.mjs"
 	phase "editor in a real browser (Chromium)" node "$HERE/browser.mjs"
 else
 	PHASES+=("SKIP  editor in a real browser (--no-browser)")

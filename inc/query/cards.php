@@ -102,9 +102,11 @@ function salt_collection_index_url( string $source ): ?string {
 }
 
 /**
- * The strings the contract's markup names as `labels.<name>` for the
- * collection sections: viewAll, slide, rating, results, social, previous
- * and next.
+ * The strings the contract's markup names as `labels.<name>`: for the
+ * collection sections viewAll, slide, rating, results, social, previous
+ * and next; for locations the status words (open, appointment, closed),
+ * byAppointment, getDirections, directions (before the office name), and
+ * the map facade's load, loadMap, consent and error.
  *
  * The founder's ruling: translatable theme strings, in the contract
  * fixtures' English. The `salt_contract_labels` filter is this one seam;
@@ -119,13 +121,38 @@ function salt_collection_index_url( string $source ): ?string {
 function salt_contract_labels( string $view = '' ): array {
 	$labels = array_merge(
 		array(
-			'viewAll'  => __( 'View all', 'salt' ),
-			'slide'    => __( 'Slide', 'salt' ),
-			'rating'   => __( 'Rated', 'salt' ),
-			'results'  => __( 'Results', 'salt' ),
-			'social'   => __( 'Social profiles', 'salt' ),
-			'previous' => __( 'Previous', 'salt' ),
-			'next'     => __( 'Next', 'salt' ),
+			'viewAll'       => __( 'View all', 'salt' ),
+			'slide'         => __( 'Slide', 'salt' ),
+			'rating'        => __( 'Rated', 'salt' ),
+			'results'       => __( 'Results', 'salt' ),
+			'social'        => __( 'Social profiles', 'salt' ),
+			'previous'      => __( 'Previous', 'salt' ),
+			'next'          => __( 'Next', 'salt' ),
+			// Locations (markup/locations.json, opening-hours.json, map.json).
+			'open'          => __( 'Open now', 'salt' ),
+			'appointment'   => __( 'By appointment', 'salt' ),
+			'closed'        => __( 'Closed', 'salt' ),
+			'byAppointment' => __( 'By appointment', 'salt' ),
+			'getDirections' => __( 'Get directions', 'salt' ),
+			'directions'    => __( 'Directions to', 'salt' ),
+			'load'          => __( 'Load the map', 'salt' ),
+			'loadMap'       => __( 'Load map', 'salt' ),
+			'consent'       => __( 'Allow map cookies to view this map.', 'salt' ),
+			'error'         => __( 'The map could not be loaded.', 'salt' ),
+			// Contact (markup/contact.json, contact-form.json). privacyLine's
+			// {link} is the privacy link, whose text is `privacy`.
+			'name'          => __( 'Name', 'salt' ),
+			'email'         => __( 'Email', 'salt' ),
+			'phone'         => __( 'Phone', 'salt' ),
+			'enquiryType'   => __( 'What is this about?', 'salt' ),
+			'message'       => __( 'Message', 'salt' ),
+			'optional'      => __( '(optional)', 'salt' ),
+			'submit'        => __( 'Send message', 'salt' ),
+			'honeypot'      => __( 'Leave this field empty', 'salt' ),
+			'privacy'       => __( 'privacy policy', 'salt' ),
+			/* translators: {link} is replaced by a link to the privacy policy, whose text is the "privacy policy" label. */
+			'privacyLine'   => __( 'By sending this form you agree to us handling your details to respond to your enquiry — see our {link}.', 'salt' ),
+			'unavailable'   => __( 'We are not taking enquiries through the website at the moment.', 'salt' ),
 		),
 		'' !== $view ? salt_view_label_defaults( $view ) : array()
 	);
@@ -526,3 +553,20 @@ function salt_carousel_script_labels(): void {
 	);
 }
 add_action( 'wp_enqueue_scripts', 'salt_carousel_script_labels', 21 );
+
+/**
+ * Stamp the carousel's labels script with the request's CSP nonce
+ * ('wp_inline_script_attributes'), as the theme's other inline scripts are
+ * stamped (inc/security.php, inc/services/maps.php): without it the CSP
+ * refuses it and the controls fall back to unlabelled defaults.
+ *
+ * @param array<string,string|bool> $attributes The inline script's attributes.
+ * @return array<string,string|bool>
+ */
+function salt_carousel_inline_script_nonce( array $attributes ): array {
+	if ( 'salt-section-carousel-js-before' === ( $attributes['id'] ?? '' ) ) {
+		$attributes['nonce'] = salt_csp_nonce();
+	}
+	return $attributes;
+}
+add_filter( 'wp_inline_script_attributes', 'salt_carousel_inline_script_nonce' );

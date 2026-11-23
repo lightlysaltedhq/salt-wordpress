@@ -178,6 +178,7 @@ function salt_adapter_boot(): void {
 		'/inc/cpt/testimonial.php',
 		'/inc/cpt/faq.php',
 		'/inc/cpt/location.php',
+		'/inc/services/maps.php',
 	) as $module ) {
 		if ( file_exists( SALT_ADAPTER_THEME . $module ) ) {
 			require_once SALT_ADAPTER_THEME . $module;
@@ -568,6 +569,145 @@ function salt_adapter_value( $value, array $field, array $ids, string $source ) 
 	}
 }
 
+/**
+ * The locations section's site data (EP-72 M4 U4, test seams): the site's
+ * timezone (site.timezone), the maps options (site.maps: enabled, tile)
+ * and the case's moment for the open-now status (context.now, through the
+ * salt_location_now filter).
+ *
+ * @param array<string,mixed> $site    The case's `site`.
+ * @param array<string,mixed> $context The case's `context`.
+ * @return void
+ */
+function salt_adapter_seed_locations_site( array $site, array $context ): void {
+	if ( isset( $site['timezone'] ) ) {
+		$GLOBALS['salt_test_options']['timezone_string'] = (string) $site['timezone'];
+	}
+	if ( isset( $site['maps'] ) ) {
+		$GLOBALS['salt_test_fields']['option']['maps_enabled']  = ! empty( $site['maps']['enabled'] );
+		$GLOBALS['salt_test_fields']['option']['maps_tile_url'] = $site['maps']['tile'] ?? null;
+	}
+	if ( isset( $context['now'] ) ) {
+		$now = new DateTimeImmutable( (string) $context['now'] );
+		add_filter( 'salt_location_now', static fn() => $now );
+	}
+}
+
+/**
+ * The case's locations as the theme stores them (EP-72 M4 U4, test seams):
+ * a fixture's address is its resolved lines, stored here as the address
+ * group's parts in order (street, locality, region, postalCode, country),
+ * which the resolver joins back into the same lines; its directionsUrl
+ * stands in for the theme's own OpenStreetMap link (salt_location_directions_url).
+ *
+ * @param array<string,mixed>      $collections The case's `collections`.
+ * @param array<string,array<mixed>> $ids       ID maps.
+ * @return void
+ */
+function salt_adapter_seed_locations( array $collections, array $ids ): void {
+	$urls = array();
+	foreach ( (array) ( $collections['locations'] ?? array() ) as $item ) {
+		$post_id = $ids['items']['locations'][ (string) ( $item['id'] ?? '' ) ] ?? null;
+		if ( null === $post_id ) {
+			continue;
+		}
+		if ( isset( $item['address'] ) && array_is_list( (array) $item['address'] ) ) {
+			$GLOBALS['salt_test_fields'][ (string) $post_id ]['address'] = array_combine(
+				array_slice( array( 'street', 'locality', 'region', 'postalCode', 'country' ), 0, count( (array) $item['address'] ) ),
+				array_map( 'strval', array_slice( (array) $item['address'], 0, 5 ) )
+			);
+		}
+		if ( isset( $item['directionsUrl'] ) ) {
+			$urls[ $post_id ] = (string) $item['directionsUrl'];
+		}
+	}
+	add_filter( 'salt_location_directions_url', static fn( $url, $post_id ) => $urls[ $post_id ] ?? $url, 10, 2 );
+}
+
+/**
+ * The case's contact form, as the theme stores and answers it (EP-72 M4
+ * U4): the organisation into the Company options, acceptsEnquiries as a
+ * recipient set or not, site.contactForm into the form options (phone,
+ * the enquiry-type routes, the privacy page, a CAPTCHA provider), the
+ * route's path as the request's, and a route.form answered by a send
+ * (invalid, sent) as the form state the self-posted page records, through
+ * the 'salt_contact_form_states' seam. Its credentials are placeholders:
+ * the normaliser masks the challenge question and both tokens.
+ *
+ * @param array<string,mixed> $input The case.
+ * @return void
+ */
+function salt_adapter_seed_contact( array $input ): void {
+	if ( 'contact' !== ( $input['section'] ?? null ) ) {
+		return;
+	}
+	$site   = (array) ( $input['site'] ?? array() );
+	$option = static function ( string $name, $value ): void {
+		$GLOBALS['salt_test_fields']['option'][ $name ] = $value;
+	};
+
+	$organisation = (array) ( $site['organisation'] ?? array() );
+	$option( 'org_name', $organisation['name'] ?? null );
+	$option( 'company_phone', $organisation['phone'] ?? null );
+	$option( 'company_email', $organisation['email'] ?? null );
+	$option( 'company_address', isset( $organisation['address'] ) ? implode( "\n", (array) $organisation['address'] ) : null );
+
+	if ( empty( $site['acceptsEnquiries'] ) ) {
+		return;
+	}
+	$option( 'contact_recipient', 'enquiries@example.test' );
+	$form = (array) ( $site['contactForm'] ?? array() );
+	$option( 'contact_form_phone', $form['phone'] ?? 'off' );
+	$option(
+		'contact_routes',
+		array_map(
+			static fn( array $type ): array => array(
+				'enquiry_type' => (string) ( $type['label'] ?? '' ),
+				'value'        => (string) ( $type['value'] ?? '' ),
+				'recipient'    => '',
+			),
+			(array) ( $form['enquiryTypes'] ?? array() )
+		)
+	);
+	if ( isset( $form['privacyPage'] ) ) {
+		$GLOBALS['salt_test_posts'][]         = new WP_Post(
+			array(
+				'ID'        => 590,
+				'post_type' => 'page',
+			)
+		);
+		$GLOBALS['salt_test_permalinks'][590] = (string) $form['privacyPage'];
+		$option( 'contact_privacy_page', 590 );
+	}
+	if ( ! empty( $form['captcha'] ) ) {
+		$option( 'captcha_provider', 'turnstile' );
+		$option( 'captcha_turnstile_site_key', 'site-key' );
+	}
+
+	$route = (array) ( $input['route'] ?? array() );
+	if ( isset( $route['path'] ) ) {
+		$_SERVER['REQUEST_URI'] = (string) $route['path'];
+	}
+	$answered = (array) ( $route['form'] ?? array() );
+	if ( in_array( $answered['state'] ?? 'open', array( 'invalid', 'sent' ), true ) ) {
+		$anchor = sanitize_title( (string) ( $input['values']['settings']['anchorId'] ?? 'contact' ) );
+		$state  = array(
+			'state'  => $answered['state'],
+			'values' => (array) ( $answered['values'] ?? array() ),
+			'errors' => (array) ( $answered['errors'] ?? array() ),
+			'status' => $answered['status'] ?? null,
+		);
+		if ( ! empty( $answered['challenge'] ) ) {
+			$state['challenge'] = array(
+				'question' => 'What is 2 plus 3?',
+				'token'    => 'challenge-token',
+			);
+			$state['formToken'] = 'form-token';
+		}
+		add_filter( 'salt_contact_form_states', static fn() => array( $anchor => $state ) );
+	}
+}
+
 // ── Rendering ─────────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -868,7 +1008,10 @@ try {
 	);
 	salt_adapter_seed_focal_points( (array) ( $salt_adapter_input['media'] ?? array() ), $salt_adapter_ids['media'] );
 	$salt_adapter_ids['items'] = salt_adapter_seed_collections( (array) ( $salt_adapter_input['collections'] ?? array() ), $salt_adapter_ids['media'] );
-	$salt_adapter_html         = isset( $salt_adapter_input['section'] )
+	salt_adapter_seed_locations_site( (array) ( $salt_adapter_input['site'] ?? array() ), (array) ( $salt_adapter_input['context'] ?? array() ) );
+	salt_adapter_seed_locations( (array) ( $salt_adapter_input['collections'] ?? array() ), $salt_adapter_ids );
+	salt_adapter_seed_contact( $salt_adapter_input );
+	$salt_adapter_html = isset( $salt_adapter_input['section'] )
 		? salt_adapter_render_section( $salt_adapter_input, $salt_adapter_ids )
 		: salt_adapter_render_chrome( $salt_adapter_input, $salt_adapter_ids );
 } catch ( Throwable $e ) {

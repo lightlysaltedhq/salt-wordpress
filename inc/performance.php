@@ -307,6 +307,12 @@ function salt_enqueue_section_assets(): void {
 		$slugs[] = 'share';
 	}
 
+	// The gallery's carousel layout draws the contract's carousel track
+	// (markup/carousel-track.json), whose controls are the carousel's script.
+	if ( in_array( 'gallery', $slugs, true ) ) {
+		$slugs[] = 'carousel';
+	}
+
 	foreach ( array_unique( $slugs ) as $slug ) {
 		$src = salt_asset_optional( 'sections/' . $slug . '.js' );
 		if ( null !== $src ) {

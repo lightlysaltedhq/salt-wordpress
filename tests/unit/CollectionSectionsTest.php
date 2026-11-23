@@ -160,16 +160,43 @@ final class CollectionSectionsTest extends SaltTestCase {
 		$this->assertSame( '/our-services/', salt_collection_index_url( 'services' ), 'One seam: the filter decides.' );
 	}
 
+	public function test_the_carousel_labels_script_carries_the_csp_nonce(): void {
+		$stamped = salt_carousel_inline_script_nonce( array( 'id' => 'salt-section-carousel-js-before' ) );
+		$this->assertSame( salt_csp_nonce(), $stamped['nonce'] );
+		$this->assertArrayNotHasKey( 'nonce', salt_carousel_inline_script_nonce( array( 'id' => 'other-js-before' ) ), 'Only its own script.' );
+	}
+
 	public function test_the_labels_and_arrow_are_one_seam_each(): void {
 		$this->assertSame(
 			array(
-				'viewAll'  => 'View all',
-				'slide'    => 'Slide',
-				'rating'   => 'Rated',
-				'results'  => 'Results',
-				'social'   => 'Social profiles',
-				'previous' => 'Previous',
-				'next'     => 'Next',
+				'viewAll'       => 'View all',
+				'slide'         => 'Slide',
+				'rating'        => 'Rated',
+				'results'       => 'Results',
+				'social'        => 'Social profiles',
+				'previous'      => 'Previous',
+				'next'          => 'Next',
+				'open'          => 'Open now',
+				'appointment'   => 'By appointment',
+				'closed'        => 'Closed',
+				'byAppointment' => 'By appointment',
+				'getDirections' => 'Get directions',
+				'directions'    => 'Directions to',
+				'load'          => 'Load the map',
+				'loadMap'       => 'Load map',
+				'consent'       => 'Allow map cookies to view this map.',
+				'error'         => 'The map could not be loaded.',
+				'name'          => 'Name',
+				'email'         => 'Email',
+				'phone'         => 'Phone',
+				'enquiryType'   => 'What is this about?',
+				'message'       => 'Message',
+				'optional'      => '(optional)',
+				'submit'        => 'Send message',
+				'honeypot'      => 'Leave this field empty',
+				'privacy'       => 'privacy policy',
+				'privacyLine'   => 'By sending this form you agree to us handling your details to respond to your enquiry — see our {link}.',
+				'unavailable'   => 'We are not taking enquiries through the website at the moment.',
 			),
 			salt_contract_labels(),
 			'Ruled: translatable theme strings in the contract fixtures\' English.'

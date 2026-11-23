@@ -1092,3 +1092,40 @@ if ( ! function_exists( 'is_email' ) ) {
 		return false !== filter_var( $email, FILTER_VALIDATE_EMAIL ) ? $email : false;
 	}
 }
+
+if ( ! function_exists( 'nocache_headers' ) ) {
+	/**
+	 * nocache_headers shim: records the call in $GLOBALS['salt_test_nocache'].
+	 *
+	 * @return void
+	 */
+	function nocache_headers(): void {
+		$GLOBALS['salt_test_nocache'] = true;
+	}
+}
+
+if ( ! function_exists( 'status_header' ) ) {
+	/**
+	 * status_header shim: records the code in $GLOBALS['salt_test_status'].
+	 *
+	 * @param int $code HTTP status.
+	 * @return void
+	 */
+	function status_header( int $code ): void {
+		$GLOBALS['salt_test_status'] = $code;
+	}
+}
+
+if ( ! function_exists( 'wp_get_nocache_headers' ) ) {
+	/**
+	 * wp_get_nocache_headers shim: WordPress's own set.
+	 *
+	 * @return array<string,string>
+	 */
+	function wp_get_nocache_headers(): array {
+		return array(
+			'Expires'       => 'Wed, 11 Jan 1984 05:00:00 GMT',
+			'Cache-Control' => 'no-cache, must-revalidate, max-age=0, no-store, private',
+		);
+	}
+}
