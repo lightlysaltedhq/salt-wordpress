@@ -622,10 +622,8 @@ switch ( $salt_view_kind ) {
 		fwrite( STDERR, "salt harness: the view {$salt_view_kind} is not rendered by the harness yet: view.php has no seeding for it\n" );
 		exit( 4 );
 }
-if ( 'page' !== $salt_view_kind ) {
-	salt_view_case_site( $salt_view_input );
-	salt_view_media_urls( $salt_view_media );
-}
+salt_view_case_site( $salt_view_input );
+salt_view_media_urls( $salt_view_media );
 $salt_view_stray = (string) ob_get_clean();
 if ( '' !== $salt_view_stray ) {
 	fwrite( STDERR, 'seeding printed: ' . $salt_view_stray . "\n" );
