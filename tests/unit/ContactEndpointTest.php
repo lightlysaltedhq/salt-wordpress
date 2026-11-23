@@ -19,6 +19,10 @@ foreach ( glob( __DIR__ . '/../shims/*.php' ) as $salt_shim_file ) {
 }
 unset( $salt_shim_file );
 
+// The theme's own parse_request callbacks, as loading it registered them
+// (each test starts with no hooks).
+$GLOBALS['salt_contact_parse_request_snapshot'] = $GLOBALS['salt_test_hooks']['parse_request'] ?? array();
+
 final class ContactEndpointTest extends SaltTestCase {
 
 	private const NOW = 1783000000;
@@ -694,6 +698,35 @@ final class ContactEndpointTest extends SaltTestCase {
 		$this->assertSame( '/contact/?page_id=7', salt_contact_return_to( '/contact/?page_id=7&utm=x' ) );
 		unset( $GLOBALS['wp'] );
 		$this->assertSame( 0, $applied, 'Nor to keep a page\'s own query.' );
+	}
+
+	public function test_the_fields_are_back_before_a_plugin_reads_them_at_priority_0(): void {
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_GET['salt-contact-send'] = 'contact';
+		$_POST                     = array(
+			'name'     => 'Ada Lovelace',
+			'returnTo' => '/contact/',
+		);
+		// A plugin loads before the theme, so its callback at 0 is added first.
+		$seen = 'unread';
+		add_action(
+			'parse_request',
+			static function () use ( &$seen ): void {
+				$seen = $_POST['name'] ?? '(stripped)'; // phpcs:ignore WordPress.Security -- The test reads the request it built.
+			},
+			0
+		);
+		foreach ( $GLOBALS['salt_contact_parse_request_snapshot'] as $priority => $callbacks ) {
+			foreach ( $callbacks as $callback ) {
+				$GLOBALS['salt_test_hooks']['parse_request'][ $priority ][] = $callback;
+			}
+		}
+
+		salt_contact_self_post_aside( true );
+		apply_filters( 'query_vars', array( 'name' ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- As WP::parse_request() applies it.
+		do_action( 'parse_request' );
+
+		$this->assertSame( 'Ada Lovelace', $seen );
 	}
 
 	public function test_another_post_is_parsed_as_sent(): void {

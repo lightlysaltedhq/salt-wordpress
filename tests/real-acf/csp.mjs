@@ -9,6 +9,7 @@
 //    theme's own file (no blob: worker, which the CSP would refuse), and
 //    the map draws its raster tiles (answered here, one colour) on its
 //    canvas.
+//  - Map settings that are not addresses load nothing.
 /* global document, window */
 import { execFileSync } from 'node:child_process';
 import { deflateSync, crc32 } from 'node:zlib';
@@ -119,6 +120,25 @@ try {
 	const blocked = errors.filter( ( e ) => /worker|blob:|Content Security Policy/i.test( e ) && ! /Applying inline style/.test( e ) );
 	result( blocked.length === 0, 'the CSP refuses no worker and no blob:', blocked.join( ' | ' ) );
 	await context.close();
+
+	// Map settings that are not addresses (another script overwrote them):
+	// a consented click loads nothing and shows the facade's error message.
+	const tampered = await browser.newContext();
+	await tampered.addInitScript( () => {
+		Object.defineProperty( window, 'saltMaps', { get: () => ( { maplibre: { src: '/x' }, worker: [ 'elsewhere' ] } ), set: () => {} } );
+		window.wp_consent_type = 'optin';
+		window.wp_has_consent = ( category ) => category === 'marketing';
+	} );
+	const odd = await tampered.newPage();
+	const oddRequests = [];
+	odd.on( 'request', ( r ) => oddRequests.push( r.url() ) );
+	await odd.goto( url, { waitUntil: 'networkidle' } );
+	const before = oddRequests.length;
+	await odd.locator( '.salt-map__load' ).first().evaluate( ( button ) => button.click() );
+	await odd.waitForTimeout( 1000 );
+	const after = oddRequests.slice( before );
+	result( after.length === 0 && await odd.locator( '.salt-map__notice' ).count() > 0, 'map settings that are not addresses: nothing loads, the error message shows', after.join( ', ' ) || 'no request' );
+	await tampered.close();
 } finally {
 	await browser.close();
 	site( 'restore' );

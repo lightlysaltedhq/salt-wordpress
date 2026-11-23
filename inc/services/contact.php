@@ -661,9 +661,10 @@ function salt_contact_self_post_strip( $vars ) {
 
 /**
  * Put back the fields salt_contact_self_post_strip() took out of $_POST,
- * exactly as they were, and nothing else ('parse_request', priority 0:
- * before core's rest_api_loaded, so a REST request with the flag in its
- * address still reads every field it was sent).
+ * exactly as they were, and nothing else ('parse_request', first of all,
+ * at PHP_INT_MIN: before core's rest_api_loaded, so a REST request with
+ * the flag in its address still reads every field it was sent, and before
+ * a plugin's callback, even one at priority 0 added before the theme's).
  *
  * @return void
  */
@@ -673,7 +674,7 @@ function salt_contact_self_post_restore(): void {
 	}
 	salt_contact_self_post_removed( array() );
 }
-add_action( 'parse_request', 'salt_contact_self_post_restore', 0 );
+add_action( 'parse_request', 'salt_contact_self_post_restore', PHP_INT_MIN );
 
 /**
  * The no-JS path: a contact form posted to its own page
