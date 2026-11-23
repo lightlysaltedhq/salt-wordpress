@@ -81,6 +81,12 @@ function salt_view_label_defaults( string $view ): array {
 				'gallery'   => __( 'Gallery', 'salt' ),
 				'liveSite'  => __( 'Visit the site', 'salt' ),
 				'services'  => __( 'Services delivered', 'salt' ),
+				/* translators: The accessible name of the case study's aside, which lists the project's facts. */
+				'details'   => __( 'Project details', 'salt' ),
+				/* translators: The label of the case study's client row in its project details. */
+				'client'    => __( 'Client', 'salt' ),
+				/* translators: The label of the case study's sector row in its project details. */
+				'sector'    => __( 'Sector', 'salt' ),
 			);
 		case 'archive':
 			return $pagination + array(

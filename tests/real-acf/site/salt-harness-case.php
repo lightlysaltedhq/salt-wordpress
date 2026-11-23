@@ -96,6 +96,14 @@ if ( null !== salt_harness_case() ) {
 		add_filter( 'salt_post_reading_minutes', static fn() => (int) $salt_harness_doc['readingMinutes'] );
 	}
 
+	// A service the case gives no public page (seed.php's _salt_harness_no_page).
+	add_filter(
+		'post_type_link',
+		static fn( $link, $post ) => $post instanceof WP_Post && '1' === get_post_meta( $post->ID, '_salt_harness_no_page', true ) ? '' : $link,
+		10,
+		2
+	);
+
 	add_filter(
 		'wp_get_attachment_image_src',
 		static function ( $image, $id ) {

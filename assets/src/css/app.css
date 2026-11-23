@@ -156,7 +156,7 @@
  * Tailwind generates no utility from them and none of its own utilities
  * moves: --space-<n> inside @theme would take space-x-<n> off --spacing.
  * Unlayered, so where a name is also one of Tailwind's theme variables
- * (--radius-sm/md/lg, --container-2xl/5xl/7xl, --leading-tight,
+ * (--radius-sm/md/lg, --container-2xs/2xl/5xl/7xl, --leading-tight,
  * --ease-in-out) this wins, and each such value is Tailwind's own, the one
  * this theme's utilities already draw with.
  *
@@ -310,6 +310,7 @@
 	--space-card-title: var(--space-1);
 	--space-card-body: clamp(var(--space-3), 0.6477rem + 0.4545vw, var(--space-4));
 	--space-card-row: clamp(var(--space-8), 1.7955rem + 0.9091vw, var(--space-10));
+	--container-2xs: 18rem;
 	--container-2xl: 42rem;
 	--container-5xl: 64rem;
 	--container-7xl: 80rem;
