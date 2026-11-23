@@ -285,7 +285,7 @@ salt_harness_single_check(
 	$page,
 	array(
 		'the quote'                              => 'Half a star short of perfect.',
-		'90% of five stars filled'               => 'style="--salt-rating-fill: 90%"',
+		'90% of five stars filled (data-fill)'   => 'data-fill="90"',
 		'the label (4.5, the founder\'s ruling)' => 'aria-label="Rated 4.5 of 5"',
 	)
 );
