@@ -3,8 +3,8 @@
  * The contact form's real-request check, its site half (HARNESS ONLY, run
  * by tests/real-acf/contact.mjs through run.sh). The modes:
  *
- *   seed               a published page whose one section is the contact
- *                      form (anchor `enquire`), a recipient, two enquiry
+ *   seed               a published page with two contact forms (anchors
+ *                      `callback`, then `enquire`), a recipient, two enquiry
  *                      routes, an optional phone and submission storage;
  *                      prints the page's ID.
  *   permalinks <plain|pretty>  switches the site's permalinks, rewrite
@@ -35,6 +35,13 @@ if ( 'seed' === $salt_contact_mode ) {
 	update_field(
 		'field_salt_sections_container',
 		array(
+			// A second form above it: a scriptless reply must bring the form
+			// that was sent into view, not the first on the page.
+			array(
+				'acf_fc_layout' => 'contact',
+				'heading'       => 'Request a call back',
+				'settings'      => array( 'anchorId' => 'callback' ),
+			),
 			array(
 				'acf_fc_layout' => 'contact',
 				'heading'       => 'Start a project',
