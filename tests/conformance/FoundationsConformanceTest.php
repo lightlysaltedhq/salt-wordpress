@@ -1488,12 +1488,22 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		$files = array();
 		foreach ( $sources[1] as $source ) {
 			$path = $base . '/' . $source;
-			if ( str_contains( $source, '*' ) ) {
-				$files = array_merge( $files, (array) glob( $path ) );
+			// A glob (`*`, or one brace list naming several files, which
+			// Tailwind reads as one source) or a single file.
+			if ( str_contains( $source, '*' ) || str_contains( $source, '{' ) ) {
+				$matched = (array) glob( $path, GLOB_BRACE );
+				if ( array() === $matched ) {
+					self::fail( "app.css's @source \"{$source}\" matches no file." );
+				}
+				$files = array_merge( $files, $matched );
+				continue;
+			}
+			if ( is_file( $path ) ) {
+				$files[] = $path;
 				continue;
 			}
 			if ( ! is_dir( $path ) ) {
-				self::fail( "app.css's @source \"{$source}\" is neither a glob nor a directory." );
+				self::fail( "app.css's @source \"{$source}\" is neither a glob, a file nor a directory." );
 			}
 			foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $file ) {
 				$files[] = $file->getPathname();
