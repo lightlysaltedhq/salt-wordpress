@@ -545,3 +545,20 @@ function salt_carousel_script_labels(): void {
 	);
 }
 add_action( 'wp_enqueue_scripts', 'salt_carousel_script_labels', 21 );
+
+/**
+ * Stamp the carousel's labels script with the request's CSP nonce
+ * ('wp_inline_script_attributes'), as the theme's other inline scripts are
+ * stamped (inc/security.php, inc/services/maps.php): without it the CSP
+ * refuses it and the controls fall back to unlabelled defaults.
+ *
+ * @param array<string,string|bool> $attributes The inline script's attributes.
+ * @return array<string,string|bool>
+ */
+function salt_carousel_inline_script_nonce( array $attributes ): array {
+	if ( 'salt-section-carousel-js-before' === ( $attributes['id'] ?? '' ) ) {
+		$attributes['nonce'] = salt_csp_nonce();
+	}
+	return $attributes;
+}
+add_filter( 'wp_inline_script_attributes', 'salt_carousel_inline_script_nonce' );

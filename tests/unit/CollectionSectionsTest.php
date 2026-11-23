@@ -160,6 +160,12 @@ final class CollectionSectionsTest extends SaltTestCase {
 		$this->assertSame( '/our-services/', salt_collection_index_url( 'services' ), 'One seam: the filter decides.' );
 	}
 
+	public function test_the_carousel_labels_script_carries_the_csp_nonce(): void {
+		$stamped = salt_carousel_inline_script_nonce( array( 'id' => 'salt-section-carousel-js-before' ) );
+		$this->assertSame( salt_csp_nonce(), $stamped['nonce'] );
+		$this->assertArrayNotHasKey( 'nonce', salt_carousel_inline_script_nonce( array( 'id' => 'other-js-before' ) ), 'Only its own script.' );
+	}
+
 	public function test_the_labels_and_arrow_are_one_seam_each(): void {
 		$this->assertSame(
 			array(
