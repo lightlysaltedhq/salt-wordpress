@@ -104,3 +104,23 @@ function salt_disable_emojis(): void {
 	remove_action( 'admin_print_styles', 'print_emoji_styles' );
 }
 add_action( 'init', 'salt_disable_emojis' );
+
+/**
+ * Stamp the CSP nonce on the WP Consent API's settings script
+ * ('wp_inline_script_attributes'). The plugin hands its settings
+ * (window.consent_api, the consent type) to its script through
+ * wp_localize_script(), which WordPress prints as an inline script with the
+ * id wp-consent-api-js-extra and no nonce, so the CSP would refuse it and
+ * wp_has_consent() would throw. Only that id is stamped: any other inline
+ * script stays refused unless it carries the nonce itself.
+ *
+ * @param array<string,string|bool> $attributes The inline script's attributes.
+ * @return array<string,string|bool>
+ */
+function salt_consent_api_script_nonce( array $attributes ): array {
+	if ( 'wp-consent-api-js-extra' === ( $attributes['id'] ?? '' ) ) {
+		$attributes['nonce'] = salt_csp_nonce();
+	}
+	return $attributes;
+}
+add_filter( 'wp_inline_script_attributes', 'salt_consent_api_script_nonce' );

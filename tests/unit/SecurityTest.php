@@ -17,6 +17,14 @@ final class SecurityTest extends SaltTestCase {
 		$this->assertMatchesRegularExpression( '/^[A-Za-z0-9_-]{20,}$/', $nonce );
 	}
 
+	public function test_only_the_consent_api_settings_script_gets_the_csp_nonce(): void {
+		$stamped = salt_consent_api_script_nonce( array( 'id' => 'wp-consent-api-js-extra' ) );
+		$other   = salt_consent_api_script_nonce( array( 'id' => 'some-plugin-js-extra' ) );
+
+		$this->assertSame( salt_csp_nonce(), $stamped['nonce'] ?? null );
+		$this->assertArrayNotHasKey( 'nonce', $other );
+	}
+
 	public function test_security_headers_ship_the_baseline_set(): void {
 		$headers = salt_security_headers();
 

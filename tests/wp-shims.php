@@ -464,6 +464,19 @@ if ( ! function_exists( 'wp_kses' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_kses_post' ) ) {
+	/**
+	 * wp_kses_post shim: the inline tags a post may carry, through the wp_kses shim.
+	 *
+	 * @param string $content Raw HTML.
+	 * @return string
+	 */
+	function wp_kses_post( string $content ): string {
+		$inline = array( 'class' => true );
+		return wp_kses( $content, array_fill_keys( array( 'span', 'strong', 'em', 'b', 'i' ), $inline ) );
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Options / ACF fields.
 // ---------------------------------------------------------------------------

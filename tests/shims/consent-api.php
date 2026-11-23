@@ -14,12 +14,17 @@ declare(strict_types=1);
 
 if ( ! function_exists( 'wp_has_consent' ) ) {
 	/**
-	 * wp_has_consent shim — reads $GLOBALS['salt_test_wp_consent'].
+	 * wp_has_consent shim — reads $GLOBALS['salt_test_wp_consent']. As the
+	 * real API does, it answers true for every category while no cookie
+	 * plugin has set a consent type.
 	 *
 	 * @param string $category WP Consent API category.
 	 * @return bool
 	 */
 	function wp_has_consent( string $category ): bool {
+		if ( '' === (string) ( $GLOBALS['salt_test_wp_consent_type'] ?? '' ) ) {
+			return true;
+		}
 		return true === ( $GLOBALS['salt_test_wp_consent'][ $category ] ?? false );
 	}
 }

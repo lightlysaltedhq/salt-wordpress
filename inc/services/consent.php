@@ -74,11 +74,13 @@ function salt_consent( string $category ): bool {
 		return false;
 	}
 
-	// 1. WP Consent API bridge (Complianz, CookieYes, Cookiebot, …).
-	// The availability check is filterable ('salt_consent_api_active',
-	// priority 20+) so a site can force the filter bridge instead — and so
-	// the suite can exercise both paths.
-	$api_active = (bool) apply_filters( 'salt_consent_api_active', function_exists( 'wp_has_consent' ) );
+	// 1. WP Consent API bridge (Complianz, CookieYes, Cookiebot, …), only
+	// when a cookie plugin has set a consent type: without one the API
+	// answers true for every category, which must never read as a grant.
+	// The check is filterable ('salt_consent_api_active', priority 20+) so a
+	// site can force the filter bridge instead — and so the suite can
+	// exercise both paths.
+	$api_active = (bool) apply_filters( 'salt_consent_api_active', salt_consent_plugin_active() );
 	if ( $api_active && function_exists( 'wp_has_consent' ) ) {
 		return true === wp_has_consent( salt_consent_api_category( $category ) );
 	}
@@ -103,4 +105,16 @@ function salt_consent_plugin_active(): bool {
 	}
 	$type = wp_get_consent_type();
 	return is_string( $type ) && '' !== $type;
+}
+
+/**
+ * Whether the footer draws its consent control and panel: only with a
+ * consent plugin (salt_consent_plugin_active(), ruling C). The
+ * `salt_consent_control` filter lets a site turn it off, never on without
+ * a plugin, since Save has nothing to write through then.
+ *
+ * @return bool
+ */
+function salt_consent_control_drawn(): bool {
+	return salt_consent_plugin_active() && true === apply_filters( 'salt_consent_control', true );
 }
