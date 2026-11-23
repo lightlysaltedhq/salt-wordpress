@@ -9,7 +9,7 @@
     "scripts": {
         "build": "node bin/build-assets.mjs",
         "conformance:harness": "tests/real-acf/run.sh --conformance",
-        "conformance:contract": "salt-conformance --platform wordpress --adapter 'php tests/contract-adapter/adapter.php' --not-shipped tabs,listing,pricing --partial --acf-snapshot inc/fields/generated/sections.json --fields-options inc/fields/generated/sections.options.json --styles assets/dist/salt.*/salt.css --implementation-version $(sed -n 's/^Version: *//p' style.css) --out tests/contract-adapter/report",
+        "conformance:contract": "salt-conformance --platform wordpress --adapter 'php tests/contract-adapter/adapter.php' --not-shipped tabs,listing,pricing --acf-snapshot inc/fields/generated/sections.json --fields-options inc/fields/generated/sections.options.json --styles assets/dist/salt.*/salt.css --implementation-version $(sed -n 's/^Version: *//p' style.css) --out tests/contract-adapter/report",
         "lint:js": "eslint .",
         "lint:css": "stylelint \"assets/src/**/*.css\""
     },

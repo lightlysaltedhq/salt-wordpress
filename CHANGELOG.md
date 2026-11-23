@@ -12,17 +12,17 @@ markup granularity (cross-reference your site's override manifest).
 
 Team is no longer a `team_member` post type. Publish a native user's profile in **Tools → Team profiles**; this never grants account privileges. The public address is `/team/{slug}/`. Only the separate public email field is shown. Posts credit `post_author`, not the removed ACF `author` relationship. Before upgrading a populated site, map former team records and manual selections to the intended users, set their public slugs, and verify native post authors. Old post IDs are not user IDs; no automatic account creation or data migration runs.
 
-### Added
+### Breaking: contract markup and child overrides (salt-contract 1.0.0-rc.9)
 
-- **Site Settings → Case Studies (ID-3672, EP-72 M4).** One layout for
-  every case study, the contract's `site.caseStudy`: the header plain or a
-  coloured band (with its tone, and a dark-mode tone that by default keeps
-  it), and the featured image in the flow or aside, beside the challenge,
-  solution, gallery and live-site link on wide screens. The page shows only
-  when the Work module is on; its settings are kept while the module is
-  off. Two image slots come with it, `aside` and `aside-card` (`inc/media.php`),
-  for the aside image and the services cards beside it. They use the
-  existing candidate widths, so no thumbnails need regenerating.
+- **Case studies.** The back link sits above the title and introduction in a full-width header. The featured photo starts the story, followed by the challenge, optional case-study image, solution, results, gallery and live link. The optional Project details sidebar contains the populated details, Client, Sector and Services delivered; it follows the story on mobile. Services link only to a public page. The old client line, image aside and service cards are gone. `story` and `story-gallery` use existing image candidates. Site Settings → Case Studies controls the plain or band header, not the position of the featured image.
+- **Clients and Sectors.** Under Site Settings → Advanced → Modules → Content modules, each switch defaults to off. With a switch off the editor uses the saved text; with it on the editor can choose a private, name-only record. An available choice supplies its current name, never a link. An unavailable choice falls back to the saved text and stays selected until explicitly removed or replaced. Toggling does not create, match or delete records.
+- **Sections and anchors.** Recheck every child section view against the new props and `.salt-*` markup ([override guide](docs/contracts/OVERRIDES.md)). `settings.anchorId` reserves a name even for a row that does not draw. `main` now resolves to `main-section`, `site-navigation` is reserved and `primary-navigation` is free. Unanchored bands get deterministic IDs; prose does not claim a band ID. Check bookmarked fragments, including paginated pages and duplicate anchors. The first eligible image, not necessarily the first row, gets priority.
+- **Presentation.** Use the contract stylesheet's data attributes for spacing, scrim strength, focal position (5% steps) and ratings instead of inline CSS. Same-site card and button links are root-relative. Named label placeholders (`{n}`, `{N}`, `{q}`, `{kind}`, `{name}`) are replaced in place: update translated overrides, including gallery, rating, view and directions labels. No implicit suffix is appended.
+- **Chrome and consent.** Header and footer draw the contract's menu tree; child menu CSS classes and `wp_nav_menu_items` additions no longer apply there. `Salt_Nav_Walker::walk()` renders it; use `salt_menu()` on the walker for its tree. The optional header phone defaults off. The preferences control needs both an active consent provider and an integration that uses consent. There is one checkbox per category in use, not per integration; without an answering provider integrations stay denied. Use `salt_consent_categories_in_use` for categories; `salt_consent_panel` supplies words only.
+- **Contact, maps and gallery.** Update overrides to the emitted contact fields and contract markup. The closed state replaces the old email button. Scripted contact uses the site's REST address on plain permalinks and refreshes expired credentials. Enquiry dates are now stored for retention; this does not repair historical records. Maps use the same-origin MapLibre worker. Gallery no longer loads `gallery.js` or supplies `data-salt-carousel`. Core styles and speculation rules follow the existing CSP without granting arbitrary inline styles or scripts.
+- **Removed parts and styles.** Old card, button and other `x-*` parts, utilities generated only for the old views, and booking hooks are no longer supplied. See the [removed parts and migration paths](docs/contracts/OVERRIDES.md#removed-template-parts-and-css-600-id-3946--breaking). Recheck child copies of sections, site chrome, archives and single templates before updating a site.
+
+### Added
 
 - **Editor targets and publish limits (ID-3971, contract rc.8).** Text fields
   and suggested list sizes now show a live count, including fields added to

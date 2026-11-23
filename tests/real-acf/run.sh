@@ -269,11 +269,7 @@ phase "install" "$PHP" "$HERE/php/install.php"
 # turn), so it is ten minutes, not the runner's default minute. The report goes to report/ like any
 # run's, and is copied to the committed baseline only when every case rendered.
 conformance() {
-	local status=0
-	(cd "$REPO" && PATH="$(dirname "$PHP"):$PATH" npm run --silent conformance:contract -- --timeout 600000 >"$TMP/conformance.md") || status=$?
-	# The runner exits 1 on every partial run by design (SC-017); 2 or more is a usage error.
-	if [ "$status" -gt 1 ]; then cat "$TMP/conformance.md"; return 1; fi
-	"$PHP" "$HERE/php/conformance.php" "$REPO/tests/contract-adapter/report/conformance.json" || return 1
+	(cd "$REPO" && PATH="$(dirname "$PHP"):$PATH" npm run --silent conformance:contract -- --timeout 600000 >"$TMP/conformance.md") || { cat "$TMP/conformance.md"; return 1; }
 	mkdir -p "$REPO/tests/contract-adapter/baseline"
 	cp "$REPO/tests/contract-adapter/report/conformance.json" "$REPO/tests/contract-adapter/report/conformance.md" "$REPO/tests/contract-adapter/baseline/"
 	echo "PASS the report is copied to tests/contract-adapter/baseline/"

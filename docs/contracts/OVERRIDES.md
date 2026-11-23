@@ -197,6 +197,18 @@ parent sections are.
 
 ### What happens to code written before the split (BREAKING)
 
+For rc.9, compare child copies against the parent view's `$args` docblock, not the old ACF values:
+
+| View | Resolved inputs to draw |
+| --- | --- |
+| Hero | `variant`, `eyebrow`, `heading`, `subheading`, `image`, `mediaSide`, `alignment`, `buttons`, `arrow`; the band draws the full-bleed background |
+| Call to action | `heading`, sanitised `body`, `buttons`, `arrow` |
+| Media + text | `rows` with `image`, `heading`, sanitised `content`, `mediaSide`, `buttons`; shared `arrow` |
+| Features | `eyebrow`, `heading`, `intro`, `columns`, `items` with `icon`, `title`, sanitised `text`, `href`; shared `arrow` |
+| Stats | `heading`, `intro`, `columns`, `items` with `icon`, `value`, `suffix`, `label` |
+
+An image is the resolved `salt_image_contract()` array (`src`, `width`, `height`, `alt`, optional `srcset` and `sizes`), not an attachment ID. A button needs `label` and a usable `href`; `style` and `newTab` describe its presentation. Use the supplied plan's heading level, ID and media priority; do not derive these from the row's index.
+
 1. **A pre-split copy of any `template-parts/sections/{slug}.php`** in
    the child is a whole section: it reads fields and calls `salt_section()`
    itself. It is now loaded as the view, INSIDE the parent's band, so the
@@ -301,6 +313,8 @@ as before, because refusing it would break every existing child theme. The
 mismatch is raised by the update flag instead (below). Declare every swap.
 
 ### Tier 5: replace a section's logic (`"tier": "logic"`)
+
+Put the section anchor in the row's `settings.anchorId` for the page plan to reserve it. A child template reading an unrelated anchor field can only settle its name at render time; a minted ID can already own that fragment, so the child gets a suffixed name instead.
 
 The site takes the section over entirely: nothing of the parent runs for
 it. For a layout whose contract id is declared `logic`,
