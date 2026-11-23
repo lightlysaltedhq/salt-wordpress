@@ -22,6 +22,11 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
 - **Contact, maps and gallery.** Update overrides to the emitted contact fields and contract markup. The closed state replaces the old email button. Scripted contact uses the site's REST address on plain permalinks and refreshes expired credentials. Enquiry dates are now stored for retention; this does not repair historical records. Maps use the same-origin MapLibre worker. Gallery no longer loads `gallery.js` or supplies `data-salt-carousel`. Core styles and speculation rules follow the existing CSP without granting arbitrary inline styles or scripts.
 - **Removed parts and styles.** Old card, button and other `x-*` parts, utilities generated only for the old views, and booking hooks are no longer supplied. See the [removed parts and migration paths](docs/contracts/OVERRIDES.md#removed-template-parts-and-css-600-id-3946--breaking). Recheck child copies of sections, site chrome, archives and single templates before updating a site.
 
+### Accessibility fixes
+
+- Without JavaScript, a contact reply opens at the submitted form’s message and moves focus there. Opening the page normally still starts at the top.
+- On posts, Copy link now announces success or failure under the site’s existing content security policy.
+
 ### Added
 
 - **Editor targets and publish limits (ID-3971, contract rc.8).** Text fields
