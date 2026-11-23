@@ -113,7 +113,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$this->assertStringNotContainsString( 'x-cta', $html, 'The view draws the contract\'s block, not x-cta.' );
 		$this->assertStringContainsString( '<div class="salt-block" data-block="call-to-action" data-align="centre">', $html );
 		$this->assertSame( 1, preg_match_all( '/<a\b/', $html ) );
-		$this->assertStringContainsString( '<div class="salt-cta__actions"><a class="salt-button" href="https://example.test/contact/" data-style="primary" data-track-control="cta" target="_blank" rel="noopener noreferrer">', $html, 'A new tab adds target and rel.' );
+		$this->assertStringContainsString( '<div class="salt-cta__actions"><a class="salt-button" href="/contact/" data-style="primary" data-track-control="cta" target="_blank" rel="noopener noreferrer">', $html, 'A new tab adds target and rel.' );
 		$this->assertStringContainsString( '<h1 id="call-to-action__heading">Ready to start?</h1>', $html, 'Primary section with heading claims the H1.' );
 		$this->assertStringContainsString( '<div class="salt-rich-text"><p>Tell us about your project.</p>', $html, 'A plain-text body takes its paragraph (wpautop()).' );
 		$this->assertStringNotContainsString( '<script', $html, 'No JS in this section — ever.' );
@@ -132,8 +132,8 @@ final class CallToActionSectionTest extends SaltTestCase {
 		);
 
 		$this->assertSame( 2, preg_match_all( '/<a\b/', $html ) );
-		$this->assertStringContainsString( 'href="https://example.test/a/" data-style="primary" data-track-control="cta">', $html );
-		$this->assertStringContainsString( 'href="https://example.test/b/" data-style="secondary" data-track-control="cta">', $html );
+		$this->assertStringContainsString( 'href="/a/" data-style="primary" data-track-control="cta">', $html );
+		$this->assertStringContainsString( 'href="/b/" data-style="secondary" data-track-control="cta">', $html );
 		$this->assertStringNotContainsString( 'target=', $html, 'No new tab, no target.' );
 	}
 
@@ -239,6 +239,23 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$this->assertSame( "<ul><li>One</li></ul>\n\n<p>Two</p>", $blocks['props']['body'], 'Stored blocks are not wrapped again.' );
 	}
 
+	public function test_a_same_site_button_is_root_relative_and_another_host_is_kept(): void {
+		$html = $this->render_cta_section(
+			array(
+				'heading' => 'Ready?',
+				'buttons' => array(
+					salt_test_button( 'Here', 'https://example.test/contact/?ref=cta#form' ),
+					salt_test_button( 'Elsewhere', 'https://guides.example/calendar' ),
+				),
+			)
+		);
+
+		// The site's own address as the contract's fixtures write it (salt_contract_url()).
+		$this->assertStringContainsString( 'href="/contact/?ref=cta#form"', $html );
+		$this->assertStringNotContainsString( 'href="https://example.test/', $html );
+		$this->assertStringContainsString( 'href="https://guides.example/calendar"', $html, 'Another host stays absolute.' );
+	}
+
 	public function test_a_button_whose_address_escapes_to_nothing_is_not_drawn(): void {
 		$html = $this->render_cta_section(
 			array(
@@ -254,7 +271,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$this->assertSame( 1, substr_count( $html, 'class="salt-button"' ) );
 		$this->assertStringNotContainsString( 'href=""', $html );
 		$this->assertStringNotContainsString( '>Bad<', $html );
-		$this->assertStringContainsString( 'href="https://example.test/good/"', $html );
+		$this->assertStringContainsString( 'href="/good/"', $html );
 	}
 
 	// -----------------------------------------------------------------

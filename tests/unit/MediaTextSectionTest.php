@@ -211,7 +211,7 @@ final class MediaTextSectionTest extends SaltTestCase {
 		);
 
 		$this->assertStringStartsWith( '<div class="salt-section" id="media-text"', $html, 'No heading: the band is a div, not a named section.' );
-		$this->assertStringContainsString( '<div class="salt-media-text__row"><div class="salt-media-text__body"><div class="salt-media-text__actions"><a class="salt-button" href="https://example.test/contact/"', $html );
+		$this->assertStringContainsString( '<div class="salt-media-text__row"><div class="salt-media-text__body"><div class="salt-media-text__actions"><a class="salt-button" href="/contact/"', $html );
 		$this->assertSame( array(), $this->logs() );
 	}
 
@@ -571,8 +571,8 @@ final class MediaTextSectionTest extends SaltTestCase {
 
 		$this->assertStringContainsString(
 			'<div class="salt-media-text__actions">'
-			. '<a class="salt-button" href="https://example.test/contact/" data-style="secondary" data-track-control="cta"><span class="salt-button__label">Get in touch<span class="salt-arrow" aria-hidden="true">&#x2060;›</span></span></a>'
-			. '<a class="salt-button" href="https://example.test/work/" data-style="primary" data-track-control="cta" target="_blank" rel="noopener noreferrer"><span class="salt-button__label">Our work<span class="salt-arrow" aria-hidden="true">&#x2060;›</span></span></a>'
+			. '<a class="salt-button" href="/contact/" data-style="secondary" data-track-control="cta"><span class="salt-button__label">Get in touch<span class="salt-arrow" aria-hidden="true">&#x2060;›</span></span></a>'
+			. '<a class="salt-button" href="/work/" data-style="primary" data-track-control="cta" target="_blank" rel="noopener noreferrer"><span class="salt-button__label">Our work<span class="salt-arrow" aria-hidden="true">&#x2060;›</span></span></a>'
 			. '</div>',
 			$html,
 			'Unstyled buttons default to secondary.'

@@ -59,12 +59,15 @@ salt_harness_result(
 	array() === $missing ? sprintf( '%d of %d layouts drew (faq, locations and collection-showcase have no posts to query here)', count( $need ), count( $state['layouts'] ) ) : 'no band for: ' . implode( ', ', $missing )
 );
 
-$contact = (string) get_permalink( (int) get_page_by_path( 'contact' )?->ID );
+// An internal link is drawn root-relative on the site's own host, as the
+// contract's fixtures write it (salt_contract_url()).
+$contact  = (string) get_permalink( (int) get_page_by_path( 'contact' )?->ID );
+$relative = '' !== $contact ? salt_contract_url( $contact ) : '';
 salt_harness_result(
 	str_contains( $html, 'href="https://guides.example/planting"' ) && str_contains( $html, 'target="_blank"' )
-		&& '' !== $contact && str_contains( $html, 'href="' . esc_url( $contact ) . '"' ),
-	'button links resolve (external with newTab, internal to its document)',
-	sprintf( 'external https://guides.example/planting in a new tab; internal document contact => %s', '' !== $contact ? $contact : 'no contact page' )
+		&& str_starts_with( $relative, '/' ) && str_contains( $html, 'class="salt-button" href="' . esc_url( $relative ) . '"' ),
+	'button links resolve (external with newTab, internal to its document, root-relative)',
+	sprintf( 'external https://guides.example/planting in a new tab; internal document contact %s => %s', '' !== $contact ? $contact : 'no contact page', $relative )
 );
 
 salt_harness_result(

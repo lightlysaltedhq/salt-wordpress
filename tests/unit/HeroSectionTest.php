@@ -96,7 +96,7 @@ final class HeroSectionTest extends SaltTestCase {
 			),
 			'buttons only'    => array(
 				array( 'buttons' => array( salt_test_button( 'Go', 'https://example.test/go/' ) ) ),
-				'<div class="salt-hero__actions"><a class="salt-button" href="https://example.test/go/"',
+				'<div class="salt-hero__actions"><a class="salt-button" href="/go/"',
 			),
 		);
 	}
@@ -369,7 +369,7 @@ final class HeroSectionTest extends SaltTestCase {
 			array(
 				array(
 					'label'  => 'About us',
-					'href'   => 'https://example.test/about-us/',
+					'href'   => '/about-us/',
 					'style'  => 'ghost',
 					'newTab' => false,
 				),
@@ -433,8 +433,8 @@ final class HeroSectionTest extends SaltTestCase {
 
 		$this->assertStringContainsString(
 			'<div class="salt-hero__actions">'
-			. '<a class="salt-button" href="https://example.test/start/" data-style="primary" data-track-control="cta"><span class="salt-button__label">Get started<span class="salt-arrow" aria-hidden="true">&#x2060;→</span></span></a>'
-			. '<a class="salt-button" href="https://example.test/about/" data-style="secondary" data-track-control="cta"><span class="salt-button__label">Learn more<span class="salt-arrow" aria-hidden="true">&#x2060;→</span></span></a>'
+			. '<a class="salt-button" href="/start/" data-style="primary" data-track-control="cta"><span class="salt-button__label">Get started<span class="salt-arrow" aria-hidden="true">&#x2060;→</span></span></a>'
+			. '<a class="salt-button" href="/about/" data-style="secondary" data-track-control="cta"><span class="salt-button__label">Learn more<span class="salt-arrow" aria-hidden="true">&#x2060;→</span></span></a>'
 			. '</div>',
 			$html
 		);
@@ -639,7 +639,7 @@ final class HeroSectionTest extends SaltTestCase {
 			array(
 				array(
 					'label'  => 'About',
-					'href'   => 'https://example.test/about/',
+					'href'   => '/about/',
 					'style'  => 'secondary',
 					'newTab' => true,
 				),
