@@ -134,6 +134,20 @@ function salt_contract_labels(): array {
 		'loadMap'       => __( 'Load map', 'salt' ),
 		'consent'       => __( 'Allow map cookies to view this map.', 'salt' ),
 		'error'         => __( 'The map could not be loaded.', 'salt' ),
+		// Contact (markup/contact.json, contact-form.json). privacyLine's
+		// {link} is the privacy link, whose text is `privacy`.
+		'name'          => __( 'Name', 'salt' ),
+		'email'         => __( 'Email', 'salt' ),
+		'phone'         => __( 'Phone', 'salt' ),
+		'enquiryType'   => __( 'What is this about?', 'salt' ),
+		'message'       => __( 'Message', 'salt' ),
+		'optional'      => __( '(optional)', 'salt' ),
+		'submit'        => __( 'Send message', 'salt' ),
+		'honeypot'      => __( 'Leave this field empty', 'salt' ),
+		'privacy'       => __( 'privacy policy', 'salt' ),
+		/* translators: {link} is replaced by a link to the privacy policy, whose text is the "privacy policy" label. */
+		'privacyLine'   => __( 'By sending this form you agree to us handling your details to respond to your enquiry — see our {link}.', 'salt' ),
+		'unavailable'   => __( 'We are not taking enquiries through the website at the moment.', 'salt' ),
 	);
 	$given  = apply_filters( 'salt_contract_labels', $labels );
 	return is_array( $given ) ? array_map( 'strval', $given ) : $labels;

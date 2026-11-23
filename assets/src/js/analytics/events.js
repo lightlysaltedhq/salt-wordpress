@@ -2,7 +2,7 @@
  * Rich salt-instrumented events adapter.
  *
  * Pure DOM delegation over the section markup contracts (x-button,
- * x-accordion-item, x-contact-form, [data-section], [data-salt-carousel])
+ * x-accordion-item, salt-contact__form, [data-section], [data-salt-carousel])
  * and, for bands drawn to the salt-contract's markup, their equivalents
  * ([data-track], [data-track-control="cta"], details.salt-accordion__item,
  * [data-track-control^="carousel-"]) — NO section-file changes, passive listeners,
@@ -113,7 +113,7 @@
 					return;
 				}
 				const field = event.target;
-				if (field instanceof Element && field.closest('form.x-contact-form')) {
+				if (field instanceof Element && field.closest('form.salt-contact__form')) {
 					formStarted = true;
 					track('form_start', { section: 'contact' });
 				}
@@ -125,7 +125,7 @@
 			'submit',
 			(event) => {
 				const form = event.target;
-				if (form instanceof HTMLElement && form.matches('form.x-contact-form')) {
+				if (form instanceof HTMLElement && form.matches('form.salt-contact__form')) {
 					track('form_submit', { section: 'contact' });
 				}
 			},
