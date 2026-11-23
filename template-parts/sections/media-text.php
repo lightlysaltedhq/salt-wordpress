@@ -34,6 +34,8 @@ $salt_plan  = $args['plan'];
 $salt_level = max( 1, min( 6, (int) $salt_plan['headingLevel'] ) );
 $salt_base  = (int) ( $salt_plan['bodyBaseLevel'] ?? ( null === $salt_props['rows'][0]['heading'] ? 1 : $salt_level ) );
 $salt_id    = $salt_plan['headingId'] ?? null;
+// The row whose image is the priority image: the first that has one.
+$salt_lead = array_key_first( array_filter( array_column( $salt_props['rows'], 'image' ) ) );
 
 echo '<div class="salt-block" data-block="media-text"><div class="salt-media-text">';
 
@@ -42,7 +44,7 @@ foreach ( $salt_props['rows'] as $salt_i => $salt_row ) {
 
 	if ( is_array( $salt_row['image'] ) ) {
 		echo '<div class="salt-media-text__media">';
-		echo salt_image_contract_html( $salt_row['image'], 0 === $salt_i && ! empty( $salt_plan['priorityMedia'] ), array( 'class' => 'salt-media-text__image' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped attribute by attribute.
+		echo salt_image_contract_html( $salt_row['image'], $salt_lead === $salt_i && ! empty( $salt_plan['priorityMedia'] ), array( 'class' => 'salt-media-text__image' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped attribute by attribute.
 		echo '</div>';
 	}
 

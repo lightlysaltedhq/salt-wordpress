@@ -44,11 +44,11 @@ $salt_copyright = salt_footer_copyright();
 /*
  * Consent (founder ruling C): the control and its panel are drawn only when
  * a cookie plugin is wired to the WP Consent API; the `salt_consent_control`
- * filter is a site's override. The control is drawn aria-disabled until
+ * filter can turn them off (salt_consent_control_drawn()). The control is drawn aria-disabled until
  * app.js hydrates it; Save writes through the plugin's wp_set_consent(),
  * and the theme stores nothing (PRIV01).
  */
-$salt_consent = true === apply_filters( 'salt_consent_control', salt_consent_plugin_active() );
+$salt_consent = salt_consent_control_drawn();
 $salt_panel   = $salt_consent && true === apply_filters( 'salt_consent_panel_open', false );
 ?>
 <footer class="salt-footer" data-tone="<?php echo esc_attr( $salt_tone ); ?>" data-tone-dark="<?php echo esc_attr( $salt_tone ); ?>">

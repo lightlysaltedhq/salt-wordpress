@@ -15,8 +15,9 @@
  *   flips the same salt-theme preference the pre-paint script reads;
  * - a sticky-focus guard and the measured header height (--header-height);
  * - the consent control, drawn only when a cookie plugin is wired to the
- *   WP Consent API (founder ruling C), opens the preferences dialog, one
- *   box per WP Consent API category. Save writes each through the plugin's
+ *   WP Consent API (founder ruling C), opens the preferences dialog with
+ *   the server form's boxes; boxes that write one API category are ticked
+ *   together. Save writes each category through the plugin's
  *   wp_set_consent(); the theme
  *   stores nothing itself. Cancel closes without writing.
  *
@@ -32,6 +33,15 @@ const data = (() => {
 	}
 })();
 const labels = data.labels || {};
+
+/**
+ * Whether a cookie plugin manages consent through the WP Consent API: it
+ * has set a consent type. Without one the API answers true for every
+ * category, which must never read as a grant.
+ */
+const consentManaged = () =>
+	typeof window.wp_has_consent === 'function' &&
+	Boolean(window.wp_consent_type !== undefined ? window.wp_consent_type : window.wp_fallback_consent_type);
 
 /** Build an element from trusted, theme-made markup. */
 const fromHtml = (html) => {
@@ -88,6 +98,9 @@ const mountNav = (nav) => {
 		});
 		item.addEventListener('keydown', (event) => {
 			if (event.key === 'Escape' && item.hasAttribute('data-open')) {
+				// Only the submenu closes: not the drawer dialog around it.
+				event.preventDefault();
+				event.stopPropagation();
 				setOpen(false);
 				button.focus();
 			}
@@ -106,18 +119,25 @@ const root = document.documentElement;
 const isDark = () => root.getAttribute('data-theme') === 'dark';
 
 /**
- * Swap a theme toggle's empty span for its button form.
+ * Mount a theme toggle: the server's empty span becomes the button form;
+ * a button form the server drew (it knew the scheme) is wired as it is.
  *
- * @param {HTMLElement} span A span.salt-theme-toggle.
+ * @param {HTMLElement} toggle A .salt-theme-toggle.
  */
-const mountThemeToggle = (span) => {
-	if (!data.glyphs || !labels.theme) {
+const mountThemeToggle = (toggle) => {
+	if (!data.glyphs) {
 		return;
 	}
-	const button = document.createElement('button');
-	button.className = 'salt-theme-toggle';
-	button.type = 'button';
-	button.setAttribute('aria-label', labels.theme);
+	let button = toggle;
+	if (toggle.tagName !== 'BUTTON') {
+		if (!labels.theme) {
+			return;
+		}
+		button = document.createElement('button');
+		button.className = 'salt-theme-toggle';
+		button.type = 'button';
+		button.setAttribute('aria-label', labels.theme);
+	}
 	const sync = () => {
 		const dark = isDark();
 		button.setAttribute('aria-pressed', String(dark));
@@ -150,7 +170,9 @@ const mountThemeToggle = (span) => {
 		}
 	});
 	sync();
-	span.replaceWith(button);
+	if (button !== toggle) {
+		toggle.replaceWith(button);
+	}
 };
 
 // -- Drawer ------------------------------------------------------------------
@@ -305,6 +327,19 @@ const mountConsent = (wrap) => {
 		return;
 	}
 	control.removeAttribute('aria-disabled');
+	// The script's dialog is the only one a visitor uses: a panel the server
+	// drew goes before the control can open another, so no id is ever on the
+	// page twice. Both draw the same boxes with the same ids.
+	wrap.querySelectorAll('.salt-consent-panel').forEach((panel) => panel.remove());
+
+	/** Whether the API records this category as allowed; never throws. */
+	const allowed = (api) => {
+		try {
+			return consentManaged() && window.wp_has_consent(api) === true;
+		} catch {
+			return false;
+		}
+	};
 
 	const text = (tag, className, value) => {
 		const node = document.createElement(tag);
@@ -323,6 +358,7 @@ const mountConsent = (wrap) => {
 		dialog.className = 'salt-consent-panel';
 		dialog.setAttribute('aria-labelledby', 'site-footer__consent-title');
 		const form = document.createElement('form');
+		form.method = 'dialog';
 		const title = text('h2', 'salt-consent-panel__title', consent.labels.title || '');
 		title.id = 'site-footer__consent-title';
 		form.append(title);
@@ -337,11 +373,15 @@ const mountConsent = (wrap) => {
 			box.id = id;
 			box.name = category.id;
 			box.setAttribute('aria-describedby', `${id}-description`);
-			box.checked = typeof window.wp_has_consent === 'function' && window.wp_has_consent(category.api) === true;
+			box.checked = allowed(category.api);
+			box.dataset.api = category.api;
 			const label = text('label', '', category.label);
 			label.htmlFor = id;
 			const description = text('div', 'salt-consent-panel__description', category.description);
 			description.id = `${id}-description`;
+			if (category.note) {
+				description.append(document.createElement('br'), category.note);
+			}
 			row.append(box, label, description);
 			form.append(row);
 		}
@@ -358,6 +398,20 @@ const mountConsent = (wrap) => {
 		form.append(actions);
 		dialog.append(form);
 
+		// Boxes that write one API category (embeds and marketing) are ticked
+		// together, so the panel always shows what Save will record.
+		form.addEventListener('change', (event) => {
+			const box = event.target;
+			if (!(box instanceof HTMLInputElement) || !box.dataset.api) {
+				return;
+			}
+			form.querySelectorAll('.salt-consent-panel__checkbox').forEach((other) => {
+				if (other.dataset.api === box.dataset.api) {
+					other.checked = box.checked;
+				}
+			});
+		});
+
 		const close = () => {
 			dialog.close();
 			dialog.remove();
@@ -365,16 +419,20 @@ const mountConsent = (wrap) => {
 		};
 		form.addEventListener('submit', (event) => {
 			event.preventDefault();
-			// One box per WP Consent API category (salt_consent_api_choices()).
-			// Should two boxes ever share one, it is allowed only when every box
-			// for it is ticked: a partial tick never grants.
+			// An API category shared by several boxes is allowed only when every
+			// one of them is ticked: a partial tick never grants.
 			const verdicts = {};
 			for (const category of consent.categories) {
 				const checked = form.elements.namedItem(category.id)?.checked === true;
 				verdicts[category.api] = (verdicts[category.api] ?? true) && checked;
 			}
-			for (const [api, allowed] of Object.entries(verdicts)) {
-				window.wp_set_consent(api, allowed ? 'allow' : 'deny');
+			// The API keeps anonymous statistics apart; the panel's analytics
+			// choice answers both.
+			if ('statistics' in verdicts) {
+				verdicts['statistics-anonymous'] = verdicts.statistics;
+			}
+			for (const [api, verdict] of Object.entries(verdicts)) {
+				window.wp_set_consent(api, verdict ? 'allow' : 'deny');
 			}
 			if (status) {
 				status.textContent = consent.labels.saved || '';
@@ -407,7 +465,7 @@ const init = () => {
 		mountDrawer(header);
 		mountMeasure(header);
 	}
-	document.querySelectorAll('span.salt-theme-toggle').forEach(mountThemeToggle);
+	document.querySelectorAll('.salt-theme-toggle').forEach(mountThemeToggle);
 	document.querySelectorAll('.salt-footer__consent').forEach(mountConsent);
 };
 

@@ -9,6 +9,8 @@
  * markup from salt_chrome_script_data()); the server draws it open only for
  * the contract's open-panel case. Save writes through the consent plugin's
  * wp_set_consent(); the theme stores nothing (PRIV01, founder ruling C).
+ * The form is bare, as the contract's consent-panel-open fixture draws it;
+ * script's copy carries method="dialog", so Enter never submits a request.
  *
  * Args: salt_consent_panel() — labels { title, save, cancel } and
  * categories [ { id, label, description } ].
