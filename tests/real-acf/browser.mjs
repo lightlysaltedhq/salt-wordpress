@@ -889,11 +889,14 @@ try {
 				media: article?.dataset.media ?? null,
 				tone: header?.dataset.tone ?? null,
 				toneDark: header?.dataset.toneDark ?? null,
-				rows: article?.style.getPropertyValue( '--salt-case-study-view-aside-rows' ).trim() ?? '',
+				// rc.9 (SC-029): the attribute, and the row count the stylesheet computes from it.
+				asideRows: article?.dataset.asideRows ?? null,
+				rows: article ? getComputedStyle( article ).getPropertyValue( '--salt-case-study-view-aside-rows' ).trim() : '',
+				inlineStyle: article?.hasAttribute( 'style' ) ?? false,
 			};
 		} );
 		result(
-			drawn.header === 'band' && drawn.tone === 'brand-tint' && drawn.toneDark === 'surface-inverse' && drawn.media === 'aside' && drawn.rows !== '',
+			drawn.header === 'band' && drawn.tone === 'brand-tint' && drawn.toneDark === 'surface-inverse' && drawn.media === 'aside' && drawn.asideRows === '4' && drawn.rows === '4' && ! drawn.inlineStyle,
 			'the case-study view reads the saved settings',
 			`${ saved.url.replace( url, '' ) }: ${ JSON.stringify( drawn ) }`
 		);
