@@ -62,6 +62,15 @@ Consent + contact seams (v2 — see docs/PRIVACY-RESPONSIBILITIES.md):
 §16a); `salt_consent()`'s deny-paths (the bridge grants only on a strict
 CMP verdict — no filter can turn an ambiguous state into an allow).
 
+Documented limits:
+- Contact self-post (I1): while WordPress parses a self-posted contact form,
+  the posted public query vars are out of `$_POST` until `parse_request`
+  (PHP_INT_MIN) puts them back. The theme strips them in a `query_vars`
+  filter at PHP_INT_MAX that removes itself after its first run, so a plugin
+  that applies `query_vars` itself between `do_parse_request` and
+  `WP::parse_request()` triggers the strip early, and core's own pass then
+  reads the fields from `$_POST`.
+
 ## v3 chrome seams
 
 `template-parts/header/site-header.php` and
