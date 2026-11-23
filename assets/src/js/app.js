@@ -14,12 +14,13 @@
  * - the theme toggle becomes its button form with the scheme's glyph and
  *   flips the same salt-theme preference the pre-paint script reads;
  * - a sticky-focus guard and the measured header height (--header-height);
- * - the consent control, drawn only when a cookie plugin is wired to the
- *   WP Consent API (founder ruling C), opens the preferences dialog with
- *   the server form's boxes; boxes that write one API category are ticked
- *   together. Save writes each category through the plugin's
- *   wp_set_consent(); the theme
- *   stores nothing itself. Cancel closes without writing.
+ * - the consent control, drawn only when an integration needs consent and a
+ *   cookie plugin is wired to the WP Consent API (SC-030), opens the
+ *   preferences dialog with the server form's boxes: one per WP Consent API
+ *   category in use (statistics, marketing). Save writes each box's
+ *   category through the plugin's wp_set_consent(), and statistics-anonymous
+ *   with the statistics box's verdict; the theme stores nothing itself.
+ *   Cancel closes without writing.
  *
  * The words and glyphs come from the inert JSON in #salt-chrome-data
  * (salt_chrome_script_data()).
@@ -373,15 +374,11 @@ const mountConsent = (wrap) => {
 			box.id = id;
 			box.name = category.id;
 			box.setAttribute('aria-describedby', `${id}-description`);
-			box.checked = allowed(category.api);
-			box.dataset.api = category.api;
+			box.checked = allowed(category.id);
 			const label = text('label', '', category.label);
 			label.htmlFor = id;
 			const description = text('div', 'salt-consent-panel__description', category.description);
 			description.id = `${id}-description`;
-			if (category.note) {
-				description.append(document.createElement('br'), category.note);
-			}
 			row.append(box, label, description);
 			form.append(row);
 		}
@@ -398,20 +395,6 @@ const mountConsent = (wrap) => {
 		form.append(actions);
 		dialog.append(form);
 
-		// Boxes that write one API category (embeds and marketing) are ticked
-		// together, so the panel always shows what Save will record.
-		form.addEventListener('change', (event) => {
-			const box = event.target;
-			if (!(box instanceof HTMLInputElement) || !box.dataset.api) {
-				return;
-			}
-			form.querySelectorAll('.salt-consent-panel__checkbox').forEach((other) => {
-				if (other.dataset.api === box.dataset.api) {
-					other.checked = box.checked;
-				}
-			});
-		});
-
 		const close = () => {
 			dialog.close();
 			dialog.remove();
@@ -419,15 +402,13 @@ const mountConsent = (wrap) => {
 		};
 		form.addEventListener('submit', (event) => {
 			event.preventDefault();
-			// An API category shared by several boxes is allowed only when every
-			// one of them is ticked: a partial tick never grants.
+			// Each box is one WP Consent API category; ticking it grants every
+			// Salt category it covers (SC-030). The API keeps anonymous
+			// statistics apart, and the statistics box answers both.
 			const verdicts = {};
 			for (const category of consent.categories) {
-				const checked = form.elements.namedItem(category.id)?.checked === true;
-				verdicts[category.api] = (verdicts[category.api] ?? true) && checked;
+				verdicts[category.id] = form.elements.namedItem(category.id)?.checked === true;
 			}
-			// The API keeps anonymous statistics apart; the panel's analytics
-			// choice answers both.
 			if ('statistics' in verdicts) {
 				verdicts['statistics-anonymous'] = verdicts.statistics;
 			}

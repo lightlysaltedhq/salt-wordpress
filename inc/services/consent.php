@@ -108,13 +108,71 @@ function salt_consent_plugin_active(): bool {
 }
 
 /**
- * Whether the footer draws its consent control and panel: only with a
- * consent plugin (salt_consent_plugin_active(), ruling C). The
- * `salt_consent_control` filter lets a site turn it off, never on without
- * a plugin, since Save has nothing to write through then.
+ * The Salt categories the site's integrations use, the ones a visitor is
+ * asked about: analytics when an analytics provider is configured, maps
+ * when the maps integration is on, embeds when a booking provider is
+ * configured. Nothing the theme ships uses marketing on its own; a site
+ * that adds such an integration names it through the
+ * `salt_consent_categories_in_use` filter, which may also add or remove
+ * any other. Unknown and essential categories are dropped.
+ *
+ * @return string[] In salt_consent_categories() order.
+ */
+function salt_consent_categories_in_use(): array {
+	$in_use = array();
+	if ( function_exists( 'salt_analytics_active' ) && in_array( true, salt_analytics_active(), true ) ) {
+		$in_use[] = 'analytics';
+	}
+	if ( function_exists( 'salt_maps_enabled' ) && salt_maps_enabled() ) {
+		$in_use[] = 'maps';
+	}
+	if ( function_exists( 'salt_booking_config' ) && null !== salt_booking_config() ) {
+		$in_use[] = 'embeds';
+	}
+	$given = (array) apply_filters( 'salt_consent_categories_in_use', $in_use );
+	return array_values( array_intersect( array_diff( salt_consent_categories(), array( 'essential' ) ), $given ) );
+}
+
+/**
+ * The consent panel's groups (salt-contract site-footer.json, SC-030): one
+ * per WP Consent API category the categories in use map to, in the API's
+ * order, each with the Salt categories it covers. Only statistics and
+ * marketing can be a box; a Salt category a site remaps to another API
+ * category is left to that plugin's own banner, and logged.
+ *
+ * @return array<string,string[]> API category => the Salt categories it covers.
+ */
+function salt_consent_groups(): array {
+	$groups = array(
+		'statistics' => array(),
+		'marketing'  => array(),
+	);
+	foreach ( salt_consent_categories_in_use() as $category ) {
+		$api = salt_consent_api_category( $category );
+		if ( ! isset( $groups[ $api ] ) ) {
+			salt_log( sprintf( 'consent: "%s" maps to the WP Consent API\'s "%s", which the footer panel draws no box for.', $category, $api ) );
+			continue;
+		}
+		$groups[ $api ][] = $category;
+	}
+	$groups = array_filter( $groups );
+	foreach ( $groups as $api => $covers ) {
+		sort( $covers );
+		$groups[ $api ] = $covers;
+	}
+	return $groups;
+}
+
+/**
+ * Whether the footer draws its consent control and panel (SC-030): only
+ * when an integration needs consent (a box to draw) and a consent plugin is
+ * wired to the WP Consent API (salt_consent_plugin_active(), ruling C).
+ * Without the plugin every such integration stays denied (salt_consent())
+ * and nothing is drawn. The `salt_consent_control` filter lets a site turn
+ * it off, never on without both.
  *
  * @return bool
  */
 function salt_consent_control_drawn(): bool {
-	return salt_consent_plugin_active() && true === apply_filters( 'salt_consent_control', true );
+	return salt_consent_plugin_active() && array() !== salt_consent_groups() && true === apply_filters( 'salt_consent_control', true );
 }

@@ -236,15 +236,15 @@ function salt_view_chrome( array $site ): void {
 	}
 	set_theme_mod( 'nav_menu_locations', $locations );
 
-	// Every footer the contract draws has its consent control (ruling C:
-	// a site with a consent plugin), as the adapter's footer cases seed it.
+	// A case's site.consent says a WP Consent API plugin is wired (ruling
+	// C, SC-030), as the adapter's footer cases seed it.
 	update_option(
 		'salt_harness_chrome',
 		array(
 			'labels'    => (array) ( $site['labels'] ?? array() ),
 			'copyright' => $site['footer']['copyright'] ?? null,
 			'profiles'  => $site['footer']['profiles'] ?? null,
-			'consent'   => isset( $site['footer'] ),
+			'consent'   => isset( $site['consent'] ) ? (array) $site['consent'] : null,
 		)
 	);
 }

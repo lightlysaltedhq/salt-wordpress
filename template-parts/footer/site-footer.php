@@ -42,11 +42,12 @@ $salt_toggle    = 'footer' === salt_theme_toggle_placement() && '' !== trim( $sa
 $salt_copyright = salt_footer_copyright();
 
 /*
- * Consent (founder ruling C): the control and its panel are drawn only when
- * a cookie plugin is wired to the WP Consent API; the `salt_consent_control`
- * filter can turn them off (salt_consent_control_drawn()). The control is drawn aria-disabled until
- * app.js hydrates it; Save writes through the plugin's wp_set_consent(),
- * and the theme stores nothing (PRIV01).
+ * Consent (founder ruling C, SC-030): the control and its panel are drawn
+ * only when an integration needs consent and a cookie plugin is wired to
+ * the WP Consent API (salt_consent_control_drawn()); the
+ * `salt_consent_control` filter can turn them off. The control is drawn
+ * aria-disabled until app.js hydrates it; Save writes through the plugin's
+ * wp_set_consent(), and the theme stores nothing (PRIV01).
  */
 $salt_consent = salt_consent_control_drawn();
 $salt_panel   = $salt_consent && true === apply_filters( 'salt_consent_panel_open', false );

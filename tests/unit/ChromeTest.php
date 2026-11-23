@@ -30,7 +30,7 @@ final class ChromeTest extends SaltTestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $GLOBALS['salt_test_bloginfo'] );
+		unset( $GLOBALS['salt_test_bloginfo'], $GLOBALS['salt_test_wp_consent_type'] );
 		parent::tearDown();
 	}
 
@@ -469,9 +469,21 @@ final class ChromeTest extends SaltTestCase {
 		return (string) ob_get_clean();
 	}
 
-	public function test_footer_draws_no_consent_control_without_a_consent_plugin(): void {
+	/**
+	 * Wire a consent plugin (or not) and name the Salt categories in use.
+	 *
+	 * @param string   $type   The plugin's consent type; '' for none.
+	 * @param string[] $in_use Salt categories the integrations use.
+	 * @return void
+	 */
+	private function consent_site( string $type, array $in_use ): void {
 		require_once __DIR__ . '/../shims/consent-api.php';
-		$GLOBALS['salt_test_wp_consent_type'] = '';
+		$GLOBALS['salt_test_wp_consent_type'] = $type;
+		add_filter( 'salt_consent_categories_in_use', static fn() => $in_use );
+	}
+
+	public function test_footer_draws_no_consent_control_without_a_consent_plugin(): void {
+		$this->consent_site( '', array( 'analytics' ) );
 		// A site's filter cannot draw it without a plugin: Save would have
 		// nothing to write through.
 		add_filter( 'salt_consent_control', static fn(): bool => true, 20 );
@@ -483,42 +495,76 @@ final class ChromeTest extends SaltTestCase {
 		$this->assertArrayNotHasKey( 'consent', salt_chrome_script_data() );
 	}
 
-	public function test_footer_draws_the_disabled_consent_control_with_a_consent_plugin(): void {
-		require_once __DIR__ . '/../shims/consent-api.php';
-		$GLOBALS['salt_test_wp_consent_type'] = 'optin';
+	public function test_footer_draws_no_consent_control_when_no_integration_needs_consent(): void {
+		$this->consent_site( 'optin', array() );
+
+		$this->assertStringNotContainsString( 'salt-footer__consent', $this->render_footer() );
+		$this->assertArrayNotHasKey( 'consent', salt_chrome_script_data() );
+	}
+
+	public function test_footer_draws_the_disabled_consent_control_with_a_plugin_and_an_integration(): void {
+		$this->consent_site( 'optin', array( 'analytics' ) );
 
 		$html = $this->render_footer();
-		unset( $GLOBALS['salt_test_wp_consent_type'] );
 
 		$this->assertStringContainsString( 'data-salt-consent-preferences="" aria-disabled="true">Cookie preferences</button>', $html );
 		$this->assertStringNotContainsString( '<dialog', $html, 'Only script opens the panel.' );
 	}
 
-	public function test_consent_boxes_that_share_an_api_category_say_so(): void {
-		require_once __DIR__ . '/../shims/consent-api.php';
-		$GLOBALS['salt_test_wp_consent_type'] = 'optin';
+	public function test_consent_boxes_are_one_per_api_category_in_api_order(): void {
+		// Given out of order: marketing's Salt categories before analytics.
+		$this->consent_site( 'optin', array( 'marketing', 'maps', 'analytics', 'embeds' ) );
+		add_filter( 'salt_consent_panel_open', static fn() => true );
 
-		$data = salt_chrome_script_data();
-		unset( $GLOBALS['salt_test_wp_consent_type'] );
+		$boxes = salt_chrome_script_data()['consent']['categories'];
+		$html  = $this->render_footer();
 
-		// The contract's three boxes and ids, as the server draws them.
-		// Embeds and marketing are both the API's marketing, so script keeps
-		// them ticked together and each one's note says so.
-		$categories = $data['consent']['categories'];
-		$this->assertSame( array( 'analytics', 'embeds', 'marketing' ), array_column( $categories, 'id' ) );
-		$this->assertSame( array( 'statistics', 'marketing', 'marketing' ), array_column( $categories, 'api' ) );
-		$this->assertSame(
-			array( '', 'Shares one setting with Marketing: ticking one ticks both.', 'Shares one setting with Embedded content: ticking one ticks both.' ),
-			array_column( $categories, 'note' )
-		);
+		$this->assertSame( array( 'statistics', 'marketing' ), array_column( $boxes, 'id' ) );
+		$this->assertSame( array( array( 'analytics' ), array( 'embeds', 'maps', 'marketing' ) ), array_column( $boxes, 'covers' ) );
+		$this->assertSame( 2, substr_count( $html, 'class="salt-consent-panel__checkbox"' ) );
+		$this->assertStringContainsString( 'id="site-footer__consent-statistics" name="statistics"', $html );
+		$this->assertStringContainsString( 'id="site-footer__consent-marketing" name="marketing"', $html );
+		$this->assertStringNotContainsString( 'Shares one setting', $html . wp_json_encode( $boxes ) );
 	}
 
-	public function test_consent_boxes_carry_no_note_once_a_remap_separates_them(): void {
+	public function test_only_analytics_in_use_draws_one_statistics_box(): void {
+		$this->consent_site( 'optin', array( 'analytics' ) );
+
+		$this->assertSame( array( 'statistics' ), array_column( salt_consent_panel()['categories'], 'id' ) );
+	}
+
+	public function test_a_category_remapped_off_statistics_and_marketing_draws_no_box(): void {
+		$this->consent_site( 'optin', array( 'embeds' ) );
 		add_filter( 'salt_consent_api_category', static fn( string $api, string $salt ): string => 'embeds' === $salt ? 'preferences' : $api, 20, 2 );
 
-		$choices = salt_consent_choices( salt_consent_panel()['categories'] );
+		$this->assertSame( array(), salt_consent_panel()['categories'] );
+		$this->assertArrayNotHasKey( 'consent', salt_chrome_script_data(), 'No box: nothing to draw.' );
+		$this->assertStringContainsString( 'draws no box for', implode( "\n", $this->logs() ) );
+	}
 
-		$this->assertSame( array( 'statistics', 'preferences', 'marketing' ), array_column( $choices, 'api' ) );
-		$this->assertSame( array( '', '', '' ), array_column( $choices, 'note' ) );
+	public function test_a_sites_words_relabel_a_box_but_cannot_add_one(): void {
+		$this->consent_site( 'optin', array( 'analytics' ) );
+		add_filter(
+			'salt_consent_panel',
+			static fn( array $panel ): array => array(
+				'labels'     => array( 'title' => 'Your choices' ),
+				'categories' => array(
+					array(
+						'id'    => 'statistics',
+						'label' => 'Visitor counts',
+					),
+					array(
+						'id'    => 'marketing',
+						'label' => 'Adverts',
+					),
+				),
+			)
+		);
+
+		$panel = salt_consent_panel();
+
+		$this->assertSame( 'Your choices', $panel['labels']['title'] );
+		$this->assertSame( 'Save preferences', $panel['labels']['save'] );
+		$this->assertSame( array( 'Visitor counts' ), array_column( $panel['categories'], 'label' ) );
 	}
 }
