@@ -1079,3 +1079,26 @@ if ( ! function_exists( 'is_email' ) ) {
 		return false !== filter_var( $email, FILTER_VALIDATE_EMAIL ) ? $email : false;
 	}
 }
+
+if ( ! function_exists( 'nocache_headers' ) ) {
+	/**
+	 * nocache_headers shim: records the call in $GLOBALS['salt_test_nocache'].
+	 *
+	 * @return void
+	 */
+	function nocache_headers(): void {
+		$GLOBALS['salt_test_nocache'] = true;
+	}
+}
+
+if ( ! function_exists( 'status_header' ) ) {
+	/**
+	 * status_header shim: records the code in $GLOBALS['salt_test_status'].
+	 *
+	 * @param int $code HTTP status.
+	 * @return void
+	 */
+	function status_header( int $code ): void {
+		$GLOBALS['salt_test_status'] = $code;
+	}
+}

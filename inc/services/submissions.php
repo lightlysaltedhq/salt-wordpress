@@ -68,7 +68,8 @@ function salt_submissions_retention_days(): int {
  *
  * @param array<string,mixed> $submission Keys: name, email, message,
  *                                        enquiry_type, page_url, ip_hash,
- *                                        submitted_at (Unix timestamp).
+ *                                        submitted_at (Unix timestamp),
+ *                                        phone (only when given).
  * @return int|null Post ID, or null when storage is off or insertion failed.
  */
 function salt_submission_store( array $submission ): ?int {
@@ -100,6 +101,9 @@ function salt_submission_store( array $submission ): ?int {
 	update_post_meta( $post_id, 'salt_name', (string) ( $submission['name'] ?? '' ) );
 	update_post_meta( $post_id, 'salt_email', (string) ( $submission['email'] ?? '' ) );
 	update_post_meta( $post_id, 'salt_message', (string) ( $submission['message'] ?? '' ) );
+	if ( '' !== (string) ( $submission['phone'] ?? '' ) ) {
+		update_post_meta( $post_id, 'salt_phone', (string) $submission['phone'] );
+	}
 	update_post_meta( $post_id, 'salt_enquiry_type', (string) ( $submission['enquiry_type'] ?? '' ) );
 	update_post_meta( $post_id, 'salt_page_url', (string) ( $submission['page_url'] ?? '' ) );
 	update_post_meta( $post_id, 'salt_ip_hash', (string) ( $submission['ip_hash'] ?? '' ) );
@@ -244,6 +248,7 @@ function salt_submission_export( int $post_id ): ?array {
 		'created'      => (string) $post->post_date,
 		'name'         => (string) get_post_meta( $post_id, 'salt_name', true ),
 		'email'        => (string) get_post_meta( $post_id, 'salt_email', true ),
+		'phone'        => (string) get_post_meta( $post_id, 'salt_phone', true ),
 		'message'      => (string) get_post_meta( $post_id, 'salt_message', true ),
 		'enquiry_type' => (string) get_post_meta( $post_id, 'salt_enquiry_type', true ),
 		'page_url'     => (string) get_post_meta( $post_id, 'salt_page_url', true ),

@@ -83,7 +83,8 @@ function salt_contact_recipient( string $enquiry_type ): string {
  *
  * Frozen submission contract: array{name: string, email: string,
  * message: string, enquiry_type: string, page_url: string,
- * submitted_at: string, ip_hash: string}.
+ * submitted_at: string, ip_hash: string, phone?: string}: phone only
+ * when the visitor gave one (it is personal data).
  *
  * @param array<string,string> $submission Validated submission.
  * @return array{sent: bool, errors: string[]} sent reflects the routed
@@ -96,6 +97,7 @@ function salt_contact_deliver( array $submission ): array {
 	$name         = salt_mailer_single_line( (string) ( $submission['name'] ?? '' ) );
 	$email_raw    = trim( (string) ( $submission['email'] ?? '' ) );
 	$email        = is_email( $email_raw ) ? $email_raw : '';
+	$phone        = salt_mailer_single_line( (string) ( $submission['phone'] ?? '' ) );
 	$enquiry_type = salt_mailer_single_line( (string) ( $submission['enquiry_type'] ?? '' ) );
 	$message      = trim( wp_strip_all_tags( (string) ( $submission['message'] ?? '' ) ) );
 	$page_url     = salt_mailer_single_line( (string) ( $submission['page_url'] ?? '' ) );
@@ -124,15 +126,21 @@ function salt_contact_deliver( array $submission ): array {
 
 	$body = implode(
 		"\n",
-		array(
-			__( 'Name:', 'salt' ) . ' ' . $name,
-			__( 'Email:', 'salt' ) . ' ' . salt_mailer_single_line( $email_raw ),
-			__( 'Enquiry type:', 'salt' ) . ' ' . $enquiry_type,
-			__( 'Page:', 'salt' ) . ' ' . $page_url,
-			__( 'Submitted:', 'salt' ) . ' ' . $submitted_at,
-			'',
-			__( 'Message:', 'salt' ),
-			$message,
+		array_merge(
+			array(
+				__( 'Name:', 'salt' ) . ' ' . $name,
+				__( 'Email:', 'salt' ) . ' ' . salt_mailer_single_line( $email_raw ),
+			),
+			// The phone line only when the visitor gave one.
+			'' !== $phone ? array( __( 'Phone:', 'salt' ) . ' ' . $phone ) : array(),
+			array(
+				__( 'Enquiry type:', 'salt' ) . ' ' . $enquiry_type,
+				__( 'Page:', 'salt' ) . ' ' . $page_url,
+				__( 'Submitted:', 'salt' ) . ' ' . $submitted_at,
+				'',
+				__( 'Message:', 'salt' ),
+				$message,
+			)
 		)
 	);
 

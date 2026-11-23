@@ -268,6 +268,7 @@ final class SubmissionsTest extends SaltTestCase {
 				'created'      => $post->post_date,
 				'name'         => 'Jane Doe',
 				'email'        => 'jane@example.test',
+				'phone'        => '',
 				'message'      => 'Hello — enquiry body.',
 				'enquiry_type' => 'booking',
 				'page_url'     => 'https://example.test/contact/',
@@ -276,6 +277,19 @@ final class SubmissionsTest extends SaltTestCase {
 			),
 			salt_submission_export( $post_id )
 		);
+	}
+
+	public function test_a_phone_is_stored_exported_and_purged_only_when_given(): void {
+		$this->set_storage( true, 30 );
+
+		$without = salt_submission_store( $this->enquiry( time() ) );
+		$this->assertArrayNotHasKey( 'salt_phone', $GLOBALS['salt_test_meta'][ $without ], 'No phone given: none stored.' );
+
+		$with = salt_submission_store( array( 'phone' => '+44 117 496 0123' ) + $this->enquiry( time() - ( 31 * DAY_IN_SECONDS ) ) );
+		$this->assertSame( '+44 117 496 0123', salt_submission_export( $with )['phone'], 'In the per-record export (PRIV06).' );
+
+		salt_submissions_purge();
+		$this->assertArrayNotHasKey( $with, $GLOBALS['salt_test_meta'], 'Purged with its record (PRIV03).' );
 	}
 
 	public function test_export_returns_null_for_foreign_posts_and_unknown_ids(): void {
