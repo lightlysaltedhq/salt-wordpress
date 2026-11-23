@@ -9,7 +9,9 @@
  * draws its args and nothing else.
  *
  * ARGS:
- *   button array        { label, url, style, target } (salt_contract_buttons()).
+ *   button array        The contract's button props { label, href, style,
+ *                       newTab } (view-props/_shared.json button;
+ *                       salt_contract_button_props()).
  *   arrow  string|null  The site's arrow (salt_contract_arrow()), or null for none.
  *
  * @package Salt
@@ -28,8 +30,8 @@ if ( null !== $salt_arrow ) {
 
 printf(
 	'<a class="salt-button" href="%1$s" data-style="%2$s" data-track-control="cta"%3$s>%4$s</a>',
-	esc_url( (string) ( $salt_button['url'] ?? '' ) ),
+	esc_url( (string) ( $salt_button['href'] ?? '' ) ),
 	esc_attr( (string) ( $salt_button['style'] ?? 'primary' ) ),
-	'_blank' === ( $salt_button['target'] ?? '' ) ? ' target="_blank" rel="noopener noreferrer"' : '',
+	! empty( $salt_button['newTab'] ) ? ' target="_blank" rel="noopener noreferrer"' : '',
 	$salt_label // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
 );
