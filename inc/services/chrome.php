@@ -796,23 +796,58 @@ function salt_chrome_script_data(): array {
 		),
 	);
 	if ( true === apply_filters( 'salt_consent_control', function_exists( 'salt_consent_plugin_active' ) && salt_consent_plugin_active() ) ) {
-		$panel      = salt_consent_panel();
-		$categories = array();
-		foreach ( $panel['categories'] as $category ) {
-			$id           = sanitize_key( (string) $category['id'] );
-			$categories[] = array(
-				'id'          => $id,
-				'label'       => (string) $category['label'],
-				'description' => (string) $category['description'],
-				'api'         => function_exists( 'salt_consent_api_category' ) ? salt_consent_api_category( $id ) : $id,
-			);
-		}
+		$panel           = salt_consent_panel();
 		$data['consent'] = array(
 			'labels'     => array_map( 'strval', $panel['labels'] ),
-			'categories' => $categories,
+			'categories' => salt_consent_api_choices( $panel['categories'] ),
 		);
 	}
 	return $data;
+}
+
+/**
+ * The consent panel's choices as script offers them: one per WP Consent
+ * API category, since that is what the plugin records. Theme categories
+ * that share one (embeds and marketing are both marketing) become one
+ * checkbox whose label and description cover them all, so a tick never
+ * grants an API category on behalf of a box the visitor left clear. Its
+ * id is the first theme category's, keeping the contract's id form
+ * (site-footer__consent-<category>).
+ *
+ * @param array<int,array{id:string,label:string,description:string}> $categories salt_consent_panel() categories.
+ * @return array<int,array{id:string,label:string,description:string,api:string}>
+ */
+function salt_consent_api_choices( array $categories ): array {
+	$groups = array();
+	foreach ( $categories as $category ) {
+		$id  = sanitize_key( (string) $category['id'] );
+		$api = function_exists( 'salt_consent_api_category' ) ? salt_consent_api_category( $id ) : $id;
+		if ( ! isset( $groups[ $api ] ) ) {
+			$groups[ $api ] = array(
+				'id'           => $id,
+				'labels'       => array(),
+				'descriptions' => array(),
+				'api'          => $api,
+			);
+		}
+		$groups[ $api ]['labels'][]       = (string) $category['label'];
+		$groups[ $api ]['descriptions'][] = (string) $category['description'];
+	}
+
+	$choices = array();
+	foreach ( $groups as $group ) {
+		$labels = $group['labels'];
+		$last   = array_pop( $labels );
+		/* translators: 1: a list of consent category names, 2: the last one. */
+		$label     = array() === $labels ? $last : sprintf( __( '%1$s and %2$s', 'salt' ), implode( ', ', $labels ), $last );
+		$choices[] = array(
+			'id'          => $group['id'],
+			'label'       => $label,
+			'description' => implode( ' ', array_filter( $group['descriptions'] ) ),
+			'api'         => $group['api'],
+		);
+	}
+	return $choices;
 }
 
 /**
