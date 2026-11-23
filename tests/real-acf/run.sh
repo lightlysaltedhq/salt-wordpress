@@ -314,6 +314,7 @@ phase "single templates over HTTP (the contract's service, case-study and post f
 if [ "$BROWSER" = 1 ]; then
 	phase "contact form over real requests in Chromium, with and without script (CSP on)" node "$HERE/contact.mjs"
 	phase "the theme's pages under its CSP in Chromium" node "$HERE/csp.mjs"
+	phase "no style the CSP refuses on the representative pages, signed out and in (Chromium)" node "$HERE/inline-styles.mjs"
 	phase "editor in a real browser (Chromium)" node "$HERE/browser.mjs"
 else
 	PHASES+=("SKIP  editor in a real browser (--no-browser)")
