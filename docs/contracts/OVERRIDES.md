@@ -85,7 +85,12 @@ walker gives it: the title attribute, target, rel (XFN, so `rel="me"`
 holds), and the `nav_menu_link_attributes` and `nav_menu_item_title`
 filters (a filter's `class` is dropped). The contract fixes each element's
 classes, so a menu item's CSS Classes field and `nav_menu_css_class` no
-longer apply.
+longer apply. `wp_nav_menu_items` (and `wp_nav_menu_{$menu->slug}_items`) no
+longer add items to the header or footer: the chrome draws the menu's
+tree, not `wp_nav_menu()`'s HTML. Only the `primary` location's submenus
+take the header's ids (`site-header__submenu-<n>`); the walker gives any
+other menu `site-menu-<location>__submenu-<n>`, so a second menu on the
+page never repeats an id.
 
 Chrome seams (filters):
 - `salt_contract_labels( array )` — the chrome's words (`navigation`,

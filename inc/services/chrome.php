@@ -70,15 +70,18 @@ function salt_logo_height(): int {
 /**
  * The logo height the site draws (px), or null when the option holds no
  * value at all. ACF returns the field's default (48) for an option never
- * saved, and an emptied field is the 48px default too, so every site keeps
- * its height; only a site without the field's default (the contract
- * adapter's shims) draws no style, as the contract's site-logo does, and
- * salt.css's 2rem applies.
+ * saved, an emptied field is the 48px default too, and so is a site
+ * without ACF, so every site keeps its height. Only the contract
+ * adapter's shims, with ACF present but no field default, give null: the
+ * contract's site-logo then draws no style, and salt.css's 2rem applies.
  *
  * @return int|null
  */
 function salt_logo_height_set(): ?int {
-	$raw = salt_acf_active() ? salt_option( 'logo_height' ) : null;
+	if ( ! salt_acf_active() ) {
+		return 48;
+	}
+	$raw = salt_option( 'logo_height' );
 	return null === $raw ? null : salt_logo_height_value( $raw );
 }
 
@@ -93,13 +96,9 @@ function salt_logo_height_set(): ?int {
  * offset --salt-scroll-padding ONLY when the header is sticky. Numeric
  * tokens only — safe to print unescaped inside the nonce-stamped <style>.
  *
- * @return string CSS, '' when ACF is absent (compiled defaults apply).
+ * @return string CSS; without ACF, the 48px default only.
  */
 function salt_header_runtime_css(): string {
-	if ( ! salt_acf_active() ) {
-		return '';
-	}
-
 	$height = salt_logo_height_set();
 	$css    = null === $height ? '' : sprintf( '.salt-logo{--logo-height:%dpx}', $height );
 
