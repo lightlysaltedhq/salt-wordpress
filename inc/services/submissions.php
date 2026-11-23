@@ -62,10 +62,11 @@ function salt_submissions_retention_days(): int {
 
 /**
  * A Unix timestamp from a submitted_at value: an integer timestamp, or an
- * ISO 8601 date (as the contact handler and its webhook pass it), or null
- * when it is neither or not a plausible enquiry date (before 2020, or more
- * than a day ahead). The bound is what tells a real timestamp from the
- * year a date's string was once cast to (2026).
+ * ISO 8601 date (as the contact handler and its webhook pass it; UTC when
+ * it names no offset), or null when it is neither (relative words such as
+ * "yesterday" are not dates) or not a plausible enquiry date (before 2020,
+ * or more than a day ahead). The bound is what tells a real timestamp from
+ * the year a date's string was once cast to (2026).
  *
  * @param mixed $value The value.
  * @return int|null
@@ -73,12 +74,17 @@ function salt_submissions_retention_days(): int {
 function salt_submission_timestamp( $value ): ?int {
 	if ( is_int( $value ) || ( is_string( $value ) && ctype_digit( $value ) ) ) {
 		$timestamp = (int) $value;
-	} elseif ( is_string( $value ) && '' !== trim( $value ) ) {
+	} elseif ( is_string( $value ) && 1 === preg_match( '/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/', trim( $value ) ) ) {
 		try {
-			$timestamp = ( new DateTimeImmutable( trim( $value ), new DateTimeZone( 'UTC' ) ) )->getTimestamp();
+			$date = new DateTimeImmutable( trim( $value ), new DateTimeZone( 'UTC' ) );
 		} catch ( Exception $e ) {
 			return null;
 		}
+		$problems = DateTimeImmutable::getLastErrors();
+		if ( false !== $problems && ( $problems['warning_count'] > 0 || $problems['error_count'] > 0 ) ) {
+			return null; // Not a real day, such as 2026-02-31.
+		}
+		$timestamp = $date->getTimestamp();
 	} else {
 		return null;
 	}
@@ -88,8 +94,9 @@ function salt_submission_timestamp( $value ): ?int {
 /**
  * When a stored enquiry was submitted, as far as it can be trusted: its
  * salt_submitted_at when that is a plausible timestamp, else when its post
- * was stored (post_date_gmt), else null. Rows stored before this fix carry
- * 2026 (an ISO date cast to int) and are dated by their post.
+ * was stored (post_date_gmt, whatever the year: WordPress wrote it), else
+ * null. Rows stored before this fix carry 2026 (an ISO date cast to int)
+ * and are dated by their post.
  *
  * @param WP_Post $post The submission.
  * @return int|null Null when neither date can be trusted.
@@ -100,7 +107,8 @@ function salt_submission_date( $post ): ?int {
 		return $meta;
 	}
 	$stored = (string) ( $post->post_date_gmt ?? '' );
-	return '' !== $stored && ! str_starts_with( $stored, '0000' ) ? salt_submission_timestamp( $stored ) : null;
+	$date   = str_starts_with( $stored, '0000' ) ? false : DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $stored, new DateTimeZone( 'UTC' ) );
+	return false !== $date ? $date->getTimestamp() : null;
 }
 
 /**
@@ -177,13 +185,20 @@ function salt_submissions_purge(): int {
 		)
 	);
 
+	$kept = 0;
 	foreach ( $posts as $post ) {
 		// A row whose date cannot be trusted is never deleted.
 		$submitted_at = salt_submission_date( $post );
-		if ( null !== $submitted_at && $submitted_at < $cutoff ) {
+		if ( null === $submitted_at ) {
+			++$kept;
+		} elseif ( $submitted_at < $cutoff ) {
 			wp_delete_post( $post->ID, true );
 			++$deleted;
 		}
+	}
+	if ( $kept > 0 ) {
+		// The count only: never a name, an address or a message.
+		salt_log( sprintf( 'salt_submissions_purge: kept %d stored enquiries with no trustworthy date; check them by hand.', $kept ) );
 	}
 
 	update_option( 'salt_submissions_last_purge', time() );

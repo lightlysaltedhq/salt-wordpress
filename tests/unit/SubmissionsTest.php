@@ -181,6 +181,65 @@ final class SubmissionsTest extends SaltTestCase {
 		$this->assertNull( salt_submission_export( $id )['submitted_at'] );
 	}
 
+	public function test_a_row_stored_before_2020_is_dated_by_its_post_and_purged(): void {
+		$this->set_storage( true, 30 );
+		$id = wp_insert_post(
+			array(
+				'post_type'     => 'salt_submission',
+				'post_status'   => 'private',
+				'post_date_gmt' => '2019-06-01 09:30:00',
+			)
+		);
+		update_post_meta( $id, 'salt_submitted_at', 2026 );
+
+		$this->assertSame( 1559381400, salt_submission_export( $id )['submitted_at'], 'The 2020 floor is the meta\'s, never the post\'s.' );
+		$this->assertSame( 1, salt_submissions_purge() );
+		$this->assertNull( get_post( $id ) );
+	}
+
+	public function test_kept_rows_are_counted_in_the_log_without_personal_data(): void {
+		$this->set_storage( true, 30 );
+		foreach ( array( 1, 2 ) as $n ) {
+			$id = wp_insert_post(
+				array(
+					'post_type'     => 'salt_submission',
+					'post_status'   => 'private',
+					'post_title'    => 'Jane Doe — booking — 1970-01-01 00:33',
+					'post_date_gmt' => '0000-00-00 00:00:00',
+				)
+			);
+			update_post_meta( $id, 'salt_submitted_at', 2026 );
+			update_post_meta( $id, 'salt_name', 'Jane Doe' );
+			update_post_meta( $id, 'salt_email', 'jane@example.test' );
+		}
+
+		salt_submissions_purge();
+
+		$logs = implode( "\n", $this->logs() );
+		$this->assertStringContainsString( 'kept 2 stored enquiries with no trustworthy date', $logs );
+		$this->assertStringNotContainsString( 'Jane', $logs );
+		$this->assertStringNotContainsString( 'example.test', $logs );
+	}
+
+	public function test_a_dated_purge_with_nothing_kept_logs_nothing(): void {
+		$this->set_storage( true, 30 );
+		salt_submission_store( $this->enquiry( time() - ( 40 * DAY_IN_SECONDS ) ) );
+
+		$this->assertSame( 1, salt_submissions_purge() );
+		$this->assertSame( array(), $this->logs() );
+	}
+
+	public function test_only_an_integer_or_an_iso_8601_date_is_a_timestamp(): void {
+		$this->assertSame( 1795428900, salt_submission_timestamp( '2026-11-23T10:15:00+00:00' ) );
+		$this->assertSame( 1795428900, salt_submission_timestamp( '2026-11-23T10:15:00Z' ) );
+		$this->assertSame( 1795425300, salt_submission_timestamp( '2026-11-23T10:15:00+01:00' ) );
+		$this->assertSame( 1795428900, salt_submission_timestamp( 1795428900 ) );
+		$this->assertSame( 1795428900, salt_submission_timestamp( '1795428900' ) );
+		foreach ( array( 'now', 'yesterday', '-1 day', 'next monday', 'today 10:00', '23 November 2026', '2026-02-31T10:00:00Z', '2026-11-23 garbage', '', null, 1.5, array() ) as $value ) {
+			$this->assertNull( salt_submission_timestamp( $value ), var_export( $value, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- The failing value, in the message.
+		}
+	}
+
 	public function test_purge_ignores_foreign_post_types(): void {
 		$this->set_storage( true, 30 );
 		$this->seed_posts(
