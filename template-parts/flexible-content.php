@@ -6,7 +6,7 @@
  * H1 invariant (A11Y01): the FIRST section is the page's designated
  * primary heading (its heading renders as H1 via the wrapper's claim).
  * The loop renders into a buffer; if no section claimed the H1 (e.g. a
- * heading-less first section, or zero sections), a visually-hidden H1
+ * heading-less first section, or zero sections), a visually hidden H1 (salt-sr-only)
  * with the post title is emitted BEFORE the sections — no builder page
  * can ship a zero-H1 outline.
  *
@@ -69,7 +69,7 @@ if ( have_rows( 'sections' ) ) {
 $salt_sections_html = (string) ob_get_clean();
 
 if ( ! salt_h1_claimed() ) {
-	salt_the_document_h1( get_the_title(), 'visually-hidden' );
+	salt_the_document_h1( get_the_title(), 'salt-sr-only' );
 }
 
 echo $salt_sections_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Section partials escape at the point each value is printed.

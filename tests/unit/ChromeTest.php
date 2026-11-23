@@ -360,9 +360,9 @@ final class ChromeTest extends SaltTestCase {
 		);
 
 		// walk() draws the bar's items, not nothing.
-		$this->assertStringStartsWith( '<li class="salt-nav__item"><a class="salt-nav__link" href="https://example.test/1/" title="Our profile" target="_blank" rel="me" data-depth="0">Item 1</a></li>', $html );
+		$this->assertStringStartsWith( '<li class="salt-nav__item"><a class="salt-nav__link" href="/1/" title="Our profile" target="_blank" rel="me" data-depth="0">Item 1</a></li>', $html );
 		$this->assertStringContainsString( 'aria-label="Show submenu for Item 2"', $html );
-		$this->assertStringContainsString( '<a class="salt-nav__sublink" href="https://example.test/3/" data-depth="1"><em>Item 3</em></a>', $html );
+		$this->assertStringContainsString( '<a class="salt-nav__sublink" href="/3/" data-depth="1"><em>Item 3</em></a>', $html );
 		$this->assertStringNotContainsString( 'class-', $html );
 		$this->assertStringNotContainsString( 'plugin-class', $html, 'The contract fixes the class list.' );
 	}

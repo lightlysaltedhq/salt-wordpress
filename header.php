@@ -19,6 +19,6 @@
 </head>
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
-<a class="visually-hidden" href="#main"><?php esc_html_e( 'Skip to content', 'salt' ); ?></a>
+<a class="salt-skip-link" href="#main"><?php echo esc_html( salt_chrome_labels( 'header' )['skip'] ); ?></a>
 <?php get_template_part( 'template-parts/header/site-header' ); ?>
 <main id="main" tabindex="-1">

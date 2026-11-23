@@ -187,7 +187,7 @@ final class PagePlanTest extends SaltTestCase {
 
 		$this->assertStringContainsString( 'name="faq-0"', $html, 'The accordion is named by the band\'s place among drawn bands, not its stored row (1).' );
 		$this->assertMatchesRegularExpression( '/<h1[\s>][^<]*Questions/', $html, 'The first drawn band claims the h1.' );
-		$this->assertStringNotContainsString( 'visually-hidden', $html, 'No fallback heading: a band claimed the h1.' );
+		$this->assertStringNotContainsString( 'salt-sr-only', $html, 'No fallback heading: a band claimed the h1.' );
 	}
 
 	public function test_an_empty_first_row_still_counts_for_the_next_minted_id(): void {
