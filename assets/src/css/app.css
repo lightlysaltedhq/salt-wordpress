@@ -475,6 +475,44 @@
 	color: var(--color-ink);
 }
 
+/*
+ * The map facade (salt-contract markup/map.json). The contract's stylesheet
+ * owes these rules (map.json notes, stylesheet-owes): until it has them,
+ * they live here. A 16:9 box holds the label and the load button, so the
+ * map takes the same space when it loads; its border follows the band's
+ * tone. The canvas maps.js adds fills the box: the child combinator wins
+ * over MapLibre's own .maplibregl-map rule, which sets position relative.
+ * The contract's BEM element names are not kebab-case.
+ */
+
+/* stylelint-disable selector-class-pattern */
+.salt-map {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	align-items: center;
+	justify-content: center;
+	aspect-ratio: 16 / 9;
+	overflow: hidden;
+	padding: var(--space-4);
+	border: 1px solid var(--salt-section-border, var(--color-border));
+	border-radius: var(--radius-md);
+	text-align: center;
+}
+
+.salt-map__label,
+.salt-map__notice {
+	margin: 0;
+}
+
+.salt-map > .salt-map__canvas {
+	position: absolute;
+	inset: 0;
+}
+
+/* stylelint-enable selector-class-pattern */
+
 /* ---------------------------------------------------------------------- */
 
 /* Display preferences (§14) — token-level, never CSS filters              */
