@@ -45,6 +45,18 @@ try {
 			const refusals = await page.evaluate( () => window.saltHarnessRefusals );
 			const csp = response.headers()[ 'content-security-policy' ] || '';
 			result( response.status() === 200 && /style-src 'self' 'nonce-/.test( csp ) && refusals.length === 0, `${ who }: ${ name } loads with no style-src refusal`, refusals.length ? `${ refusals.length } refused: ${ refusals.join( ' | ' ) }` : `${ response.status() }` );
+			if ( 'post' === name && 'signed out' === who ) {
+				await context.grantPermissions( [ 'clipboard-read', 'clipboard-write' ], { origin: new URL( url ).origin } );
+				const button = page.locator( '.salt-copy-link__button' );
+				const status = page.locator( '.salt-copy-link [role="status"]' );
+				await button.click();
+				const canonical = await page.locator( 'link[rel="canonical"]' ).getAttribute( 'href' );
+				const copied = await page.evaluate( () => navigator.clipboard.readText() );
+				result( copied === canonical && await status.textContent() === 'Link copied', 'post: Copy link copies the canonical URL and announces success under CSP' );
+				await page.evaluate( () => { navigator.clipboard.writeText = () => Promise.reject( new Error( 'Clipboard refused' ) ); } );
+				await button.click();
+				result( await status.textContent() === 'Could not copy the link', 'post: Copy link announces a refused clipboard write under CSP' );
+			}
 			if ( 'blocks' === name ) {
 				const applied = await page.evaluate( () => {
 					const button = document.querySelector( '.wp-block-button__link' );

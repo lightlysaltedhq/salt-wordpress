@@ -386,28 +386,16 @@ function salt_case_study_settings(): array {
 }
 
 /**
- * Hand the share script its status labels (labels.copied and
- * labels.copyFailed, which the contract's copy control announces) as
- * window.saltShare, when the page enqueued it ('wp_enqueue_scripts', after
- * salt_enqueue_section_assets()).
+ * Pass translated status text on the external share script, without inline JS.
  *
- * @return void
+ * @param array $attributes Script tag attributes, escaped by WordPress.
+ * @return array
  */
-function salt_share_script_labels(): void {
-	if ( ! wp_script_is( 'salt-section-share', 'enqueued' ) ) {
-		return;
+function salt_share_script_labels( array $attributes ): array {
+	if ( 'salt-section-share-js' === ( $attributes['id'] ?? '' ) ) {
+		$attributes['data-copied']      = __( 'Link copied', 'salt' );
+		$attributes['data-copy-failed'] = __( 'Could not copy the link', 'salt' );
 	}
-	wp_add_inline_script(
-		'salt-section-share',
-		'window.saltShare = ' . wp_json_encode(
-			array(
-				'labels' => array(
-					'copied'     => __( 'Link copied', 'salt' ),
-					'copyFailed' => __( 'Could not copy the link', 'salt' ),
-				),
-			)
-		) . ';',
-		'before'
-	);
+	return $attributes;
 }
-add_action( 'wp_enqueue_scripts', 'salt_share_script_labels', 21 );
+add_filter( 'wp_script_attributes', 'salt_share_script_labels' );

@@ -7,7 +7,7 @@
  * control. This module marks each button ready, copies the page's address
  * (its canonical link, else the address bar) on click and writes the result
  * into the control's status (role=status, aria-live=polite), which the
- * theme hands over as window.saltShare.labels (salt_share_script_labels()).
+ * theme supplies on the external script tag (salt_share_script_labels()).
  *
  * Self-contained IIFE, plain ES2020, no imports.
  */
@@ -18,7 +18,7 @@
 		return; // No clipboard API: the button stays not ready (hidden).
 	}
 
-	const labels = (window.saltShare && window.saltShare.labels) || {};
+	const labels = document.currentScript.dataset;
 	const canonical = document.querySelector('link[rel="canonical"]');
 	const url = canonical && canonical.href ? canonical.href : window.location.href;
 
