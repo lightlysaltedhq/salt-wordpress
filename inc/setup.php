@@ -152,10 +152,8 @@ add_action( 'wp_head', 'salt_output_theme_init_script', 0 );
  * @return void
  */
 function salt_output_theme_vars_css(): void {
-	if ( ! salt_acf_active() ) {
-		return;
-	}
-
+	// Each builder degrades without ACF: the fonts give none, the header
+	// still gives the 48px logo default.
 	$css = '';
 	if ( function_exists( 'salt_fonts_runtime_css' ) ) {
 		$css .= salt_fonts_runtime_css();

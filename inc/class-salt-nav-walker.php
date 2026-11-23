@@ -15,7 +15,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * walk() reads the menu wp_nav_menu() hands it into a tree and returns the
  * bar's items (the <li>s of salt-nav__list), so a child theme that calls
- * wp_nav_menu() with this walker gets the contract's markup. The chrome
+ * wp_nav_menu() with this walker gets the contract's markup. Only the
+ * primary location's submenus take the header's ids; another menu's take
+ * site-menu-<location>__submenu-<n> (salt_submenu_prefix()). The chrome
  * itself reads tree() through salt_menu() and draws it once in the bar and
  * again in the drawer, or as the footer's columns.
  *
@@ -69,7 +71,28 @@ class Salt_Nav_Walker extends Walker_Nav_Menu {
 		}
 
 		$this->salt_tree = array_values( $top );
-		return salt_header_nav_items_html( $this->salt_tree, salt_chrome_labels( 'header' ), 'site-header__submenu-' );
+		return salt_header_nav_items_html( $this->salt_tree, salt_chrome_labels( 'header' ), self::salt_submenu_prefix( $menu_args ) );
+	}
+
+	/**
+	 * The submenu ids' prefix for the menu being walked. The header's
+	 * (primary) are the contract's site-header__submenu-<n> (SC-012); any
+	 * other menu takes its own, named by its location (or, without one, its
+	 * menu), so two menus on a page never share an id. Each contains __,
+	 * which no editor's anchor can.
+	 *
+	 * @param object $menu_args wp_nav_menu() args.
+	 * @return string
+	 */
+	private static function salt_submenu_prefix( $menu_args ): string {
+		$location = (string) ( $menu_args->theme_location ?? '' );
+		if ( 'primary' === $location ) {
+			return 'site-header__submenu-';
+		}
+		$menu  = $menu_args->menu ?? '';
+		$owner = '' !== $location ? $location : ( is_object( $menu ) ? (string) ( $menu->slug ?? $menu->term_id ?? '' ) : ( is_scalar( $menu ) ? (string) $menu : '' ) );
+		$owner = sanitize_key( $owner );
+		return 'site-menu-' . ( '' === $owner ? 'menu' : $owner ) . '__submenu-';
 	}
 
 	/**

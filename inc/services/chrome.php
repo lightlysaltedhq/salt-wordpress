@@ -70,15 +70,18 @@ function salt_logo_height(): int {
 /**
  * The logo height the site draws (px), or null when the option holds no
  * value at all. ACF returns the field's default (48) for an option never
- * saved, and an emptied field is the 48px default too, so every site keeps
- * its height; only a site without the field's default (the contract
- * adapter's shims) draws no style, as the contract's site-logo does, and
- * salt.css's 2rem applies.
+ * saved, an emptied field is the 48px default too, and so is a site
+ * without ACF, so every site keeps its height. Only the contract
+ * adapter's shims, with ACF present but no field default, give null: the
+ * contract's site-logo then draws no style, and salt.css's 2rem applies.
  *
  * @return int|null
  */
 function salt_logo_height_set(): ?int {
-	$raw = salt_acf_active() ? salt_option( 'logo_height' ) : null;
+	if ( ! salt_acf_active() ) {
+		return 48;
+	}
+	$raw = salt_option( 'logo_height' );
 	return null === $raw ? null : salt_logo_height_value( $raw );
 }
 
@@ -93,13 +96,9 @@ function salt_logo_height_set(): ?int {
  * offset --salt-scroll-padding ONLY when the header is sticky. Numeric
  * tokens only — safe to print unescaped inside the nonce-stamped <style>.
  *
- * @return string CSS, '' when ACF is absent (compiled defaults apply).
+ * @return string CSS; without ACF, the 48px default only.
  */
 function salt_header_runtime_css(): string {
-	if ( ! salt_acf_active() ) {
-		return '';
-	}
-
 	$height = salt_logo_height_set();
 	$css    = null === $height ? '' : sprintf( '.salt-logo{--logo-height:%dpx}', $height );
 
@@ -459,6 +458,7 @@ function salt_chrome_labels( string $context ): array {
 		'menu'        => __( 'Menu', 'salt' ),
 		'closeMenu'   => __( 'Close menu', 'salt' ),
 		'theme'       => __( 'Dark mode', 'salt' ),
+		'skip'        => __( 'Skip to content', 'salt' ),
 		'social'      => __( 'Social media', 'salt' ),
 		'preferences' => __( 'Cookie preferences', 'salt' ),
 	);
@@ -468,16 +468,16 @@ function salt_chrome_labels( string $context ): array {
 /**
  * Where the theme toggle is placed: 'header', 'footer' or null for none.
  *
- * PENDING FOUNDER RULING: WordPress has no setting for this yet (whether
- * editors set it in Site Settings or a code filter does). Until then the
- * `salt_theme_toggle_placement` filter is the seam; the default is none,
- * so no site changes. A placed toggle takes the place of the display
- * preferences' dark-mode control.
+ * Site Settings → Header & Footer, theme_toggle_placement (default none,
+ * so no site changes); the `salt_theme_toggle_placement` filter is a
+ * site's code override on top. A placed toggle takes the place of the
+ * display preferences' dark-mode control.
  *
  * @return string|null
  */
 function salt_theme_toggle_placement(): ?string {
-	$placement = apply_filters( 'salt_theme_toggle_placement', null );
+	$stored    = salt_acf_active() ? salt_option( 'theme_toggle_placement' ) : null;
+	$placement = apply_filters( 'salt_theme_toggle_placement', in_array( $stored, array( 'header', 'footer' ), true ) ? $stored : null );
 	return in_array( $placement, array( 'header', 'footer' ), true ) ? $placement : null;
 }
 
@@ -504,14 +504,16 @@ function salt_theme_toggle_html( string $label ): string {
 
 /**
  * The header's phone number, or null for none: the site's company phone
- * (Company & Schema, company_phone), with the `salt_header_phone` filter
- * as a site's override (null or '' for none). Drawn only when it
- * normalises to a tel: link (salt_contract_tel(), section#display-forms).
+ * (Company & Schema, company_phone) when its "Show phone in header" switch
+ * (header_show_phone, off by default) is on, with the `salt_header_phone`
+ * filter as a site's code override (a number, or null or '' for none).
+ * Drawn only when it normalises to a tel: link (salt_contract_tel(),
+ * section#display-forms).
  *
  * @return array{text:string,tel:string}|null
  */
 function salt_header_phone(): ?array {
-	$stored = salt_acf_active() ? salt_option( 'company_phone' ) : null;
+	$stored = salt_acf_active() && true === (bool) salt_option( 'header_show_phone' ) ? salt_option( 'company_phone' ) : null;
 	$phone  = apply_filters( 'salt_header_phone', is_string( $stored ) ? $stored : null );
 	if ( ! is_string( $phone ) || '' === trim( $phone ) ) {
 		return null;
@@ -598,7 +600,7 @@ function salt_nav_link_html( array $item, string $class_name, bool $opens_sub ):
 	if ( null === $item['href'] ) {
 		return '<span class="' . $class_name . '"' . ( $opens_sub ? ' tabindex="0"' : '' ) . '>' . $label . '</span>';
 	}
-	$atts  = ' href="' . esc_url( (string) $item['href'] ) . '"';
+	$atts  = ' href="' . esc_url( salt_contract_url( (string) $item['href'] ) ) . '"';
 	$atts .= empty( $item['current'] ) ? '' : ' aria-current="page"';
 	foreach ( (array) ( $item['atts'] ?? array() ) as $name => $value ) {
 		$atts .= ' ' . esc_attr( (string) $name ) . '="' . esc_attr( (string) $value ) . '"';
@@ -614,7 +616,7 @@ function salt_nav_link_html( array $item, string $class_name, bool $opens_sub ):
  */
 function salt_header_cta_html( array $cta ): string {
 	$atts = '_blank' === $cta['target'] ? ' target="_blank" rel="noopener noreferrer"' : '';
-	return '<a class="salt-button salt-header__cta" href="' . esc_url( $cta['url'] ) . '" data-style="primary" data-track-control="cta"' . $atts . '>' . esc_html( $cta['label'] ) . '</a>';
+	return '<a class="salt-button salt-header__cta" href="' . esc_url( salt_contract_url( $cta['url'] ) ) . '" data-style="primary" data-track-control="cta"' . $atts . '>' . esc_html( $cta['label'] ) . '</a>';
 }
 
 /**
@@ -693,27 +695,30 @@ function salt_footer_columns( array $menu ): array {
 }
 
 /**
- * The footer's tone (data-tone and data-tone-dark).
- *
- * PENDING FOUNDER RULING: no Site Setting yet; the `salt_footer_tone`
- * filter is the seam. The default is surface-alt, the footer's colour
+ * The footer's tone (data-tone and data-tone-dark): Site Settings →
+ * Header & Footer, footer_tone, with the `salt_footer_tone` filter as a
+ * site's code override. The default is surface-alt, the footer's colour
  * before the contract.
  *
  * @return string
  */
 function salt_footer_tone(): string {
-	$tone = apply_filters( 'salt_footer_tone', 'surface-alt' );
-	return in_array( $tone, array( 'surface', 'surface-alt', 'brand-tint', 'surface-inverse' ), true ) ? $tone : 'surface-alt';
+	$tones  = array( 'surface', 'surface-alt', 'brand-tint', 'surface-inverse' );
+	$stored = salt_acf_active() ? salt_option( 'footer_tone' ) : null;
+	$tone   = apply_filters( 'salt_footer_tone', in_array( $stored, $tones, true ) ? $stored : 'surface-alt' );
+	return in_array( $tone, $tones, true ) ? $tone : 'surface-alt';
 }
 
 /**
- * Whether the footer shows the logo (the `salt_footer_show_logo` seam,
- * pending the same ruling; off by default, as before).
+ * Whether the footer shows the logo: Site Settings → Header & Footer,
+ * footer_show_logo (off by default, as before), with the
+ * `salt_footer_show_logo` filter as a site's code override.
  *
  * @return bool
  */
 function salt_footer_show_logo(): bool {
-	return true === apply_filters( 'salt_footer_show_logo', false );
+	$stored = salt_acf_active() && true === (bool) salt_option( 'footer_show_logo' );
+	return true === apply_filters( 'salt_footer_show_logo', $stored );
 }
 
 /**
