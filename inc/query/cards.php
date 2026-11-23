@@ -105,7 +105,8 @@ function salt_collection_index_url( string $source ): ?string {
  * The strings the contract's markup names as `labels.<name>`: for the
  * collection sections viewAll, slide, rating, results, social, previous
  * and next; for locations the status words (open, appointment, closed),
- * byAppointment, getDirections, directions (before the office name), and
+ * byAppointment, getDirections, directions ({name}, the office's name,
+ * replaced where it stands, nothing appended: README Labels), and
  * the map facade's load, loadMap, consent and error.
  *
  * The founder's ruling: translatable theme strings, in the contract
@@ -134,7 +135,8 @@ function salt_contract_labels( string $view = '' ): array {
 			'closed'        => __( 'Closed', 'salt' ),
 			'byAppointment' => __( 'By appointment', 'salt' ),
 			'getDirections' => __( 'Get directions', 'salt' ),
-			'directions'    => __( 'Directions to', 'salt' ),
+			/* translators: The directions link's accessible name; {name} is replaced by the office's name, where it stands, so put it where your language needs it. */
+			'directions'    => __( 'Directions to {name}', 'salt' ),
 			'load'          => __( 'Load the map', 'salt' ),
 			'loadMap'       => __( 'Load map', 'salt' ),
 			'consent'       => __( 'Allow map cookies to view this map.', 'salt' ),

@@ -710,7 +710,7 @@ final class LocationsSectionTest extends SaltTestCase {
 						'appointment'   => 'Sur rendez-vous',
 						'closed'        => 'Fermé',
 						'getDirections' => 'Itinéraire',
-						'directions'    => 'Itinéraire vers',
+						'directions'    => '{name} : itinéraire',
 					),
 				),
 				'plan'  => array(
@@ -732,7 +732,7 @@ final class LocationsSectionTest extends SaltTestCase {
 		$this->assertStringContainsString( '>Fermé</span>', $html, 'The status word is the labels\'.' );
 		$this->assertStringContainsString( '<li>Ask</li>', $html, 'No phoneHref: the number is text.' );
 		$this->assertStringContainsString( 'href="mailto:bath@example.test"', $html );
-		$this->assertStringContainsString( 'aria-label="Itinéraire vers Bath &lt;office&gt;">Itinéraire</a>', $html );
+		$this->assertStringContainsString( 'aria-label="Bath &lt;office&gt; : itinéraire">Itinéraire</a>', $html, 'The name where the label puts it, nothing appended.' );
 		$this->assertStringNotContainsString( '<dl', $html, 'No stored hours: no opening hours.' );
 		$this->assertStringNotContainsString( 'salt-map', $html, 'No coordinates: no map.' );
 		$this->assertStringNotContainsString( 'salt-section', $html, 'The band is the entry\'s, not the view\'s.' );
