@@ -119,7 +119,7 @@ update_field(
 	$page
 );
 list( $status, $body ) = salt_profile_http( get_permalink( $page ) );
-salt_harness_result( 200 === $status && str_contains( $body, $second ) && str_contains( $body, $url ) && strpos( $body, $second ) < strpos( $body, $url ) && ! str_contains( $body, 'Private writer' ) && ! str_contains( $body, 'View all' ), 'team Index preserves ordered public IDs, skips private users, has no view-all' );
+salt_harness_result( 200 === $status && str_contains( $body, salt_contract_url( $second ) ) && str_contains( $body, 'href="' . salt_contract_url( $url ) . '"' ) && strpos( $body, salt_contract_url( $second ) ) < strpos( $body, 'href="' . salt_contract_url( $url ) . '"' ) && ! str_contains( $body, 'Private writer' ) && ! str_contains( $body, 'View all' ), 'team Index preserves ordered public IDs, skips private users, has no view-all' );
 
 $cards = wp_insert_post(
 	array(
@@ -146,7 +146,7 @@ update_field(
 	$cards
 );
 list( $status, $body ) = salt_profile_http( get_permalink( $cards ) );
-salt_harness_result( 200 === $status && 2 === substr_count( $body, 'href="' . $url . '"' ) && 2 === substr_count( $body, 'alt="' . $case['media']['priya']['alt'] . '"' ) && ! str_contains( $body, 'Private writer' ), 'automatic team grid and carousel both link to the profile and use its photo' );
+salt_harness_result( 200 === $status && 2 === substr_count( $body, 'href="' . salt_contract_url( $url ) . '"' ) && 2 === substr_count( $body, 'alt="' . $case['media']['priya']['alt'] . '"' ) && ! str_contains( $body, 'Private writer' ), 'automatic team grid and carousel both link to the profile and use its photo' );
 
 $editor                = wp_insert_user(
 	array(
