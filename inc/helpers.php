@@ -138,7 +138,8 @@ function salt_contract_url( string $url ): string {
  * Buttons from salt_contract_buttons() as the contract's button view props
  * (view-props/_shared.json button: label, href, style, newTab), the shape
  * the hero, call-to-action and media-text views and
- * components/contract-button.php take.
+ * components/contract-button.php take. A same-site address is drawn
+ * root-relative (salt_contract_url()), as the contract's fixtures write it.
  *
  * @param array<int, array{label: string, url: string, style: string, target: string}> $buttons salt_contract_buttons().
  * @return array<int, array{label: string, href: string, style: string, newTab: bool}>
@@ -147,7 +148,7 @@ function salt_contract_button_props( array $buttons ): array {
 	return array_map(
 		static fn( array $button ): array => array(
 			'label'  => $button['label'],
-			'href'   => $button['url'],
+			'href'   => salt_contract_url( $button['url'] ),
 			'style'  => $button['style'],
 			'newTab' => '_blank' === $button['target'],
 		),
