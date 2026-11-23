@@ -47,11 +47,12 @@ if ( ! function_exists( 'wp_insert_post' ) ) {
 
 		$GLOBALS['salt_test_posts'][] = new WP_Post(
 			array(
-				'ID'          => $id,
-				'post_type'   => (string) ( $postarr['post_type'] ?? 'post' ),
-				'post_status' => (string) ( $postarr['post_status'] ?? 'draft' ),
-				'post_title'  => (string) ( $postarr['post_title'] ?? '' ),
-				'post_date'   => gmdate( 'Y-m-d H:i:s' ),
+				'ID'            => $id,
+				'post_type'     => (string) ( $postarr['post_type'] ?? 'post' ),
+				'post_status'   => (string) ( $postarr['post_status'] ?? 'draft' ),
+				'post_title'    => (string) ( $postarr['post_title'] ?? '' ),
+				'post_date'     => gmdate( 'Y-m-d H:i:s' ),
+				'post_date_gmt' => (string) ( $postarr['post_date_gmt'] ?? gmdate( 'Y-m-d H:i:s' ) ),
 			)
 		);
 

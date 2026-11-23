@@ -120,6 +120,67 @@ final class SubmissionsTest extends SaltTestCase {
 		$this->assertEqualsWithDelta( time(), (int) get_option( 'salt_submissions_last_purge' ), 5 );
 	}
 
+	/**
+	 * A row as main stored it before the date fix: salt_submitted_at 2026
+	 * (an ISO date cast to int), the post stored the given days ago.
+	 *
+	 * @param int $days_ago When the post was stored.
+	 * @return int Post ID.
+	 */
+	private function store_misdated_row( int $days_ago ): int {
+		$id = wp_insert_post(
+			array(
+				'post_type'     => 'salt_submission',
+				'post_status'   => 'private',
+				'post_date_gmt' => gmdate( 'Y-m-d H:i:s', time() - ( $days_ago * DAY_IN_SECONDS ) ),
+			)
+		);
+		update_post_meta( $id, 'salt_submitted_at', 2026 );
+		return $id;
+	}
+
+	public function test_an_iso_date_is_stored_as_its_timestamp(): void {
+		$this->set_storage( true );
+
+		$post_id = salt_submission_store( array( 'submitted_at' => '2026-11-23T10:15:00+00:00' ) + $this->enquiry( 0 ) );
+
+		$this->assertSame( 1795428900, $GLOBALS['salt_test_meta'][ $post_id ]['salt_submitted_at'] );
+		$this->assertStringEndsWith( '2026-11-23 10:15', get_post( $post_id )->post_title );
+	}
+
+	public function test_a_misdated_row_inside_the_window_survives_the_purge(): void {
+		$this->set_storage( true, 30 );
+		$id = $this->store_misdated_row( 5 );
+
+		$this->assertSame( 0, salt_submissions_purge() );
+		$this->assertNotNull( get_post( $id ) );
+		$this->assertSame( time() - 5 * DAY_IN_SECONDS, salt_submission_export( $id )['submitted_at'], 'Exported by the trustworthy date.' );
+	}
+
+	public function test_a_misdated_row_past_the_window_by_its_post_date_is_purged(): void {
+		$this->set_storage( true, 30 );
+		$id = $this->store_misdated_row( 100 );
+
+		$this->assertSame( 1, salt_submissions_purge() );
+		$this->assertNull( get_post( $id ) );
+	}
+
+	public function test_a_row_with_no_trustworthy_date_is_never_purged(): void {
+		$this->set_storage( true, 30 );
+		$id = wp_insert_post(
+			array(
+				'post_type'     => 'salt_submission',
+				'post_status'   => 'private',
+				'post_date_gmt' => '0000-00-00 00:00:00',
+			)
+		);
+		update_post_meta( $id, 'salt_submitted_at', 2026 );
+
+		$this->assertSame( 0, salt_submissions_purge() );
+		$this->assertNotNull( get_post( $id ) );
+		$this->assertNull( salt_submission_export( $id )['submitted_at'] );
+	}
+
 	public function test_purge_ignores_foreign_post_types(): void {
 		$this->set_storage( true, 30 );
 		$this->seed_posts(
