@@ -126,6 +126,18 @@ function salt_sanitize_html( string $html, ?array $allowed = null ): string {
 }
 
 /**
+ * Whether sanitised rich text has words (the contract's "the body has
+ * words", markup/rich-text-body.json): an empty paragraph, a lone
+ * non-breaking space or bare markup has none.
+ *
+ * @param string $html Sanitised HTML.
+ * @return bool
+ */
+function salt_rich_text_has_words( string $html ): bool {
+	return '' !== trim( str_replace( "\u{00A0}", ' ', html_entity_decode( wp_strip_all_tags( $html ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
+}
+
+/**
  * Draw the rich-text section's heading ranks relative to its actual container.
  * The input has already passed KSES: headings have no attributes. Change only
  * their rank digits, leaving prose, links, inline formatting and storage alone.
