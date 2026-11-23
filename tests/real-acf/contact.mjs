@@ -7,7 +7,9 @@
 //  - Without script, on plain and pretty permalinks: the first send has no
 //    credentials and is refused on the page itself (no redirect, not
 //    cacheable), with every entry kept and a fresh challenge; answering it
-//    sends, and the enquiry is stored.
+//    sends, and the enquiry is stored. Each reply lands on the sent form's
+//    status (the action's fragment), in view and focused, though another
+//    form sits above it; the page itself still opens at the top.
 //  - With script (pretty permalinks, where /wp-json/ answers): a send
 //    refused for a field error, then corrected straight away, arrives (the
 //    form token is kept for the retry, so the time trap passes); a second
@@ -37,6 +39,14 @@ const result = ( ok, check, detail = '' ) => {
 const info = ( line ) => console.log( `     ${ line }` );
 const send = ( page, form ) => Promise.all( [ page.waitForResponse( ( r ) => r.request().method() === 'POST' && r.url().includes( '/salt/v1/contact' ) ), form.locator( '.salt-contact__submit' ).click() ] ).then( ( [ r ] ) => r );
 const wait = ( ms ) => new Promise( ( resolve ) => setTimeout( resolve, ms ) );
+// Where a scriptless reply leaves the visitor: the address's fragment, the
+// page's scroll, whether the enquire form's status is in view and focused.
+const landing = ( page ) => page.evaluate( () => {
+	const status = document.getElementById( 'enquire__status' );
+	const box = status.getBoundingClientRect();
+	return { hash: window.location.hash, scrollY: Math.round( window.scrollY ), inView: box.top >= 0 && box.bottom <= window.innerHeight, focused: document.activeElement === status, active: document.activeElement.id || document.activeElement.tagName };
+} );
+const landed = ( where ) => where.hash === '#enquire__status' && where.inView && where.focused && where.scrollY > 0;
 
 site( 'seed' );
 const browser = await chromium.launch();
@@ -52,6 +62,8 @@ try {
 		const context = await browser.newContext( { javaScriptEnabled: false } );
 		const page = await context.newPage();
 		await page.goto( url );
+		const opened = await landing( page );
+		result( opened.hash === '' && opened.scrollY === 0 && ! opened.focused && ! opened.inView, `${ permalinks }: the page opens at the top, the enquire form's status out of view`, JSON.stringify( opened ) );
 		const form = () => page.locator( 'form#enquire__form' );
 		await form().locator( '[name=name]' ).fill( name );
 		await form().locator( '[name=email]' ).fill( 'ada@example.org' );
@@ -63,6 +75,8 @@ try {
 		const kept = await form().count() === 1 && await form().locator( '[name=name]' ).inputValue() === name && await form().locator( '[name=phone]' ).inputValue() === '0117 496 0123' && await form().locator( '[name=enquiryType]' ).inputValue() === 'maintenance' && await form().locator( '[name=message]' ).inputValue() === 'No script.';
 		result( refused.status() === 400 && kept, `${ permalinks }: a first send without credentials is refused on the page, every entry kept`, `status ${ refused.status() }` );
 		result( /no-store|no-cache/.test( refused.headers()[ 'cache-control' ] || '' ), `${ permalinks }: the answer is not cacheable`, refused.headers()[ 'cache-control' ] || '(none)' );
+		const afterRefusal = await landing( page );
+		result( landed( afterRefusal ), `${ permalinks }: the refusal brings the enquire form's status into view, focused`, JSON.stringify( afterRefusal ) );
 		const question = ( await form().locator( 'label[for=enquire__challenge]' ).textContent() ) || '';
 		const numbers = question.match( /(\d+)\D+(\d+)/ );
 		result( null !== numbers && await form().locator( 'input[name=formToken]' ).count() === 1, `${ permalinks }: a fresh challenge and form token`, question );
@@ -73,6 +87,8 @@ try {
 		const status = form().locator( '.salt-contact__status' );
 		result( sent.status() === 200 && await status.getAttribute( 'data-tone' ) === 'sent' && ! /salt-contact/.test( new URL( page.url() ).search.replace( 'salt-contact-send', '' ) ), `${ permalinks }: the answered send arrives, answered in place`, `status ${ sent.status() }, "${ await status.textContent() }"` );
 		result( site( 'stored', name ) === '1', `${ permalinks }: the enquiry is stored once` );
+		const afterSend = await landing( page );
+		result( landed( afterSend ), `${ permalinks }: the answered challenge brings the sent message into view, focused`, JSON.stringify( afterSend ) );
 		await context.close();
 	}
 

@@ -146,10 +146,14 @@ $salt_field = static function ( string $name, string $kind, array $attributes, b
 	echo '</div>';
 };
 
+// The action (platform-native, SC-003) names this form's status as its
+// fragment: a scriptless send is answered by a whole page, and the browser
+// scrolls that page to the status and focuses it (tabindex -1), so the
+// reply is in view and read out, for this form and no other on the page.
 printf(
 	'<form class="salt-contact__form" id="%1$s" method="post" action="%2$s" novalidate>',
 	esc_attr( $salt_id( 'form' ) ),
-	esc_url( add_query_arg( 'salt-contact-send', $salt_anchor, (string) $salt_form['action'] ) )
+	esc_url( add_query_arg( 'salt-contact-send', $salt_anchor, (string) $salt_form['action'] ) . '#' . $salt_id( 'status' ) )
 );
 
 $salt_field(

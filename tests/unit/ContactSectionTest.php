@@ -249,7 +249,7 @@ final class ContactSectionTest extends SaltTestCase {
 
 		$html = $this->render_contact_section( array( 'heading' => 'Get in touch' ) );
 
-		$this->assertStringContainsString( '<form class="salt-contact__form" id="contact__form" method="post" action="/contact/?salt-contact-send=contact" novalidate>', $html );
+		$this->assertStringContainsString( '<form class="salt-contact__form" id="contact__form" method="post" action="/contact/?salt-contact-send=contact#contact__status" novalidate>', $html );
 		foreach ( array( 'formToken', 'challengeToken', 'challengeAnswer', 'salt_contact_nonce', 'salt_time', 'name="action"' ) as $absent ) {
 			$this->assertStringNotContainsString( $absent, $html, $absent );
 		}
@@ -279,7 +279,7 @@ final class ContactSectionTest extends SaltTestCase {
 		$html = $this->render_contact_section( array( 'heading' => 'Get in touch' ) );
 
 		$this->assertStringContainsString( 'name="returnTo" value="/?page_id=7"', $html );
-		$this->assertMatchesRegularExpression( '#action="/\?page_id=7&(\#038;|amp;)?salt-contact-send=contact"#', $html );
+		$this->assertMatchesRegularExpression( '#action="/\?page_id=7&(\#038;|amp;)?salt-contact-send=contact\#contact__status"#', $html );
 	}
 
 	// -----------------------------------------------------------------
