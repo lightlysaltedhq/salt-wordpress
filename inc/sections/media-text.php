@@ -50,8 +50,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   arrow  string|null The site's arrow (salt_contract_arrow()).
  *   The contract's `mode` is not a prop: it only decides `mediaSide`.
  *
- * Plan: priorityMedia, the request for the page's priority image when the
- * first rendered row draws an image.
+ * Plan: priorityMedia, the request for the page's priority image when a
+ * rendered row draws an image; the view gives it to the first such row.
  *
  * @param array<string,mixed> $context Loop context: index, is_primary.
  * @return array{section: array<string,mixed>, props: array<string,mixed>, plan: array{priorityMedia: bool}}|null Null = 0-state.
@@ -89,6 +89,7 @@ function salt_resolve_section_media_text( array $context ): ?array {
 		// with dimensions (markup/media-text.json media).
 		$image = $image_id > 0 ? salt_image_contract( $image_id, salt_image_slot_sizes( $words ? 'half' : 'content', $band ) ) : null;
 		if ( null !== $image && ( $image['width'] <= 0 || $image['height'] <= 0 ) ) {
+			salt_log( sprintf( 'section media-text: row %d image %d has no width or height — not rendered.', (int) $i, $image_id ) );
 			$image = null;
 		}
 
@@ -134,6 +135,7 @@ function salt_resolve_section_media_text( array $context ): ?array {
 			'rows'  => $rows,
 			'arrow' => salt_contract_arrow(),
 		),
-		'plan'    => array( 'priorityMedia' => salt_section_plan_priority( $context ) && null !== $rows[0]['image'] ),
+		// The band's principal image is its first row's that has one.
+		'plan'    => array( 'priorityMedia' => salt_section_plan_priority( $context ) && array() !== array_filter( array_column( $rows, 'image' ) ) ),
 	);
 }

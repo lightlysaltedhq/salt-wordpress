@@ -292,6 +292,56 @@ final class HeroSectionTest extends SaltTestCase {
 
 		$this->assertNull( $resolved['props']['image'], 'A full-bleed hero draws the background image, not image.' );
 		$this->assertFalse( $resolved['plan']['priorityMedia'], 'No image of its own, so it does not ask for the priority image.' );
+		$this->assertContains( 'section hero: full-bleed draws the background image, and none is set — image 41 not rendered.', $this->logs(), 'The dropped image is logged (review #6).' );
+	}
+
+	public function test_full_bleed_with_a_background_does_not_log_its_image_field(): void {
+		$this->seed_hero_image();
+
+		$this->resolve_hero(
+			array(
+				'variant'  => 'full-bleed',
+				'heading'  => 'Welcome',
+				'image'    => 41,
+				'settings' => array( 'backgroundImage' => array( 'image' => 41 ) ),
+			)
+		);
+
+		$this->assertSame( array(), $this->logs(), 'The photograph is drawn, as the background.' );
+	}
+
+	public function test_an_image_acf_returns_as_an_array_is_drawn(): void {
+		$this->seed_hero_image();
+
+		// Review #4: an image field set to return an array gives ['ID' => …].
+		$resolved = $this->resolve_hero(
+			array(
+				'variant' => 'split',
+				'heading' => 'Welcome',
+				'image'   => array(
+					'ID'  => 41,
+					'url' => 'https://example.test/uploads/hero.jpg',
+				),
+			)
+		);
+
+		$this->assertSame( 'https://example.test/uploads/hero.jpg', $resolved['props']['image']['src'] ?? null );
+	}
+
+	public function test_an_image_with_no_dimensions_is_dropped_and_logged(): void {
+		$this->seed_hero_image();
+		$GLOBALS['salt_test_attachments'][41]['height'] = 0;
+
+		$resolved = $this->resolve_hero(
+			array(
+				'variant' => 'stacked',
+				'heading' => 'Welcome',
+				'image'   => 41,
+			)
+		);
+
+		$this->assertNull( $resolved['props']['image'] );
+		$this->assertContains( 'section hero: image 41 has no width or height — not rendered.', $this->logs(), 'Review #5.' );
 	}
 
 	public function test_an_internal_button_links_to_its_document(): void {

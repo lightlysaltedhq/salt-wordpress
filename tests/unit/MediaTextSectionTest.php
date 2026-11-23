@@ -464,8 +464,9 @@ final class MediaTextSectionTest extends SaltTestCase {
 		$this->assertMatchesRegularExpression( '#<img src="[^"]*media-32\.jpg"[^>]* loading="lazy" decoding="async">#', $html );
 	}
 
-	public function test_a_later_row_image_never_takes_the_priority_image(): void {
+	public function test_the_first_row_with_an_image_takes_the_priority_image(): void {
 		$this->seed_attachment( 32 );
+		$this->seed_attachment( 33 );
 
 		$html = $this->render_media_text(
 			array(
@@ -475,13 +476,40 @@ final class MediaTextSectionTest extends SaltTestCase {
 						'image'   => 32,
 						'heading' => 'Image second',
 					),
+					array(
+						'image'   => 33,
+						'heading' => 'Image third',
+					),
 				),
 			)
 		);
 
-		$this->assertStringNotContainsString( 'fetchpriority', $html );
-		$this->assertStringContainsString( 'loading="lazy"', $html );
-		$this->assertFalse( salt_render_state()['priority_media'], 'The priority image stays free for a later band.' );
+		// The band's principal image is its first row's that has one (review #9).
+		$this->assertSame( 1, substr_count( $html, 'fetchpriority="high"' ) );
+		$this->assertMatchesRegularExpression( '#<img src="[^"]*media-32\.jpg"[^>]* fetchpriority="high" decoding="async">#', $html );
+		$this->assertMatchesRegularExpression( '#<img src="[^"]*media-33\.jpg"[^>]* loading="lazy" decoding="async">#', $html );
+		$this->assertTrue( salt_render_state()['priority_media'], 'The page\'s priority image is taken.' );
+	}
+
+	public function test_an_image_with_no_dimensions_is_dropped_and_logged(): void {
+		$this->seed_attachment( 34 );
+		$GLOBALS['salt_test_attachments'][34]['width']  = 0;
+		$GLOBALS['salt_test_attachments'][34]['height'] = 0;
+
+		$html = $this->render_media_text(
+			array(
+				'rows' => array(
+					array(
+						'image'   => 34,
+						'heading' => 'Words stay',
+					),
+				),
+			)
+		);
+
+		$this->assertStringNotContainsString( '<img', $html );
+		$this->assertStringContainsString( 'Words stay', $html );
+		$this->assertContains( 'section media-text: row 0 image 34 has no width or height — not rendered.', $this->logs() );
 	}
 
 	public function test_unresolvable_image_is_absent_and_the_row_keeps_its_words(): void {
@@ -685,10 +713,10 @@ final class MediaTextSectionTest extends SaltTestCase {
 		$this->assertSame( array( 'priorityMedia' => true ), $resolved['plan'], 'The first row draws an image.' );
 	}
 
-	public function test_resolver_asks_for_the_priority_image_only_for_the_first_row(): void {
+	public function test_resolver_asks_for_the_priority_image_when_any_row_draws_one(): void {
 		$this->seed_attachment( 5 );
 
-		$resolved = $this->resolve_media_text(
+		$with = $this->resolve_media_text(
 			array(
 				'rows' => array(
 					array( 'heading' => 'No image' ),
@@ -699,8 +727,10 @@ final class MediaTextSectionTest extends SaltTestCase {
 				),
 			)
 		);
+		$this->assertSame( array( 'priorityMedia' => true ), $with['plan'], 'A later row\'s image is the band\'s principal image.' );
 
-		$this->assertSame( array( 'priorityMedia' => false ), $resolved['plan'] );
+		$without = $this->resolve_media_text( array( 'rows' => array( array( 'heading' => 'No image' ) ) ) );
+		$this->assertSame( array( 'priorityMedia' => false ), $without['plan'] );
 	}
 
 	public function test_resolver_applies_the_mode_rule_to_the_media_side(): void {

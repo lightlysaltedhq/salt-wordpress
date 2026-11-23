@@ -115,7 +115,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$this->assertSame( 1, preg_match_all( '/<a\b/', $html ) );
 		$this->assertStringContainsString( '<div class="salt-cta__actions"><a class="salt-button" href="https://example.test/contact/" data-style="primary" data-track-control="cta" target="_blank" rel="noopener noreferrer">', $html, 'A new tab adds target and rel.' );
 		$this->assertStringContainsString( '<h1 id="call-to-action__heading">Ready to start?</h1>', $html, 'Primary section with heading claims the H1.' );
-		$this->assertStringContainsString( '<div class="salt-rich-text">Tell us about your project.</div>', $html );
+		$this->assertStringContainsString( '<div class="salt-rich-text"><p>Tell us about your project.</p>', $html, 'A plain-text body takes its paragraph (wpautop()).' );
 		$this->assertStringNotContainsString( '<script', $html, 'No JS in this section — ever.' );
 		$this->assertStringNotContainsString( '<input', $html, 'Newsletter variant is deferred: no email input may ship (PRIV01).' );
 	}
@@ -205,6 +205,56 @@ final class CallToActionSectionTest extends SaltTestCase {
 
 		$this->assertStringNotContainsString( 'brand-tint', $html );
 		$this->assertStringContainsString( 'data-tone="surface-inverse" data-tone-dark="surface-inverse"', $html, 'An unset dark tone follows the editor\'s tone.' );
+	}
+
+	public function test_a_stored_inverse_tone_is_surface_inverse(): void {
+		// The x-section era stored `inverse`; it must not turn light (review #2).
+		$html = $this->render_cta_section(
+			array(
+				'heading'  => 'Ready?',
+				'settings' => array(
+					'tone'     => 'inverse',
+					'toneDark' => 'inverse',
+				),
+			)
+		);
+		$this->assertStringContainsString( 'data-tone="surface-inverse" data-tone-dark="surface-inverse"', $html );
+
+		$resolved = $this->resolve_cta(
+			array(
+				'heading'  => 'Ready?',
+				'settings' => array( 'tone' => 'inverse' ),
+			)
+		);
+		$this->assertSame( 'surface-inverse', $resolved['section']['tone'] );
+		$this->assertSame( 'surface-inverse', $resolved['section']['tone_dark'], 'An unset dark tone follows it.' );
+		$this->assertSame( 'inverse', $resolved['section']['background'] );
+	}
+
+	public function test_a_plain_text_body_takes_paragraphs_and_a_block_body_is_kept(): void {
+		$plain = $this->resolve_cta( array( 'body' => "First line.\n\nSecond <em>line</em>." ) );
+		$this->assertSame( "<p>First line.</p>\n<p>Second <em>line</em>.</p>\n", $plain['props']['body'], 'wpautop() before sanitising (review #8).' );
+
+		$blocks = $this->resolve_cta( array( 'body' => "<ul><li>One</li></ul>\n\n<p>Two</p>" ) );
+		$this->assertSame( "<ul><li>One</li></ul>\n\n<p>Two</p>", $blocks['props']['body'], 'Stored blocks are not wrapped again.' );
+	}
+
+	public function test_a_button_whose_address_escapes_to_nothing_is_not_drawn(): void {
+		$html = $this->render_cta_section(
+			array(
+				'heading' => 'Ready?',
+				'buttons' => array(
+					salt_test_button( 'Bad', 'javascript:alert(2)' ),
+					salt_test_button( 'Good', 'https://example.test/good/' ),
+				),
+			)
+		);
+
+		// Review #7: no link to the current page in place of a disallowed one.
+		$this->assertSame( 1, substr_count( $html, 'class="salt-button"' ) );
+		$this->assertStringNotContainsString( 'href=""', $html );
+		$this->assertStringNotContainsString( '>Bad<', $html );
+		$this->assertStringContainsString( 'href="https://example.test/good/"', $html );
 	}
 
 	// -----------------------------------------------------------------
@@ -366,7 +416,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 		$this->assertSame( array( 'heading', 'body', 'buttons', 'arrow' ), array_keys( $resolved['props'] ) );
 		$this->assertSame( '→', $resolved['props']['arrow'], 'The site\'s arrow (salt_contract_arrow()).' );
 		$this->assertSame( 'Ready?', $resolved['props']['heading'] );
-		$this->assertSame( 'Talk to us.', $resolved['props']['body'] );
+		$this->assertSame( "<p>Talk to us.</p>\n", $resolved['props']['body'] );
 		$this->assertSame(
 			array(
 				array(

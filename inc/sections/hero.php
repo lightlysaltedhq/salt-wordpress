@@ -69,15 +69,21 @@ function salt_resolve_section_hero( array $context ): ?array {
 		$variant = 'full-bleed';
 	}
 
-	$section  = salt_section_contract_args( 'hero', $context );
-	$image_id = (int) get_sub_field( 'image' );
+	$section   = salt_section_contract_args( 'hero', $context );
+	$image_raw = get_sub_field( 'image' );
+	// An ID, or the array ACF returns for an image field set to return one.
+	$image_id = is_array( $image_raw ) ? (int) ( $image_raw['ID'] ?? 0 ) : (int) $image_raw;
 	$image    = null;
 	if ( 'minimal' === $variant && $image_id > 0 ) {
 		salt_log( sprintf( 'section hero: minimal variant ignores media — image %d not rendered.', $image_id ) );
+	} elseif ( 'full-bleed' === $variant && $image_id > 0 && null === $section['background_image'] ) {
+		salt_log( sprintf( 'section hero: full-bleed draws the background image, and none is set — image %d not rendered.', $image_id ) );
 	} elseif ( in_array( $variant, array( 'split', 'stacked' ), true ) && $image_id > 0 ) {
 		$image = salt_image_contract( $image_id, salt_image_slot_sizes( 'split' === $variant ? 'half' : 'content', (string) $section['container'] ) );
 		if ( null !== $image && ( $image['width'] <= 0 || $image['height'] <= 0 ) ) {
-			$image = null; // Drawn only with dimensions (markup/hero.json media).
+			// Drawn only with dimensions (markup/hero.json media).
+			salt_log( sprintf( 'section hero: image %d has no width or height — not rendered.', $image_id ) );
+			$image = null;
 		}
 	}
 
