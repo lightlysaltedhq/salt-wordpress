@@ -11,7 +11,9 @@
 //  - With script (pretty permalinks, where /wp-json/ answers): a send
 //    refused for a field error, then corrected straight away, arrives (the
 //    form token is kept for the retry, so the time trap passes); a second
-//    message after it arrives too (a new token is fetched at once).
+//    message after it arrives too (a new token is fetched at once). A form
+//    left open 5 hours (its token minted 5 hours back, through the harness
+//    clock) is refused 403 as stale and sent after one refetch.
 //  - A single post's own address, posted a contact `name`: the post still
 //    answers, by its permalink's own name.
 //  - A form-encoded REST send with the self-post flag in its address: the
@@ -102,6 +104,24 @@ try {
 	const third = await send( page, form );
 	await page.waitForFunction( () => document.querySelector( '#enquire__status' )?.dataset.tone !== 'sending' );
 	result( third.status() === 200 && await status.getAttribute( 'data-tone' ) === 'sent' && site( 'stored', 'Ada Script again' ) === '1', 'script: a second message after a send arrives', `status ${ third.status() }` );
+	// A form left open 5 hours: the token fetched on focus is stale, refused
+	// with 403; the script takes a fresh one and the send arrives.
+	site( 'reset' ); // A fresh rate limit for the checks below.
+	await page.reload();
+	const events = [];
+	page.on( 'request', ( r ) => r.url().includes( '/contact/credentials' ) && events.push( 'credentials' ) );
+	page.on( 'response', ( r ) => r.request().method() === 'POST' && r.url().includes( '/salt/v1/contact' ) && events.push( `send ${ r.status() }` ) );
+	site( 'clock', String( -5 * 3600 ) );
+	const prefetched = page.waitForResponse( ( r ) => r.url().includes( '/contact/credentials' ) );
+	await form.locator( '[name=name]' ).fill( 'Ada Five Hours' );
+	await prefetched;
+	site( 'clock', '0' );
+	await form.locator( '[name=email]' ).fill( 'ada@example.org' );
+	await form.locator( '[name=message]' ).fill( 'Left open over lunch.' );
+	await form.locator( '.salt-contact__submit' ).click();
+	await page.waitForFunction( () => [ 'sent', 'problem' ].includes( document.querySelector( '#enquire__status' )?.dataset.tone ), null, { timeout: 15000 } );
+	// The last fetch is the next message's token, taken after the send.
+	result( events.join( ', ' ) === 'credentials, send 403, credentials, send 200, credentials' && await status.getAttribute( 'data-tone' ) === 'sent' && site( 'stored', 'Ada Five Hours' ) === '1', 'script: a send 5 hours after focus arrives after one refetch', `${ events.join( ', ' ) }; "${ await status.textContent() }"` );
 	// A single post posted a contact `name`: WordPress queries it by its permalink.
 	const post = site( 'post' );
 	const posted = await scripted.request.post( `${ post }?salt-contact-send=enquire`, { form: { name: 'Ada Lovelace', message: 'x', returnTo: new URL( post ).pathname } } );
@@ -122,8 +142,8 @@ try {
 	result( encoded.status() === 200 && site( 'stored', 'Ada Encoded' ) === '1', 'a form-encoded REST send flagged as a self-post keeps its name', `status ${ encoded.status() } ${ await encoded.text() }` );
 	// Not this check's: WordPress core's speculation rules and the band
 	// wrapper's style attribute, which the CSP refuses on every page, and
-	// the refused send's own 400.
-	const own = errors.filter( ( e ) => ! /speculation rules|Applying inline style|status of 400/.test( e ) );
+	// the refused sends' own 400 and 403.
+	const own = errors.filter( ( e ) => ! /speculation rules|Applying inline style|status of 40[03]/.test( e ) );
 	result( own.length === 0, 'script: no other console error', own.join( ' | ' ) );
 	await scripted.close();
 } finally {

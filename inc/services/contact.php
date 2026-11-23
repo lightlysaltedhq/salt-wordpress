@@ -64,6 +64,25 @@ function salt_contact_time_token( ?int $now = null ): string {
 }
 
 /**
+ * The age of a time-trap token in seconds, or null when it is not one this
+ * site signed.
+ *
+ * @param string   $token Submitted token.
+ * @param int|null $now   Injectable clock (tests).
+ * @return int|null
+ */
+function salt_contact_time_age( string $token, ?int $now = null ): ?int {
+	$parts = explode( '.', $token, 2 );
+	if ( 2 !== count( $parts ) || ! ctype_digit( $parts[0] ) ) {
+		return null;
+	}
+	if ( ! hash_equals( hash_hmac( 'sha256', $parts[0], wp_salt( 'nonce' ) ), $parts[1] ) ) {
+		return null;
+	}
+	return ( null === $now ? time() : $now ) - (int) $parts[0];
+}
+
+/**
  * Verify the time-trap token: ≥3s old (humans read), ≤4h old (stale form).
  *
  * @param string   $token Submitted token.
@@ -71,16 +90,8 @@ function salt_contact_time_token( ?int $now = null ): string {
  * @return bool
  */
 function salt_contact_time_ok( string $token, ?int $now = null ): bool {
-	$now   = null === $now ? time() : $now;
-	$parts = explode( '.', $token, 2 );
-	if ( 2 !== count( $parts ) || ! ctype_digit( $parts[0] ) ) {
-		return false;
-	}
-	if ( ! hash_equals( hash_hmac( 'sha256', $parts[0], wp_salt( 'nonce' ) ), $parts[1] ) ) {
-		return false;
-	}
-	$age = $now - (int) $parts[0];
-	return $age >= 3 && $age <= 4 * HOUR_IN_SECONDS;
+	$age = salt_contact_time_age( $token, $now );
+	return null !== $age && $age >= 3 && $age <= 4 * HOUR_IN_SECONDS;
 }
 
 /**
@@ -277,8 +288,16 @@ function salt_contact_handle( array $raw, string $path, ?int $now = null ): arra
 		return $sent();
 	}
 
-	// 5. Time-trap (the form token's signed time).
-	if ( ! salt_contact_time_ok( $token[0] . '.' . $token[1], $now ) ) {
+	// 5. Time-trap (the form token's signed time). A token over 4 hours old
+	// is a visitor's form left open, not a bot: 403, like a refused nonce,
+	// so the script takes a fresh one and sends again (the page path draws
+	// the form again with fresh credentials), and nothing is logged. One too
+	// young, or not signed here, stays a 400.
+	$time = $token[0] . '.' . $token[1];
+	if ( ! salt_contact_time_ok( $time, $now ) ) {
+		if ( ( salt_contact_time_age( $time, $now ) ?? 0 ) > 4 * HOUR_IN_SECONDS ) {
+			return $fail( 403, __( 'The form had been open too long. Please send it again.', 'salt' ) );
+		}
 		salt_log( 'contact: time-trap failure (' . $path . ').' );
 		return $fail( 400, $generic_error );
 	}

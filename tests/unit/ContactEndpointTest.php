@@ -166,6 +166,19 @@ final class ContactEndpointTest extends SaltTestCase {
 	}
 
 	#[DataProvider( 'paths' )]
+	public function test_a_stale_form_token_is_a_403_and_one_too_young_a_400( string $path ): void {
+		$payload              = $this->payload_for( $path );
+		$payload['formToken'] = salt_contact_form_token( self::NOW - 5 * HOUR_IN_SECONDS );
+		$stale                = salt_contact_handle( $payload, $path, self::NOW );
+		$this->assertSame( 403, $stale['status'], 'Stale: the script takes a fresh token and sends again.' );
+		$this->assertSame( 'Ada Lovelace', $stale['values']['name'], 'The entries come back.' );
+
+		$payload['formToken'] = salt_contact_form_token( self::NOW - 1 );
+		$this->assertSame( 400, salt_contact_handle( $payload, $path, self::NOW )['status'], 'Too young: a bot, still the generic refusal.' );
+		$this->assertTrue( $this->nothing_sent_or_stored() );
+	}
+
+	#[DataProvider( 'paths' )]
 	public function test_bad_nonce_is_a_403( string $path ): void {
 		$payload              = $this->payload_for( $path );
 		$token                = explode( '.', $payload['formToken'] );

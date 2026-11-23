@@ -20,6 +20,10 @@
 			.then((response) => response.json())
 			.then((body) => (body && body.ok && typeof body.formToken === 'string' ? body.formToken : ''));
 
+	// A form token is refused until it is this old (the time trap).
+	const tokenMinAge = 3500;
+	const settle = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 	const kebab = (name) => name.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 
 	const enhance = (form) => {
@@ -81,30 +85,42 @@
 			}
 			showStatus('sending', '');
 
+			const post = (formToken) => {
+				if (!formToken) {
+					throw new Error('no credentials');
+				}
+				const payload = {};
+				for (const [key, value] of new FormData(form).entries()) {
+					payload[key] = value;
+				}
+				payload.formToken = formToken;
+				return fetch(endpoint, {
+					method: 'POST',
+					credentials: 'same-origin',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				}).then((response) =>
+					response.json().then((body) => ({ ok: response.ok && body.ok, status: response.status, body }))
+				);
+			};
+
 			prefetch()
-				.then((formToken) => {
-					if (!formToken) {
-						throw new Error('no credentials');
+				.then(post)
+				.then((result) => {
+					if (result.status !== 403) {
+						return result;
 					}
-					const payload = {};
-					for (const [key, value] of new FormData(form).entries()) {
-						payload[key] = value;
-					}
-					payload.formToken = formToken;
-					return fetch(endpoint, {
-						method: 'POST',
-						credentials: 'same-origin',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(payload),
-					}).then((response) =>
-						response.json().then((body) => ({ ok: response.ok && body.ok, status: response.status, body }))
-					);
+					// A refused token (open over 4 hours, or the session changed):
+					// take a fresh one and send once more, when it has aged past
+					// the time trap.
+					token = null;
+					return prefetch().then((formToken) => settle(tokenMinAge).then(() => post(formToken)));
 				})
 				.then(({ ok, status: code, body }) => {
 					// The token stays good for a retry after a refused send: a fresh
 					// one would fail the time trap (it must be 3 seconds old). Only a
-					// send that arrived, or a refused nonce (403), takes a new one,
-					// fetched straight away so it has aged by the next send.
+					// send that arrived, or a token refused again (403), takes a new
+					// one, fetched straight away so it has aged by the next send.
 					if (ok || code === 403) {
 						token = null;
 						prefetch();
