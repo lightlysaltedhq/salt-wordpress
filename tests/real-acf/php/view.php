@@ -512,7 +512,7 @@ function salt_view_search_text( array $doc ): void {
  * A case's site.caseStudy (the layout a site sets once for its case
  * studies) on Site Settings → Case Studies, as an editor saves it
  * (inc/fields/options-case-studies.php): each setting the case gives, a dark
- * tone left out as automatic, and the defaults (plain, flow) otherwise.
+ * tone left out as automatic, and the default (plain) otherwise.
  *
  * @param array<string,mixed> $site The case's `site`.
  * @return void
@@ -522,7 +522,6 @@ function salt_view_case_study_options( array $site ): void {
 	update_field( 'field_salt_options_case_study_header', (string) ( $layout['header'] ?? 'plain' ), 'option' );
 	update_field( 'field_salt_options_case_study_header_tone', (string) ( $layout['headerTone'] ?? 'surface' ), 'option' );
 	update_field( 'field_salt_options_case_study_header_tone_dark', (string) ( $layout['headerToneDark'] ?? 'auto' ), 'option' );
-	update_field( 'field_salt_options_case_study_media', (string) ( $layout['media'] ?? 'flow' ), 'option' );
 }
 
 ob_start();

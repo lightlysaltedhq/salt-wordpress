@@ -408,6 +408,10 @@ function salt_harness_seed_case_study( array $input ): int {
 			update_field( $name, $doc[ $name ], $work );
 		}
 	}
+	// The case-study image: an attachment ID, the same attachment when the case names the featured image.
+	if ( isset( $doc['caseStudyImage'] ) ) {
+		update_field( 'caseStudyImage', salt_harness_single_image( (string) $doc['caseStudyImage'], $media ), $work );
+	}
 	if ( isset( $doc['gallery'] ) ) {
 		update_field( 'gallery', array_map( static fn( string $name ): int => salt_harness_single_image( $name, $media ), $doc['gallery'] ), $work );
 	}

@@ -262,6 +262,14 @@
         }
       },
       {
+        "key": "field_salt_collection_case_studies_case_study_image",
+        "label": "Case study image",
+        "name": "caseStudyImage",
+        "type": "image",
+        "instructions": "Optional. One image, drawn between the challenge and what we did; its alt text is the image's own. Not drawn when it is the featured image.",
+        "return_format": "id"
+      },
+      {
         "key": "field_salt_collection_case_studies_solution",
         "label": "What we did",
         "name": "solution",

@@ -38,7 +38,6 @@ echo wp_json_encode(
 			'header'   => get_option( 'options_case_study_header', null ),
 			'tone'     => get_option( 'options_case_study_header_tone', null ),
 			'toneDark' => get_option( 'options_case_study_header_tone_dark', null ),
-			'media'    => get_option( 'options_case_study_media', null ),
 		),
 		'url'      => array() !== $salt_harness_work ? (string) get_permalink( (int) $salt_harness_work[0] ) : null,
 	)

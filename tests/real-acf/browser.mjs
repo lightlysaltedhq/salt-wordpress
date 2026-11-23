@@ -34,8 +34,9 @@
  *    name over 120 is added and updated. No count in quick edit or in the
  *    Topics box's add-new form, which adds a name over 120 too.
  * 10. Site Settings → Case Studies: with the work module on, the form saves
- *    the band header, its tones and the aside image, and the case-study
- *    view draws them; with it off, the page and its field group are gone
+ *    the band header and its tones (and offers no image aside), and the
+ *    case-study view draws them, its featured image the band's last part
+ *    and the page's one priority image; with it off, the page and its field group are gone
  *    and the stored settings are kept.
  *
  * With SALT_HARNESS_SCREENSHOTS set to a directory, it saves pictures of the
@@ -866,37 +867,35 @@ try {
 		await page.click( `${ field( 'case_study_header' ) } label:has(input[value="band"])` );
 		await page.selectOption( `${ field( 'case_study_header_tone' ) } select`, 'brand-tint' );
 		await page.selectOption( `${ field( 'case_study_header_tone_dark' ) } select`, 'surface-inverse' );
-		await page.click( `${ field( 'case_study_media' ) } label:has(input[value="aside"])` );
+		const mediaControl = await page.locator( field( 'case_study_media' ) ).count();
 		await Promise.all( [ page.waitForURL( /[?&]message=1/, { timeout: 60000 } ), page.click( '#publish' ) ] );
 		const saved = caseStudy();
-		const want = { header: 'band', headerTone: 'brand-tint', headerToneDark: 'surface-inverse', media: 'aside' };
+		const want = { header: 'band', headerTone: 'brand-tint', headerToneDark: 'surface-inverse' };
 		result(
-			on.work && on.group && offered === 1 && JSON.stringify( saved.settings ) === JSON.stringify( want ),
-			'Site Settings → Case Studies saves the case-study layout (work on)',
-			`page ${ offered ? 'offered' : 'MISSING' }; salt_case_study_settings() reads ${ JSON.stringify( saved.settings ) }`
+			on.work && on.group && offered === 1 && mediaControl === 0 && JSON.stringify( saved.settings ) === JSON.stringify( want ),
+			'Site Settings → Case Studies saves the header layout, with no image aside control (work on)',
+			`page ${ offered ? 'offered' : 'MISSING' }; image aside control ${ mediaControl ? 'STILL OFFERED' : 'gone' }; salt_case_study_settings() reads ${ JSON.stringify( saved.settings ) }`
 		);
 		result( errors.length === 0, 'no console errors on the Case Studies settings page', `${ errors.length } errors` );
 		errors.slice( 0, 10 ).forEach( info );
 		await close( page );
 
-		// The case-study view draws what was saved: the band in its tones, the image aside.
+		// The case-study view draws what was saved: the band in its tones, the featured image the band's last part (SC-034).
 		const { page: view } = await open( saved.url.replace( url, '' ) );
 		const drawn = await view.evaluate( () => {
 			const article = document.querySelector( 'article.salt-case-study-view' );
 			const header = article?.querySelector( '.salt-case-study-view__header' );
 			return {
 				header: article?.dataset.header ?? null,
-				media: article?.dataset.media ?? null,
 				tone: header?.dataset.tone ?? null,
 				toneDark: header?.dataset.toneDark ?? null,
-				// rc.9 (SC-029): the attribute, and the row count the stylesheet computes from it.
-				asideRows: article?.dataset.asideRows ?? null,
-				rows: article ? getComputedStyle( article ).getPropertyValue( '--salt-case-study-view-aside-rows' ).trim() : '',
+				heroLast: header?.querySelector( ':scope > .salt-section__content > :last-child' )?.matches( '.salt-case-study-view__media' ) ?? false,
+				priority: [ ...document.querySelectorAll( 'img[fetchpriority="high"]' ) ].map( ( img ) => img.closest( '.salt-case-study-view__media' ) !== null ),
 				inlineStyle: article?.hasAttribute( 'style' ) ?? false,
 			};
 		} );
 		result(
-			drawn.header === 'band' && drawn.tone === 'brand-tint' && drawn.toneDark === 'surface-inverse' && drawn.media === 'aside' && drawn.asideRows === '4' && drawn.rows === '4' && ! drawn.inlineStyle,
+			drawn.header === 'band' && drawn.tone === 'brand-tint' && drawn.toneDark === 'surface-inverse' && drawn.heroLast && JSON.stringify( drawn.priority ) === '[true]' && ! drawn.inlineStyle,
 			'the case-study view reads the saved settings',
 			`${ saved.url.replace( url, '' ) }: ${ JSON.stringify( drawn ) }`
 		);
