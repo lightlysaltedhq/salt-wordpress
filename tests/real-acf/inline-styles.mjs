@@ -64,6 +64,18 @@ try {
 	const visitor = await browser.newContext();
 	await watch( visitor );
 	await visit( visitor, 'signed out' );
+	// Decoys stay refused: in the head before core's own, a <style> reusing
+	// the id of the page's core-block-supports style with other CSS, and one
+	// with an unrelated id; in the body, that core id again. Core's own still
+	// gets the nonce, so the refusals are those three and no more.
+	const decoy = await visitor.newPage();
+	await decoy.goto( `${ pages.blocks }?salt_harness_decoy=1`, { waitUntil: 'networkidle' } );
+	await decoy.waitForTimeout( 200 );
+	const decoyRefusals = await decoy.evaluate( () => window.saltHarnessRefusals );
+	const decoyCore = decoyRefusals.filter( ( r ) => r.includes( 'style#core-block-supports-inline-css' ) ).length;
+	const decoyUnrelated = decoyRefusals.filter( ( r ) => r.includes( 'style#salt-harness-unrelated' ) ).length;
+	result( decoyRefusals.length === 3 && decoyCore === 2 && decoyUnrelated === 1, 'signed out: decoy <style>s (a core id with other CSS in the head and the body, an unrelated id in the head) are refused, and core\'s own is not', decoyRefusals.join( ' | ' ) || 'none refused' );
+	await decoy.close();
 	await visitor.close();
 
 	const editor = await browser.newContext();

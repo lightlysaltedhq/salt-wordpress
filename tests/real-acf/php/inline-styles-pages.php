@@ -7,7 +7,8 @@
  *            with a hero, a post in a category (and that category's
  *            archive), a contact page, a case study, and a page of core
  *            blocks drawn through the_content (single.php, the harness's
- *            salt_harness_blocks type in site/salt-harness-blocks.php).
+ *            salt_harness_blocks type in site/salt-harness-blocks.php), and
+ *            some Additional CSS.
  *            Prints them as JSON, name => address.
  *   restore  plain permalinks, the front page unset, and everything it made
  *            deleted.
@@ -24,6 +25,8 @@ if ( 'seed' === $salt_styles_mode ) {
 	global $wp_rewrite;
 	$wp_rewrite->set_permalink_structure( '/%postname%/' );
 	update_option( 'salt_harness_blocks', 1 );
+	// The Customizer's Additional CSS, which core prints inline on every page.
+	wp_update_custom_css_post( '.salt-footer{outline-offset:0}' );
 	salt_harness_register_blocks();
 	// The taxonomies and post types registered before the permalink change,
 	// without their rules; let the next request build them (as profiles.php
@@ -134,6 +137,7 @@ if ( 'restore' === $salt_styles_mode ) {
 	global $wp_rewrite;
 	$wp_rewrite->set_permalink_structure( '' );
 	delete_option( 'salt_harness_blocks' );
+	wp_update_custom_css_post( '' );
 	flush_rewrite_rules();
 	update_option( 'show_on_front', 'posts' );
 	update_option( 'page_on_front', 0 );

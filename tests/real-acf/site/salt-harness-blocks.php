@@ -37,3 +37,44 @@ function salt_harness_register_blocks(): void {
 	);
 }
 add_action( 'init', 'salt_harness_register_blocks' );
+
+/**
+ * Decoys for the inline-styles check, with ?salt_harness_decoy on the block
+ * page. Each is a <style> without the nonce that the theme must leave that
+ * way, so the browser refuses it:
+ *   - in the head, before core's own, one reusing the id of the block
+ *     page's core-block-supports style with other CSS;
+ *   - in the head, one with an unrelated id;
+ *   - in the body, one reusing that core id again.
+ *
+ * @return bool Whether the decoys are on for this request.
+ */
+function salt_harness_blocks_decoys_on(): bool {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A harness switch, read only.
+	return (bool) get_option( 'salt_harness_blocks' ) && isset( $_GET['salt_harness_decoy'] );
+}
+
+/**
+ * The head decoys (wp_head 1, before core prints its styles).
+ *
+ * @return void
+ */
+function salt_harness_blocks_head_decoys(): void {
+	if ( salt_harness_blocks_decoys_on() ) {
+		echo '<style id="core-block-supports-inline-css">.salt-header{outline:4px solid red}</style>';
+		echo '<style id="salt-harness-unrelated">.salt-footer{outline:4px solid red}</style>';
+	}
+}
+add_action( 'wp_head', 'salt_harness_blocks_head_decoys', 1 );
+
+/**
+ * The body decoy.
+ *
+ * @return void
+ */
+function salt_harness_blocks_decoy(): void {
+	if ( salt_harness_blocks_decoys_on() ) {
+		echo '<style id="core-block-supports-inline-css">.salt-header{outline:4px solid red}</style>';
+	}
+}
+add_action( 'wp_body_open', 'salt_harness_blocks_decoy' );
