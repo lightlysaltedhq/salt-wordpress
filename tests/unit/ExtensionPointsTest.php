@@ -239,4 +239,42 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 		$this->assertSame( '', $this->render( 'stats', $empty . '/template-parts/sections/stats.php' ) );
 		$this->assertSame( array(), $this->logs(), 'Drawing nothing is a 0-state, not a missing band.' );
 	}
+
+	public function test_a_childs_own_templates_keep_their_planned_anchors(): void {
+		$fixture = self::fixture();
+		$child   = $this->temp_child(
+			array(
+				'style.css'                         => (string) file_get_contents( $fixture . '/style.css' ),
+				'salt-overrides.json'               => (string) file_get_contents( $fixture . '/salt-overrides.json' ),
+				'template-parts/sections/stats.php' => (string) file_get_contents( $fixture . '/template-parts/sections/stats.php' ),
+				'template-parts/sections/showroom-finder.php' => '<?php salt_section( salt_section_wrapper_args( "showroom-finder", $args ), static function ( int $level ): void { echo "<p>Find a showroom</p>"; } );',
+			)
+		);
+		salt_test_use_child_theme( $child );
+		salt_test_seed_fc(
+			array(
+				array(
+					'layout' => 'stats',
+					'fields' => array(
+						'heading'  => 'Our numbers',
+						'settings' => array( 'anchorId' => 'numbers' ),
+					),
+				),
+				array(
+					'layout' => 'showroom_finder',
+					'fields' => array( 'settings' => array( 'anchorId' => 'showrooms' ) ),
+				),
+			)
+		);
+
+		ob_start();
+		get_template_part( 'template-parts/flexible-content' );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'grain-stats', $html, 'The child\'s stats template drew.' );
+		$this->assertStringContainsString( 'id="numbers"', $html, 'A tier-logic template keeps the editor\'s anchor.' );
+		$this->assertStringContainsString( 'id="showrooms"', $html, 'A child-only layout keeps the editor\'s anchor.' );
+		$this->assertStringNotContainsString( 'numbers-2', $html );
+		$this->assertStringNotContainsString( 'showrooms-2', $html );
+	}
 }
