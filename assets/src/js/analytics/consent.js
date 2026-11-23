@@ -29,6 +29,10 @@
 	 */
 	const granted = (category, detail) => {
 		if (typeof window.wp_has_consent === 'function') {
+			// No consent type: no plugin manages consent, and the API's true is no grant.
+			if (!(window.wp_consent_type !== undefined ? window.wp_consent_type : window.wp_fallback_consent_type)) {
+				return false;
+			}
 			return window.wp_has_consent(category) === true;
 		}
 		if (detail && typeof detail === 'object') {

@@ -74,6 +74,10 @@ final class ChromeTest extends SaltTestCase {
 
 		$GLOBALS['salt_test_fields']['option']['logo_height'] = 72;
 		$this->assertSame( '.salt-logo{--logo-height:72px}', salt_header_runtime_css() );
+
+		// An emptied field keeps the 48px default, so no existing site changes.
+		$GLOBALS['salt_test_fields']['option']['logo_height'] = '';
+		$this->assertSame( '.salt-logo{--logo-height:48px}', salt_header_runtime_css() );
 	}
 
 	public function test_runtime_css_adds_scroll_padding_only_when_sticky(): void {
@@ -294,7 +298,13 @@ final class ChromeTest extends SaltTestCase {
 		$this->assertNull( $tree[1]['href'], 'A # address is no address: the label draws as a span.' );
 		$this->assertSame( array( 'Item 3' ), array_column( $tree[1]['children'], 'label' ) );
 		$this->assertTrue( $tree[1]['children'][0]['current'] );
-		$this->assertSame( '_blank', $tree[2]['target'] );
+		$this->assertSame(
+			array(
+				'target' => '_blank',
+				'rel'    => 'noopener noreferrer',
+			),
+			$tree[2]['atts']
+		);
 		$this->assertCount( 1, $this->logs() );
 		$this->assertStringContainsString( 'deeper than one submenu level', $this->logs()[0] );
 	}
@@ -312,6 +322,49 @@ final class ChromeTest extends SaltTestCase {
 		$this->assertStringContainsString( 'aria-controls="site-header__submenu-2"', $html );
 		$this->assertStringContainsString( 'id="site-header__submenu-2"', $html );
 		$this->assertStringContainsString( 'aria-current="page">Item 3</a>', $html );
+	}
+
+	public function test_walker_keeps_an_editors_link_attributes_and_the_core_menu_filters(): void {
+		$GLOBALS['salt_test_menu_items']['primary'] = array(
+			self::item(
+				1,
+				0,
+				array(
+					'xfn'        => 'me',
+					'attr_title' => 'Our profile',
+					'target'     => '_blank',
+					'classes'    => array( 'editor-class' ),
+				)
+			),
+			self::item( 2 ),
+			self::item( 3, 2 ),
+		);
+		add_filter(
+			'nav_menu_link_attributes',
+			static function ( array $atts, $item, $args, int $depth ): array {
+				$atts['data-depth'] = (string) $depth;
+				$atts['class']      = 'plugin-class';
+				return $atts;
+			},
+			10,
+			4
+		);
+		add_filter( 'nav_menu_item_title', static fn( string $title, $item ): string => 3 === $item->db_id ? '<em>' . $title . '</em>' : $title, 10, 2 );
+
+		$html = (string) wp_nav_menu(
+			array(
+				'theme_location' => 'primary',
+				'echo'           => false,
+				'walker'         => new Salt_Nav_Walker(),
+			)
+		);
+
+		// walk() draws the bar's items, not nothing.
+		$this->assertStringStartsWith( '<li class="salt-nav__item"><a class="salt-nav__link" href="https://example.test/1/" title="Our profile" target="_blank" rel="me" data-depth="0">Item 1</a></li>', $html );
+		$this->assertStringContainsString( 'aria-label="Show submenu for Item 2"', $html );
+		$this->assertStringContainsString( '<a class="salt-nav__sublink" href="https://example.test/3/" data-depth="1"><em>Item 3</em></a>', $html );
+		$this->assertStringNotContainsString( 'class-', $html );
+		$this->assertStringNotContainsString( 'plugin-class', $html, 'The contract fixes the class list.' );
 	}
 
 	public function test_footer_columns_group_titled_parents_and_runs_of_flat_links(): void {
@@ -365,6 +418,9 @@ final class ChromeTest extends SaltTestCase {
 	public function test_footer_draws_no_consent_control_without_a_consent_plugin(): void {
 		require_once __DIR__ . '/../shims/consent-api.php';
 		$GLOBALS['salt_test_wp_consent_type'] = '';
+		// A site's filter cannot draw it without a plugin: Save would have
+		// nothing to write through.
+		add_filter( 'salt_consent_control', static fn(): bool => true, 20 );
 
 		$html = $this->render_footer();
 
@@ -384,41 +440,31 @@ final class ChromeTest extends SaltTestCase {
 		$this->assertStringNotContainsString( '<dialog', $html, 'Only script opens the panel.' );
 	}
 
-	public function test_consent_choices_are_one_box_per_consent_api_category(): void {
+	public function test_consent_boxes_that_share_an_api_category_say_so(): void {
 		require_once __DIR__ . '/../shims/consent-api.php';
 		$GLOBALS['salt_test_wp_consent_type'] = 'optin';
 
 		$data = salt_chrome_script_data();
 		unset( $GLOBALS['salt_test_wp_consent_type'] );
 
-		// Embeds and marketing are both the API's marketing: one box covers
-		// both, so ticking embedded content alone cannot grant marketing on
-		// behalf of a Marketing box the visitor left clear.
+		// The contract's three boxes and ids, as the server draws them.
+		// Embeds and marketing are both the API's marketing, so script keeps
+		// them ticked together and each one's note says so.
+		$categories = $data['consent']['categories'];
+		$this->assertSame( array( 'analytics', 'embeds', 'marketing' ), array_column( $categories, 'id' ) );
+		$this->assertSame( array( 'statistics', 'marketing', 'marketing' ), array_column( $categories, 'api' ) );
 		$this->assertSame(
-			array(
-				array(
-					'id'          => 'analytics',
-					'label'       => 'Analytics',
-					'description' => 'Helps us see which pages are read, with no personal details.',
-					'api'         => 'statistics',
-				),
-				array(
-					'id'          => 'embeds',
-					'label'       => 'Embedded content and Marketing',
-					'description' => 'Maps, videos and booking tools from other sites. Lets us measure how our adverts perform.',
-					'api'         => 'marketing',
-				),
-			),
-			$data['consent']['categories']
+			array( '', 'Shares one setting with Marketing: ticking one ticks both.', 'Shares one setting with Embedded content: ticking one ticks both.' ),
+			array_column( $categories, 'note' )
 		);
 	}
 
-	public function test_consent_choices_follow_a_sites_category_remap(): void {
+	public function test_consent_boxes_carry_no_note_once_a_remap_separates_them(): void {
 		add_filter( 'salt_consent_api_category', static fn( string $api, string $salt ): string => 'embeds' === $salt ? 'preferences' : $api, 20, 2 );
 
-		$choices = salt_consent_api_choices( salt_consent_panel()['categories'] );
+		$choices = salt_consent_choices( salt_consent_panel()['categories'] );
 
 		$this->assertSame( array( 'statistics', 'preferences', 'marketing' ), array_column( $choices, 'api' ) );
-		$this->assertSame( array( 'Analytics', 'Embedded content', 'Marketing' ), array_column( $choices, 'label' ) );
+		$this->assertSame( array( '', '', '' ), array_column( $choices, 'note' ) );
 	}
 }

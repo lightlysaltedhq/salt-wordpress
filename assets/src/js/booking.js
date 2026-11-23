@@ -26,7 +26,10 @@
 	 * @return {boolean} True only on an explicit CMP grant.
 	 */
 	const hasConsent = () =>
-		typeof window.wp_has_consent === 'function' && window.wp_has_consent('marketing') === true;
+		typeof window.wp_has_consent === 'function' &&
+		// No consent type: no plugin manages consent, and the API's true is no grant.
+		Boolean(window.wp_consent_type !== undefined ? window.wp_consent_type : window.wp_fallback_consent_type) &&
+		window.wp_has_consent('marketing') === true;
 
 	/**
 	 * Inject a third-party script once.

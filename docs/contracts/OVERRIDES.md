@@ -47,7 +47,9 @@ Consent + contact seams (v2 — see docs/PRIVACY-RESPONSIBILITIES.md):
 - `salt_consent_api_category( string $api, string $salt )` — remap salt
   categories onto the site CMP's taxonomy.
 - `salt_consent_api_active( bool )` — force the filter bridge over the
-  WP Consent API.
+  WP Consent API. The default is `salt_consent_plugin_active()`: a cookie
+  plugin has set a consent type. Without one the API answers true for
+  every category, so Salt does not read it (fail closed).
 - `salt_contact_form_enabled( bool $configured )` — kill-switch for the
   live form (defaults to "recipient configured").
 - Client-side: dispatch `salt:consent` / listen for `salt:contact-sent` and
@@ -65,9 +67,43 @@ CMP verdict — no filter can turn an ambiguous state into an allow).
 `template-parts/header/site-header.php` and
 `template-parts/footer/site-footer.php` carry all header/footer option
 reads (the `header.php`/`footer.php` shells stay thin) — override the
-PARTS, not the shells. `Salt_Nav_Walker` renders core menus (locations:
-`primary`, `footer`). `salt_options_subpages()` (inc/fields/options.php)
-is the Site Settings menu registry — one array entry per sub-page.
+PARTS, not the shells. They draw the Salt contract's markup
+(salt-contract `markup/site-header.json`, `site-footer.json`): `salt-header`,
+`salt-nav*`, `salt-footer*` and fixed ids (`site-navigation`,
+`site-header__submenu-<n>`, `site-footer__consent-<category>`). A child
+override of either part must keep that markup; the contract's fixtures are
+the check (`npm run conformance:contract`). `salt_options_subpages()`
+(inc/fields/options.php) is the Site Settings menu registry — one array
+entry per sub-page.
+
+Menus (locations `primary`, `footer`): `Salt_Nav_Walker` reads a menu one
+submenu level deep. `walk()` returns the bar's items (the `<li>`s of
+`salt-nav__list`), so `wp_nav_menu( [ 'walker' => new Salt_Nav_Walker() ] )`
+in a child draws the contract's markup; the chrome itself reads
+`Salt_Nav_Walker::salt_menu( $location )`. Each link keeps what core's
+walker gives it: the title attribute, target, rel (XFN, so `rel="me"`
+holds), and the `nav_menu_link_attributes` and `nav_menu_item_title`
+filters (a filter's `class` is dropped). The contract fixes each element's
+classes, so a menu item's CSS Classes field and `nav_menu_css_class` no
+longer apply.
+
+Chrome seams (filters):
+- `salt_contract_labels( array )` — the chrome's words (`navigation`,
+  `submenu`, `menu`, `closeMenu`, `theme`, `social`, `preferences`,
+  `phone`). `submenu` may carry `%s` for the item's label; the default is
+  "Show submenu for %s".
+- `salt_header_phone( ?string )` — the header's phone number; defaults to
+  Company & Schema's company phone; `null` or `''` for none.
+- `salt_theme_toggle_placement( ?string )` — `header`, `footer` or `null`
+  (default, none). `salt_theme_scheme( ?string )` — `light`|`dark` when a
+  site knows the visitor's scheme on the server.
+- `salt_footer_tone( string )` — `surface`, `surface-alt` (default),
+  `brand-tint`, `surface-inverse`. `salt_footer_show_logo( bool )` — off
+  by default.
+- `salt_consent_control( bool )` — turns the footer's cookie-preferences
+  control and panel off. It cannot turn them on: they are drawn only when a
+  cookie plugin is wired to the WP Consent API (`salt_consent_plugin_active()`).
+  Save writes through the plugin's `wp_set_consent()`; Salt stores nothing.
 
 ## Template overrides (native hierarchy)
 

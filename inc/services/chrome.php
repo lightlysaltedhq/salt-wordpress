@@ -68,25 +68,28 @@ function salt_logo_height(): int {
 }
 
 /**
- * The logo height the site sets (px), or null when it sets none: the
- * contract's site-logo then draws no style and the stylesheet's 2rem
- * applies.
+ * The logo height the site draws (px), or null when the option holds no
+ * value at all. ACF returns the field's default (48) for an option never
+ * saved, and an emptied field is the 48px default too, so every site keeps
+ * its height; only a site without the field's default (the contract
+ * adapter's shims) draws no style, as the contract's site-logo does, and
+ * salt.css's 2rem applies.
  *
  * @return int|null
  */
 function salt_logo_height_set(): ?int {
 	$raw = salt_acf_active() ? salt_option( 'logo_height' ) : null;
-	return null === $raw || '' === $raw || false === $raw ? null : salt_logo_height_value( $raw );
+	return null === $raw ? null : salt_logo_height_value( $raw );
 }
 
 /**
  * Header runtime CSS — the seam salt_output_theme_vars_css() composes.
  *
- * Emits the validated --logo-height on .salt-logo when the site sets one.
- * The logo draws it as its contract style attribute too, which the CSP
- * blocks (no 'unsafe-inline' for style attributes, SEC06), so this
- * nonce-stamped rule is what applies it; it prints after salt.css, so it
- * wins over the stylesheet's 2rem default. Adds the sticky-header anchor
+ * Emits the validated --logo-height on .salt-logo (48px unless the site
+ * sets another). The logo also draws it as its contract style attribute,
+ * which the CSP refuses (no 'unsafe-inline' for style attributes, SEC06),
+ * so this nonce-stamped rule in the head is what applies it; it prints
+ * after salt.css, so it wins over the stylesheet's 2rem. Adds the sticky-header anchor
  * offset --salt-scroll-padding ONLY when the header is sticky. Numeric
  * tokens only — safe to print unescaped inside the nonce-stamped <style>.
  *
@@ -101,7 +104,7 @@ function salt_header_runtime_css(): string {
 	$css    = null === $height ? '' : sprintf( '.salt-logo{--logo-height:%dpx}', $height );
 
 	if ( (bool) salt_option( 'header_sticky' ) ) {
-		// The logo's height (salt.css's 2rem when none is set) plus the bar's padding.
+		// The logo's height (salt.css's 2rem when the option holds none) plus the bar's padding.
 		$css .= sprintf( ':root{--salt-scroll-padding:calc(%dpx + 2.5rem)}', $height ?? 32 );
 	}
 
@@ -451,7 +454,8 @@ function salt_footer_social_links(): array {
 function salt_chrome_labels( string $context ): array {
 	$defaults = array(
 		'navigation'  => 'footer' === $context ? __( 'Footer', 'salt' ) : __( 'Main', 'salt' ),
-		'submenu'     => __( 'Show submenu', 'salt' ),
+		/* translators: %s: the menu item that opens the submenu. */
+		'submenu'     => __( 'Show submenu for %s', 'salt' ),
 		'menu'        => __( 'Menu', 'salt' ),
 		'closeMenu'   => __( 'Close menu', 'salt' ),
 		'theme'       => __( 'Dark mode', 'salt' ),
@@ -526,8 +530,7 @@ function salt_header_phone(): ?array {
 /**
  * The header's navigation as the contract's markup, in the bar or the
  * drawer. Ids are fixed (SC-012): the bar's nav is site-navigation, the
- * drawer's site-header__drawer-navigation, and a submenu's <n> is its
- * item's position in the top-level menu counting from 1.
+ * drawer's site-header__drawer-navigation.
  *
  * @param array<int,array<string,mixed>> $menu   Salt_Nav_Walker tree.
  * @param array<string,string>           $labels salt_chrome_labels( 'header' ).
@@ -535,9 +538,28 @@ function salt_header_phone(): ?array {
  * @return string
  */
 function salt_header_nav_html( array $menu, array $labels, bool $drawer = false ): string {
-	$prefix = $drawer ? 'site-header__drawer-submenu-' : 'site-header__submenu-';
-	$html   = '<nav class="salt-nav" id="' . ( $drawer ? 'site-header__drawer-navigation' : 'site-navigation' ) . '" aria-label="' . esc_attr( $labels['navigation'] ) . '">';
-	$html  .= '<ul class="salt-nav__list" role="list">';
+	return '<nav class="salt-nav" id="' . ( $drawer ? 'site-header__drawer-navigation' : 'site-navigation' ) . '" aria-label="' . esc_attr( $labels['navigation'] ) . '">'
+		. '<ul class="salt-nav__list" role="list">'
+		. salt_header_nav_items_html( $menu, $labels, $drawer ? 'site-header__drawer-submenu-' : 'site-header__submenu-' )
+		. '</ul></nav>';
+}
+
+/**
+ * The header navigation's items (the <li>s of salt-nav__list), which
+ * Salt_Nav_Walker::walk() also returns. A submenu's id is $prefix<n>, <n>
+ * being its item's position in the top-level menu counting from 1 (SC-012).
+ *
+ * The toggle's name is labels.submenu. The theme's default names the item
+ * ("Show submenu for %s"); a label without %s, such as one the contract
+ * adapter gives, is used as it is.
+ *
+ * @param array<int,array<string,mixed>> $menu   Salt_Nav_Walker tree.
+ * @param array<string,string>           $labels salt_chrome_labels( 'header' ).
+ * @param string                         $prefix The submenu id's prefix.
+ * @return string
+ */
+function salt_header_nav_items_html( array $menu, array $labels, string $prefix ): string {
+	$html = '';
 	foreach ( array_values( $menu ) as $i => $item ) {
 		$children = (array) $item['children'];
 		$section  = array() !== array_filter( $children, static fn( $child ) => ! empty( $child['current'] ) );
@@ -546,7 +568,8 @@ function salt_header_nav_html( array $menu, array $labels, bool $drawer = false 
 		$html .= '<li class="salt-nav__item"' . ( $section ? ' data-current-section' : '' ) . '>';
 		$html .= salt_nav_link_html( $item, 'salt-nav__link', array() !== $children );
 		if ( array() !== $children ) {
-			$html .= '<span class="salt-nav__toggle" aria-expanded="false" aria-controls="' . esc_attr( $id ) . '" aria-label="' . esc_attr( $labels['submenu'] ) . '" aria-hidden="true">'
+			$name  = str_replace( '%s', (string) $item['label'], (string) $labels['submenu'] );
+			$html .= '<span class="salt-nav__toggle" aria-expanded="false" aria-controls="' . esc_attr( $id ) . '" aria-label="' . esc_attr( $name ) . '" aria-hidden="true">'
 				. salt_contract_icon( 'chevron-down', 'sm' ) . '</span>';
 			$html .= '<ul class="salt-nav__submenu" id="' . esc_attr( $id ) . '" role="list">';
 			foreach ( $children as $child ) {
@@ -556,27 +579,30 @@ function salt_header_nav_html( array $menu, array $labels, bool $drawer = false 
 		}
 		$html .= '</li>';
 	}
-	return $html . '</ul></nav>';
+	return $html;
 }
 
 /**
- * A menu item's link: an a with its address, or the span form for an item
- * with no address (tabindex 0 when it opens a submenu, so the keyboard can
- * reach the submenu before script).
+ * A menu item's link: an a with its address and the item's own attributes
+ * (title, target, rel and any the nav_menu_link_attributes filter adds), or
+ * the span form for an item with no address (tabindex 0 when it opens a
+ * submenu, so the keyboard can reach the submenu before script).
  *
- * @param array<string,mixed> $item      Tree node.
+ * @param array<string,mixed> $item       Tree node.
  * @param string              $class_name The link's class.
- * @param bool                $opens_sub Whether it opens a submenu.
+ * @param bool                $opens_sub  Whether it opens a submenu.
  * @return string
  */
 function salt_nav_link_html( array $item, string $class_name, bool $opens_sub ): string {
-	$label = esc_html( (string) $item['label'] );
+	$label = (string) ( $item['label_html'] ?? esc_html( (string) $item['label'] ) );
 	if ( null === $item['href'] ) {
 		return '<span class="' . $class_name . '"' . ( $opens_sub ? ' tabindex="0"' : '' ) . '>' . $label . '</span>';
 	}
 	$atts  = ' href="' . esc_url( (string) $item['href'] ) . '"';
 	$atts .= empty( $item['current'] ) ? '' : ' aria-current="page"';
-	$atts .= '_blank' === ( $item['target'] ?? '' ) ? ' target="_blank" rel="noopener noreferrer"' : '';
+	foreach ( (array) ( $item['atts'] ?? array() ) as $name => $value ) {
+		$atts .= ' ' . esc_attr( (string) $name ) . '="' . esc_attr( (string) $value ) . '"';
+	}
 	return '<a class="' . $class_name . '"' . $atts . '>' . $label . '</a>';
 }
 
@@ -795,57 +821,51 @@ function salt_chrome_script_data(): array {
 			'moon' => salt_contract_icon( 'moon', 'sm' ),
 		),
 	);
-	if ( true === apply_filters( 'salt_consent_control', function_exists( 'salt_consent_plugin_active' ) && salt_consent_plugin_active() ) ) {
+	if ( function_exists( 'salt_consent_control_drawn' ) && salt_consent_control_drawn() ) {
 		$panel           = salt_consent_panel();
 		$data['consent'] = array(
 			'labels'     => array_map( 'strval', $panel['labels'] ),
-			'categories' => salt_consent_api_choices( $panel['categories'] ),
+			'categories' => salt_consent_choices( $panel['categories'] ),
 		);
 	}
 	return $data;
 }
 
 /**
- * The consent panel's choices as script offers them: one per WP Consent
- * API category, since that is what the plugin records. Theme categories
- * that share one (embeds and marketing are both marketing) become one
- * checkbox whose label and description cover them all, so a tick never
- * grants an API category on behalf of a box the visitor left clear. Its
- * id is the first theme category's, keeping the contract's id form
- * (site-footer__consent-<category>).
+ * The consent panel's boxes as script draws them: the same boxes and ids
+ * as the server form (one per category the contract names), each with the
+ * WP Consent API category it writes. Categories that share one (embeds
+ * and marketing are both marketing) carry a note naming the others: the
+ * script keeps them ticked together, and Save allows the shared category
+ * only when all of them are ticked, so the panel and the record always
+ * agree.
  *
  * @param array<int,array{id:string,label:string,description:string}> $categories salt_consent_panel() categories.
- * @return array<int,array{id:string,label:string,description:string,api:string}>
+ * @return array<int,array{id:string,label:string,description:string,api:string,note:string}>
  */
-function salt_consent_api_choices( array $categories ): array {
-	$groups = array();
-	foreach ( $categories as $category ) {
-		$id  = sanitize_key( (string) $category['id'] );
-		$api = function_exists( 'salt_consent_api_category' ) ? salt_consent_api_category( $id ) : $id;
-		if ( ! isset( $groups[ $api ] ) ) {
-			$groups[ $api ] = array(
-				'id'           => $id,
-				'labels'       => array(),
-				'descriptions' => array(),
-				'api'          => $api,
-			);
-		}
-		$groups[ $api ]['labels'][]       = (string) $category['label'];
-		$groups[ $api ]['descriptions'][] = (string) $category['description'];
-	}
-
+function salt_consent_choices( array $categories ): array {
 	$choices = array();
-	foreach ( $groups as $group ) {
-		$labels = $group['labels'];
-		$last   = array_pop( $labels );
-		/* translators: 1: a list of consent category names, 2: the last one. */
-		$label     = array() === $labels ? $last : sprintf( __( '%1$s and %2$s', 'salt' ), implode( ', ', $labels ), $last );
+	foreach ( $categories as $category ) {
+		$id        = sanitize_key( (string) $category['id'] );
 		$choices[] = array(
-			'id'          => $group['id'],
-			'label'       => $label,
-			'description' => implode( ' ', array_filter( $group['descriptions'] ) ),
-			'api'         => $group['api'],
+			'id'          => $id,
+			'label'       => (string) $category['label'],
+			'description' => (string) $category['description'],
+			'api'         => function_exists( 'salt_consent_api_category' ) ? salt_consent_api_category( $id ) : $id,
+			'note'        => '',
 		);
+	}
+	foreach ( $choices as $i => $choice ) {
+		$others = array();
+		foreach ( $choices as $j => $other ) {
+			if ( $i !== $j && $other['api'] === $choice['api'] ) {
+				$others[] = $other['label'];
+			}
+		}
+		if ( array() !== $others ) {
+			/* translators: %s: the other consent categories (for example "Marketing") that share this one's setting. */
+			$choices[ $i ]['note'] = sprintf( __( 'Shares one setting with %s: ticking one ticks both.', 'salt' ), implode( ', ', $others ) );
+		}
 	}
 	return $choices;
 }
