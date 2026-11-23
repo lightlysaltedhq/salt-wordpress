@@ -1,18 +1,16 @@
 <?php
 /**
- * Generic archive (spec §6): native loop framed by the document H1
- * (A11Y01 — native-loop routes always emit an H1).
+ * An archive, as the contract draws it (salt-contract rc.8
+ * markup/archive.json): the title as the document's h1 in a header, with a
+ * topic's description; on an author's page, which is a team member's own
+ * (inc/services/post-author.php), the profile on its first page; then the
+ * listing section (markup/listing.json) with the posts as cards and the
+ * pagination. Category, tag, taxonomy, author, date and the posts index
+ * draw this view.
  *
- * The H1 renders inside a standard hero band (matching the section-hero
- * rhythm) with the archive description under it when one exists; the loop
- * renders as a responsive card grid — each post type may ship its own
- * content/card-{post_type}.php delegate (card.php is the fallback).
- *
- * An author's archive is a team member's (inc/services/post-author.php):
- * the member's name is the H1 and, on the first page, the profile follows
- * it: the photo, the role as the strapline and the bio as the biography
- * (salt-contract rc.7 markup/archive.json). A topic's archive draws the
- * topic's description under the H1.
+ * An author with no posts draws nothing where the listing would be (the
+ * founder's ruling of 19/11/2026); any other archive with none draws the
+ * listing's empty message.
  *
  * @package Salt
  */
@@ -23,42 +21,38 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 get_header();
 
-// The blog posts index (is_home) is NOT a WP "archive": get_the_archive_title()
-// has no case for it and falls back to the generic word "Archives". Use the
-// assigned posts-page title (or a "Blog" default) instead. Every other route
-// here is a real archive — prefix is filtered to '' (salt_archive_title_prefix)
-// so this is the bare title; strip_all_tags defends against core's <span> wrap.
-$salt_archive_member = salt_archive_team_member();
+$salt_labels = salt_contract_labels( 'archive' );
+
+// The posts index (is_home) is not a WordPress archive: get_the_archive_title()
+// has no case for it, so it takes the posts page's title (or "Blog").
+$salt_archive_member      = salt_archive_team_member();
+$salt_archive_description = '';
 if ( null !== $salt_archive_member ) {
 	$salt_archive_title = $salt_archive_member->display_name;
 } elseif ( is_home() && ! is_front_page() ) {
 	$salt_posts_page    = (int) get_option( 'page_for_posts' );
-	$salt_archive_title = $salt_posts_page > 0
-		? wp_strip_all_tags( (string) get_the_title( $salt_posts_page ) )
-		: __( 'Blog', 'salt' );
+	$salt_archive_title = $salt_posts_page > 0 ? salt_view_title( $salt_posts_page ) : __( 'Blog', 'salt' );
 } else {
 	$salt_archive_title = wp_strip_all_tags( get_the_archive_title() );
+	$salt_archive_term  = get_queried_object();
+	if ( $salt_archive_term instanceof WP_Term ) {
+		$salt_archive_description = trim( wp_strip_all_tags( (string) $salt_archive_term->description ) );
+	}
 }
-$salt_archive_description = null !== $salt_archive_member ? '' : trim( (string) get_the_archive_description() );
 
-echo '<header class="x-archive-header bg-surface-alt py-14 md:py-20">';
-if ( ! $salt_archive_member ) {
-	echo '<div class="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">';
-}
-salt_the_document_h1( $salt_archive_title, 'x-heading text-4xl md:text-5xl font-bold tracking-tight' . ( $salt_archive_member ? ' mx-auto max-w-5xl px-4' : '' ) );
+echo '<header>';
+salt_the_document_h1( $salt_archive_title );
 if ( '' !== $salt_archive_description ) {
-	echo '<div class="x-archive-description mt-4 max-w-prose text-lg text-ink-muted">' . wp_kses_post( $salt_archive_description ) . '</div>';
-}
-if ( ! $salt_archive_member ) {
-	echo '</div>';
+	echo '<p>' . esc_html( $salt_archive_description ) . '</p>';
 }
 echo '</header>';
+
 if ( null !== $salt_archive_member && ! is_paged() ) {
 	$salt_archive_person = salt_team_person( $salt_archive_member );
 	$salt_portrait       = salt_image_contract( $salt_archive_person['photo'], salt_image_slot_sizes( 'thumb' ) );
 	$salt_phone_href     = salt_contract_tel( $salt_archive_person['phone'] );
 	if ( $salt_portrait || $salt_archive_person['role'] || $salt_archive_person['bio'] || $salt_archive_person['email'] || $salt_phone_href || $salt_archive_person['profiles'] ) {
-		echo '<div class="salt-archive__profile mx-auto max-w-5xl px-4">';
+		echo '<div class="salt-archive__profile">';
 		if ( $salt_portrait ) {
 			echo '<div class="salt-archive__portrait">';
 			echo salt_image_contract_html( $salt_portrait ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Image renderer escapes attributes.
@@ -74,28 +68,60 @@ if ( null !== $salt_archive_member && ! is_paged() ) {
 			'person-links',
 			$salt_archive_person + array(
 				'phoneHref'    => $salt_phone_href,
-				'social_label' => salt_contract_labels()['social'],
+				'social_label' => (string) $salt_labels['social'],
 			)
 		);
 		echo '</div>';
 	}
 }
 
-if ( have_posts() ) {
-	echo '<div class="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
-	if ( $salt_archive_member ) {
-		echo '<h2>' . esc_html__( 'Latest posts', 'salt' ) . '</h2>';
-	}
-	echo '<div class="x-archive-grid grid gap-6 sm:grid-cols-2 lg:grid-cols-3">';
-	while ( have_posts() ) {
-		the_post();
-		get_template_part( 'template-parts/content/card', get_post_type() );
-	}
-	echo '</div>';
-	the_posts_pagination();
-	echo '</div>';
-} elseif ( ! $salt_archive_member ) {
-	get_template_part( 'template-parts/content/none' );
+if ( have_posts() || null === $salt_archive_member ) {
+	salt_section(
+		array(
+			'name'        => 'listing',
+			'contract'    => true,
+			'anchor'      => 'posts',
+			'has_heading' => true,
+		),
+		static function ( int $level, string $anchor ) use ( $salt_labels ): void {
+			echo '<div class="salt-block" data-block="listing">';
+			printf( '<h%1$d id="%2$s">%3$s</h%1$d>', (int) $level, esc_attr( $anchor . '__heading' ), esc_html__( 'Latest posts', 'salt' ) );
+			if ( ! have_posts() ) {
+				echo '<p class="salt-listing__empty">' . esc_html( (string) $salt_labels['empty'] ) . '</p>';
+			} else {
+				$salt_sizes = salt_image_slot_sizes( 'card', 'default', '3' );
+				echo '<ul class="salt-grid salt-showcase" role="list" data-layout="grid">';
+				while ( have_posts() ) {
+					the_post();
+					$salt_card = salt_contract_view_card( get_post(), 'posts', $salt_sizes );
+					if ( null === $salt_card ) {
+						continue;
+					}
+					echo '<li>';
+					salt_component(
+						'contract-card',
+						array(
+							'card'   => $salt_card,
+							'style'  => 'generic',
+							'level'  => $level + 1,
+							'labels' => $salt_labels,
+							'arrow'  => salt_contract_arrow(),
+						)
+					);
+					echo '</li>';
+				}
+				echo '</ul>';
+			}
+			salt_component(
+				'pagination',
+				salt_view_pages() + array(
+					'href'   => static fn( int $page ): string => salt_contract_url( (string) get_pagenum_link( $page ) ),
+					'labels' => $salt_labels,
+				)
+			);
+			echo '</div>';
+		}
+	);
 }
 
 get_footer();

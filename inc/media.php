@@ -147,7 +147,17 @@ function salt_image_slots(): array {
 				'narrow'  => $card_default,
 			),
 		),
-		'thumb'   => array( 'sizes' => '8rem' ),
+		'aside'      => array(
+			'sizes' => '(min-width: 64rem) 23.83rem, 100vw',
+			'bands' => array(
+				'full'    => '(min-width: 64rem) 23.83rem, 100vw',
+				'wide'    => '(min-width: 80rem) 30.5rem, (min-width: 64rem) calc((100vw - 2rem) * 5 / 12 - 2rem), 100vw',
+				'default' => '(min-width: 64rem) 23.83rem, 100vw',
+				'narrow'  => '(min-width: 64rem) 23.83rem, 100vw',
+			),
+		),
+		'aside-card' => array( 'sizes' => '(min-width: 75rem) 19rem, (min-width: 64rem) 19.1467rem, (min-width: 48.01rem) calc((100vw - 3rem) / 3), (min-width: 40.01rem) calc((100vw - 1.5rem) / 2), calc(100vw)' ),
+		'thumb'      => array( 'sizes' => '8rem' ),
 	);
 }
 

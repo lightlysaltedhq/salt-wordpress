@@ -2,9 +2,10 @@
 /**
  * Site Settings — page registrar ONLY (spec §13; approved v3 IA).
  *
- * One top-level menu + seven sub-pages ordered as the day-one setup walk:
- * identity → look → assets → chrome → conversion → third parties →
- * developer switches. Field groups live in inc/fields/options-{page}.php,
+ * One top-level menu + eight sub-pages ordered as the day-one setup walk:
+ * identity → look → assets → chrome → case-study layout → conversion →
+ * third parties → developer switches. Case Studies shows only with the
+ * work module. Field groups live in inc/fields/options-{page}.php,
  * one file per sub-page, each targeting its sub-page slug.
  *
  * Values live in wp_options as options_{field_name} regardless of page —
@@ -30,15 +31,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array<string,array{title: string}>
  */
 function salt_options_subpages(): array {
-	return array(
+	$pages = array(
 		'salt-settings-company'       => array( 'title' => __( 'Company & Schema', 'salt' ) ),
 		'salt-settings-brand'         => array( 'title' => __( 'Brand & Design', 'salt' ) ),
 		'salt-settings-logo-fonts'    => array( 'title' => __( 'Logo & Fonts', 'salt' ) ),
 		'salt-settings-header-footer' => array( 'title' => __( 'Header & Footer', 'salt' ) ),
+		'salt-settings-case-studies'  => array( 'title' => __( 'Case Studies', 'salt' ) ),
 		'salt-settings-contact'       => array( 'title' => __( 'Contact', 'salt' ) ),
 		'salt-settings-integrations'  => array( 'title' => __( 'Integrations', 'salt' ) ),
 		'salt-settings-advanced'      => array( 'title' => __( 'Advanced', 'salt' ) ),
 	);
+	// The case studies' layout, only on a site with case studies (the work module).
+	if ( ! salt_module_enabled( 'work' ) ) {
+		unset( $pages['salt-settings-case-studies'] );
+	}
+	return $pages;
 }
 
 /**
