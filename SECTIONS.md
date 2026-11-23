@@ -96,8 +96,6 @@ docblock at the top of its partial (enforced at runtime by
 | x-section | components/section.php | Render via `salt_section()` only |
 | x-heading | components/heading.php | Level clamped 1–6; size derivable |
 | x-eyebrow | components/eyebrow.php | |
-| x-button | components/button.php | `_blank` ⇒ `rel="noopener noreferrer"` |
-| x-cta | components/cta.php | Level arrives from the section |
 | x-image | components/image.php | **`<img srcset>` default; `<picture>` opt-in (AMBIG01)** |
 | x-icon | components/icon.php | Built-in set or pre-sanitised SVG |
 | x-accordion | components/accordion.php | Native `<details>`, zero JS |
