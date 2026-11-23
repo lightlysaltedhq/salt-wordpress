@@ -81,20 +81,17 @@
 
 	/**
 	 * The consent type a consent management plugin set through the WP
-	 * Consent API: window.wp_consent_type, else the API's fallback from the
-	 * server's wp_get_consent_type filter (wp_fallback_consent_type, or
-	 * consent_api.consent_type before the API's script ran). '' when none.
+	 * Consent API, read as the API's own wp-consent-api.js reads it (and as
+	 * the theme's other consent checks do): window.wp_consent_type, else
+	 * window.wp_fallback_consent_type. '' when none.
 	 *
 	 * @return {string} The consent type, such as 'optin' or 'optout'.
 	 */
 	const consentType = () => {
-		const api = window.consent_api || {};
 		const type =
 			typeof window.wp_consent_type !== 'undefined'
 				? window.wp_consent_type
-				: typeof window.wp_fallback_consent_type !== 'undefined'
-					? window.wp_fallback_consent_type
-					: api.consent_type;
+				: window.wp_fallback_consent_type;
 		return typeof type === 'string' ? type : '';
 	};
 
