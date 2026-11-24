@@ -1,11 +1,11 @@
-# Salt conformance: wordpress 6.0.0-dev against @lightlysaltedhq/salt-contract 1.0.0-rc.9
+# Salt conformance: wordpress 6.0.0-dev against @lightlysaltedhq/salt-contract 1.0.0-rc.10
 
 **Pass.** 14 section(s) pass, 0 fail, 0 incomplete, 3 not shipped. Chrome, views and page: 9 pass, 0 fail, 0 not shipped. Adapter: command `php tests/contract-adapter/adapter.php`.
 
 | Section | Fixtures | Field parity | Classes | Inline styles | Stylesheet pin |
 | --- | --- | --- | --- | --- | --- |
 | hero | 12/12 | pass | pass | pass | pass |
-| rich-text | 8/8 | pass | pass | pass | pass |
+| rich-text | 9/9 | pass | pass | pass | pass |
 | call-to-action | 4/4 | pass | pass | pass | pass |
 | media-text | 4/4 | pass | pass | pass | pass |
 | features | 4/4 | pass | pass | pass | pass |
@@ -36,7 +36,7 @@
 
 ## Stylesheet pin
 
-Pass: `assets/dist/salt.71b124b497/salt.css` against this contract's `styles/salt.css` (1.0.0-rc.9): identical.
+Pass: `assets/dist/salt.71b124b497/salt.css` against this contract's `styles/salt.css` (1.0.0-rc.10): identical.
 
 ## Field parity
 

@@ -48,6 +48,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { normalise } from '@lightlysaltedhq/salt-contract/normalise';
 
 const here = path.dirname( fileURLToPath( import.meta.url ) );
 const url = process.env.SALT_HARNESS_URL;
@@ -1240,8 +1241,9 @@ function reportResave( was, now ) {
 			unexplained.push( `changed ${ line }` );
 		}
 	}
-	// TinyMCE (with wpautop) saves paragraphs as line breaks; ACF's acf_the_content puts them
-	// back. A change is explained when both versions render the same HTML.
+	// TinyMCE (with wpautop) saves paragraphs as blank lines and a br as a newline; ACF's
+	// acf_the_content puts them back. A change is explained when both versions render the same
+	// HTML, compared as the contract compares it (`<br />\nTwo` is `<br>Two`).
 	if ( wysiwyg.length ) {
 		const rendered = JSON.parse(
 			execFileSync( php, [ path.join( here, 'php/meta.php' ), '--the-content' ], {
@@ -1249,7 +1251,7 @@ function reportResave( was, now ) {
 				encoding: 'utf8',
 			} )
 		);
-		const tidy = ( h ) => h.replace( />\s+</g, '><' ).trim();
+		const tidy = ( h ) => normalise( `<div>${ h }</div>` );
 		wysiwyg.forEach( ( [ , , line ], i ) => {
 			if ( tidy( rendered[ 2 * i ] ) === tidy( rendered[ 2 * i + 1 ] ) ) {
 				note( 'wysiwyg paragraphs saved as line breaks by the editor (acf_the_content renders both the same)', line );

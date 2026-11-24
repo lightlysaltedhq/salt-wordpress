@@ -77,7 +77,7 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
   section views, CTA clicks, accordion opens and carousel controls on the
   bands drawn to the contract's markup (`data-track`).
 
-- **Full contract conformance.** `npm run conformance:harness` runs the rc.9 contract checks against all 14 shipped sections and all chrome, view and page fixtures. A failed check exits non-zero. The baseline in `tests/contract-adapter/baseline/` includes the ACF field and served stylesheet checks; `tabs`, `listing` and `pricing` are explicitly not shipped. The gate is local until the founder applies `docs/ci/contract-conformance.patch` to run it and compare the baseline on both PHP versions in CI.
+- **Full contract conformance.** `npm run conformance:harness` runs the rc.10 contract checks against all 14 shipped sections and all chrome, view and page fixtures. A failed check exits non-zero. The baseline in `tests/contract-adapter/baseline/` includes the ACF field and served stylesheet checks; `tabs`, `listing` and `pricing` are explicitly not shipped. The gate is local until the founder applies `docs/ci/contract-conformance.patch` to run it and compare the baseline on both PHP versions in CI.
 - **The contract's view and page cases render on the real-ACF harness's
   WordPress (ID-3626, EP-72 M3 unit 5b).** `npm run conformance:harness`
   (`tests/real-acf/run.sh --conformance`) builds the harness's site with
