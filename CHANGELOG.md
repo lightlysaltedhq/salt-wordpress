@@ -2,7 +2,10 @@
 
 All notable changes to the salt parent theme. Format:
 [Keep a Changelog](https://keepachangelog.com/); versioning:
-docs/RELEASE-POLICY.md. Releases with breaking changes carry a **BREAKING**
+[docs/RELEASE-POLICY.md](docs/RELEASE-POLICY.md), and for the shared contract this
+theme conforms to, the
+[salt-contract release policy](https://github.com/lightlysaltedhq/contracts/blob/main/salt-contract/RELEASE-POLICY.md).
+Releases with breaking changes carry a **BREAKING**
 section enumerating changed components/sections at args-signature and
 markup granularity (cross-reference your site's override manifest).
 
