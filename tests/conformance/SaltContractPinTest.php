@@ -1,25 +1,7 @@
 <?php
 /**
- * Pin gate: salt reads @lightlysaltedhq/salt-contract at exactly the release
- * candidate it was last checked against.
- *
- * WHERE THE CONTRACT COMES FROM
- * -----------------------------
- * Release candidates of salt-contract are never published (the contract's
- * RELEASE-POLICY §6), so npm has nothing to install by version. The candidate
- * is packed once with `npm pack` from lightlysaltedhq/contracts at the commit
- * below and committed under vendor-contract/; package.json requires that file
- * and package-lock.json records its integrity hash. Packing is deterministic,
- * so anyone can rebuild the tarball from the commit and compare.
- *
- * HOW A BUMP IS HELD UNTIL SOMEONE HAS READ IT
- * --------------------------------------------
- * PINNED, TARBALL and TARBALL_SHA256 move together. A different version, a
- * different file, a changed byte in the tarball, or an installed copy that is
- * not byte-for-byte the tarball's content all fail here, each saying what to
- * do. This is the same rule FoundationsConformanceTest applies to
- * design-foundations; once 1.0.0 is published the pin becomes a bare registry
- * version, as that one is.
+ * The public contract release Salt was checked against. Update the exact pin
+ * and content digest together after reviewing and testing a new release.
  *
  * @package Salt\Tests
  */
@@ -33,147 +15,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class SaltContractPinTest extends SaltTestCase {
 
 	private const PACKAGE = '@lightlysaltedhq/salt-contract';
+	private const PINNED  = '1.0.0';
+	private const ROOT    = __DIR__ . '/../..';
 
-	/**
-	 * The candidate salt was last checked against: 1.0.0-rc.10, packed from
-	 * the local, unpushed lightlysaltedhq/contracts branch
-	 * feat/salt-release-candidate at 9ea27142d8bd6faaa0bceebbc2bb8c8791ac9e0c
-	 * (salt-contract/). Re-pack and re-pin from the merged commit once that
-	 * branch lands.
-	 */
-	private const PINNED = '1.0.0-rc.10';
+	/** SHA-256 of the sorted path, NUL, hex file SHA-256 and LF for every file in the public pack. */
+	private const CONTENT_SHA256 = '402cc7d9286550c41dce29810021ae715beb45e906ea41221b9365fe06ebd0a1';
 
-	private const TARBALL = 'vendor-contract/lightlysaltedhq-salt-contract-1.0.0-rc.10.tgz';
+	/** A range, candidate file or alternate registry is not the checked release. */
+	public function test_exact_public_registry_pin(): void {
+		$manifest = json_decode( file_get_contents( self::ROOT . '/package.json' ), true, 512, JSON_THROW_ON_ERROR );
+		$lock     = json_decode( file_get_contents( self::ROOT . '/package-lock.json' ), true, 512, JSON_THROW_ON_ERROR );
+		$package  = $lock['packages'][ 'node_modules/' . self::PACKAGE ];
 
-	private const TARBALL_SHA256 = 'e1175db5e52e0f3906bbcfaf1527fe25a092670857affd0017ee08ac2f46b575';
-
-	private const ROOT = __DIR__ . '/../..';
-
-	private const INSTALLED = self::ROOT . '/node_modules/@lightlysaltedhq/salt-contract';
-
-	private const REPACK = "  Rebuild it from the contracts repository at the pinned commit:\n"
-		. "    npm pack ./salt-contract --pack-destination <salt-wordpress>/vendor-contract\n"
-		. "  then npm install --save-dev --save-exact ./<tarball>, and re-pin PINNED, TARBALL and TARBALL_SHA256 in this file.\n";
-
-	/**
-	 * Decode a JSON file or fail naming it.
-	 *
-	 * @param string $path Path.
-	 * @return array<string, mixed>
-	 */
-	private static function decode( string $path ): array {
-		if ( ! is_file( $path ) ) {
-			self::fail( "{$path} not found." );
-		}
-		$decoded = json_decode( (string) file_get_contents( $path ), true );
-		if ( ! is_array( $decoded ) ) {
-			self::fail( "{$path} is not valid JSON." );
-		}
-		return $decoded;
+		$this->assertSame( self::PINNED, $manifest['devDependencies'][ self::PACKAGE ] );
+		$this->assertSame( self::PINNED, $package['version'] );
+		$this->assertSame( 'https://registry.npmjs.org/' . self::PACKAGE . '/-/salt-contract-' . self::PINNED . '.tgz', $package['resolved'] );
 	}
 
-	/**
-	 * Every file in the committed tarball, keyed by its path inside the
-	 * package, with its bytes.
-	 *
-	 * @return array<string, string>
-	 */
-	private static function tarball_files(): array {
-		$path = self::ROOT . '/' . self::TARBALL;
-		if ( ! is_file( $path ) ) {
-			self::fail( self::TARBALL . " is not committed.\n" . self::REPACK );
-		}
+	/** npm ci checks the tarball integrity; also catch local edits, missing files and extra files after install. */
+	public function test_installed_contract_matches_the_public_pack(): void {
+		$dir = self::ROOT . '/node_modules/' . self::PACKAGE;
+		$this->assertDirectoryExists( $dir, 'Install the pinned contract with npm ci.' );
 
 		$files = array();
-		$tar   = new PharData( $path );
-		foreach ( new RecursiveIteratorIterator( $tar ) as $file ) {
-			$inside = substr( $file->getPathname(), strlen( 'phar://' . $tar->getPath() . '/' ) );
-			if ( ! str_starts_with( $inside, 'package/' ) ) {
-				self::fail( self::TARBALL . " holds {$inside}, outside package/; it is not an npm pack tarball." );
-			}
-			$files[ substr( $inside, strlen( 'package/' ) ) ] = (string) file_get_contents( $file->getPathname() );
+		foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $dir, FilesystemIterator::SKIP_DOTS ) ) as $file ) {
+			$name           = str_replace( DIRECTORY_SEPARATOR, '/', substr( $file->getPathname(), strlen( $dir ) + 1 ) );
+			$files[ $name ] = $name . "\0" . hash_file( 'sha256', $file->getPathname() ) . "\n";
 		}
-		ksort( $files );
-
-		return $files;
-	}
-
-	/**
-	 * package.json requires exactly the committed tarball, and the lockfile
-	 * resolves to the same file.
-	 */
-	public function test_package_json_requires_exactly_the_committed_tarball(): void {
-		$want = 'file:' . self::TARBALL;
-		$pin  = self::decode( self::ROOT . '/package.json' )['devDependencies'][ self::PACKAGE ] ?? null;
-
-		$this->assertSame(
-			$want,
-			$pin,
-			self::PACKAGE . ' must be a devDependency on ' . $want . ', the candidate salt was checked against; package.json has ' . wp_json_encode( $pin ) . ".\n"
-			. "  A version or a range would install whatever npm finds; candidates are not published, so only the committed tarball is the contract.\n"
-		);
-
-		$lock = self::decode( self::ROOT . '/package-lock.json' )['packages'][ 'node_modules/' . self::PACKAGE ] ?? array();
-		$this->assertSame( $want, $lock['resolved'] ?? null, "package-lock.json does not resolve the contract to {$want}. Fix: npm install, then commit the lockfile." );
-		$this->assertSame( self::PINNED, $lock['version'] ?? null, 'package-lock.json records a different contract version. Fix: npm install, then commit the lockfile.' );
-	}
-
-	/**
-	 * The committed tarball is byte-for-byte the one PINNED was checked against,
-	 * and it holds that version of that package.
-	 */
-	public function test_the_tarball_is_the_pinned_candidate(): void {
-		$path = self::ROOT . '/' . self::TARBALL;
-		$this->assertFileExists( $path, self::TARBALL . " is not committed.\n" . self::REPACK );
-
-		$hash = hash_file( 'sha256', $path );
-		$this->assertSame(
-			self::TARBALL_SHA256,
-			$hash,
-			self::TARBALL . " hashes to {$hash}, not the hash recorded for " . self::PINNED . ".\n"
-			. "  The contract changed under salt. Read what changed, bring salt into line, then:\n" . self::REPACK
-		);
-
-		$manifest = json_decode( self::tarball_files()['package.json'] ?? '', true );
-		$this->assertSame( self::PACKAGE, $manifest['name'] ?? null, self::TARBALL . ' is not ' . self::PACKAGE . '.' );
-		$this->assertSame( self::PINNED, $manifest['version'] ?? null, self::TARBALL . ' is not ' . self::PINNED . '.' );
-	}
-
-	/**
-	 * node_modules holds exactly the tarball's files, unchanged, so every other
-	 * check reads the pinned contract. This gate does not skip when the
-	 * contract is absent, by design.
-	 */
-	public function test_the_installed_contract_is_the_tarball_unchanged(): void {
-		if ( ! is_file( self::INSTALLED . '/package.json' ) ) {
-			self::fail( 'The contract is not installed: ' . self::PACKAGE . ' not found in node_modules. Fix: npm ci' );
-		}
-
-		$want     = self::tarball_files();
-		$have     = array();
-		$iterator = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( self::INSTALLED, FilesystemIterator::SKIP_DOTS ) );
-		foreach ( $iterator as $file ) {
-			$have[ substr( $file->getPathname(), strlen( self::INSTALLED . '/' ) ) ] = (string) file_get_contents( $file->getPathname() );
-		}
-		ksort( $have );
-
-		$problems = array();
-		foreach ( array_diff_key( $want, $have ) as $name => $bytes ) {
-			$problems[] = "missing: {$name}";
-		}
-		foreach ( array_diff_key( $have, $want ) as $name => $bytes ) {
-			$problems[] = "not in the tarball: {$name}";
-		}
-		foreach ( array_intersect_key( $have, $want ) as $name => $bytes ) {
-			if ( $want[ $name ] !== $bytes ) {
-				$problems[] = "changed: {$name}";
-			}
-		}
-
-		$this->assertSame(
-			array(),
-			$problems,
-			"node_modules does not hold the pinned contract unchanged. Fix: npm ci\n  " . implode( "\n  ", $problems )
-		);
+		ksort( $files, SORT_STRING );
+		$this->assertSame( self::CONTENT_SHA256, hash( 'sha256', implode( '', $files ) ), 'Installed contract differs from the checked release. Run npm ci.' );
 	}
 }
