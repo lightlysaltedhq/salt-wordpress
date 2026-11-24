@@ -9,7 +9,7 @@
  * byte, so CSS that went through Tailwind, PostCSS or a minifier can never
  * pass. bin/build-assets.mjs copies it into assets/dist; this holds the copy
  * (through the manifest, the path salt_enqueue_assets() serves) to the
- * installed package, which SaltContractPinTest holds to the committed tarball.
+ * installed package, which SaltContractPinTest holds to the public release.
  *
  * @package Salt\Tests
  */
