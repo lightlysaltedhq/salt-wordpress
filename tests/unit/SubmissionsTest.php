@@ -120,6 +120,126 @@ final class SubmissionsTest extends SaltTestCase {
 		$this->assertEqualsWithDelta( time(), (int) get_option( 'salt_submissions_last_purge' ), 5 );
 	}
 
+	/**
+	 * A row as main stored it before the date fix: salt_submitted_at 2026
+	 * (an ISO date cast to int), the post stored the given days ago.
+	 *
+	 * @param int $days_ago When the post was stored.
+	 * @return int Post ID.
+	 */
+	private function store_misdated_row( int $days_ago ): int {
+		$id = wp_insert_post(
+			array(
+				'post_type'     => 'salt_submission',
+				'post_status'   => 'private',
+				'post_date_gmt' => gmdate( 'Y-m-d H:i:s', time() - ( $days_ago * DAY_IN_SECONDS ) ),
+			)
+		);
+		update_post_meta( $id, 'salt_submitted_at', 2026 );
+		return $id;
+	}
+
+	public function test_an_iso_date_is_stored_as_its_timestamp(): void {
+		$this->set_storage( true );
+
+		$post_id = salt_submission_store( array( 'submitted_at' => '2026-11-23T10:15:00+00:00' ) + $this->enquiry( 0 ) );
+
+		$this->assertSame( 1795428900, $GLOBALS['salt_test_meta'][ $post_id ]['salt_submitted_at'] );
+		$this->assertStringEndsWith( '2026-11-23 10:15', get_post( $post_id )->post_title );
+	}
+
+	public function test_a_misdated_row_inside_the_window_survives_the_purge(): void {
+		$this->set_storage( true, 30 );
+		$id = $this->store_misdated_row( 5 );
+
+		$this->assertSame( 0, salt_submissions_purge() );
+		$this->assertNotNull( get_post( $id ) );
+		$this->assertSame( time() - 5 * DAY_IN_SECONDS, salt_submission_export( $id )['submitted_at'], 'Exported by the trustworthy date.' );
+	}
+
+	public function test_a_misdated_row_past_the_window_by_its_post_date_is_purged(): void {
+		$this->set_storage( true, 30 );
+		$id = $this->store_misdated_row( 100 );
+
+		$this->assertSame( 1, salt_submissions_purge() );
+		$this->assertNull( get_post( $id ) );
+	}
+
+	public function test_a_row_with_no_trustworthy_date_is_never_purged(): void {
+		$this->set_storage( true, 30 );
+		$id = wp_insert_post(
+			array(
+				'post_type'     => 'salt_submission',
+				'post_status'   => 'private',
+				'post_date_gmt' => '0000-00-00 00:00:00',
+			)
+		);
+		update_post_meta( $id, 'salt_submitted_at', 2026 );
+
+		$this->assertSame( 0, salt_submissions_purge() );
+		$this->assertNotNull( get_post( $id ) );
+		$this->assertNull( salt_submission_export( $id )['submitted_at'] );
+	}
+
+	public function test_a_row_stored_before_2020_is_dated_by_its_post_and_purged(): void {
+		$this->set_storage( true, 30 );
+		$id = wp_insert_post(
+			array(
+				'post_type'     => 'salt_submission',
+				'post_status'   => 'private',
+				'post_date_gmt' => '2019-06-01 09:30:00',
+			)
+		);
+		update_post_meta( $id, 'salt_submitted_at', 2026 );
+
+		$this->assertSame( 1559381400, salt_submission_export( $id )['submitted_at'], 'The 2020 floor is the meta\'s, never the post\'s.' );
+		$this->assertSame( 1, salt_submissions_purge() );
+		$this->assertNull( get_post( $id ) );
+	}
+
+	public function test_kept_rows_are_counted_in_the_log_without_personal_data(): void {
+		$this->set_storage( true, 30 );
+		foreach ( array( 1, 2 ) as $n ) {
+			$id = wp_insert_post(
+				array(
+					'post_type'     => 'salt_submission',
+					'post_status'   => 'private',
+					'post_title'    => 'Jane Doe — booking — 1970-01-01 00:33',
+					'post_date_gmt' => '0000-00-00 00:00:00',
+				)
+			);
+			update_post_meta( $id, 'salt_submitted_at', 2026 );
+			update_post_meta( $id, 'salt_name', 'Jane Doe' );
+			update_post_meta( $id, 'salt_email', 'jane@example.test' );
+		}
+
+		salt_submissions_purge();
+
+		$logs = implode( "\n", $this->logs() );
+		$this->assertStringContainsString( 'kept 2 stored enquiries with no trustworthy date', $logs );
+		$this->assertStringNotContainsString( 'Jane', $logs );
+		$this->assertStringNotContainsString( 'example.test', $logs );
+	}
+
+	public function test_a_dated_purge_with_nothing_kept_logs_nothing(): void {
+		$this->set_storage( true, 30 );
+		salt_submission_store( $this->enquiry( time() - ( 40 * DAY_IN_SECONDS ) ) );
+
+		$this->assertSame( 1, salt_submissions_purge() );
+		$this->assertSame( array(), $this->logs() );
+	}
+
+	public function test_only_an_integer_or_an_iso_8601_date_is_a_timestamp(): void {
+		$this->assertSame( 1795428900, salt_submission_timestamp( '2026-11-23T10:15:00+00:00' ) );
+		$this->assertSame( 1795428900, salt_submission_timestamp( '2026-11-23T10:15:00Z' ) );
+		$this->assertSame( 1795425300, salt_submission_timestamp( '2026-11-23T10:15:00+01:00' ) );
+		$this->assertSame( 1795428900, salt_submission_timestamp( 1795428900 ) );
+		$this->assertSame( 1795428900, salt_submission_timestamp( '1795428900' ) );
+		foreach ( array( 'now', 'yesterday', '-1 day', 'next monday', 'today 10:00', '23 November 2026', '2026-02-31T10:00:00Z', '2026-11-23 garbage', '', null, 1.5, array() ) as $value ) {
+			$this->assertNull( salt_submission_timestamp( $value ), var_export( $value, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- The failing value, in the message.
+		}
+	}
+
 	public function test_purge_ignores_foreign_post_types(): void {
 		$this->set_storage( true, 30 );
 		$this->seed_posts(
@@ -268,6 +388,7 @@ final class SubmissionsTest extends SaltTestCase {
 				'created'      => $post->post_date,
 				'name'         => 'Jane Doe',
 				'email'        => 'jane@example.test',
+				'phone'        => '',
 				'message'      => 'Hello — enquiry body.',
 				'enquiry_type' => 'booking',
 				'page_url'     => 'https://example.test/contact/',
@@ -276,6 +397,19 @@ final class SubmissionsTest extends SaltTestCase {
 			),
 			salt_submission_export( $post_id )
 		);
+	}
+
+	public function test_a_phone_is_stored_exported_and_purged_only_when_given(): void {
+		$this->set_storage( true, 30 );
+
+		$without = salt_submission_store( $this->enquiry( time() ) );
+		$this->assertArrayNotHasKey( 'salt_phone', $GLOBALS['salt_test_meta'][ $without ], 'No phone given: none stored.' );
+
+		$with = salt_submission_store( array( 'phone' => '+44 117 496 0123' ) + $this->enquiry( time() - ( 31 * DAY_IN_SECONDS ) ) );
+		$this->assertSame( '+44 117 496 0123', salt_submission_export( $with )['phone'], 'In the per-record export (PRIV06).' );
+
+		salt_submissions_purge();
+		$this->assertArrayNotHasKey( $with, $GLOBALS['salt_test_meta'], 'Purged with its record (PRIV03).' );
 	}
 
 	public function test_export_returns_null_for_foreign_posts_and_unknown_ids(): void {

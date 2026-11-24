@@ -98,8 +98,7 @@ final class ProcessSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'x-process-step-number', $html );
-		$this->assertStringContainsString( '>2</span>', $html );
+		$this->assertStringContainsString( '<span class="salt-process__number" aria-hidden="true">2</span>', $html );
 		$this->assertStringContainsString( 'aria-hidden="true"', $html, 'Visible number is decorative — the <ol> carries semantics (A11Y01).' );
 		$this->assertSame( 1, preg_match_all( '/<h3\b/', $html ), 'Title renders at the passed level.' );
 		$this->assertStringContainsString( 'Design', $html );
@@ -176,7 +175,7 @@ final class ProcessSectionTest extends SaltTestCase {
 	// -----------------------------------------------------------------
 
 	public function test_zero_steps_renders_nothing(): void {
-		$this->assertSame( '', $this->render_process_section( array( 'heading' => 'How we work' ) ) );
+		// markup/process.json zeroState: eyebrow, heading, intro and steps all empty.
 		$this->assertSame( '', $this->render_process_section( array( 'steps' => array() ) ) );
 		$this->assertSame( '', $this->render_process_section( array( 'steps' => 'not-an-array' ) ) );
 	}
@@ -210,7 +209,7 @@ final class ProcessSectionTest extends SaltTestCase {
 
 		$this->assertSame( 1, preg_match_all( '/<ol\b/', $html ), 'Ordered-list semantics.' );
 		$this->assertSame( 3, preg_match_all( '/<li\b/', $html ) );
-		$this->assertSame( 3, preg_match_all( '/x-process-step-number/', $html ) );
+		$this->assertSame( 3, preg_match_all( '/salt-process__number/', $html ) );
 		// Numbers derive from position, in order.
 		$this->assertMatchesRegularExpression( '/>1<\/span>.*>2<\/span>.*>3<\/span>/s', $html );
 		// Step titles step to level + 1 (section heading is h1 here).
@@ -224,8 +223,7 @@ final class ProcessSectionTest extends SaltTestCase {
 				'layout' => 'unknown-value',
 			)
 		);
-		$this->assertStringContainsString( 'x-process-timeline', $timeline );
-		$this->assertStringContainsString( 'border-s border-border', $timeline, 'Timeline draws its connector line via a border.' );
+		$this->assertStringContainsString( '<ol class="salt-grid salt-process" role="list" data-layout="timeline">', $timeline );
 
 		$cards = $this->render_process_section(
 			array(
@@ -233,9 +231,8 @@ final class ProcessSectionTest extends SaltTestCase {
 				'layout' => 'cards',
 			)
 		);
-		$this->assertStringContainsString( 'x-process-cards', $cards );
-		$this->assertStringContainsString( 'grid', $cards );
-		$this->assertStringNotContainsString( 'x-process-timeline', $cards );
+		$this->assertStringContainsString( 'data-layout="cards"', $cards );
+		$this->assertStringNotContainsString( 'data-layout="timeline"', $cards );
 	}
 
 	public function test_malformed_steps_are_skipped_and_logged(): void {
@@ -389,13 +386,23 @@ final class ProcessSectionTest extends SaltTestCase {
 		$this->assertNull(
 			$this->resolve_process(
 				array(
-					'heading'        => 'How it works',
 					'steps'          => array( 'not a row', array( 'title' => '  ' ) ),
 					'structuredData' => true,
 				)
 			)
 		);
 		$this->assertSame( array(), salt_schema_queue(), 'Schema is queued only on a path that returns props.' );
+
+		// A heading with no steps draws the heading alone, and queues no HowTo.
+		$resolved = $this->resolve_process(
+			array(
+				'heading'        => 'How it works',
+				'steps'          => array( array( 'title' => '  ' ) ),
+				'structuredData' => true,
+			)
+		);
+		$this->assertSame( array(), $resolved['props']['steps'] );
+		$this->assertSame( array(), salt_schema_queue(), 'No steps: no HowTo.' );
 	}
 
 	public function test_resolver_props_use_the_contract_names(): void {
@@ -416,7 +423,7 @@ final class ProcessSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( array( 'eyebrow', 'heading', 'layout', 'steps', 'structuredData' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( array( 'eyebrow', 'heading', 'intro', 'layout', 'steps', 'priorityStep', 'arrow', 'structuredData' ), array_keys( $resolved['props'] ) );
 		$this->assertSame( 'Steps', $resolved['props']['eyebrow'] );
 		$this->assertSame( ' How it works ', $resolved['props']['heading'], 'Optional text is never trimmed.' );
 		$this->assertSame( 'cards', $resolved['props']['layout'] );
@@ -426,11 +433,15 @@ final class ProcessSectionTest extends SaltTestCase {
 					'title' => 'Plan',
 					'text'  => 'We talk.',
 					'icon'  => 'check',
+					'image' => null,
+					'cta'   => null,
 				),
 				array(
 					'title' => 'Build',
-					'text'  => '',
-					'icon'  => '',
+					'text'  => null,
+					'icon'  => null,
+					'image' => null,
+					'cta'   => null,
 				),
 			),
 			$resolved['props']['steps']
@@ -468,24 +479,39 @@ final class ProcessSectionTest extends SaltTestCase {
 				'props' => array(
 					'eyebrow'        => null,
 					'heading'        => 'From props',
+					'intro'          => null,
 					'layout'         => 'cards',
 					'steps'          => array(
 						array(
 							'title' => 'First',
 							'text'  => 'One',
-							'icon'  => '',
+							'icon'  => null,
+							'image' => null,
+							'cta'   => array(
+								'label'  => 'Book',
+								'href'   => '/book/',
+								'style'  => 'secondary',
+								'newTab' => false,
+							),
 						),
 						array(
 							'title' => 'Second',
-							'text'  => '',
-							'icon'  => '',
+							'text'  => null,
+							'icon'  => null,
+							'image' => null,
+							'cta'   => null,
 						),
 					),
+					'priorityStep'   => null,
+					'arrow'          => null,
 					'structuredData' => true,
 				),
 				'plan'  => array(
 					'index'         => 0,
+					'anchor'        => 'steps',
 					'headingLevel'  => 1,
+					'headingId'     => 'steps__heading',
+					'bodyBaseLevel' => 1,
 					'priorityMedia' => false,
 				),
 			)
@@ -494,9 +520,11 @@ final class ProcessSectionTest extends SaltTestCase {
 
 		$this->assertSame( 1, preg_match_all( '/<h1[\s>]/', $html ) );
 		$this->assertSame( 2, preg_match_all( '/<h2[\s>]/', $html ), 'Step titles one level below the heading.' );
-		$this->assertStringContainsString( 'x-process-cards', $html );
-		$this->assertSame( 2, substr_count( $html, '<li class="x-process-item h-full' ) );
-		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+		$this->assertStringContainsString( '<h1 id="steps__heading">From props</h1>', $html );
+		$this->assertStringContainsString( 'data-layout="cards"', $html );
+		$this->assertSame( 2, substr_count( $html, '<li class="salt-process__step">' ) );
+		$this->assertStringContainsString( '<a class="salt-button" href="/book/" data-style="secondary" data-track-control="cta">Book</a>', $html );
+		$this->assertStringNotContainsString( 'salt-section', $html, 'The band is the entry\'s, not the view\'s.' );
 		$this->assertSame( array(), salt_schema_queue(), 'The view never queues schema.' );
 	}
 }

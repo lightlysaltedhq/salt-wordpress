@@ -104,7 +104,7 @@ final class PostMetaTest extends SaltTestCase {
 		$links = salt_share_links( 'https://example.test/post/?a=b', 'Salt & pepper' );
 		$by    = array_column( $links, 'url', 'key' );
 
-		$this->assertSame( 'https://x.com/intent/post?url=https%3A%2F%2Fexample.test%2Fpost%2F%3Fa%3Db&text=Salt%20%26%20pepper', $by['x'] );
+		$this->assertSame( 'https://x.com/intent/post?url=https%3A%2F%2Fexample.test%2Fpost%2F%3Fa%3Db', $by['x'] );
 		$this->assertSame( 'mailto:?subject=Salt%20%26%20pepper&body=https%3A%2F%2Fexample.test%2Fpost%2F%3Fa%3Db', $by['email'] );
 	}
 

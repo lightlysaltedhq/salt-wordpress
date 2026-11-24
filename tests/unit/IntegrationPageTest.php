@@ -137,7 +137,8 @@ final class IntegrationPageTest extends SaltTestCase {
 	}
 
 	public function test_section_asset_enqueue_follows_the_page_scan(): void {
-		// Page containing a gallery (has a JS module) and rich text (none).
+		// Page containing a gallery (its carousel layout takes the carousel's
+		// controls script) and rich text (no script).
 		$GLOBALS['salt_test_fields']['current']['sections'] = array(
 			array( 'acf_fc_layout' => 'gallery' ),
 			array( 'acf_fc_layout' => 'rich-text' ),
@@ -148,10 +149,11 @@ final class IntegrationPageTest extends SaltTestCase {
 		salt_enqueue_section_assets();
 		$scripts = $GLOBALS['salt_test_enqueued']['scripts'];
 
-		$this->assertArrayHasKey( 'salt-section-gallery', $scripts, 'Gallery module enqueued when the section is on the page.' );
-		$this->assertNull( $scripts['salt-section-gallery']['ver'], 'No ?ver= — hash is the cache-buster (ARCH03).' );
+		$this->assertArrayHasKey( 'salt-section-carousel', $scripts, 'A gallery takes the carousel track\'s controls.' );
+		$this->assertNull( $scripts['salt-section-carousel']['ver'], 'No ?ver= — hash is the cache-buster (ARCH03).' );
 		$this->assertArrayNotHasKey( 'salt-section-rich-text', $scripts, 'No module for sections that ship none.' );
-		$this->assertCount( 1, $scripts, 'Nothing loads for sections not on the page.' );
+		// sections/gallery.js is retired; a dist built before that still lists it.
+		$this->assertSame( array(), array_diff( array_keys( $scripts ), array( 'salt-section-carousel', 'salt-section-gallery' ) ), 'Nothing loads for sections not on the page.' );
 	}
 
 	public function test_page_without_sections_enqueues_no_section_assets(): void {

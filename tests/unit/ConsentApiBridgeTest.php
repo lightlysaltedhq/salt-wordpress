@@ -15,7 +15,13 @@ final class ConsentApiBridgeTest extends SaltTestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
-		$GLOBALS['salt_test_wp_consent'] = array();
+		$GLOBALS['salt_test_wp_consent']      = array();
+		$GLOBALS['salt_test_wp_consent_type'] = 'optin';
+	}
+
+	protected function tearDown(): void {
+		unset( $GLOBALS['salt_test_wp_consent_type'] );
+		parent::tearDown();
 	}
 
 	public function test_consent_api_verdict_grants(): void {
@@ -39,5 +45,15 @@ final class ConsentApiBridgeTest extends SaltTestCase {
 		$GLOBALS['salt_test_wp_consent'] = array( 'preferences' => true );
 
 		$this->assertTrue( salt_consent( 'maps' ), 'Sites can remap salt categories onto their CMP taxonomy.' );
+	}
+
+	public function test_no_consent_type_fails_closed(): void {
+		// The real API grants every category while no cookie plugin has set
+		// a consent type; Salt must not read that as consent.
+		unset( $GLOBALS['salt_test_wp_consent_type'] );
+		$this->assertTrue( wp_has_consent( 'statistics' ), 'The shim behaves as the real API does.' );
+
+		$this->assertFalse( salt_consent( 'analytics' ) );
+		$this->assertFalse( salt_consent( 'marketing' ) );
 	}
 }

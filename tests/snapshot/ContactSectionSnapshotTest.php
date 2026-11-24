@@ -1,9 +1,9 @@
 <?php
 /**
- * Contact section snapshots (FLEET01) — one per meaningful variant:
- * the v1 default (details + formIntro + mailto CTA; form OFF), and the
- * compliance-phase form (salt_contact_form_enabled true — honeypot,
- * label + aria-describedby fields, submit button).
+ * Contact section snapshots (FLEET01) — one per meaningful variant, in
+ * the contract's markup (markup/contact.json, contact-form.json): the
+ * form off (details, then the closed message), and the live form as first
+ * drawn (no credential, SC-025).
  *
  * @package Salt\Tests
  */
@@ -16,8 +16,6 @@ final class ContactSectionSnapshotTest extends SaltSnapshotTestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
-		// Freeze the form's time-trap token so snapshots are byte-stable.
-		add_filter( 'salt_contact_clock', static fn(): int => 1783000000, 20 );
 		salt_test_seed_fc( array() );
 
 		$GLOBALS['salt_test_fields']['option'] = array(

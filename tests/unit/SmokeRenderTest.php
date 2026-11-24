@@ -78,7 +78,7 @@ final class SmokeRenderTest extends SaltTestCase {
 		$html = $this->render_flexible_content();
 
 		$this->assertSame( 1, preg_match_all( '/<h1[\s>]/', $html ), 'Zero-H1 pages are impossible (A11Y01).' );
-		$this->assertStringContainsString( 'visually-hidden', $html );
+		$this->assertStringContainsString( '<h1 class="salt-sr-only">Fallback title</h1>', $html );
 		$this->assertStringContainsString( 'Fallback title', $html );
 	}
 

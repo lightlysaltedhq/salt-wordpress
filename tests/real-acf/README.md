@@ -33,7 +33,7 @@ phase, `php/view.php setup` sets the routes the cases' paths take, removes WordP
 content, adds the menus and snapshots the database. Then the built-in server starts, and `npm run
 conformance:contract` runs with the chosen PHP first on `PATH`. For each view or page case, the
 adapter calls `php/view.php`, which restores that snapshot, seeds the case and requests its path.
-`php/conformance.php` then fails the phase when any case did not render. As in every phase, any
+Any failed contract check fails the phase and leaves the previous baseline intact. As in every phase, any
 entry in `debug.log` fails it too. The site's address is `http://salt-harness.test`, whatever port
 the server takes, so the report is the same on every run. It does not need Playwright.
 

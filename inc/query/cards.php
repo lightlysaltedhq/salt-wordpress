@@ -102,28 +102,67 @@ function salt_collection_index_url( string $source ): ?string {
 }
 
 /**
- * The strings the contract's markup names as `labels.<name>` for the
- * collection sections: viewAll, slide, rating, results, social, previous
- * and next.
+ * The strings the contract's markup names as `labels.<name>`: for the
+ * collection sections viewAll, slide, rating, results, social, previous
+ * and next; for locations the status words (open, appointment, closed),
+ * byAppointment, getDirections, directions ({name}, the office's name,
+ * replaced where it stands, nothing appended: README Labels), and
+ * the map facade's load, loadMap, consent and error.
  *
  * The founder's ruling: translatable theme strings, in the contract
  * fixtures' English. The `salt_contract_labels` filter is this one seam;
- * the contract adapter feeds it the case's site.labels.
+ * the contract adapter feeds it the case's site.labels. A view's own
+ * labels (salt_view_label_defaults()) are merged over these for that view,
+ * and the filter is told which view asks. A label may be a map of labels
+ * (the share links' services).
  *
- * @return array<string,string>
+ * @param string $view A view's id, or '' for the sections and the chrome.
+ * @return array<string,string|array<string,string>>
  */
-function salt_contract_labels(): array {
-	$labels = array(
-		'viewAll'  => __( 'View all', 'salt' ),
-		'slide'    => __( 'Slide', 'salt' ),
-		'rating'   => __( 'Rated', 'salt' ),
-		'results'  => __( 'Results', 'salt' ),
-		'social'   => __( 'Social profiles', 'salt' ),
-		'previous' => __( 'Previous', 'salt' ),
-		'next'     => __( 'Next', 'salt' ),
+function salt_contract_labels( string $view = '' ): array {
+	$labels = array_merge(
+		array(
+			'viewAll'       => __( 'View all', 'salt' ),
+			/* translators: {n} is replaced by the slide's number and {N} by how many slides there are. */
+			'slide'         => __( 'Slide {n} of {N}', 'salt' ),
+			/* translators: {n} is replaced by the rating (a half rating is written 4.5) and {N} by the most it can be. */
+			'rating'        => __( 'Rated {n} of {N}', 'salt' ),
+			'results'       => __( 'Results', 'salt' ),
+			'social'        => __( 'Social profiles', 'salt' ),
+			'previous'      => __( 'Previous', 'salt' ),
+			'next'          => __( 'Next', 'salt' ),
+			// Locations (markup/locations.json, opening-hours.json, map.json).
+			'open'          => __( 'Open now', 'salt' ),
+			'appointment'   => __( 'By appointment', 'salt' ),
+			'closed'        => __( 'Closed', 'salt' ),
+			'byAppointment' => __( 'By appointment', 'salt' ),
+			'getDirections' => __( 'Get directions', 'salt' ),
+			/* translators: The directions link's accessible name; {name} is replaced by the office's name, where it stands, so put it where your language needs it. */
+			'directions'    => __( 'Directions to {name}', 'salt' ),
+			'load'          => __( 'Load the map', 'salt' ),
+			'loadMap'       => __( 'Load map', 'salt' ),
+			'consent'       => __( 'Allow map cookies to view this map.', 'salt' ),
+			'error'         => __( 'The map could not be loaded.', 'salt' ),
+			// Contact (markup/contact.json, contact-form.json). privacyLine's
+			// {link} is the privacy link, whose text is `privacy`.
+			'name'          => __( 'Name', 'salt' ),
+			'email'         => __( 'Email', 'salt' ),
+			'phone'         => __( 'Phone', 'salt' ),
+			'enquiryType'   => __( 'What is this about?', 'salt' ),
+			'message'       => __( 'Message', 'salt' ),
+			'optional'      => __( '(optional)', 'salt' ),
+			'submit'        => __( 'Send message', 'salt' ),
+			'honeypot'      => __( 'Leave this field empty', 'salt' ),
+			'privacy'       => __( 'privacy policy', 'salt' ),
+			/* translators: {link} is replaced by a link to the privacy policy, whose text is the "privacy policy" label. */
+			'privacyLine'   => __( 'By sending this form you agree to us handling your details to respond to your enquiry — see our {link}.', 'salt' ),
+			'unavailable'   => __( 'We are not taking enquiries through the website at the moment.', 'salt' ),
+		),
+		'' !== $view ? salt_view_label_defaults( $view ) : array()
 	);
-	$given  = apply_filters( 'salt_contract_labels', $labels );
-	return is_array( $given ) ? array_map( 'strval', $given ) : $labels;
+	$given  = apply_filters( 'salt_contract_labels', $labels, $view );
+	$string = static fn( $label ) => is_array( $label ) ? array_map( 'strval', $label ) : (string) $label;
+	return is_array( $given ) ? array_map( $string, $given ) : $labels;
 }
 
 /**
@@ -143,11 +182,12 @@ function salt_contract_arrow(): ?string {
 }
 
 /**
- * A slide's or a rating's label: the label, then "{n} of {N}"
- * (markup/carousel-track.json, markup/card.json). A half rating is written
- * "4.5" (the founder's ruling on PR #26). "{n} of {N}" is a translatable
- * format string in the contract's English, as the labels are (a reading of
- * the labels ruling, not a ruling of its own).
+ * A slide's or a rating's label with its values in place
+ * (markup/carousel-track.json, markup/card.json; README "Labels", SC-031):
+ * {n} is replaced by the number and {N} by how many, where they stand. A
+ * label without them, or with another placeholder, is drawn as written,
+ * with nothing appended. A half rating is written "4.5" (the founder's
+ * ruling on PR #26).
  *
  * @param string    $label The label (labels.slide, labels.rating).
  * @param int|float $n     The number.
@@ -155,9 +195,13 @@ function salt_contract_arrow(): ?string {
  * @return string
  */
 function salt_contract_n_of( string $label, $n, int $total ): string {
-	/* translators: 1: the number (a rating may be 4.5), 2: of how many. Follows a label such as "Slide" or "Rated". */
-	$of = sprintf( __( '%1$s of %2$d', 'salt' ), (string) $n, $total );
-	return trim( $label . ' ' . $of );
+	return strtr(
+		$label,
+		array(
+			'{n}' => (string) $n,
+			'{N}' => (string) $total,
+		)
+	);
 }
 
 /**
@@ -267,7 +311,7 @@ function salt_collection_card( WP_Post|WP_User $post, string $source, array $opt
 			$card['icon'] = ! empty( $options['icons'] ) ? $text( get_field( 'icon', $id ) ) : null;
 			break;
 		case 'case-studies':
-			$card['meta'] = $text( get_field( 'client', $id ) );
+			$card['meta'] = $text( salt_case_study_name( $id, 'client' ) );
 			break;
 		case 'posts':
 			$date         = get_the_date( 'Y-m-d', $post );
@@ -518,3 +562,20 @@ function salt_carousel_script_labels(): void {
 	);
 }
 add_action( 'wp_enqueue_scripts', 'salt_carousel_script_labels', 21 );
+
+/**
+ * Stamp the carousel's labels script with the request's CSP nonce
+ * ('wp_inline_script_attributes'), as the theme's other inline scripts are
+ * stamped (inc/security.php, inc/services/maps.php): without it the CSP
+ * refuses it and the controls fall back to unlabelled defaults.
+ *
+ * @param array<string,string|bool> $attributes The inline script's attributes.
+ * @return array<string,string|bool>
+ */
+function salt_carousel_inline_script_nonce( array $attributes ): array {
+	if ( 'salt-section-carousel-js-before' === ( $attributes['id'] ?? '' ) ) {
+		$attributes['nonce'] = salt_csp_nonce();
+	}
+	return $attributes;
+}
+add_filter( 'wp_inline_script_attributes', 'salt_carousel_inline_script_nonce' );

@@ -18,18 +18,23 @@
 	],
 	"fields": {
 		"group_salt_collection_case_studies": [
+			"caseStudyImage",
 			"challenge",
 			"client",
+			"clientRecord",
 			"details",
 			"externalUrl",
 			"gallery",
 			"label",
 			"results",
+			"sector",
+			"sectorRecord",
 			"services",
 			"solution",
 			"stat",
 			"value"
 		],
+		"group_salt_collection_clients": [],
 		"group_salt_collection_faqs": [
 			"answer"
 		],
@@ -95,6 +100,7 @@
 			"url",
 			"width"
 		],
+		"group_salt_collection_sectors": [],
 		"group_salt_collection_services": [
 			"benefits",
 			"cta",
@@ -151,10 +157,16 @@
 			"captcha_recaptcha_site_key",
 			"captcha_turnstile_site_key"
 		],
+		"group_salt_options_case_studies": [
+			"case_study_header",
+			"case_study_header_tone",
+			"case_study_header_tone_dark"
+		],
 		"group_salt_options_company": [
 			"company_address",
 			"company_email",
 			"company_phone",
+			"header_show_phone",
 			"org_legal_name",
 			"org_logo",
 			"org_name",
@@ -174,9 +186,11 @@
 			"events",
 			"recipient",
 			"url",
+			"value",
 			"webhook_targets"
 		],
 		"group_salt_options_contact_form": [
+			"contact_form_phone",
 			"contact_privacy_page"
 		],
 		"group_salt_options_display": [
@@ -192,12 +206,15 @@
 			"weight"
 		],
 		"group_salt_options_footer": [
+			"footer_show_logo",
 			"footer_show_social",
-			"footer_text"
+			"footer_text",
+			"footer_tone"
 		],
 		"group_salt_options_header": [
 			"header_cta",
-			"header_sticky"
+			"header_sticky",
+			"theme_toggle_placement"
 		],
 		"group_salt_options_logo": [
 			"logo_dark",
@@ -210,10 +227,12 @@
 			"maps_tile_url"
 		],
 		"group_salt_options_modules": [
+			"module_client",
 			"module_dark_mode",
 			"module_display_preferences",
 			"module_faq",
 			"module_location",
+			"module_sector",
 			"module_service",
 			"module_team_member",
 			"module_testimonial",
@@ -295,8 +314,10 @@
 	},
 	"paths": {
 		"group_salt_collection_case_studies": [
+			"caseStudyImage",
 			"challenge",
 			"client",
+			"clientRecord",
 			"details",
 			"details_N_label",
 			"details_N_value",
@@ -305,6 +326,8 @@
 			"results",
 			"results_N_label",
 			"results_N_stat",
+			"sector",
+			"sectorRecord",
 			"services",
 			"solution"
 		],
@@ -514,10 +537,16 @@
 			"captcha_recaptcha_site_key",
 			"captcha_turnstile_site_key"
 		],
+		"group_salt_options_case_studies": [
+			"case_study_header",
+			"case_study_header_tone",
+			"case_study_header_tone_dark"
+		],
 		"group_salt_options_company": [
 			"company_address",
 			"company_email",
 			"company_phone",
+			"header_show_phone",
 			"org_legal_name",
 			"org_logo",
 			"org_name",
@@ -535,11 +564,13 @@
 			"contact_routes",
 			"contact_routes_N_enquiry_type",
 			"contact_routes_N_recipient",
+			"contact_routes_N_value",
 			"webhook_targets",
 			"webhook_targets_N_events",
 			"webhook_targets_N_url"
 		],
 		"group_salt_options_contact_form": [
+			"contact_form_phone",
 			"contact_privacy_page"
 		],
 		"group_salt_options_display": [
@@ -558,12 +589,15 @@
 			"font_heading_files_N_weight"
 		],
 		"group_salt_options_footer": [
+			"footer_show_logo",
 			"footer_show_social",
-			"footer_text"
+			"footer_text",
+			"footer_tone"
 		],
 		"group_salt_options_header": [
 			"header_cta",
-			"header_sticky"
+			"header_sticky",
+			"theme_toggle_placement"
 		],
 		"group_salt_options_logo": [
 			"logo_dark",
@@ -576,10 +610,12 @@
 			"maps_tile_url"
 		],
 		"group_salt_options_modules": [
+			"module_client",
 			"module_dark_mode",
 			"module_display_preferences",
 			"module_faq",
 			"module_location",
+			"module_sector",
 			"module_service",
 			"module_team_member",
 			"module_testimonial",

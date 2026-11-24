@@ -12,6 +12,22 @@ markup granularity (cross-reference your site's override manifest).
 
 Team is no longer a `team_member` post type. Publish a native user's profile in **Tools → Team profiles**; this never grants account privileges. The public address is `/team/{slug}/`. Only the separate public email field is shown. Posts credit `post_author`, not the removed ACF `author` relationship. Before upgrading a populated site, map former team records and manual selections to the intended users, set their public slugs, and verify native post authors. Old post IDs are not user IDs; no automatic account creation or data migration runs.
 
+### Breaking: contract markup and child overrides (salt-contract 1.0.0-rc.9)
+
+- **Case studies.** The back link sits above the title and introduction in a full-width header. The featured photo starts the story, followed by the challenge, optional case-study image, solution, results, gallery and live link. The optional Project details sidebar contains the populated details, Client, Sector and Services delivered; it follows the story on mobile. Services link only to a public page. The old client line, image aside and service cards are gone. `story` and `story-gallery` use existing image candidates. Site Settings → Case Studies controls the plain or band header, not the position of the featured image.
+- **Clients and Sectors.** Under Site Settings → Advanced → Modules → Content modules, each switch defaults to off. With a switch off the editor uses the saved text; with it on the editor can choose a private, name-only record. An available choice supplies its current name, never a link. An unavailable choice falls back to the saved text and stays selected until explicitly removed or replaced. Toggling does not create, match or delete records.
+- **Sections and anchors.** Recheck every child section view against the new props and `.salt-*` markup ([override guide](docs/contracts/OVERRIDES.md)). `settings.anchorId` reserves a name even for a row that does not draw. `main` now resolves to `main-section`, `site-navigation` is reserved and `primary-navigation` is free. Unanchored bands get deterministic IDs; prose does not claim a band ID. Check bookmarked fragments, including paginated pages and duplicate anchors. The first eligible image, not necessarily the first row, gets priority.
+- **Presentation.** Use the contract stylesheet's data attributes for spacing, scrim strength, focal position (5% steps) and ratings instead of inline CSS. Same-site card and button links are root-relative. Named label placeholders (`{n}`, `{N}`, `{q}`, `{kind}`, `{name}`) are replaced in place: update translated overrides, including gallery, rating, view and directions labels. No implicit suffix is appended.
+- **Chrome and consent.** Header and footer draw the contract's menu tree; child menu CSS classes and `wp_nav_menu_items` additions no longer apply there. `Salt_Nav_Walker::walk()` renders it; use `Salt_Nav_Walker::salt_menu()` for its tree. The optional header phone defaults off. The preferences control needs both an active consent provider and an integration that uses consent. It draws one checkbox per WP Consent API category in use (statistics or marketing), not per integration. Use `salt_consent_categories_in_use` for categories; `salt_consent_panel` supplies words only.
+- **Contact, maps and gallery.** Update overrides to the emitted contact fields and contract markup. The closed state replaces the old email button. Scripted contact uses the site's REST address on plain permalinks and refreshes expired credentials. Enquiry dates are now stored for retention; this does not repair historical records. Maps use the same-origin MapLibre worker. Gallery no longer loads `gallery.js` or supplies `data-salt-carousel`. Core styles and speculation rules follow the existing CSP without granting arbitrary inline styles or scripts.
+- **Removed parts and styles.** Old card, button and other `x-*` parts, utilities generated only for the old views, and booking hooks are no longer supplied. See the [removed parts and migration paths](docs/contracts/OVERRIDES.md#removed-template-parts-and-css-600-id-3946--breaking). Recheck child copies of sections, site chrome, archives and single templates before updating a site.
+
+### Accessibility fixes
+
+- The pinned rc.9 stylesheet uses normal ink for secondary text on light alternate surfaces. On narrow screens without JavaScript, the header links wrap, open submenus stay within the page, and the header scrolls away rather than covering the focused contact reply.
+- Without JavaScript, a contact reply opens at the submitted form’s message and moves focus there. Opening the page normally still starts at the top.
+- On posts, Copy link now announces success or failure under the site’s existing content security policy.
+
 ### Added
 
 - **Editor targets and publish limits (ID-3971, contract rc.8).** Text fields
@@ -58,20 +74,7 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
   section views, CTA clicks, accordion opens and carousel controls on the
   bands drawn to the contract's markup (`data-track`).
 
-- **A PHP fixture adapter and a partial contract conformance baseline
-  (ID-3626, EP-72 M3 unit 5).** `tests/contract-adapter/adapter.php` is
-  the command adapter for the pinned salt-contract's conformance runner.
-  It reads one fixture case on stdin and seeds its values into the ACF
-  shims in the contract's stored shape. It then renders the case through
-  the theme's resolver and view, or the chrome's template part, without
-  WordPress. Any PHP diagnostic fails the case. `npm run
-  conformance:contract` runs it with `--partial`; it always exits 1, as
-  every partial run does (SC-017). It checks field parity against
-  `inc/fields/generated/sections.json` and the stylesheet pin against the
-  served `salt.css`; `tabs`, `listing` and `pricing` are not shipped.
-  The baseline report against salt-contract 1.0.0-rc.6 is committed in
-  `tests/contract-adapter/baseline/` as M4's worklist. Views and the page
-  are not rendered yet. See `tests/contract-adapter/README.md`.
+- **Full contract conformance.** `npm run conformance:harness` runs the rc.9 contract checks against all 14 shipped sections and all chrome, view and page fixtures. A failed check exits non-zero. The baseline in `tests/contract-adapter/baseline/` includes the ACF field and served stylesheet checks; `tabs`, `listing` and `pricing` are explicitly not shipped. The gate is local until the founder applies `docs/ci/contract-conformance.patch` to run it and compare the baseline on both PHP versions in CI.
 - **The contract's view and page cases render on the real-ACF harness's
   WordPress (ID-3626, EP-72 M3 unit 5b).** `npm run conformance:harness`
   (`tests/real-acf/run.sh --conformance`) builds the harness's site with
@@ -81,8 +84,7 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
   case's document, site, route, media and documents into posts, terms,
   options and routes, requests `context.path` (a search at WordPress's own
   `/?s=`), and returns `main#main`, or the whole document for the page.
-  Without the harness, those cases still exit 4. All 23 view and page cases in salt-contract 1.0.0-rc.7 now render
-  with no PHP diagnostic and differ only in their markup. Any PHP notice,
+  Without the harness, those cases still exit 4. Any PHP notice,
   warning, deprecation or error fails the case (exit 70) and the run. The
   committed baseline is regenerated from this run, and it is the same byte
   for byte on PHP 8.2 and 8.5. The harness's phases now share their seeding

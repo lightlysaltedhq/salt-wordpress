@@ -226,7 +226,44 @@
         "label": "Client",
         "name": "client",
         "type": "text",
-        "instructions": "Optional. Shown on the card and beneath the title."
+        "instructions": "Optional. The client's name as free text, shown on the card and beneath the title. With clients enabled it is the fallback when no client record is chosen or the chosen one no longer resolves."
+      },
+      {
+        "key": "field_salt_collection_case_studies_client_record",
+        "label": "Client record",
+        "name": "clientRecord",
+        "type": "post_object",
+        "instructions": "Optional. One client from the clients collection, offered only when the site enables clients. Its name replaces the free-text client wherever the client is drawn; with none chosen, or one that no longer resolves, the free text is drawn.",
+        "post_type": [
+          "client"
+        ],
+        "return_format": "id",
+        "allow_null": 1,
+        "salt": {
+          "to": "clients"
+        }
+      },
+      {
+        "key": "field_salt_collection_case_studies_sector",
+        "label": "Sector",
+        "name": "sector",
+        "type": "text",
+        "instructions": "Optional. The sector's name as free text. Stored and offered to editors; no public slot draws it until its presentation is ruled."
+      },
+      {
+        "key": "field_salt_collection_case_studies_sector_record",
+        "label": "Sector record",
+        "name": "sectorRecord",
+        "type": "post_object",
+        "instructions": "Optional. One sector from the sectors collection, offered only when the site enables sectors. No public slot draws it until its presentation is ruled.",
+        "post_type": [
+          "sector"
+        ],
+        "return_format": "id",
+        "allow_null": 1,
+        "salt": {
+          "to": "sectors"
+        }
       },
       {
         "key": "field_salt_collection_case_studies_gallery",
@@ -260,6 +297,14 @@
             "heading-4"
           ]
         }
+      },
+      {
+        "key": "field_salt_collection_case_studies_case_study_image",
+        "label": "Case study image",
+        "name": "caseStudyImage",
+        "type": "image",
+        "instructions": "Optional. One image, drawn between the challenge and what we did; its alt text is the image's own. Not drawn when it is the featured image.",
+        "return_format": "id"
       },
       {
         "key": "field_salt_collection_case_studies_solution",
@@ -2571,6 +2616,46 @@
       },
       "targets": {
         "title": 120
+      }
+    }
+  },
+  {
+    "key": "group_salt_collection_clients",
+    "title": "Client",
+    "fields": [],
+    "location": [
+      [
+        {
+          "param": "post_type",
+          "operator": "==",
+          "value": "client"
+        }
+      ]
+    ],
+    "salt": {
+      "collection": "clients",
+      "native": {
+        "title": "title"
+      }
+    }
+  },
+  {
+    "key": "group_salt_collection_sectors",
+    "title": "Sector",
+    "fields": [],
+    "location": [
+      [
+        {
+          "param": "post_type",
+          "operator": "==",
+          "value": "sector"
+        }
+      ]
+    ],
+    "salt": {
+      "collection": "sectors",
+      "native": {
+        "title": "title"
       }
     }
   }

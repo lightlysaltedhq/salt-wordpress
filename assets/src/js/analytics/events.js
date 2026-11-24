@@ -1,8 +1,7 @@
 /**
  * Rich salt-instrumented events adapter.
  *
- * Pure DOM delegation over the section markup contracts (x-button,
- * x-accordion-item, x-contact-form, [data-section], [data-salt-carousel])
+ * Pure DOM delegation over the section markup contracts (salt-contact__form, [data-section], [data-salt-carousel])
  * and, for bands drawn to the salt-contract's markup, their equivalents
  * ([data-track], [data-track-control="cta"], details.salt-accordion__item,
  * [data-track-control^="carousel-"]) — NO section-file changes, passive listeners,
@@ -72,7 +71,7 @@
 					return;
 				}
 
-				const cta = target.closest('.x-button, [data-track-control="cta"]');
+				const cta = target.closest('[data-track-control="cta"]');
 				if (cta && cta.closest('[data-section], [data-track]')) {
 					track('cta_click', {
 						section: sectionOf(cta),
@@ -97,7 +96,7 @@
 			'toggle',
 			(event) => {
 				const item = event.target;
-				if (item instanceof HTMLElement && item.matches('details.x-accordion-item, details.salt-accordion__item') && item.open) {
+				if (item instanceof HTMLElement && item.matches('details.salt-accordion__item') && item.open) {
 					track('accordion_open', { section: sectionOf(item) });
 				}
 			},
@@ -113,7 +112,7 @@
 					return;
 				}
 				const field = event.target;
-				if (field instanceof Element && field.closest('form.x-contact-form')) {
+				if (field instanceof Element && field.closest('form.salt-contact__form')) {
 					formStarted = true;
 					track('form_start', { section: 'contact' });
 				}
@@ -125,7 +124,7 @@
 			'submit',
 			(event) => {
 				const form = event.target;
-				if (form instanceof HTMLElement && form.matches('form.x-contact-form')) {
+				if (form instanceof HTMLElement && form.matches('form.salt-contact__form')) {
 					track('form_submit', { section: 'contact' });
 				}
 			},

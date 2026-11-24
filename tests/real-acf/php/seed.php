@@ -100,6 +100,11 @@ function salt_harness_single_image( string $name, array $media ): int {
 /**
  * A published service per fixture id, made once (a related or listed one).
  *
+ * A card whose href is null is a service with no public page. While the
+ * service module is on, WordPress gives every published service one, so
+ * the harness marks it (_salt_harness_no_page) and the case mu-plugin
+ * filters its permalink away, as a site that withholds a page would.
+ *
  * @param array<string,mixed> $item  The fixture's card: id, title, text, image.
  * @param array<string,mixed> $media The case's media.
  * @return int Post ID.
@@ -120,6 +125,9 @@ function salt_harness_single_service( array $item, array $media ): int {
 		);
 		if ( isset( $item['image'] ) ) {
 			set_post_thumbnail( $ids[ $slug ], salt_harness_single_image( (string) $item['image'], $media ) );
+		}
+		if ( array_key_exists( 'href', $item ) && null === $item['href'] ) {
+			update_post_meta( $ids[ $slug ], '_salt_harness_no_page', '1' );
 		}
 	}
 	return $ids[ $slug ];
@@ -210,6 +218,7 @@ function salt_harness_attachment( string $name ): int {
 	if ( isset( $GLOBALS['salt_harness_media'][ $name ]['alt'] ) ) {
 		update_post_meta( (int) $id, '_wp_attachment_image_alt', (string) $GLOBALS['salt_harness_media'][ $name ]['alt'] );
 	}
+	salt_harness_seed_focal_point( (int) $id, $GLOBALS['salt_harness_media'][ $name ]['focalPoint'] ?? null );
 	$ids[ $name ] = (int) $id;
 	return $ids[ $name ];
 }
@@ -397,7 +406,7 @@ function salt_harness_seed_case_study( array $input ): int {
 	if ( isset( $doc['image'] ) ) {
 		set_post_thumbnail( $work, salt_harness_single_image( (string) $doc['image'], $media ) );
 	}
-	foreach ( array( 'client', 'challenge', 'solution', 'externalUrl' ) as $name ) {
+	foreach ( array( 'client', 'sector', 'challenge', 'solution', 'externalUrl' ) as $name ) {
 		if ( isset( $doc[ $name ] ) ) {
 			update_field( $name, (string) $doc[ $name ], $work );
 		}
@@ -406,6 +415,10 @@ function salt_harness_seed_case_study( array $input ): int {
 		if ( isset( $doc[ $name ] ) ) {
 			update_field( $name, $doc[ $name ], $work );
 		}
+	}
+	// The case-study image: an attachment ID, the same attachment when the case names the featured image.
+	if ( isset( $doc['caseStudyImage'] ) ) {
+		update_field( 'caseStudyImage', salt_harness_single_image( (string) $doc['caseStudyImage'], $media ), $work );
 	}
 	if ( isset( $doc['gallery'] ) ) {
 		update_field( 'gallery', array_map( static fn( string $name ): int => salt_harness_single_image( $name, $media ), $doc['gallery'] ), $work );
@@ -514,4 +527,26 @@ function salt_harness_seed_post( array $input ): array {
 		'topics'  => $topics,
 		'primary' => $primary,
 	);
+}
+
+/**
+ * Store a media record's focal point (focalPoint { x, y }) as the
+ * attachment's _salt_focal_point meta, which salt_image_focal_point()
+ * reads (EP-72 M4 U3).
+ *
+ * @param int   $id    Attachment ID.
+ * @param mixed $focal The record's focalPoint, or null.
+ * @return void
+ */
+function salt_harness_seed_focal_point( int $id, $focal ): void {
+	if ( is_array( $focal ) ) {
+		update_post_meta(
+			$id,
+			'_salt_focal_point',
+			array(
+				'x' => $focal['x'] ?? null,
+				'y' => $focal['y'] ?? null,
+			)
+		);
+	}
 }

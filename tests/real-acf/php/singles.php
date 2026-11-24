@@ -16,12 +16,14 @@
  * server are caught by run.sh's debug.log check, as in every phase.
  *
  * Also over HTTP: the post's date in the site's language (en-GB "12 March
- * 2026", en-US "March 12, 2026") on the post, its topic's archive and a
- * search; the "Uncategorised" archive answering 404; a published team member
- * with no posts having an author page; a service whose body holds a
- * shortcode and a video address (the intro runs no the_content filter), and
- * a page whose testimonials showcase holds a 4.5 rating (the half star;
- * labels.rating then "{n} of {N}", markup/card.json).
+ * 2026", en-US "March 12, 2026") on the post and its topic's archive; the
+ * "Uncategorised" archive answering 404; a published team member with no
+ * posts having an author page; a service whose body holds a shortcode and a
+ * video address (the intro runs no the_content filter); a page whose
+ * testimonials showcase holds a 4.5 rating (the half star; labels.rating
+ * then "{n} of {N}", markup/card.json); and the contract's search route,
+ * /search/?q= with its second page, beside WordPress's /?s=, giving way to a
+ * page published at /search/.
  *
  * @package Salt\Tests\RealAcf
  */
@@ -73,7 +75,7 @@ $expect  = array(
 	'summary'             => esc_html( $doc['summary'] ),
 	'price'               => esc_html( $doc['priceFrom'] ),
 	'cta'                 => esc_html( $doc['cta']['label'] ),
-	'cta to its document' => 'href="' . esc_url( (string) get_permalink( $enquire ) ) . '"',
+	'cta to its document' => 'href="' . esc_url( salt_contract_url( (string) get_permalink( $enquire ) ) ) . '"',
 	'intro paragraph 1'   => '<p>Every plan starts with a visit, a soil test and a long conversation about how you use the garden.</p>',
 	'intro paragraph 2'   => '<p>We draw two options, agree one, then plant it ourselves.</p>',
 );
@@ -91,12 +93,13 @@ $body = salt_harness_single_check(
 	$expect
 );
 // The rc.8 service/full intro contains two paragraphs and no heading.
-$intro      = (string) strstr( (string) substr( $body, (int) strpos( $body, '<div class="x-prose">' ) ), '</div>', true );
+$wrapper    = '<div class="salt-service__intro"><div class="salt-rich-text">';
+$intro      = (string) strstr( (string) substr( $body, (int) strpos( $body, $wrapper ) ), '</div>', true );
 $paragraphs = array( $expect['intro paragraph 1'], $expect['intro paragraph 2'] );
 $drawn      = count( array_filter( $paragraphs, static fn( string $p ): bool => str_contains( $intro, $p ) ) );
 $heading    = 1 === preg_match( '/<h[23][\s>]/i', $intro );
 salt_harness_result(
-	str_contains( $body, '<div class="x-prose">' ) && 2 === $drawn && ! $heading,
+	str_contains( $body, $wrapper ) && 2 === $drawn && ! $heading,
 	'the service intro draws its two paragraphs and no h2 or h3',
 	sprintf( '%d of the 2 paragraphs in the intro; h2 or h3 in the intro: %s', $drawn, $heading ? 'YES' : 'none' )
 );
@@ -167,7 +170,7 @@ salt_harness_single_check(
 	$post,
 	array(
 		'title'           => '>' . esc_html( $doc['title'] ) . '</h1>',
-		'date'            => 'datetime="' . $doc['date'] . 'T09:00:00',
+		'date'            => 'datetime="' . $doc['date'] . '"',
 		// The badge is the primary topic (the fixture's category), not merely the first topic.
 		'primary topic'   => esc_html( $doc['category']['title'] ) . '</a></p>',
 		'credited author' => '>' . esc_html( $doc['author']['name'] ) . '</a>',
@@ -183,12 +186,12 @@ salt_harness_result( (int) get_post_field( 'post_author', $post ) === $member, '
 
 // ── Dates follow the site's language (the founder's ruling of 19/11/2026) ────────────────────
 // The site keeps WordPress's stock Date Format setting ("F j, Y"), so the theme takes the
-// language's long date (salt_date_format()): on the post, its topic's archive and a search.
+// language's long date (salt_date_format()): on the post and its topic's archive (the
+// contract's search results draw no date, markup/search.json).
 global $wpdb;
 update_option( 'WPLANG', '' ); // Makes sure the row exists.
 $day     = date_create_immutable( $doc['date'] . ' 09:00:00', wp_timezone() );
 $archive = (string) get_term_link( (int) get_field( 'primaryTopic', $post ), 'category' );
-$search  = add_query_arg( 's', rawurlencode( (string) $doc['title'] ), home_url( '/' ) );
 foreach ( array(
 	'en_GB' => $day->format( 'j F Y' ),
 	''      => $day->format( 'F j, Y' ),
@@ -202,7 +205,6 @@ foreach ( array(
 	foreach ( array(
 		'the post'          => (string) get_permalink( $post ),
 		'its topic archive' => $archive,
-		'a search'          => $search,
 	) as $where => $address ) {
 		list( $status, $body ) = salt_harness_get( $address );
 		$drawn[ $where ]       = 200 === $status && str_contains( $body, '>' . $salt_harness_text . '</time>' );
@@ -283,9 +285,75 @@ salt_harness_single_check(
 	$page,
 	array(
 		'the quote'                              => 'Half a star short of perfect.',
-		'90% of five stars filled'               => 'style="--salt-rating-fill: 90%"',
+		'90% of five stars filled (data-fill)'   => 'data-fill="90"',
 		'the label (4.5, the founder\'s ruling)' => 'aria-label="Rated 4.5 of 5"',
 	)
 );
+
+// ── The contract's search route, /search/?q= (markup/search-form.json) ──────────────────────
+// salt_search_request() maps it onto WordPress's own search. Checked with pretty permalinks, as
+// a live site has them (a page at /search/ is only reachable there); plain again afterwards.
+update_option( 'permalink_structure', '/%postname%/' );
+delete_option( 'rewrite_rules' );
+for ( $i = 1; $i <= 13; $i++ ) {
+	wp_insert_post(
+		array(
+			'post_type'   => 'post',
+			'post_status' => 'publish',
+			'post_title'  => sprintf( 'Harness quillwort %02d', $i ),
+			'post_date'   => sprintf( '2026-01-%02d 09:00:00', $i ),
+		)
+	);
+}
+$per_page = (int) get_option( 'posts_per_page' );
+$search   = static function ( string $path ): array {
+	list( $status, $body ) = salt_harness_get( home_url( $path ) );
+	preg_match_all( '#>(Harness quillwort \d\d)</a>#', $body, $titles );
+	preg_match( "#<meta name=['\"]robots['\"] content=['\"]([^'\"]*)#", $body, $robots );
+	return array(
+		'status' => $status,
+		'body'   => $body,
+		'titles' => $titles[1],
+		'robots' => $robots[1] ?? '',
+	);
+};
+$first    = $search( salt_search_page_url( 'quillwort', 1 ) );
+$second   = $search( salt_search_page_url( 'quillwort', 2 ) );
+$core     = $search( '/?s=quillwort' );
+$both     = array_unique( array_merge( $first['titles'], $second['titles'] ) );
+salt_harness_result(
+	200 === $first['status'] && 200 === $second['status'] && count( $first['titles'] ) === $per_page && count( $second['titles'] ) === 13 - $per_page && 13 === count( $both ),
+	'/search/?q= serves the results, and &page=2 their second page',
+	sprintf( '%s answered %d with %d results; %s answered %d with %d more; %d different posts of 13', salt_search_page_url( 'quillwort', 1 ), $first['status'], count( $first['titles'] ), salt_search_page_url( 'quillwort', 2 ), $second['status'], count( $second['titles'] ), count( $both ) )
+);
+salt_harness_result(
+	200 === $core['status'] && $core['titles'] === $first['titles'] && '' !== $first['robots'] && str_contains( $first['robots'], 'noindex' ) && $core['robots'] === $first['robots'] && $second['robots'] === $first['robots'],
+	'WordPress\'s /?s= still answers with the same results and robots',
+	sprintf( '/?s= answered %d with %d results; robots "%s" on /search/, "%s" on /?s=', $core['status'], count( $core['titles'] ), $first['robots'], $core['robots'] )
+);
+$marked = $search( salt_search_page_url( '<b>quillwort</b>', 1 ) );
+salt_harness_result(
+	200 === $marked['status'] && ! str_contains( $marked['body'], '<b>quillwort' ) && str_contains( $marked['body'], '&lt;b&gt;quillwort' ),
+	'markup in q is drawn as text',
+	'answered ' . $marked['status'] . '; <b> ' . ( str_contains( $marked['body'], '<b>quillwort' ) ? 'DRAWN AS MARKUP' : 'escaped' )
+);
+$owner = (int) wp_insert_post(
+	array(
+		'post_type'    => 'page',
+		'post_status'  => 'publish',
+		'post_title'   => 'Harness page at search',
+		'post_name'    => 'search',
+		'post_content' => 'The site\'s own page at /search/.',
+	)
+);
+$owned = $search( '/search/?q=quillwort' );
+salt_harness_result(
+	200 === $owned['status'] && str_contains( $owned['body'], 'Harness page at search' ) && array() === $owned['titles'],
+	'a page published at /search/ is served there, not the search',
+	sprintf( '/search/?q=quillwort answered %d; the page %s; %d search results', $owned['status'], str_contains( $owned['body'], 'Harness page at search' ) ? 'drawn' : 'NOT DRAWN', count( $owned['titles'] ) )
+);
+wp_delete_post( $owner, true );
+update_option( 'permalink_structure', '' );
+delete_option( 'rewrite_rules' );
 
 salt_harness_exit();

@@ -1,6 +1,7 @@
 <?php
 /**
- * Site header part (spec §12a) — carries ALL header option reads.
+ * Site header part (spec §12a; salt-contract markup/site-header.json) —
+ * carries ALL header option reads.
  *
  * The header.php shell stays thin (skip link + <main>); child themes
  * override THIS part, never the shell (OVERRIDES.md, v3 chrome seams).
@@ -8,9 +9,16 @@
  * targets #main, so the header never traps the skip jump; the sticky
  * anchor offset is --salt-scroll-padding (salt_header_runtime_css()).
  *
- * Option reads (Header & Footer / Logo & Fonts): header_sticky (adds
- * .is-sticky), header_cta (x-button at the end of the nav), logo_*
- * (via salt_logo_args()).
+ * Order (the contract's): logo, nav, theme toggle, phone, call to action,
+ * burger, and the drawer only when open. The burger, drawer, submenu
+ * disclosure and theme toggle are script's (assets/src/js/app.js); without
+ * script the noscript style in the head (salt_output_header_noscript())
+ * shows the full nav in place of the burger, and submenus open on hover
+ * and focus-within.
+ *
+ * Option reads (Header & Footer / Logo & Fonts): header_sticky
+ * (data-sticky), header_cta, logo_* (via salt_logo_args()). Seams pending
+ * the founder's rulings: salt_theme_toggle_placement, salt_header_phone.
  *
  * @package Salt
  */
@@ -29,44 +37,47 @@ if ( ! class_exists( 'Salt_Nav_Walker' ) ) {
 
 $salt_sticky = salt_acf_active() && (bool) get_field( 'header_sticky', 'option' );
 $salt_cta    = salt_header_cta_args();
-
-$salt_header_classes = salt_classnames(
-	array(
-		'x-header',
-		'bg-surface border-b border-border',
-		$salt_sticky ? 'is-sticky' : '',
-	)
-);
+$salt_phone  = salt_header_phone();
+$salt_labels = salt_chrome_labels( 'header' );
+$salt_menu   = Salt_Nav_Walker::salt_menu( 'primary' );
+$salt_open   = salt_header_drawer_open();
+$salt_toggle = 'header' === salt_theme_toggle_placement() && '' !== trim( $salt_labels['theme'] );
 ?>
-<header class="<?php echo esc_attr( $salt_header_classes ); ?>">
-	<div class="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-4 py-3 sm:px-6 lg:px-8">
-		<?php salt_component( 'logo', salt_logo_args() ); ?>
-		<nav class="x-nav flex items-center gap-6" aria-label="<?php echo esc_attr__( 'Primary', 'salt' ); ?>">
-			<?php
-			wp_nav_menu(
-				array(
-					'theme_location' => 'primary',
-					'container'      => false,
-					'menu_class'     => 'x-nav-menu flex items-center gap-6',
-					'depth'          => 2,
-					'walker'         => new Salt_Nav_Walker(),
-					'fallback_cb'    => 'salt_nav_menu_fallback',
-				)
-			);
-
-			if ( null !== $salt_cta ) {
-				salt_component(
-					'button',
-					array(
-						'label'   => $salt_cta['label'],
-						'url'     => $salt_cta['url'],
-						'target'  => $salt_cta['target'],
-						'size'    => 'sm',
-						'classes' => 'x-header-cta',
-					)
-				);
-			}
-			?>
-		</nav>
+<header class="salt-header" data-site-header<?php echo $salt_sticky ? ' data-sticky' : ''; ?>>
+	<div class="salt-header__inner">
+		<?php salt_component( 'logo', salt_logo_args( 'header' ) ); ?>
+		<?php
+		if ( array() !== $salt_menu ) {
+			echo salt_header_nav_html( $salt_menu, $salt_labels ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped as it is built.
+		}
+		if ( $salt_toggle ) {
+			echo salt_theme_toggle_html( $salt_labels['theme'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped as it is built.
+		}
+		if ( null !== $salt_phone ) {
+			echo salt_header_phone_html( $salt_phone, $salt_labels ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped as it is built.
+		}
+		if ( null !== $salt_cta ) {
+			echo salt_header_cta_html( $salt_cta ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped as it is built.
+		}
+		?>
+		<button class="salt-header__burger" type="button" aria-expanded="<?php echo $salt_open ? 'true' : 'false'; ?>" aria-label="<?php echo esc_attr( $salt_labels['menu'] ); ?>"><?php echo salt_menu_morph_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed markup. ?></button>
+		<?php if ( $salt_open ) : ?>
+			<dialog class="salt-drawer" open aria-label="<?php echo esc_attr( $salt_labels['menu'] ); ?>" tabindex="-1">
+				<button class="salt-drawer__close" type="button" aria-label="<?php echo esc_attr( $salt_labels['closeMenu'] ); ?>"><?php echo salt_menu_morph_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed markup. ?></button>
+				<div class="salt-drawer__panel">
+					<?php
+					if ( array() !== $salt_menu ) {
+						echo salt_header_nav_html( $salt_menu, $salt_labels, true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped as it is built.
+					}
+					if ( null !== $salt_phone ) {
+						echo salt_header_phone_html( $salt_phone, $salt_labels ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped as it is built.
+					}
+					if ( null !== $salt_cta ) {
+						echo salt_header_cta_html( $salt_cta ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped as it is built.
+					}
+					?>
+				</div>
+			</dialog>
+		<?php endif; ?>
 	</div>
 </header>

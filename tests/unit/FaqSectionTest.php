@@ -509,7 +509,7 @@ final class FaqSectionTest extends SaltTestCase {
 
 		$resolved = $this->resolve_faq( array( 'heading' => 'FAQs' ) );
 
-		$this->assertSame( array( 'eyebrow', 'heading', 'items', 'structuredData' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( array( 'eyebrow', 'heading', 'intro', 'items', 'structuredData' ), array_keys( $resolved['props'] ) );
 		$this->assertNull( $resolved['props']['eyebrow'] );
 		$this->assertSame( 'FAQs', $resolved['props']['heading'] );
 		$this->assertTrue( $resolved['props']['structuredData'], 'Unsaved toggle reads as on.' );

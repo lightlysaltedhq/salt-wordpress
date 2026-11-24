@@ -108,10 +108,11 @@ function salt_image_slots(): array {
 		'4' => '(min-width: 75rem) 13.875rem, (min-width: 64rem) 13.985rem, (min-width: 48.01rem) calc((100vw - 6.5rem) / 4), (min-width: 40.01rem) calc((100vw - 3.5rem) / 2), calc(100vw - 2rem)',
 	);
 	$content      = '(min-width: 75rem) 60rem, (min-width: 64rem) 60.44rem, calc(100vw - 2rem)';
+	$half         = '(min-width: 75rem) 29rem, (min-width: 64rem) 29.22rem, (min-width: 48.01rem) calc((100vw - 4rem) / 2), calc(100vw - 2rem)';
 
 	return array(
-		'full'    => array( 'sizes' => '100vw' ),
-		'content' => array(
+		'full'          => array( 'sizes' => '100vw' ),
+		'content'       => array(
 			'sizes' => '(min-width: 64rem) 60rem, 100vw',
 			'bands' => array(
 				'full'    => 'calc(100vw)',
@@ -120,7 +121,16 @@ function salt_image_slots(): array {
 				'narrow'  => $content,
 			),
 		),
-		'card'    => array(
+		'half'          => array(
+			'sizes' => '(min-width: 64rem) 30rem, 100vw',
+			'bands' => array(
+				'full'    => '(min-width: 48.01rem) calc((100vw - 2rem) / 2), calc(100vw)',
+				'wide'    => '(min-width: 80rem) 37rem, (min-width: 48.01rem) calc((100vw - 4rem) / 2), calc(100vw - 2rem)',
+				'default' => $half,
+				'narrow'  => $half,
+			),
+		),
+		'card'          => array(
 			'sizes' => '(min-width: 64rem) 19rem, (min-width: 40rem) 50vw, 100vw',
 			'bands' => array(
 				'full'    => array(
@@ -137,7 +147,10 @@ function salt_image_slots(): array {
 				'narrow'  => $card_default,
 			),
 		),
-		'thumb'   => array( 'sizes' => '8rem' ),
+		'thumb'         => array( 'sizes' => '8rem' ),
+		// The case study's story column, with or without the aside (SC-036).
+		'story'         => array( 'sizes' => '(min-width: 44rem) 42rem, calc(100vw - 2rem)' ),
+		'story-gallery' => array( 'sizes' => '(min-width: 48.01rem) 13rem, (min-width: 44rem) 20.25rem, (min-width: 40.01rem) calc((100vw - 3.5rem) / 2), calc(100vw - 2rem)' ),
 	);
 }
 
@@ -147,7 +160,7 @@ function salt_image_slots(): array {
  * when no band is given. An unknown slot, band or count is logged and gives
  * the unbanded sizes, or 100vw for an unknown slot.
  *
- * @param string      $slot    full|content|card|thumb.
+ * @param string      $slot    full|content|half|card|thumb|story|story-gallery.
  * @param string|null $band    full|wide|default|narrow, or null for unbanded.
  * @param string|null $columns '2'|'3'|'4' for a banded card.
  * @return string
@@ -249,6 +262,12 @@ add_filter( 'wp_calculate_image_srcset', 'salt_image_srcset_without_candidates',
  * above the sizes' floor and below the upload's width that WordPress made
  * (its salt-<width> sub-size), then the upload itself at its own width.
  *
+ * An upload made before the theme registered its salt-<width> sizes has
+ * none of them until its thumbnails are regenerated. Its core sub-sizes of
+ * the upload's own proportions (medium, large and the rest; never a
+ * cropped thumbnail) stand in, at or above the floor and below the upload's
+ * width, so it is not served only at full size.
+ *
  * @param int    $image_id Attachment ID.
  * @param string $src      The upload's URL.
  * @param int    $width    The upload's width.
@@ -256,17 +275,36 @@ add_filter( 'wp_calculate_image_srcset', 'salt_image_srcset_without_candidates',
  * @return string
  */
 function salt_image_contract_srcset( int $image_id, string $src, int $width, string $sizes ): string {
-	$meta    = wp_get_attachment_metadata( $image_id );
-	$made    = is_array( $meta ) ? (array) ( $meta['sizes'] ?? array() ) : array();
-	$floor   = salt_image_srcset_floor( $sizes );
-	$sources = array();
+	$meta   = wp_get_attachment_metadata( $image_id );
+	$made   = is_array( $meta ) ? (array) ( $meta['sizes'] ?? array() ) : array();
+	$height = is_array( $meta ) ? (int) ( $meta['height'] ?? 0 ) : 0;
+	$floor  = salt_image_srcset_floor( $sizes );
+	$names  = array();
 	foreach ( salt_image_candidates() as $candidate ) {
-		if ( $candidate < $floor || $candidate >= $width || ! isset( $made[ 'salt-' . $candidate ] ) ) {
+		if ( isset( $made[ 'salt-' . $candidate ] ) ) {
+			$names[ $candidate ] = 'salt-' . $candidate;
+		}
+	}
+	if ( array() === $names ) {
+		foreach ( $made as $name => $size ) {
+			$w = (int) ( $size['width'] ?? 0 );
+			$h = (int) ( $size['height'] ?? 0 );
+			// The upload's proportions, as core's own srcset keeps them.
+			if ( $w > 0 && $h > 0 && ( $height <= 0 || abs( $height * $w / $width - $h ) <= 1 ) ) {
+				$names[ $w ] ??= (string) $name;
+			}
+		}
+		ksort( $names );
+	}
+
+	$sources = array();
+	foreach ( $names as $w => $name ) {
+		if ( $w < $floor || $w >= $width ) {
 			continue;
 		}
-		$sub = wp_get_attachment_image_src( $image_id, 'salt-' . $candidate );
-		if ( is_array( $sub ) && (int) ( $sub[1] ?? 0 ) === $candidate ) {
-			$sources[] = $sub[0] . ' ' . $candidate . 'w';
+		$sub = wp_get_attachment_image_src( $image_id, $name );
+		if ( is_array( $sub ) && (int) ( $sub[1] ?? 0 ) === $w ) {
+			$sources[] = $sub[0] . ' ' . $w . 'w';
 		}
 	}
 	$sources[] = $src . ' ' . $width . 'w';
@@ -277,13 +315,13 @@ function salt_image_contract_srcset( int $image_id, string $src, int $width, str
  * An attachment as the contract's resolved image (view-props/_shared.json
  * image) for one slot: src the upload at its own width, srcset by the
  * contract's rule for the slot's sizes (salt_image_contract_srcset()), the
- * upload's width and height, its alt, its
- * caption, and no focal point (WordPress stores none). Null when the
- * attachment does not resolve (logged).
+ * upload's width and height, its alt, its caption, and its focal point
+ * (salt_image_focal_point()). Null when the attachment does not resolve
+ * (logged).
  *
  * @param int    $image_id Attachment ID.
  * @param string $sizes    The slot's sizes (salt_image_slot_sizes()).
- * @return array{src: string, srcset: string|null, sizes: string, width: int, height: int, alt: string, caption: string|null, focalPoint: null}|null
+ * @return array{src: string, srcset: string|null, sizes: string, width: int, height: int, alt: string, caption: string|null, focalPoint: array{x: int, y: int}|null}|null
  */
 function salt_image_contract( int $image_id, string $sizes ): ?array {
 	if ( $image_id <= 0 ) {
@@ -310,7 +348,38 @@ function salt_image_contract( int $image_id, string $sizes ): ?array {
 		'height'     => $height,
 		'alt'        => is_string( $alt ) ? $alt : '',
 		'caption'    => is_string( $caption ) && '' !== trim( $caption ) ? $caption : null,
-		'focalPoint' => null,
+		'focalPoint' => salt_image_focal_point( $image_id ),
+	);
+}
+
+/**
+ * An attachment's stored focal point (view-props/_shared.json focalPoint):
+ * the `_salt_focal_point` meta { x, y }, percentages of the image's width
+ * and height, each snapped to the contract's step of 5 and held to 0-100
+ * (section#background-position): min(100, max(0, 5 × floor(v ÷ 5 + 0.5))),
+ * so 32.5 gives 35 and 2.4 gives 0. Null when none is stored or either
+ * value is not a finite number. Nothing sets it from the editor yet.
+ *
+ * @param int $image_id Attachment ID.
+ * @return array{x: int, y: int}|null
+ */
+function salt_image_focal_point( int $image_id ): ?array {
+	$stored = get_post_meta( $image_id, '_salt_focal_point', true );
+	if ( ! is_array( $stored ) ) {
+		return null;
+	}
+	$step = static function ( $value ): ?int {
+		if ( ! is_int( $value ) && ! is_float( $value ) && ! ( is_string( $value ) && is_numeric( $value ) ) ) {
+			return null;
+		}
+		$value = (float) $value;
+		return is_finite( $value ) ? (int) min( 100, max( 0, 5 * floor( $value / 5 + 0.5 ) ) ) : null;
+	};
+	$x    = $step( $stored['x'] ?? null );
+	$y    = $step( $stored['y'] ?? null );
+	return null === $x || null === $y ? null : array(
+		'x' => $x,
+		'y' => $y,
 	);
 }
 
@@ -321,7 +390,7 @@ function salt_image_contract( int $image_id, string $sizes ): ?array {
  *
  * @param array<string,mixed>  $image    salt_image_contract().
  * @param bool                 $priority The page's priority image.
- * @param array<string,string> $extra    Further attributes (class, alt override, aria-hidden, style).
+ * @param array<string,string> $extra    Further attributes (class, alt override, aria-hidden, data-*).
  * @return string
  */
 function salt_image_contract_html( array $image, bool $priority = false, array $extra = array() ): string {

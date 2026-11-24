@@ -8,6 +8,9 @@
 
 declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+
 final class SecurityTest extends SaltTestCase {
 
 	public function test_csp_nonce_is_stable_within_request_and_urlsafe(): void {
@@ -15,6 +18,24 @@ final class SecurityTest extends SaltTestCase {
 
 		$this->assertSame( $nonce, salt_csp_nonce(), 'Nonce must be stable per request.' );
 		$this->assertMatchesRegularExpression( '/^[A-Za-z0-9_-]{20,}$/', $nonce );
+	}
+
+	public function test_only_the_consent_api_settings_script_gets_the_csp_nonce(): void {
+		$stamped = salt_consent_api_script_nonce( array( 'id' => 'wp-consent-api-js-extra' ) );
+		$other   = salt_consent_api_script_nonce( array( 'id' => 'some-plugin-js-extra' ) );
+
+		$this->assertSame( salt_csp_nonce(), $stamped['nonce'] ?? null );
+		$this->assertArrayNotHasKey( 'nonce', $other );
+	}
+
+	public function test_only_core_speculation_rules_get_the_csp_nonce(): void {
+		$stamped = salt_speculation_rules_script_nonce( array( 'type' => 'speculationrules' ) );
+		$other   = salt_speculation_rules_script_nonce( array( 'type' => 'text/javascript' ) );
+		$untyped = salt_speculation_rules_script_nonce( array( 'id' => 'some-plugin-js-after' ) );
+
+		$this->assertSame( salt_csp_nonce(), $stamped['nonce'] ?? null );
+		$this->assertArrayNotHasKey( 'nonce', $other );
+		$this->assertArrayNotHasKey( 'nonce', $untyped );
 	}
 
 	public function test_security_headers_ship_the_baseline_set(): void {
@@ -142,6 +163,57 @@ final class SecurityTest extends SaltTestCase {
 
 	public function test_acf_active_mirrors_function_existence(): void {
 		$this->assertSame( function_exists( 'acf_add_local_field_group' ), salt_acf_active() );
+	}
+
+	/**
+	 * Without ACF the logo keeps the field's 48px default, in its args and
+	 * in the nonce'd head rule. Separate process: ACF's shim, once another
+	 * test loads it, outlives the test.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_without_acf_the_logo_keeps_its_48px_default(): void {
+		require_once dirname( __DIR__, 2 ) . '/inc/services/chrome.php';
+		$this->assertFalse( salt_acf_active() );
+
+		$this->assertSame( 48, salt_logo_args()['height'] );
+		ob_start();
+		salt_output_theme_vars_css();
+		$this->assertStringContainsString( '.salt-logo{--logo-height:48px}</style>', (string) ob_get_clean() );
+	}
+
+	/**
+	 * Core's global styles print inside the theme's nonce'd style, ahead of
+	 * the theme's own rules. A
+	 * stylesheet that would close the element early is left out, as core's
+	 * own printer leaves it out. Separate process: the stand-in
+	 * wp_get_global_stylesheet() outlives the test.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_core_global_styles_print_in_the_nonced_theme_style(): void {
+		require_once dirname( __DIR__, 2 ) . '/inc/services/chrome.php';
+		$GLOBALS['salt_test_global_stylesheet'] = ':root{--wp--preset--color--black:#000000}';
+		if ( ! function_exists( 'wp_get_global_stylesheet' ) ) {
+			/**
+			 * Stand-in for core's global stylesheet.
+			 *
+			 * @return string
+			 */
+			function wp_get_global_stylesheet(): string {
+				return $GLOBALS['salt_test_global_stylesheet'];
+			}
+		}
+
+		ob_start();
+		salt_output_theme_vars_css();
+		$this->assertMatchesRegularExpression( '#<style id="salt-theme-vars" nonce="[^"]+">:root\{--wp--preset--color--black:\#000000\}\.salt-logo\{--logo-height:48px\}</style>#', (string) ob_get_clean() );
+
+		$GLOBALS['salt_test_global_stylesheet'] = 'a{}</style><script>x()</script>';
+		ob_start();
+		salt_output_theme_vars_css();
+		$this->assertStringContainsString( 'nonce="', $out = (string) ob_get_clean() );
+		$this->assertStringNotContainsString( '<script>', $out );
 	}
 
 	public function test_acf_notice_message_covers_absent_outdated_and_ok(): void {

@@ -66,9 +66,9 @@ try {
 	console.log('PASS soft list counts stored and newly appended rows, not the clone');
 	const render = await page.goto(ids.serviceUrl);
 	assert.equal(render.status(), 200, ids.serviceUrl);
-	assert.equal(await page.locator('.x-service-benefits li').count(), 13, `${page.url()}: ${await page.title()}`);
-	assert.match(await page.locator('.x-service-benefits li').last().textContent(), /workshop 13/);
-	await shot(page.locator('.x-service-benefits'), 'published-thirteen-benefits');
+	assert.equal(await page.locator('.salt-service__benefits li').count(), 13, `${page.url()}: ${await page.title()}`);
+	assert.match(await page.locator('.salt-service__benefits li').last().textContent(), /workshop 13/);
+	await shot(page.locator('.salt-service__benefits'), 'published-thirteen-benefits');
 	await edit('work');
 	assert.equal(await field('collection_case_studies_gallery').locator('.salt-character-count__number').textContent(), '25 / 24');
 	console.log('PASS gallery and relationship counts include all picks; published service renders the thirteenth benefit');

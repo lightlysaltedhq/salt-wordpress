@@ -3,7 +3,7 @@
  * Maps service — MapLibre raster maps behind a click-to-load facade
  * (spec §9; PRIV01/§7).
  *
- * Nothing third-party loads at render time: the x-map component ships an
+ * Nothing third-party loads at render time: the map component ships an
  * inert placeholder, and assets/src/js/maps.js loads the MapLibre bundle
  * (same-origin) + raster tiles (third-party origin) only after the visitor
  * clicks AND the 'maps' consent category (→ 'marketing' via the WP Consent
@@ -157,9 +157,9 @@ add_filter( 'salt_csp_policy', 'salt_maps_csp_policy', 10 );
  * Gate: maps enabled AND the page's Flexible Content pre-scan
  * (salt_page_section_slugs()) contains a locations or contact section.
  * APPROXIMATION, documented: the pre-scan sees section types, not whether
- * a given instance actually renders an x-map — a locations/contact page
+ * a given instance actually renders a map — a locations/contact page
  * without a map loads this small facade script for nothing (it no-ops on
- * an absent [data-salt-map]), and a map placed anywhere else needs its
+ * an absent .salt-map), and a map placed anywhere else needs its
  * hosting section added to the gate list when sections adopt the
  * component. The MapLibre bundle itself is NEVER enqueued here — it loads
  * on demand, post-click, post-consent.
@@ -187,6 +187,36 @@ function salt_maps_enqueue(): void {
 				'in_footer' => true,
 			)
 		);
+		// The same-origin MapLibre bundle's address, which the contract's
+		// markup no longer carries (map.json drops data-maplibre, SC-006),
+		// and its worker's: MapLibre's CSP build runs its worker from this
+		// file, never a blob: URL the CSP would refuse. A browser starts a
+		// worker only from the page's own origin, so both are served with the
+		// theme. A manifest miss is already logged by salt_asset(); the
+		// script then shows the facade's error message on a click.
+		$maplibre = salt_asset( 'maps/maplibre.js' );
+		$worker   = salt_asset( 'maps/maplibre-worker.js' );
+		$settings = array(
+			'maplibre' => null !== $maplibre ? esc_url_raw( $maplibre ) : '',
+			'worker'   => null !== $worker ? esc_url_raw( $worker ) : '',
+		);
+		wp_add_inline_script( 'salt-maps', 'window.saltMaps = ' . wp_json_encode( $settings, JSON_HEX_TAG | JSON_UNESCAPED_SLASHES ) . ';', 'before' );
 	}
 }
 add_action( 'wp_enqueue_scripts', 'salt_maps_enqueue', 20 );
+
+/**
+ * Stamp the maps loader's inline data script with the request's CSP nonce
+ * ('wp_inline_script_attributes'), as the theme's other inline scripts are
+ * stamped (inc/security.php): without it the CSP blocks it.
+ *
+ * @param array<string,string> $attributes The inline script's attributes.
+ * @return array<string,string>
+ */
+function salt_maps_inline_script_nonce( array $attributes ): array {
+	if ( 'salt-maps-js-before' === ( $attributes['id'] ?? '' ) ) {
+		$attributes['nonce'] = salt_csp_nonce();
+	}
+	return $attributes;
+}
+add_filter( 'wp_inline_script_attributes', 'salt_maps_inline_script_nonce' );

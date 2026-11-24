@@ -147,9 +147,11 @@ function salt_component( string $name, array $args = array(), array $slots = arr
  * with `contract`) needs of the page so far: each section id's count for
  * data-track (`tracks`), the previous band's dark tone, background image
  * and spacing for the adjacency collapse, and whether a section has taken
- * the page's priority image (`priority_media`).
+ * the page's priority image (`priority_media`); and the page plan's minted
+ * id for the row a loop is drawing (`plan_id`, salt_section_plan_rows())
+ * and the minted ids a band has already drawn (`plan_drawn`).
  *
- * @return array{h1_claimed: bool, h1_source: string, section_index: int, anchors: array<string,bool>, last_background: string, last_divider: bool, last_tone_dark: string, last_media: bool, last_spacing: string, tracks: array<string,int>, priority_media: bool}
+ * @return array{h1_claimed: bool, h1_source: string, section_index: int, anchors: array<string,bool>, last_background: string, last_divider: bool, last_tone_dark: string, last_media: bool, last_spacing: string, tracks: array<string,int>, priority_media: bool, plan_id: string, plan_drawn: array<string,bool>}
  */
 function salt_render_state( string $op = 'get', ?string $key = null, $value = null ): array {
 	static $state = null;
@@ -167,6 +169,8 @@ function salt_render_state( string $op = 'get', ?string $key = null, $value = nu
 			'last_spacing'    => '',
 			'tracks'          => array(),
 			'priority_media'  => false,
+			'plan_id'         => '',
+			'plan_drawn'      => array(),
 		);
 	}
 
@@ -245,17 +249,48 @@ function salt_the_document_h1( string $text, string $class_names = '' ): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Theme-owned element IDs an editor anchor may not take.
+ * The landmark ids an editor anchor may not take (section#anchors
+ * `reserved`).
  *
  * @return string[]
  */
 function salt_reserved_anchor_ids(): array {
-	return array( 'main', 'content', 'header', 'footer', 'nav', 'primary-navigation', 'search', 'skip-link' );
+	return array( 'main', 'content', 'header', 'footer', 'nav', 'site-navigation', 'search', 'skip-link' );
 }
 
 /**
- * Sanitise an editor-supplied anchor ID: slugify, dodge reserved IDs,
- * suffix on within-page collision (EDIT02).
+ * The next free id for a slug under section#anchors: a landmark id becomes
+ * <slug>-section, then a taken id tries -<n> from $from (-2, -3 and up
+ * from the default), keeping the bare slug when $from is 1 and it is free.
+ *
+ * @param string             $slug  A non-empty slug.
+ * @param array<string,bool> $taken Ids already settled on the page.
+ * @param int                $from  The first number to ask for (1 = the bare slug).
+ * @return string
+ */
+function salt_anchor_settle( string $slug, array $taken, int $from = 1 ): string {
+	$reserved = salt_reserved_anchor_ids();
+	if ( in_array( $slug, $reserved, true ) ) {
+		$slug .= '-section';
+	}
+
+	for ( $n = max( 1, $from ); ; ++$n ) {
+		$id = 1 === $n ? $slug : $slug . '-' . $n;
+		if ( ! isset( $taken[ $id ] ) && ! in_array( $id, $reserved, true ) ) {
+			return $id;
+		}
+	}
+}
+
+/**
+ * Settle an id in one pass down the page (EDIT02): slug it, then take the
+ * next free id as salt_anchor_settle() does, and register it.
+ *
+ * Every anchored band settles its id here as it draws (section#anchors:
+ * among the anchored bands drawn so far, the loop's minted ids already
+ * registered). An unanchored band in a page's loop or a post's layout takes
+ * the plan's minted id (salt_section_plan_rows()) instead; one drawn
+ * outside a loop, and any other id a view mints, settles here too.
  *
  * @param string $raw Editor input.
  * @return string Sanitised unique ID, or '' when input yields nothing.
@@ -266,22 +301,115 @@ function salt_anchor_id( string $raw ): string {
 		return '';
 	}
 
-	$state   = salt_render_state();
-	$anchors = $state['anchors'];
-	$taken   = static fn( string $candidate ): bool => isset( $anchors[ $candidate ] )
-		|| in_array( $candidate, salt_reserved_anchor_ids(), true );
-
-	$unique = $slug;
-	$suffix = 2;
-	while ( $taken( $unique ) ) {
-		$unique = $slug . '-' . $suffix;
-		++$suffix;
-	}
+	$anchors = salt_render_state()['anchors'];
+	$unique  = salt_anchor_settle( $slug, $anchors );
 
 	$anchors[ $unique ] = true;
 	salt_render_state( 'set', 'anchors', $anchors );
 
 	return $unique;
+}
+
+/**
+ * The page plan's ids for a page's sections (section#anchors, SC-013,
+ * SC-025), settled in the contract's two steps:
+ *  1. the rows with an anchor that draw a band, in page order: each takes its slug, a
+ *     landmark id becoming <anchor>-section, and an id an earlier anchored
+ *     row took or a landmark id taking the next free -n;
+ *  2. the rows with none, in page order: each mints one from its section
+ *     id, asking first for the number of its place among the unanchored
+ *     band rows of that section id in the STORED layout (the bare id, then
+ *     -2, ...), counting the rows that draw nothing or are not on this
+ *     page, then taking the next free number from there.
+ * So an editor's anchor never moves for an unanchored row, wherever the
+ * two sit, and a minted id never moves when a row above it empties. A row
+ * that is never a band (a post's prose) takes no id and no place, so prose
+ * above a rich-text band leaves it #rich-text (the founder's ruling).
+ *
+ * @param array<int, array{section: string, anchor: string, band?: bool}> $rows The stored rows in order:
+ *        section id, raw anchor, and whether the row draws as a band at
+ *        all (false for a post's prose row; default true).
+ * @param array<string,bool> $taken Ids already settled on the page, which neither step takes.
+ * @return array<int,string> Each row's id, by the rows' keys; '' for a row that draws no band.
+ */
+function salt_section_plan_ids( array $rows, array $taken = array() ): array {
+	$ids    = array();
+	$places = array();
+
+	foreach ( $rows as $key => $row ) {
+		$ids[ $key ] = '';
+		$slug        = sanitize_title( $row['anchor'] );
+		if ( '' === $slug || false === ( $row['band'] ?? true ) ) {
+			continue;
+		}
+		$ids[ $key ]           = salt_anchor_settle( $slug, $taken );
+		$taken[ $ids[ $key ] ] = true;
+	}
+
+	foreach ( $rows as $key => $row ) {
+		if ( '' !== sanitize_title( $row['anchor'] ) || false === ( $row['band'] ?? true ) ) {
+			continue;
+		}
+		$places[ $row['section'] ] = ( $places[ $row['section'] ] ?? 0 ) + 1;
+
+		$base = sanitize_title( $row['section'] );
+		if ( '' === $base ) {
+			continue;
+		}
+		$ids[ $key ]           = salt_anchor_settle( $base, $taken, $places[ $row['section'] ] );
+		$taken[ $ids[ $key ] ] = true;
+	}
+
+	return $ids;
+}
+
+/**
+ * Plan a loop's minted ids (the first walk of a page's loop and of a post's
+ * layout): salt_section_plan_ids() over every stored row, with every
+ * anchored row's name held, so a minted id avoids each editor's anchor
+ * whether or not its row draws, and does not move when one above it
+ * empties or fills. The minted ids are registered before any band draws;
+ * an anchored band's own id is settled as it draws (salt_section()), so a
+ * row that draws nothing never takes an editor's anchor. A row hidden on
+ * this page (firstPageOnly past page 1) still settles and holds its minted
+ * id, so every minted id is the same on every page, but is given none.
+ * Walks the rows to the end, which ends the ACF loop: the caller's own
+ * have_rows() loop then starts afresh.
+ *
+ * @param string        $selector The Flexible Content field (name or key).
+ * @param int|false     $post_id  The post, or false for the current one.
+ * @param callable|null $is_band  function(): bool, read on the current row:
+ *                                whether it draws as a band at all (a post's
+ *                                prose row does not). Such a row takes no id
+ *                                and no place in a minted id's number.
+ *                                Null: every row is a band.
+ * @return array<int,string> Each stored row's minted id, by its place from 0; '' for an anchored row, a hidden one or one with none.
+ */
+function salt_section_plan_rows( string $selector, $post_id = false, ?callable $is_band = null ): array {
+	$rows = array();
+	while ( have_rows( $selector, $post_id ) ) {
+		the_row();
+		$anchor = salt_section_settings()['anchorId'] ?? '';
+		$anchor = is_string( $anchor ) ? $anchor : '';
+		$rows[] = array(
+			'section' => salt_section_slug_for_layout( (string) get_row_layout() ),
+			'anchor'  => $anchor,
+			'band'    => '' !== sanitize_title( $anchor ) || null === $is_band || $is_band(),
+			'hidden'  => salt_section_hidden_on_this_page(),
+		);
+	}
+
+	$ids     = array();
+	$anchors = salt_render_state()['anchors'];
+	foreach ( salt_section_plan_ids( $rows, $anchors ) as $row => $id ) {
+		if ( '' !== $id && '' === sanitize_title( $rows[ $row ]['anchor'] ) ) {
+			$anchors[ $id ] = true;
+		}
+		$ids[ $row ] = $rows[ $row ]['hidden'] || '' !== sanitize_title( $rows[ $row ]['anchor'] ) ? '' : $id;
+	}
+	salt_render_state( 'set', 'anchors', $anchors );
+
+	return $ids;
 }
 
 // ---------------------------------------------------------------------------
@@ -296,30 +424,59 @@ function salt_anchor_id( string $raw ): string {
  * H1 when this section is the page's designated primary heading, then
  * renders the body inside the wrapper component.
  *
- * The contract's wrapper (salt-contract markup/section.json) is drawn
- * instead of x-section when `contract` is true: the sections whose markup
- * is the contract's (collection-showcase and carousel since unit 8) pass
- * it; every other section keeps x-section until it moves (M4). With it:
- *  - the band is a section named by its heading (aria-labelledby
- *    <anchor>__heading) when it has one, otherwise a div (section#labelled-by);
- *  - every band has an id: the anchor, or, with none, one minted from the
- *    section id as salt_anchor_id() settles any other (section#anchors;
- *    the contract's two-pass settlement is the wrapper's M4 work);
- *  - data-track is <name>-<n>, n counting that section id on the page from
- *    1 (section#data-track);
- *  - the top space collapses as section#adjacent-collapse says: the
- *    previous band shares the tone and dark tone, neither has a background
- *    image, this band has no divider (the stylesheet draws it as this
- *    band's top border) and neither spacing is none.
+ * THE SHARED CONTRACT WRAPPER (EP-72 M4, ID-3620): how a section moves to
+ * the contract's band (salt-contract markup/section.json). Every converted
+ * section does the same three things, and nothing else of the band:
+ *  1. Its resolver returns as `section` the contract args for its row,
+ *     plus whether it draws a heading:
+ *       array_merge( salt_section_contract_args( '<section id>', $context ),
+ *                    array( 'has_heading' => null !== $heading ) )
+ *     (the section id is the contract's, kebab case). A block that draws
+ *     a principal image asks for the page's priority image with
+ *     'plan' => array( 'priorityMedia' => salt_section_plan_priority( $context ) && <it draws that image> ).
+ *     The shared entry (salt_render_resolved_section()) gives the image to
+ *     the first band that has one, its background image before its block's,
+ *     and refuses every later band (section#priority-media, SC-026).
+ *  2. Its view draws its block, div.salt-block[data-block=<section id>],
+ *     and nothing of the band, from $args['plan']: headingLevel, headingId
+ *     (<anchor>__heading, the id its heading carries, or null when it draws
+ *     none), bodyBaseLevel (section#body-heading-base), index (the band's
+ *     place among the page's rendered bands, from 0: accordion names) and
+ *     priorityMedia.
+ *  3. It never prints an id of its own but <anchor>__<part> (plan.anchor).
+ * Every parent section passes `contract`. Without it, salt_section()
+ * draws the x-section band (components/section.php): only a child theme's
+ * own whole section does that now (salt_section_wrapper_args()), and the
+ * band is deprecated (docs/contracts/OVERRIDES.md, tier 5).
+ *
+ * With `contract` the band (components/contract-section.php) is:
+ *  - a section named by its heading (aria-labelledby <anchor>__heading)
+ *    when has_heading, otherwise a div.salt-section (section#labelled-by);
+ *  - id: an editor's anchor, settled as the band draws among the anchored
+ *    bands drawn so far (salt_anchor_id()); with none, the page plan's
+ *    minted id (salt_section_plan_rows(): the contract's two steps, every
+ *    editor's anchor held), from `id` or the loop's `plan_id`; a band drawn
+ *    outside a loop mints one from its name in one pass;
+ *  - data-tone, data-tone-dark (auto is the tone itself, SC-016),
+ *    data-spacing, data-width, data-divider, data-media (a background image
+ *    drawn), --salt-section-space when spacing is not none;
+ *  - data-track <name>-<n>, n counting that section id on the page from 1
+ *    (section#data-track);
+ *  - data-collapse-top as section#adjacent-collapse says: the previous band
+ *    shares the tone and dark tone, neither has a background image, this
+ *    band has no divider and neither spacing is none.
+ * An x-section band with an editor's anchor settles it the same way, as it
+ * draws; one without draws no id, as before.
  *
  * The content callback receives the heading level and the settled id:
  * function( int $heading_level, string $anchor ): void.
  *
  * @param array<string,mixed> $args    Wrapper args: name (required), spacing,
- *                                     background, container, anchor, divider,
- *                                     is_primary, has_heading, flush_top; and
- *                                     for the contract's wrapper: contract,
- *                                     tone, tone_dark, background_image
+ *                                     background, container, anchor, id,
+ *                                     divider, is_primary, has_heading,
+ *                                     flush_top; and for the contract's
+ *                                     wrapper: contract, tone, tone_dark,
+ *                                     background_image
  *                                     (salt_section_background()) and
  *                                     background_priority.
  * @param callable            $content function( int $heading_level, string $anchor ): void — echoes the body.
@@ -344,6 +501,10 @@ function salt_section( array $args, callable $content ): void {
 			'default' => 'default',
 		),
 		'anchor'              => array(
+			'type'    => 'string',
+			'default' => '',
+		),
+		'id'                  => array(
 			'type'    => 'string',
 			'default' => '',
 		),
@@ -400,10 +561,29 @@ function salt_section( array $args, callable $content ): void {
 	salt_render_state( 'set', 'section_index', $index + 1 );
 
 	// The id is settled before the body draws, so the body can name its
-	// heading <anchor>__heading (SC-012).
-	$anchor = salt_anchor_id( $args['anchor'] );
-	if ( $args['contract'] && '' === $anchor ) {
+	// heading <anchor>__heading (SC-012). An editor's anchor settles now, as
+	// the band draws, among the anchored bands drawn so far and the page
+	// plan's minted ids (section#anchors): a row that draws nothing never
+	// takes one. A contract band with none takes the plan's minted id: its
+	// `id`, or else the one the loop holds for its row (`plan_id`), which a
+	// child's own template or an override of salt_render_section() reaches
+	// without passing it on. The row's id is its first band's alone: a later
+	// band of the same row mints its own in one pass.
+	$planned = '' !== $args['id'] ? $args['id'] : $state['plan_id'];
+	salt_render_state( 'set', 'plan_id', '' );
+	if ( isset( $state['plan_drawn'][ $planned ] ) ) {
+		$planned = '';
+	}
+	if ( '' !== sanitize_title( $args['anchor'] ) ) {
+		$anchor = salt_anchor_id( $args['anchor'] );
+	} elseif ( $args['contract'] && '' !== $planned ) {
+		$anchor                          = $planned;
+		$state['plan_drawn'][ $planned ] = true;
+		salt_render_state( 'set', 'plan_drawn', $state['plan_drawn'] );
+	} elseif ( $args['contract'] ) {
 		$anchor = salt_anchor_id( $args['name'] );
+	} else {
+		$anchor = '';
 	}
 
 	$tracks                  = $state['tracks'];
@@ -496,10 +676,11 @@ function salt_section( array $args, callable $content ): void {
  * background), width (x-section's container), anchorId and divider.
  * toneDark and backgroundImage are stored but not drawn yet: they need the
  * contract stylesheet (EP-72 M3 unit 9). firstPageOnly is the page loop's
- * (salt_section_hidden_on_this_page()).
+ * (salt_section_hidden_on_this_page()). The context's `id` is the loop's
+ * id for the band, passed on so a child's own template keeps it.
  *
  * @param string              $name    Section slug (hyphenated).
- * @param array<string,mixed> $context Loop context: index, is_primary.
+ * @param array<string,mixed> $context Loop context: index, is_primary, id.
  * @return array<string,mixed>
  */
 function salt_section_wrapper_args( string $name, array $context = array() ): array {
@@ -519,6 +700,9 @@ function salt_section_wrapper_args( string $name, array $context = array() ): ar
 		'anchor'     => $setting( 'anchorId', '' ),
 		'divider'    => (bool) ( $settings['divider'] ?? false ),
 		'is_primary' => (bool) ( $context['is_primary'] ?? false ),
+		// The loop's minted id for the band (salt_section_plan_rows()), so a
+		// child's own template keeps it.
+		'id'         => (string) ( $context['id'] ?? '' ),
 	);
 }
 
@@ -536,8 +720,14 @@ function salt_section_contract_args( string $name, array $context = array() ): a
 	$settings = salt_section_settings();
 	$args     = salt_section_wrapper_args( $name, $context );
 	$tones    = array( 'surface', 'surface-alt', 'brand-tint', 'surface-inverse' );
-	$tone     = in_array( $settings['tone'] ?? null, $tones, true ) ? (string) $settings['tone'] : 'surface';
-	$dark     = in_array( $settings['toneDark'] ?? null, $tones, true ) ? (string) $settings['toneDark'] : $tone;
+	// WordPress's stored 'inverse' is the contract's surface-inverse
+	// (markup/section.json).
+	$stored = array();
+	foreach ( array( 'tone', 'toneDark' ) as $field ) {
+		$stored[ $field ] = 'inverse' === ( $settings[ $field ] ?? null ) ? 'surface-inverse' : ( $settings[ $field ] ?? null );
+	}
+	$tone = in_array( $stored['tone'], $tones, true ) ? (string) $stored['tone'] : 'surface';
+	$dark = in_array( $stored['toneDark'], $tones, true ) ? (string) $stored['toneDark'] : $tone;
 
 	if ( ! in_array( $args['spacing'], array( 'none', 'sm', 'md', 'lg' ), true ) ) {
 		$args['spacing'] = 'md';
@@ -559,19 +749,21 @@ function salt_section_contract_args( string $name, array $context = array() ): a
 }
 
 /**
- * Whether the page plan grants this band the page's priority image
+ * Whether the page's priority image is still free for this band
  * (section#priority-media, view-props/_shared.json plan.priorityMedia).
  *
- * Granted to the first band on the page (index 0) only, as the hero's
- * resolver has it. The contract grants it to the first band that HAS a
- * principal image, so a page that opens with a text band gives it to the
- * first image below (SC-026); that page-plan pass is the wrapper's M4 work.
+ * The contract gives it to the first band on the page that HAS a principal
+ * image, so a page that opens with a text band gives it to the first image
+ * below (SC-026). A resolver asks only for an image it draws (see
+ * salt_section()); the shared entry grants the first band that asks and
+ * marks the image taken (salt_render_resolved_section()).
  *
- * @param array<string,mixed> $context Loop context: index.
+ * @param array<string,mixed> $context Loop context (unused: the plan is the page's).
  * @return bool
  */
 function salt_section_plan_priority( array $context ): bool {
-	return 0 === (int) ( $context['index'] ?? -1 );
+	unset( $context );
+	return ! salt_render_state()['priority_media'];
 }
 
 /**
@@ -626,9 +818,10 @@ function salt_section_hidden_on_this_page(): bool {
 
 /**
  * A contract link (contract field type `link`: label, type internal|
- * external, document, url, newTab) as x-button's label/url/target, or
+ * external, document, url, newTab) as a button's label/url/target, or
  * null when it does not make a usable link: no label, an internal link
- * whose document has no address, or an external link with no address.
+ * whose document has no address, or an external link with no address or
+ * one esc_url() refuses.
  *
  * @param mixed $link The stored link group.
  * @return array{label: string, url: string, target: string}|null
@@ -647,7 +840,9 @@ function salt_contract_link( $link ): ?array {
 		$url      = $document > 0 ? (string) get_permalink( $document ) : '';
 	}
 
-	if ( '' === $label || '' === $url ) {
+	// An address esc_url() would empty (a disallowed scheme such as
+	// javascript:) is no address.
+	if ( '' === $label || '' === $url || '' === esc_url_raw( $url ) ) {
 		return null;
 	}
 
@@ -659,7 +854,7 @@ function salt_contract_link( $link ): ?array {
 }
 
 /**
- * A contract `buttons` list (rows of { link, style }) as x-button args, in
+ * A contract `buttons` list (rows of { link, style }) as button args, in
  * row order: rows that do not make a usable link are skipped and logged,
  * an unknown style becomes $default_style. A draft can exceed the publish
  * limit: still draw every usable button.
@@ -893,10 +1088,16 @@ function salt_render_replaced_section( string $layout, string $view, array $cont
  *  - section: the salt_section() wrapper args, has_heading included;
  *  - props:   the view props;
  *  - plan:    optional — the contract plan keys only the section can know
- *             (today: priorityMedia).
- * The view is then loaded INSIDE the wrapper with
- * $args = array{ props: array, plan: array{ index: int, anchor: string, headingLevel: int, priorityMedia: bool } }
- * (anchor: the band's settled id, '' when it has none)
+ *             (today: priorityMedia, its request for the page's priority
+ *             image, granted only to the first band that asks).
+ * The context's `id` is the row's minted id (salt_section_plan_rows()),
+ * '' for an anchored row, whose band settles its editor's anchor as it
+ * draws (salt_section()); it reaches the wrapper as `id` unless the
+ * section args name one. The view is then loaded INSIDE the wrapper with
+ * $args = array{ props: array, plan: array{ index: int, anchor: string, headingLevel: int, headingId: string|null, bodyBaseLevel: int, priorityMedia: bool } }
+ * (anchor: the band's settled id, '' when it has none; headingId:
+ * <anchor>__heading when the band draws a heading and has an id, else
+ * null; bodyBaseLevel: headingLevel, or 1 when it draws no heading)
  * and only draws markup.
  *
  * A section that is not split (no inc/sections/{layout}.php — not yet
@@ -909,7 +1110,7 @@ function salt_render_replaced_section( string $layout, string $view, array $cont
  *
  * @param string              $layout  Layout slug (hyphenated).
  * @param string              $view    Located template path.
- * @param array<string,mixed> $context Loop context: index, is_primary.
+ * @param array<string,mixed> $context Loop context: index, is_primary, id.
  * @return void
  * @throws UnexpectedValueException When a resolver returns a malformed value and debug is active.
  */
@@ -950,13 +1151,26 @@ function salt_render_resolved_section( string $layout, string $view, array $cont
 		return;
 	}
 
-	$props          = $resolved['props'];
-	$index          = (int) ( $context['index'] ?? 0 );
-	$priority_media = (bool) ( $plan_in['priorityMedia'] ?? false );
+	$props       = $resolved['props'];
+	$index       = (int) ( $context['index'] ?? 0 );
+	$section     = array_merge( array( 'id' => (string) ( $context['id'] ?? '' ) ), $resolved['section'] );
+	$has_heading = (bool) ( $section['has_heading'] ?? true );
+
+	// The page's one priority image (section#priority-media): the first band
+	// with one takes it. A contract band's background image is its principal
+	// image, over the block's own; a block's image counts when its resolver
+	// asks for it (plan.priorityMedia).
+	$free                           = ! salt_render_state()['priority_media'];
+	$background                     = ! empty( $section['contract'] ) && is_array( $section['background_image'] ?? null );
+	$section['background_priority'] = $free && $background;
+	$priority_media                 = $free && ! $background && (bool) ( $plan_in['priorityMedia'] ?? false );
+	if ( $section['background_priority'] || $priority_media ) {
+		salt_render_state( 'set', 'priority_media', true );
+	}
 
 	salt_section(
-		$resolved['section'],
-		static function ( int $level, string $anchor = '' ) use ( $layout, $view, $props, $index, $priority_media ): void {
+		$section,
+		static function ( int $level, string $anchor = '' ) use ( $layout, $view, $props, $index, $priority_media, $has_heading ): void {
 			$before = salt_render_state()['section_index'];
 
 			load_template(
@@ -968,6 +1182,8 @@ function salt_render_resolved_section( string $layout, string $view, array $cont
 						'index'         => $index,
 						'anchor'        => $anchor,
 						'headingLevel'  => $level,
+						'headingId'     => $has_heading && '' !== $anchor ? $anchor . '__heading' : null,
+						'bodyBaseLevel' => $has_heading ? $level : 1,
 						'priorityMedia' => $priority_media,
 					),
 				)

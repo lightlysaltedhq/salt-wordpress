@@ -168,8 +168,9 @@ function salt_resolve_section_collection_showcase( array $context ): ?array {
 			'labels'  => salt_contract_labels(),
 			'arrow'   => salt_contract_arrow(),
 		),
-		// A renderable background takes the priority image over the block's own.
-		'plan'    => array( 'priorityMedia' => $priority && null === $settings['background_image'] ),
+		// A renderable background takes the priority image over the block's
+		// own, the first card's image (none in an accordion or an index).
+		'plan'    => array( 'priorityMedia' => $priority && null === $settings['background_image'] && is_array( $cards[0]['image'] ?? null ) ),
 	);
 }
 

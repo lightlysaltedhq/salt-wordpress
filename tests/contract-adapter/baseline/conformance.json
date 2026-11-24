@@ -2,7 +2,7 @@
   "format": "salt-conformance/1",
   "contract": {
     "package": "@lightlysaltedhq/salt-contract",
-    "version": "1.0.0-rc.8"
+    "version": "1.0.0-rc.9"
   },
   "platform": "wordpress",
   "implementation": {
@@ -12,17 +12,17 @@
     "kind": "command",
     "target": "php tests/contract-adapter/adapter.php"
   },
-  "ok": false,
-  "partial": true,
+  "ok": true,
+  "partial": false,
   "problems": [],
   "summary": {
-    "pass": 2,
-    "fail": 12,
+    "pass": 14,
+    "fail": 0,
     "incomplete": 0,
     "notShipped": 3,
     "files": {
-      "pass": 0,
-      "fail": 9,
+      "pass": 9,
+      "fail": 0,
       "notShipped": 0
     }
   },
@@ -33,102 +33,21 @@
     "problems": []
   },
   "stylesheets": {
-    "served": "assets/dist/salt.4f3bca2639/salt.css",
+    "served": "assets/dist/salt.71b124b497/salt.css",
     "bundle": "styles/salt.css",
-    "contract": "1.0.0-rc.8",
+    "contract": "1.0.0-rc.9",
     "ok": true,
     "status": "identical"
   },
   "sections": [
     {
       "id": "hero",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
-        "total": 10,
-        "passed": 1,
-        "failed": 9,
-        "failures": [
-          {
-            "case": "full-bleed-background-inverse",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "welcome__heading",
-            "found": null
-          },
-          {
-            "case": "full-bleed-background-no-focal-point",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "garden-tour__heading",
-            "found": null
-          },
-          {
-            "case": "full-bleed-no-background",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "hero-plain__heading",
-            "found": null
-          },
-          {
-            "case": "minimal-centre-inverse-dark-alt",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "about__heading",
-            "found": null
-          },
-          {
-            "case": "minimal-left-brand-tint-collapsed",
-            "kind": "mismatch",
-            "difference": "missing",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-collapse-top data-spacing=\"md\" data-tone=\"brand-tint\" data-tone-dark=\"brand-tint\" data-track=\"hero-2\" data-width=\"default\" id=\"intro\" style=\"--salt-section-space:var(--s…",
-            "found": null
-          },
-          {
-            "case": "split-image-left",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "hero-split__heading",
-            "found": null
-          },
-          {
-            "case": "split-image-right-later",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "aftercare__heading",
-            "found": null
-          },
-          {
-            "case": "split-no-image-new-tab",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "guide__heading",
-            "found": null
-          },
-          {
-            "case": "stacked-image-divider",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "clifton__heading",
-            "found": null
-          }
-        ]
+        "total": 12,
+        "passed": 12,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
         "status": "pass",
@@ -137,6 +56,10 @@
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       },
       "stylesheets": {
         "status": "pass"
@@ -144,73 +67,12 @@
     },
     {
       "id": "rich-text",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 8,
-        "passed": 1,
-        "failed": 7,
-        "failures": [
-          {
-            "case": "body-headings-two-to-six",
-            "kind": "mismatch",
-            "difference": "element",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"rich-text-1\" data-width=\"default\" id=\"border\" style=\"--salt-section-space:var(--space-section-md)\">",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-rich-text text-ink x-section\" data-section=\"rich-text\" id=\"border\">"
-          },
-          {
-            "case": "body-only-first-on-page",
-            "kind": "mismatch",
-            "difference": "element",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"rich-text-1\" data-width=\"default\" id=\"approach-first\" style=\"--salt-section-space:var(--space-secti…",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-rich-text text-ink x-section\" data-section=\"rich-text\" id=\"approach-first\">"
-          },
-          {
-            "case": "body-only-no-heading",
-            "kind": "mismatch",
-            "difference": "element",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"rich-text-1\" data-width=\"default\" id=\"approach\" style=\"--salt-section-space:var(--space-section-md)…",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-rich-text text-ink x-section\" data-section=\"rich-text\" id=\"approach\">"
-          },
-          {
-            "case": "centre-inverse",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "small-team__heading",
-            "found": null
-          },
-          {
-            "case": "h4-first-under-h2",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "planting-notes__heading",
-            "found": null
-          },
-          {
-            "case": "heading-headings-shift-down",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "planting-notes__heading",
-            "found": null
-          },
-          {
-            "case": "left-eyebrow-heading-body",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "how-we-work__heading",
-            "found": null
-          }
-        ]
+        "passed": 8,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
         "status": "pass",
@@ -219,6 +81,10 @@
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       },
       "stylesheets": {
         "status": "pass"
@@ -226,39 +92,12 @@
     },
     {
       "id": "call-to-action",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 4,
-        "passed": 1,
-        "failed": 3,
-        "failures": [
-          {
-            "case": "body-and-button-no-heading",
-            "kind": "mismatch",
-            "difference": "element",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"brand-tint\" data-tone-dark=\"surface-inverse\" data-track=\"call-to-action-3\" data-width=\"full\" id=\"calendar\" style=\"--salt-section-space:var(--spac…",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-call-to-action text-ink x-section\" data-section=\"call-to-action\" id=\"calendar\">"
-          },
-          {
-            "case": "heading-body-two-buttons",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "book__heading",
-            "found": null
-          },
-          {
-            "case": "heading-only-inverse",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "spring__heading",
-            "found": null
-          }
-        ]
+        "passed": 4,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
         "status": "pass",
@@ -267,6 +106,10 @@
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       },
       "stylesheets": {
         "status": "pass"
@@ -274,40 +117,12 @@
     },
     {
       "id": "media-text",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 4,
-        "passed": 1,
-        "failed": 3,
-        "failures": [
-          {
-            "case": "alternating-inverse",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "process-rows__heading",
-            "found": null
-          },
-          {
-            "case": "single-many-rows",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "services-rows__heading",
-            "found": null
-          },
-          {
-            "case": "single-one-row-first",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "planting__heading",
-            "found": null
-          }
-        ]
+        "passed": 4,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
         "status": "pass",
@@ -316,6 +131,10 @@
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       },
       "stylesheets": {
         "status": "pass"
@@ -323,40 +142,12 @@
     },
     {
       "id": "features",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 4,
-        "passed": 1,
-        "failed": 3,
-        "failures": [
-          {
-            "case": "four-columns-inverse",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "features-four__heading",
-            "found": null
-          },
-          {
-            "case": "many-items-linked",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "features-many__heading",
-            "found": null
-          },
-          {
-            "case": "one-item",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "features-one__heading",
-            "found": null
-          }
-        ]
+        "passed": 4,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
         "status": "pass",
@@ -365,6 +156,10 @@
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       },
       "stylesheets": {
         "status": "pass"
@@ -372,30 +167,12 @@
     },
     {
       "id": "stats",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 3,
-        "passed": 1,
-        "failed": 2,
-        "failures": [
-          {
-            "case": "many-with-icons",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "stats-many__heading",
-            "found": null
-          },
-          {
-            "case": "one-stat-inverse",
-            "kind": "mismatch",
-            "difference": "element",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"stats-1\" data-width=\"default\" id=\"stats-one\" style=\"--salt-section-space:var(--spac…",
-            "found": "<section class=\"bg-surface-inverse md:py-20 py-14 section-stats text-ink-inverse x-section\" data-section=\"stats\" id=\"stats-one\">"
-          }
-        ]
+        "passed": 3,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
         "status": "pass",
@@ -404,6 +181,10 @@
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       },
       "stylesheets": {
         "status": "pass"
@@ -411,30 +192,12 @@
     },
     {
       "id": "logos",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 3,
-        "passed": 1,
-        "failed": 2,
-        "failures": [
-          {
-            "case": "many-linked-greyscale",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "logos-many__heading",
-            "found": null
-          },
-          {
-            "case": "one-unlinked-colour-inverse",
-            "kind": "mismatch",
-            "difference": "element",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"logos-1\" data-width=\"default\" id=\"logos-one\" style=\"--salt-section-space:var(--spac…",
-            "found": "<section class=\"bg-surface-inverse md:py-20 py-14 section-logos text-ink-inverse x-section\" data-section=\"logos\" id=\"logos-one\">"
-          }
-        ]
+        "passed": 3,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
         "status": "pass",
@@ -443,6 +206,10 @@
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       },
       "stylesheets": {
         "status": "pass"
@@ -450,56 +217,12 @@
     },
     {
       "id": "gallery",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 6,
-        "passed": 1,
-        "failed": 5,
-        "failures": [
-          {
-            "case": "carousel-with-heading",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "gallery-slides__heading",
-            "found": null
-          },
-          {
-            "case": "carousel-with-label",
-            "kind": "mismatch",
-            "difference": "element",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface\" data-tone-dark=\"surface\" data-track=\"gallery-3\" data-width=\"default\" id=\"gallery-label\" style=\"--salt-section-space:var(--space-section-…",
-            "found": "<section class=\"bg-surface md:py-20 py-14 section-gallery text-ink x-section\" data-section=\"gallery\" id=\"gallery-label\">"
-          },
-          {
-            "case": "grid-captions-first",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "gallery-grid__heading",
-            "found": null
-          },
-          {
-            "case": "masonry-captions-off",
-            "kind": "mismatch",
-            "difference": "element",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"gallery-1\" data-width=\"default\" id=\"gallery-masonry\" style=\"--salt-section-space:va…",
-            "found": "<section class=\"bg-surface-inverse md:py-20 py-14 section-gallery text-ink-inverse x-section\" data-section=\"gallery\" id=\"gallery-masonry\">"
-          },
-          {
-            "case": "one-image",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "gallery-one__heading",
-            "found": null
-          }
-        ]
+        "passed": 6,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
         "status": "pass",
@@ -508,6 +231,10 @@
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       },
       "stylesheets": {
         "status": "pass"
@@ -515,40 +242,12 @@
     },
     {
       "id": "process",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 4,
-        "passed": 1,
-        "failed": 3,
-        "failures": [
-          {
-            "case": "cards-inverse",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "process-cards__heading",
-            "found": null
-          },
-          {
-            "case": "one-step",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "process-one__heading",
-            "found": null
-          },
-          {
-            "case": "timeline-many",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "process-timeline__heading",
-            "found": null
-          }
-        ]
+        "passed": 4,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
         "status": "pass",
@@ -557,6 +256,10 @@
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       },
       "stylesheets": {
         "status": "pass"
@@ -564,31 +267,12 @@
     },
     {
       "id": "faq",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 3,
-        "passed": 1,
-        "failed": 2,
-        "failures": [
-          {
-            "case": "many",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "faq-help__heading",
-            "found": null
-          },
-          {
-            "case": "one-inverse",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "faq-one__heading",
-            "found": null
-          }
-        ]
+        "passed": 3,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
         "status": "pass",
@@ -597,6 +281,10 @@
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       },
       "stylesheets": {
         "status": "pass"
@@ -623,6 +311,10 @@
         "status": "pass",
         "unknown": []
       },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
+      },
       "stylesheets": {
         "status": "pass"
       }
@@ -631,8 +323,8 @@
       "id": "carousel",
       "status": "pass",
       "fixtures": {
-        "total": 6,
-        "passed": 6,
+        "total": 8,
+        "passed": 8,
         "failed": 0,
         "failures": []
       },
@@ -644,6 +336,10 @@
         "status": "pass",
         "unknown": []
       },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
+      },
       "stylesheets": {
         "status": "pass"
       }
@@ -654,57 +350,12 @@
     },
     {
       "id": "contact",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 5,
-        "passed": 0,
-        "failed": 5,
-        "failures": [
-          {
-            "case": "closed-details-hidden-inverse",
-            "kind": "mismatch",
-            "difference": "missing",
-            "path": "div.salt-section",
-            "expected": "<div class=\"salt-section\" data-spacing=\"md\" data-tone=\"surface-inverse\" data-tone-dark=\"surface-inverse\" data-track=\"contact-1\" data-width=\"default\" id=\"contact-closed\" style=\"--salt-section-space:var…",
-            "found": null
-          },
-          {
-            "case": "closed-with-details",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "contact__heading",
-            "found": null
-          },
-          {
-            "case": "form-invalid",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "enquire__heading",
-            "found": null
-          },
-          {
-            "case": "form-open",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "enquire__heading",
-            "found": null
-          },
-          {
-            "case": "form-sent",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "enquire__heading",
-            "found": null
-          }
-        ]
+        "passed": 5,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
         "status": "pass",
@@ -713,6 +364,10 @@
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       },
       "stylesheets": {
         "status": "pass"
@@ -720,31 +375,12 @@
     },
     {
       "id": "locations",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
-        "total": 3,
-        "passed": 1,
-        "failed": 2,
-        "failures": [
-          {
-            "case": "many-offices-map-inverse",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "offices__heading",
-            "found": null
-          },
-          {
-            "case": "one-office-open",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "section.salt-section",
-            "name": "aria-labelledby",
-            "expected": "find-us__heading",
-            "found": null
-          }
-        ]
+        "total": 4,
+        "passed": 4,
+        "failed": 0,
+        "failures": []
       },
       "fields": {
         "status": "pass",
@@ -753,6 +389,10 @@
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       },
       "stylesheets": {
         "status": "pass"
@@ -767,456 +407,172 @@
     {
       "id": "site-header",
       "kind": "chrome",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 6,
-        "passed": 0,
-        "failed": 6,
-        "failures": [
-          {
-            "case": "drawer-open",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "header.salt-header",
-            "name": "class",
-            "expected": "salt-header",
-            "found": "bg-surface border-b border-border x-header"
-          },
-          {
-            "case": "light-and-dark-logo",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "header.salt-header",
-            "name": "class",
-            "expected": "salt-header",
-            "found": "bg-surface border-b border-border x-header"
-          },
-          {
-            "case": "menu-submenus-phone-cta-sticky",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "header.salt-header",
-            "name": "class",
-            "expected": "salt-header",
-            "found": "bg-surface border-b border-border is-sticky x-header"
-          },
-          {
-            "case": "theme-toggle-button",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "header.salt-header",
-            "name": "class",
-            "expected": "salt-header",
-            "found": "bg-surface border-b border-border x-header"
-          },
-          {
-            "case": "theme-toggle",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "header.salt-header",
-            "name": "class",
-            "expected": "salt-header",
-            "found": "bg-surface border-b border-border x-header"
-          },
-          {
-            "case": "wordmark-only",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "header.salt-header",
-            "name": "class",
-            "expected": "salt-header",
-            "found": "bg-surface border-b border-border x-header"
-          }
-        ]
+        "passed": 6,
+        "failed": 0,
+        "failures": []
       },
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       }
     },
     {
       "id": "site-footer",
       "kind": "chrome",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
-        "total": 5,
-        "passed": 0,
-        "failed": 5,
-        "failures": [
-          {
-            "case": "columns-socials-copyright",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "footer.salt-footer",
-            "name": "class",
-            "expected": "salt-footer",
-            "found": "bg-surface-alt border-border border-t x-footer"
-          },
-          {
-            "case": "consent-panel-open",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "footer.salt-footer",
-            "name": "class",
-            "expected": "salt-footer",
-            "found": "bg-surface-alt border-border border-t x-footer"
-          },
-          {
-            "case": "display-preferences",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "footer.salt-footer",
-            "name": "class",
-            "expected": "salt-footer",
-            "found": "bg-surface-alt border-border border-t x-footer"
-          },
-          {
-            "case": "single-flat-menu-inverse",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "footer.salt-footer",
-            "name": "class",
-            "expected": "salt-footer",
-            "found": "bg-surface-alt border-border border-t x-footer"
-          },
-          {
-            "case": "theme-toggle-button",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "footer.salt-footer",
-            "name": "class",
-            "expected": "salt-footer",
-            "found": "bg-surface-alt border-border border-t x-footer"
-          }
-        ]
+        "total": 9,
+        "passed": 9,
+        "failed": 0,
+        "failures": []
       },
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       }
     },
     {
       "id": "page",
       "kind": "page",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 4,
-        "passed": 0,
-        "failed": 4,
-        "failures": [
-          {
-            "case": "fallback-heading",
-            "kind": "mismatch",
-            "difference": "missing",
-            "path": "html > head > noscript",
-            "expected": "<noscript>",
-            "found": null
-          },
-          {
-            "case": "header-section-footer",
-            "kind": "mismatch",
-            "difference": "missing",
-            "path": "html > head > noscript",
-            "expected": "<noscript>",
-            "found": null
-          },
-          {
-            "case": "hero-minimal-centre",
-            "kind": "mismatch",
-            "difference": "missing",
-            "path": "html > head > noscript",
-            "expected": "<noscript>",
-            "found": null
-          },
-          {
-            "case": "hero-split-image",
-            "kind": "mismatch",
-            "difference": "missing",
-            "path": "html > head > noscript",
-            "expected": "<noscript>",
-            "found": null
-          }
-        ]
+        "passed": 4,
+        "failed": 0,
+        "failures": []
       },
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       }
     },
     {
       "id": "post",
       "kind": "view",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
-        "total": 6,
-        "passed": 0,
-        "failed": 6,
-        "failures": [
-          {
-            "case": "band-call-to-action",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "band-faq",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "band-gallery-one-image",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "band-media-text",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "full",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "minimal",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          }
-        ]
+        "total": 7,
+        "passed": 7,
+        "failed": 0,
+        "failures": []
       },
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       }
     },
     {
       "id": "service",
       "kind": "view",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 2,
-        "passed": 0,
-        "failed": 2,
-        "failures": [
-          {
-            "case": "full",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "minimal",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          }
-        ]
+        "passed": 2,
+        "failed": 0,
+        "failures": []
       },
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       }
     },
     {
       "id": "case-study",
       "kind": "view",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
-        "total": 4,
-        "passed": 0,
-        "failed": 4,
-        "failures": [
-          {
-            "case": "aside",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "band",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "full",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "minimal",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          }
-        ]
+        "total": 8,
+        "passed": 8,
+        "failed": 0,
+        "failures": []
       },
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       }
     },
     {
       "id": "archive",
       "kind": "view",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 3,
-        "passed": 0,
-        "failed": 3,
-        "failures": [
-          {
-            "case": "author-no-posts",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "author",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "topic",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          }
-        ]
+        "passed": 3,
+        "failed": 0,
+        "failures": []
       },
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       }
     },
     {
       "id": "search",
       "kind": "view",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 3,
-        "passed": 0,
-        "failed": 3,
-        "failures": [
-          {
-            "case": "no-query",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "no-results",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "results",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          }
-        ]
+        "passed": 3,
+        "failed": 0,
+        "failures": []
       },
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       }
     },
     {
       "id": "not-found",
       "kind": "view",
-      "status": "fail",
+      "status": "pass",
       "fixtures": {
         "total": 2,
-        "passed": 0,
-        "failed": 2,
-        "failures": [
-          {
-            "case": "minimal",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          },
-          {
-            "case": "with-search",
-            "kind": "mismatch",
-            "difference": "attribute",
-            "path": "main",
-            "name": "tabindex",
-            "expected": "-1",
-            "found": null
-          }
-        ]
+        "passed": 2,
+        "failed": 0,
+        "failures": []
       },
       "classes": {
         "status": "pass",
         "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
       }
     }
   ]

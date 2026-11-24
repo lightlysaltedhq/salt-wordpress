@@ -61,6 +61,57 @@ function salt_submissions_retention_days(): int {
 }
 
 /**
+ * A Unix timestamp from a submitted_at value: an integer timestamp, or an
+ * ISO 8601 date (as the contact handler and its webhook pass it; UTC when
+ * it names no offset), or null when it is neither (relative words such as
+ * "yesterday" are not dates) or not a plausible enquiry date (before 2020,
+ * or more than a day ahead). The bound is what tells a real timestamp from
+ * the year a date's string was once cast to (2026).
+ *
+ * @param mixed $value The value.
+ * @return int|null
+ */
+function salt_submission_timestamp( $value ): ?int {
+	if ( is_int( $value ) || ( is_string( $value ) && ctype_digit( $value ) ) ) {
+		$timestamp = (int) $value;
+	} elseif ( is_string( $value ) && 1 === preg_match( '/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/', trim( $value ) ) ) {
+		try {
+			$date = new DateTimeImmutable( trim( $value ), new DateTimeZone( 'UTC' ) );
+		} catch ( Exception $e ) {
+			return null;
+		}
+		$problems = DateTimeImmutable::getLastErrors();
+		if ( false !== $problems && ( $problems['warning_count'] > 0 || $problems['error_count'] > 0 ) ) {
+			return null; // Not a real day, such as 2026-02-31.
+		}
+		$timestamp = $date->getTimestamp();
+	} else {
+		return null;
+	}
+	return $timestamp >= 1577836800 && $timestamp <= time() + DAY_IN_SECONDS ? $timestamp : null;
+}
+
+/**
+ * When a stored enquiry was submitted, as far as it can be trusted: its
+ * salt_submitted_at when that is a plausible timestamp, else when its post
+ * was stored (post_date_gmt, whatever the year: WordPress wrote it), else
+ * null. Rows stored before this fix carry 2026 (an ISO date cast to int)
+ * and are dated by their post.
+ *
+ * @param WP_Post $post The submission.
+ * @return int|null Null when neither date can be trusted.
+ */
+function salt_submission_date( $post ): ?int {
+	$meta = salt_submission_timestamp( get_post_meta( $post->ID, 'salt_submitted_at', true ) );
+	if ( null !== $meta ) {
+		return $meta;
+	}
+	$stored = (string) ( $post->post_date_gmt ?? '' );
+	$date   = str_starts_with( $stored, '0000' ) ? false : DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $stored, new DateTimeZone( 'UTC' ) );
+	return false !== $date ? $date->getTimestamp() : null;
+}
+
+/**
  * Store an enquiry as a private salt_submission post.
  *
  * Returns null (nothing stored) when storage is off — the caller's delivery
@@ -68,7 +119,9 @@ function salt_submissions_retention_days(): int {
  *
  * @param array<string,mixed> $submission Keys: name, email, message,
  *                                        enquiry_type, page_url, ip_hash,
- *                                        submitted_at (Unix timestamp).
+ *                                        submitted_at (Unix timestamp, or an
+ *                                        ISO 8601 date, stored as one),
+ *                                        phone (only when given).
  * @return int|null Post ID, or null when storage is off or insertion failed.
  */
 function salt_submission_store( array $submission ): ?int {
@@ -76,7 +129,7 @@ function salt_submission_store( array $submission ): ?int {
 		return null;
 	}
 
-	$submitted_at = isset( $submission['submitted_at'] ) ? (int) $submission['submitted_at'] : time();
+	$submitted_at = salt_submission_timestamp( $submission['submitted_at'] ?? null ) ?? time();
 
 	$post_id = wp_insert_post(
 		array(
@@ -100,6 +153,9 @@ function salt_submission_store( array $submission ): ?int {
 	update_post_meta( $post_id, 'salt_name', (string) ( $submission['name'] ?? '' ) );
 	update_post_meta( $post_id, 'salt_email', (string) ( $submission['email'] ?? '' ) );
 	update_post_meta( $post_id, 'salt_message', (string) ( $submission['message'] ?? '' ) );
+	if ( '' !== (string) ( $submission['phone'] ?? '' ) ) {
+		update_post_meta( $post_id, 'salt_phone', (string) $submission['phone'] );
+	}
 	update_post_meta( $post_id, 'salt_enquiry_type', (string) ( $submission['enquiry_type'] ?? '' ) );
 	update_post_meta( $post_id, 'salt_page_url', (string) ( $submission['page_url'] ?? '' ) );
 	update_post_meta( $post_id, 'salt_ip_hash', (string) ( $submission['ip_hash'] ?? '' ) );
@@ -129,12 +185,20 @@ function salt_submissions_purge(): int {
 		)
 	);
 
+	$kept = 0;
 	foreach ( $posts as $post ) {
-		$submitted_at = (int) get_post_meta( $post->ID, 'salt_submitted_at', true );
-		if ( $submitted_at < $cutoff ) {
+		// A row whose date cannot be trusted is never deleted.
+		$submitted_at = salt_submission_date( $post );
+		if ( null === $submitted_at ) {
+			++$kept;
+		} elseif ( $submitted_at < $cutoff ) {
 			wp_delete_post( $post->ID, true );
 			++$deleted;
 		}
+	}
+	if ( $kept > 0 ) {
+		// The count only: never a name, an address or a message.
+		salt_log( sprintf( 'salt_submissions_purge: kept %d stored enquiries with no trustworthy date; check them by hand.', $kept ) );
 	}
 
 	update_option( 'salt_submissions_last_purge', time() );
@@ -230,6 +294,8 @@ add_action( 'admin_notices', 'salt_submissions_health_notice' );
  *
  * @param int $post_id Submission post ID.
  * @return array<string,mixed>|null Record, or null when not a submission.
+ *                                  submitted_at is salt_submission_date():
+ *                                  null when no date can be trusted.
  */
 function salt_submission_export( int $post_id ): ?array {
 	$post = get_post( $post_id );
@@ -244,11 +310,12 @@ function salt_submission_export( int $post_id ): ?array {
 		'created'      => (string) $post->post_date,
 		'name'         => (string) get_post_meta( $post_id, 'salt_name', true ),
 		'email'        => (string) get_post_meta( $post_id, 'salt_email', true ),
+		'phone'        => (string) get_post_meta( $post_id, 'salt_phone', true ),
 		'message'      => (string) get_post_meta( $post_id, 'salt_message', true ),
 		'enquiry_type' => (string) get_post_meta( $post_id, 'salt_enquiry_type', true ),
 		'page_url'     => (string) get_post_meta( $post_id, 'salt_page_url', true ),
 		'ip_hash'      => (string) get_post_meta( $post_id, 'salt_ip_hash', true ),
-		'submitted_at' => (int) get_post_meta( $post_id, 'salt_submitted_at', true ),
+		'submitted_at' => salt_submission_date( $post ),
 	);
 }
 

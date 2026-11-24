@@ -53,7 +53,7 @@ function salt_share_services(): array {
 	return array(
 		'x'         => array(
 			'label'    => __( 'Share on X', 'salt' ),
-			'template' => 'https://x.com/intent/post?url={url}&text={title}',
+			'template' => 'https://x.com/intent/post?url={url}',
 			'icon'     => 'x',
 		),
 		'facebook'  => array(
@@ -356,55 +356,84 @@ function salt_post_reading_text( int $post_id ): string {
 }
 
 /**
- * Draw a post's layout (salt-contract rc.7 section#sections-in-a-post), in
+ * Draw a post's layout (salt-contract rc.8 section#sections-in-a-post), in
  * stored order: a rich-text row that is prose alone as the post's own
- * prose, in the reading column; every other row as a band, through the
- * section's resolver and view, as on a page. Every drawn row counts in the
- * plan's index, as the contract's post/band-* cases number them. The post's title holds the h1
- * (salt_the_document_h1()), so no band claims it. A band straight after
- * prose keeps its top spacing.
+ * prose, a bare div.salt-rich-text in the article (markup/post.json body,
+ * base level 1); every other row as a band, through the
+ * section's resolver and view, as on a page.
+ *
+ * The bands are planned as a page's are (template-parts/flexible-content.php):
+ *  - every minted id is settled before any band draws, holding every
+ *    editor's anchor, and an anchored band settles its own as it draws
+ *    (salt_section_plan_rows(), section#anchors); a prose row takes no id
+ *    and no place in a minted id's number, so prose above a rich-text band
+ *    leaves it #rich-text (unlike a row that draws nothing, which counts);
+ *  - a band's index counts the rows drawn before it, prose included, as
+ *    the contract's post/band-* cases number them; a row that draws
+ *    nothing takes no place;
+ *  - the post's title holds the h1 (salt_the_document_h1()), so no band
+ *    claims it;
+ *  - the featured image, when the post has one that resolves, is drawn
+ *    above the layout as the priority image (single-post.php), so no band
+ *    takes it (section#priority-media).
+ * A band straight after prose keeps its top spacing.
  *
  * @param int $post_id The post.
  * @return void
  */
 function salt_the_post_layout( int $post_id ): void {
 	// By key: a page section's gallery has a `layout` select of the same name.
-	if ( ! function_exists( 'have_rows' ) || ! have_rows( 'field_salt_collection_posts_layout', $post_id ) ) {
+	$field = 'field_salt_collection_posts_layout';
+	if ( ! function_exists( 'have_rows' ) || ! have_rows( $field, $post_id ) ) {
 		return;
 	}
 	$defaults = salt_post_prose_defaults();
-	$index    = 0;
-	while ( have_rows( 'field_salt_collection_posts_layout', $post_id ) ) {
-		the_row();
-		if ( salt_section_hidden_on_this_page() ) {
-			continue;
-		}
-		$layout = (string) get_row_layout();
-		$row    = array(
+	$is_prose = static fn(): bool => 'rich-text' === (string) get_row_layout() && salt_post_row_is_prose(
+		array(
 			'eyebrow'   => get_sub_field( 'eyebrow' ),
 			'heading'   => get_sub_field( 'heading' ),
 			'alignment' => get_sub_field( 'alignment' ),
 			'settings'  => salt_section_settings(),
-		);
-		if ( 'rich-text' === $layout && salt_post_row_is_prose( $row, $defaults ) ) {
+		),
+		$defaults
+	);
+
+	$thumbnail = (int) get_post_thumbnail_id( $post_id );
+	if ( $thumbnail > 0 && is_array( wp_get_attachment_image_src( $thumbnail, 'full' ) ) ) {
+		salt_render_state( 'set', 'priority_media', true );
+	}
+
+	$ids   = salt_section_plan_rows( $field, $post_id, static fn(): bool => ! $is_prose() );
+	$first = salt_render_state()['section_index'];
+	$prose = 0;
+	$row   = -1;
+	while ( have_rows( $field, $post_id ) ) {
+		the_row();
+		++$row;
+		if ( salt_section_hidden_on_this_page() ) {
+			continue;
+		}
+		if ( $is_prose() ) {
 			$body = (string) get_sub_field( 'body' );
 			if ( '' !== trim( $body ) ) {
 				printf(
-					'<div class="x-post-prose mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8"><div class="x-prose">%s</div></div>',
+					'<div class="salt-rich-text">%s</div>',
 					salt_render_rich_text_headings( salt_sanitize_html( $body, salt_field_allowed( 'field_salt_collection_posts_layout_rich_text_body' ) ), 1 ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised to the field's contract list before adjusting ranks.
 				);
 				salt_render_state( 'set', 'last_background', '' );
-				++$index;
+				++$prose;
 			}
 			continue;
 		}
+		salt_render_state( 'set', 'plan_id', $ids[ $row ] ?? '' );
 		salt_render_section(
-			salt_section_slug_for_layout( $layout ),
+			salt_section_slug_for_layout( (string) get_row_layout() ),
 			array(
-				'index'      => $index,
+				'index'      => $prose + salt_render_state()['section_index'] - $first,
 				'is_primary' => false,
+				'id'         => $ids[ $row ] ?? '',
 			)
 		);
-		++$index;
+		salt_render_state( 'set', 'plan_id', '' );
 	}
 }

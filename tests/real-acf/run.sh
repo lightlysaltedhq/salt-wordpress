@@ -109,9 +109,27 @@ export SALT_HARNESS_DB_HOST
 export SALT_HARNESS_DB_USER="${SALT_HARNESS_DB_USER:-$(id -un)}"
 export SALT_HARNESS_DB_PASSWORD="${SALT_HARNESS_DB_PASSWORD:-}"
 
+# The server runs in its own process group (job control gives a background job one), so the
+# group holds the PHP_CLI_SERVER_WORKERS children too; stopping the group stops them all and
+# touches nothing another run started.
+start_server() {
+	set -m
+	PHP_CLI_SERVER_WORKERS=4 "$@" >"$TMP/server.log" 2>&1 &
+	SERVER_PID=$!
+	set +m
+}
+stop_server() {
+	[ -n "$SERVER_PID" ] || return 0
+	kill -TERM -- "-$SERVER_PID" 2>/dev/null || true
+	for _ in 1 2 3 4 5 6 7 8 9 10; do kill -0 -- "-$SERVER_PID" 2>/dev/null || break; sleep 0.2; done
+	kill -KILL -- "-$SERVER_PID" 2>/dev/null || true
+	wait "$SERVER_PID" 2>/dev/null || true
+	SERVER_PID=""
+}
+
 cleanup() {
 	local status=$?
-	if [ -n "$SERVER_PID" ]; then kill "$SERVER_PID" 2>/dev/null || true; wait "$SERVER_PID" 2>/dev/null || true; fi
+	stop_server
 	if [ "$KEEP" = 1 ]; then
 		echo "kept: site $WP, database $DB (drop it with: $PHP $HERE/php/db.php drop $DB)"
 	else
@@ -249,21 +267,16 @@ phase "install" "$PHP" "$HERE/php/install.php"
 # The conformance run: the site serves the contract's view and page cases while salt-conformance runs.
 # Its timeout is per case and includes the wait for view.php's lock (the cases take the one site in
 # turn), so it is ten minutes, not the runner's default minute. The report goes to report/ like any
-# run's, and is copied to the committed baseline only when every case rendered.
+# run's, and is copied to the committed baseline only when the whole run conforms.
 conformance() {
-	local status=0
-	(cd "$REPO" && PATH="$(dirname "$PHP"):$PATH" npm run --silent conformance:contract -- --timeout 600000 >"$TMP/conformance.md") || status=$?
-	# The runner exits 1 on every partial run by design (SC-017); 2 or more is a usage error.
-	if [ "$status" -gt 1 ]; then cat "$TMP/conformance.md"; return 1; fi
-	"$PHP" "$HERE/php/conformance.php" "$REPO/tests/contract-adapter/report/conformance.json" || return 1
+	(cd "$REPO" && PATH="$(dirname "$PHP"):$PATH" npm run --silent conformance:contract -- --timeout 600000 >"$TMP/conformance.md") || { cat "$TMP/conformance.md"; return 1; }
 	mkdir -p "$REPO/tests/contract-adapter/baseline"
 	cp "$REPO/tests/contract-adapter/report/conformance.json" "$REPO/tests/contract-adapter/report/conformance.md" "$REPO/tests/contract-adapter/baseline/"
 	echo "PASS the report is copied to tests/contract-adapter/baseline/"
 }
 if [ "$CONFORMANCE" = 1 ]; then
 	phase "the site for the view and page cases" "$PHP" "$HERE/php/view.php" setup
-	PHP_CLI_SERVER_WORKERS=4 "$PHP" -S "127.0.0.1:$PORT" -t "$WP" >"$TMP/server.log" 2>&1 &
-	SERVER_PID=$!
+	start_server "$PHP" -S "127.0.0.1:$PORT" -t "$WP"
 	for _ in $(seq 1 50); do
 		curl -fs -o /dev/null "$SERVER/wp-login.php" && break
 		sleep 0.2
@@ -286,8 +299,7 @@ fi
 # case; browser.mjs reports how many variables the form posts against this limit.
 export SALT_HARNESS_MAX_INPUT_VARS="${SALT_HARNESS_MAX_INPUT_VARS:-20000}"
 # A browser save of that page also outlasts the default 30-second max_execution_time.
-PHP_CLI_SERVER_WORKERS=4 "$PHP" -d max_input_vars="$SALT_HARNESS_MAX_INPUT_VARS" -d max_execution_time=600 -S "127.0.0.1:$PORT" -t "$WP" "$HERE/php/router.php" >"$TMP/server.log" 2>&1 &
-SERVER_PID=$!
+start_server "$PHP" -d max_input_vars="$SALT_HARNESS_MAX_INPUT_VARS" -d max_execution_time=600 -S "127.0.0.1:$PORT" -t "$WP" "$HERE/php/router.php"
 for _ in $(seq 1 50); do
 	curl -fs -o /dev/null "$URL/wp-login.php" && break
 	sleep 0.2
@@ -296,6 +308,9 @@ done
 if [ "$LIMITS" = 0 ]; then
 phase "single templates over HTTP (the contract's service, case-study and post fixtures)" "$PHP" "$HERE/php/singles.php"
 if [ "$BROWSER" = 1 ]; then
+	phase "contact form over real requests in Chromium, with and without script (CSP on)" node "$HERE/contact.mjs"
+	phase "the theme's pages under its CSP in Chromium" node "$HERE/csp.mjs"
+	phase "no style the CSP refuses on the representative pages, signed out and in (Chromium)" node "$HERE/inline-styles.mjs"
 	phase "editor in a real browser (Chromium)" node "$HERE/browser.mjs"
 else
 	PHASES+=("SKIP  editor in a real browser (--no-browser)")

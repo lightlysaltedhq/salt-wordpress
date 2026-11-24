@@ -1,0 +1,16 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -228,7 +228,11 @@ jobs:
+           SALT_HARNESS_DB_USER: root
+           SALT_HARNESS_DB_PASSWORD: ''
+           SALT_ACF_DIR: tests/real-acf/acf-composer/vendor/wpengine/advanced-custom-fields-pro
+-        run: tests/real-acf/run.sh --php ${{ matrix.php }} --report real-acf-report.txt
++        run: |
++          composer install --prefer-dist --no-progress
++          tests/real-acf/run.sh --php ${{ matrix.php }} --report real-acf-report.txt
++          npm run conformance:harness -- --php ${{ matrix.php }}
++          test -z "$(git status --porcelain --untracked-files=all -- tests/contract-adapter/baseline)"
+ 
+       - name: Keep the report
+         if: always()

@@ -1,17 +1,19 @@
 <?php
 /**
- * View: Stats / Metrics (spec §10 #7) — inline repeater of x-stat.
+ * View: Stats / Metrics (salt-contract markup/stats.json and stat.json,
+ * rc.8; spec §10 #7).
  *
- * Draws the props from salt_resolve_section_stats() (inc/sections/stats.php),
- * inside the x-section wrapper the shared entry opens. No field reads,
- * validation or logging here: a child theme overriding this file overrides
- * the markup only.
+ * Draws the props from salt_resolve_section_stats() (inc/sections/stats.php)
+ * as the contract's block, inside the band the shared entry opens: heading,
+ * intro, then ul.salt-grid of li.salt-stat. No field reads, validation or
+ * logging here: a child theme overriding this file overrides the markup
+ * only.
  *
  * $args:
- *   props  array{ heading: string|null, columns: string,
- *                 items: array<int, array{value: string, suffix: string|null, label: string|null}> }
- *          columns is '2'|'3'|'4'; items is never empty.
- *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
+ *   props  array{ heading: string|null, intro: string|null, columns: string,
+ *                 items: array<int, array{icon: string|null, value: string, suffix: string|null, label: string|null}> }
+ *          columns is '2'|'3'|'4'.
+ *   plan   array{ index: int, anchor: string, headingLevel: int, headingId: string|null, bodyBaseLevel: int, priorityMedia: bool }
  *
  * @package Salt
  */
@@ -22,33 +24,41 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $salt_props = $args['props'];
 $salt_plan  = $args['plan'];
+$salt_level = max( 1, min( 6, (int) $salt_plan['headingLevel'] ) );
+$salt_id    = $salt_plan['headingId'] ?? null;
+
+echo '<div class="salt-block" data-block="stats">';
 
 if ( null !== $salt_props['heading'] ) {
-	salt_component(
-		'heading',
-		array(
-			'text'    => $salt_props['heading'],
-			'level'   => $salt_plan['headingLevel'],
-			'classes' => 'mb-6',
-		)
+	printf(
+		'<h%1$d%2$s>%3$s</h%1$d>',
+		(int) $salt_level,
+		is_string( $salt_id ) ? ' id="' . esc_attr( $salt_id ) . '"' : '',
+		esc_html( (string) $salt_props['heading'] )
 	);
 }
-
-$salt_column_classes = array(
-	'2' => 'sm:grid-cols-2',
-	'3' => 'sm:grid-cols-3',
-	'4' => 'sm:grid-cols-2 lg:grid-cols-4',
-);
-
-printf( '<div class="x-stats-grid grid gap-8 %s">', esc_attr( $salt_column_classes[ $salt_props['columns'] ] ) );
-foreach ( $salt_props['items'] as $salt_item ) {
-	salt_component(
-		'stat',
-		array(
-			'number' => $salt_item['value'],
-			'suffix' => $salt_item['suffix'] ?? '',
-			'label'  => $salt_item['label'] ?? '',
-		)
-	);
+if ( null !== $salt_props['intro'] ) {
+	echo '<p class="salt-intro">' . esc_html( (string) $salt_props['intro'] ) . '</p>';
 }
+
+if ( array() !== $salt_props['items'] ) {
+	echo '<ul class="salt-grid" role="list" data-columns="' . esc_attr( (string) $salt_props['columns'] ) . '">';
+	foreach ( $salt_props['items'] as $salt_item ) {
+		echo '<li class="salt-stat">';
+		if ( null !== $salt_item['icon'] ) {
+			echo salt_contract_icon( (string) $salt_item['icon'], 'lg' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Theme-bundled artwork, attributes escaped.
+		}
+		echo '<p class="salt-stat__value">' . esc_html( (string) $salt_item['value'] );
+		if ( null !== $salt_item['suffix'] ) {
+			echo '<span class="salt-stat__suffix">' . esc_html( (string) $salt_item['suffix'] ) . '</span>';
+		}
+		echo '</p>';
+		if ( null !== $salt_item['label'] ) {
+			echo '<p class="salt-stat__label">' . esc_html( (string) $salt_item['label'] ) . '</p>';
+		}
+		echo '</li>';
+	}
+	echo '</ul>';
+}
+
 echo '</div>';

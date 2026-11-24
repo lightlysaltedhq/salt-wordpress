@@ -1,28 +1,26 @@
 <?php
 /**
- * View: Media + Text (spec §10 #6).
+ * View: Media + Text (salt-contract markup/media-text.json, rc.8; spec §10 #6).
  *
  * Draws the props from salt_resolve_section_media_text() (inc/sections/
- * media-text.php), inside the x-section wrapper the shared entry opens:
- * image/text rows on a md:grid-cols-2 grid, images through x-image with
- * sizes_context 'half'; a row without an image draws full-width. The flip
- * of the media side is purely visual (md:order-2 on the media cell); DOM
- * order is always media then body. No field reads, sanitising, validation
- * or logging here: a child theme overriding this file overrides the markup
- * only.
+ * media-text.php) as the contract's block, inside the band the shared
+ * entry opens: one div.salt-media-text__row per row, media then body in
+ * the DOM, the side on data-media-side. No field reads, sanitising,
+ * validation or logging here: a child theme overriding this file overrides
+ * the markup only.
  *
- * HEADING OUTLINE RULE (A11Y01/AMBIG03): row 0's heading renders at the
- * section's heading level; every LATER row's heading renders at
- * ( 1 === level ? 2 : level ), so the outline is h1 → h2 siblings on a
- * primary section and h2 all round otherwise.
+ * HEADING OUTLINE RULE: the first row's heading is the section's (plan
+ * level and id); later rows' headings rank at body base + 1. A row's body
+ * text ranks its headings under the row's heading, or under the body base
+ * when the row has none.
  *
  * $args:
- *   props  array{ rows: array<int, array{image_id: int, heading: string|null,
- *                 content: string|null, mediaSide: string,
- *                 buttons: array<int, array{label: string, url: string, style: string, target: string}>}> }
- *          rows is never empty; content is HTML already sanitised;
- *          mediaSide ('left'|'right') is the side the row is drawn on.
- *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
+ *   props  array{ rows: array<int, array{image: array|null, heading: string|null,
+ *                 content: string|null, mediaSide: string|null,
+ *                 buttons: array<int, array{label: string, href: string, style: string, newTab: bool}>}>,
+ *                 arrow: string|null }
+ *          rows is never empty; content is HTML already sanitised.
+ *   plan   array{ index: int, anchor: string, headingLevel: int, headingId: string|null, bodyBaseLevel: int, priorityMedia: bool }
  *
  * @package Salt
  */
@@ -33,68 +31,58 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $salt_props = $args['props'];
 $salt_plan  = $args['plan'];
+$salt_level = max( 1, min( 6, (int) $salt_plan['headingLevel'] ) );
+$salt_base  = (int) ( $salt_plan['bodyBaseLevel'] ?? ( null === $salt_props['rows'][0]['heading'] ? 1 : $salt_level ) );
+$salt_id    = $salt_plan['headingId'] ?? null;
+// The row whose image is the priority image: the first that has one.
+$salt_lead = array_key_first( array_filter( array_column( $salt_props['rows'], 'image' ) ) );
 
-echo '<div class="x-media-text-rows flex flex-col gap-12">';
+echo '<div class="salt-block" data-block="media-text"><div class="salt-media-text">';
 
 foreach ( $salt_props['rows'] as $salt_i => $salt_row ) {
-	// HEADING OUTLINE RULE (see file docblock): row 0 at the section level,
-	// later rows step to h2 when row 0 took the H1.
-	$salt_row_level = 0 === $salt_i ? $salt_plan['headingLevel'] : ( 1 === $salt_plan['headingLevel'] ? 2 : $salt_plan['headingLevel'] );
+	echo null !== $salt_row['mediaSide'] ? '<div class="salt-media-text__row" data-media-side="' . esc_attr( (string) $salt_row['mediaSide'] ) . '">' : '<div class="salt-media-text__row">';
 
-	$salt_body = '';
-	if ( null !== $salt_row['heading'] ) {
-		$salt_body .= salt_get_component(
-			'heading',
-			array(
-				'text'    => $salt_row['heading'],
-				'level'   => $salt_row_level,
-				'classes' => 'mb-4',
-			)
-		);
+	if ( is_array( $salt_row['image'] ) ) {
+		echo '<div class="salt-media-text__media">';
+		echo salt_image_contract_html( $salt_row['image'], $salt_lead === $salt_i && ! empty( $salt_plan['priorityMedia'] ), array( 'class' => 'salt-media-text__image' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped attribute by attribute.
+		echo '</div>';
 	}
-	if ( null !== $salt_row['content'] ) {
-		$salt_body .= '<div class="x-prose max-w-prose text-ink">' . $salt_row['content'] . '</div>';
-	}
-	if ( array() !== $salt_row['buttons'] ) {
-		$salt_body .= '<div class="mt-6">';
-		foreach ( $salt_row['buttons'] as $salt_button ) {
-			$salt_body .= salt_get_component(
-				'button',
-				array(
-					'label'  => $salt_button['label'],
-					'url'    => $salt_button['url'],
-					'style'  => 'link-arrow',
-					'target' => $salt_button['target'],
-				)
+
+	if ( null !== $salt_row['heading'] || null !== $salt_row['content'] || array() !== $salt_row['buttons'] ) {
+		echo '<div class="salt-media-text__body">';
+		$salt_row_base = $salt_base;
+		if ( null !== $salt_row['heading'] ) {
+			$salt_row_base = 0 === $salt_i ? $salt_level : min( 6, $salt_base + 1 );
+			printf(
+				'<h%1$d%2$s>%3$s</h%1$d>',
+				(int) $salt_row_base,
+				0 === $salt_i && is_string( $salt_id ) ? ' id="' . esc_attr( $salt_id ) . '"' : '',
+				esc_html( (string) $salt_row['heading'] )
 			);
 		}
-		$salt_body .= '</div>';
+		if ( null !== $salt_row['content'] ) {
+			printf(
+				'<div class="salt-rich-text">%s</div>',
+				salt_render_rich_text_headings( (string) $salt_row['content'], $salt_row_base ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Already sanitised by the resolver; only heading ranks change.
+			);
+		}
+		if ( array() !== $salt_row['buttons'] ) {
+			echo '<div class="salt-media-text__actions">';
+			foreach ( $salt_row['buttons'] as $salt_button ) {
+				salt_component(
+					'contract-button',
+					array(
+						'button' => $salt_button,
+						'arrow'  => $salt_props['arrow'],
+					)
+				);
+			}
+			echo '</div>';
+		}
+		echo '</div>';
 	}
 
-	if ( $salt_row['image_id'] > 0 ) {
-		$salt_media = salt_get_component(
-			'image',
-			array(
-				'image_id'      => $salt_row['image_id'],
-				'alt'           => '',
-				'sizes_context' => 'half',
-				'classes'       => 'w-full rounded-lg',
-			)
-		);
-		printf(
-			'<div class="x-media-text-row grid items-center gap-8 md:grid-cols-2"><div class="%1$s">%2$s</div><div class="x-media-text-body">%3$s</div></div>',
-			esc_attr( 'right' === $salt_row['mediaSide'] ? 'x-media-text-media md:order-2' : 'x-media-text-media' ),
-			$salt_media, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-rendered component HTML; escapes at the point each value is printed.
-			$salt_body // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Component HTML + resolver-sanitised (salt_sanitize_html()) rich text, escaped where each value is printed.
-		);
-		continue;
-	}
-
-	// Text-only row: full width, no empty media column.
-	printf(
-		'<div class="x-media-text-row"><div class="x-media-text-body">%s</div></div>',
-		$salt_body // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Component HTML + resolver-sanitised (salt_sanitize_html()) rich text, escaped where each value is printed.
-	);
+	echo '</div>';
 }
 
-echo '</div>';
+echo '</div></div>';

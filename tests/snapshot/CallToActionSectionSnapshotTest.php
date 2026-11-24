@@ -1,8 +1,8 @@
 <?php
 /**
  * Call to Action SECTION snapshots (FLEET01) — the canonical brand-tint
- * band with two buttons (the component-level x-cta snapshots live in
- * CtaSnapshotTest.php).
+ * band with two buttons and the site's arrow, in the contract's markup
+ * (salt-contract markup/call-to-action.json, rc.8).
  *
  * @package Salt\Tests
  */

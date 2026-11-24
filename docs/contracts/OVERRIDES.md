@@ -47,7 +47,9 @@ Consent + contact seams (v2 — see docs/PRIVACY-RESPONSIBILITIES.md):
 - `salt_consent_api_category( string $api, string $salt )` — remap salt
   categories onto the site CMP's taxonomy.
 - `salt_consent_api_active( bool )` — force the filter bridge over the
-  WP Consent API.
+  WP Consent API. The default is `salt_consent_plugin_active()`: a cookie
+  plugin has set a consent type. Without one the API answers true for
+  every category, so Salt does not read it (fail closed).
 - `salt_contact_form_enabled( bool $configured )` — kill-switch for the
   live form (defaults to "recipient configured").
 - Client-side: dispatch `salt:consent` / listen for `salt:contact-sent` and
@@ -60,14 +62,79 @@ Consent + contact seams (v2 — see docs/PRIVACY-RESPONSIBILITIES.md):
 §16a); `salt_consent()`'s deny-paths (the bridge grants only on a strict
 CMP verdict — no filter can turn an ambiguous state into an allow).
 
+Documented limits:
+- Contact self-post (I1): while WordPress parses a self-posted contact form,
+  the posted public query vars are out of `$_POST` until `parse_request`
+  (PHP_INT_MIN) puts them back. The theme strips them in a `query_vars`
+  filter at PHP_INT_MAX that removes itself after its first run, so a plugin
+  that applies `query_vars` itself between `do_parse_request` and
+  `WP::parse_request()` triggers the strip early, and core's own pass then
+  reads the fields from `$_POST`.
+- Maps worker origin (I3): browsers start a worker only from the page's own
+  origin, so a site that serves the theme's assets from a CDN host gets no
+  map (the facade shows its error message). If another script has already
+  put `window.maplibregl` on the page, maps.js uses it as it is and does not
+  set its worker URL.
+
 ## v3 chrome seams
 
 `template-parts/header/site-header.php` and
 `template-parts/footer/site-footer.php` carry all header/footer option
 reads (the `header.php`/`footer.php` shells stay thin) — override the
-PARTS, not the shells. `Salt_Nav_Walker` renders core menus (locations:
-`primary`, `footer`). `salt_options_subpages()` (inc/fields/options.php)
-is the Site Settings menu registry — one array entry per sub-page.
+PARTS, not the shells. They draw the Salt contract's markup
+(salt-contract `markup/site-header.json`, `site-footer.json`): `salt-header`,
+`salt-nav*`, `salt-footer*` and fixed ids (`site-navigation`,
+`site-header__submenu-<n>`, `site-footer__consent-<category>`). A child
+override of either part must keep that markup; the contract's fixtures are
+the check (`npm run conformance:contract`). `salt_options_subpages()`
+(inc/fields/options.php) is the Site Settings menu registry — one array
+entry per sub-page.
+
+Menus (locations `primary`, `footer`): `Salt_Nav_Walker` reads a menu one
+submenu level deep. `walk()` returns the bar's items (the `<li>`s of
+`salt-nav__list`), so `wp_nav_menu( [ 'walker' => new Salt_Nav_Walker() ] )`
+in a child draws the contract's markup; the chrome itself reads
+`Salt_Nav_Walker::salt_menu( $location )`. Each link keeps what core's
+walker gives it: the title attribute, target, rel (XFN, so `rel="me"`
+holds), and the `nav_menu_link_attributes` and `nav_menu_item_title`
+filters (a filter's `class` is dropped). The contract fixes each element's
+classes, so a menu item's CSS Classes field and `nav_menu_css_class` no
+longer apply. `wp_nav_menu_items` (and `wp_nav_menu_{$menu->slug}_items`) no
+longer add items to the header or footer: the chrome draws the menu's
+tree, not `wp_nav_menu()`'s HTML. Only the `primary` location's submenus
+take the header's ids (`site-header__submenu-<n>`); the walker gives any
+other menu `site-menu-<location>__submenu-<n>`, so a second menu on the
+page never repeats an id.
+
+Chrome seams (filters):
+- `salt_contract_labels( array )` — the chrome's words (`navigation`,
+  `submenu`, `menu`, `closeMenu`, `theme`, `social`, `preferences`,
+  `phone`). `submenu` may carry `%s` for the item's label; the default is
+  "Show submenu for %s".
+- `salt_header_phone( ?string )` — the header's phone number. Defaults to
+  Company & Schema's phone when its "Show phone in header" switch is on
+  (off by default); `null` or `''` for none.
+- `salt_theme_toggle_placement( ?string )` — `header`, `footer` or `null`
+  (none). Defaults to Site Settings → Header & Footer's "Dark mode switch"
+  (none by default). `salt_theme_scheme( ?string )` — `light`|`dark` when a
+  site knows the visitor's scheme on the server.
+- `salt_footer_tone( string )` — `surface`, `surface-alt`, `brand-tint`,
+  `surface-inverse`; defaults to the "Footer background" setting
+  (`surface-alt`). `salt_footer_show_logo( bool )` — defaults to the
+  "Show logo in footer" setting (off).
+- `salt_consent_control( bool )` — turns the footer's cookie-preferences
+  control and panel off. It cannot turn them on: they are drawn only when an
+  integration needs consent and a cookie plugin is wired to the WP Consent
+  API (`salt_consent_control_drawn()`, SC-030). Save writes through the
+  plugin's `wp_set_consent()`; Salt stores nothing.
+- `salt_consent_categories_in_use( string[] )` — the Salt categories the
+  site's integrations use (default: `analytics` with an analytics provider,
+  `maps` with maps on, `embeds` with a booking provider). The panel draws
+  one box per WP Consent API category they map to, statistics then
+  marketing; with none, no control is drawn.
+- `salt_consent_panel( array )` — the panel's words: `labels` and each
+  box's `label` and `description`, by its API category id. It cannot add
+  or remove a box.
 
 ## Template overrides (native hierarchy)
 
@@ -96,8 +163,10 @@ parent sections are.
   `$args['plan']` (`index`, `headingLevel`, `priorityMedia`). Draw from
   those only: never read fields, query, sanitise, log or queue schema,
   and never call `salt_section()`. The parent resolver keeps doing all of
-  that, so its fixes reach you without touching your override. To change
-  the band itself, override `template-parts/components/section.php`.
+  that, so its fixes reach you without touching your override. The band
+  around it is the contract's (`template-parts/components/contract-section.php`,
+  salt-contract `markup/section.json`); a child copy of that part must keep
+  its markup, which the contract's fixtures check.
 - **The 0-state is the resolver's.** When it decides a section renders
   nothing, your view is not loaded at all. A view is only loaded with
   something to draw.
@@ -127,6 +196,18 @@ parent sections are.
   (`index`, `is_primary`) as `$args`, exactly as before.
 
 ### What happens to code written before the split (BREAKING)
+
+For rc.9, compare child copies against the parent view's `$args` docblock, not the old ACF values:
+
+| View | Resolved inputs to draw |
+| --- | --- |
+| Hero | `variant`, `eyebrow`, `heading`, `subheading`, `image`, `mediaSide`, `alignment`, `buttons`, `arrow`; the band draws the full-bleed background |
+| Call to action | `heading`, sanitised `body`, `buttons`, `arrow` |
+| Media + text | `rows` with `image`, `heading`, sanitised `content`, `mediaSide`, `buttons`; shared `arrow` |
+| Features | `eyebrow`, `heading`, `intro`, `columns`, `items` with `icon`, `title`, sanitised `text`, `href`; shared `arrow` |
+| Stats | `heading`, `intro`, `columns`, `items` with `icon`, `value`, `suffix`, `label` |
+
+An image is the resolved `salt_image_contract()` array (`src`, `width`, `height`, `alt`, optional `srcset` and `sizes`), not an attachment ID. A button needs `label` and a usable `href`; `style` and `newTab` describe its presentation. Use the supplied plan's heading level, ID and media priority; do not derive these from the row's index.
 
 1. **A pre-split copy of any `template-parts/sections/{slug}.php`** in
    the child is a whole section: it reads fields and calls `salt_section()`
@@ -233,6 +314,8 @@ mismatch is raised by the update flag instead (below). Declare every swap.
 
 ### Tier 5: replace a section's logic (`"tier": "logic"`)
 
+Put the section anchor in the row's `settings.anchorId` for the page plan to reserve it. A child template reading an unrelated anchor field can only settle its name at render time; a minted ID can already own that fragment, so the child gets a suffixed name instead.
+
 The site takes the section over entirely: nothing of the parent runs for
 it. For a layout whose contract id is declared `logic`,
 `salt_render_resolved_section()` skips the parent resolver, the
@@ -251,6 +334,30 @@ parent logs `… drew markup without calling salt_section()` when a
 template draws markup without it (a template that draws nothing is a
 0-state and is not warned about). Name its helpers with the child's own
 prefix, never `salt_resolve_section_*()`.
+
+**The x-section band is deprecated (6.0.0, ID-3946).** Called with
+`salt_section_wrapper_args()`, `salt_section()` draws the old x-section
+band (`template-parts/components/section.php`, Tailwind utilities). It
+still works, and app.css still builds the utilities that part prints, but
+no parent section uses it and a later major release removes it. Draw the
+contract's band instead, as the parent's own sections do: pass
+`salt_section_contract_args()` and say whether the block draws a heading,
+then draw the block, `div.salt-block[data-block=…]`, with its heading's id
+`<anchor>__heading`:
+
+```php
+salt_section(
+	array_merge( salt_section_contract_args( '{slug}', $args ), array( 'has_heading' => true ) ),
+	static function ( int $level, string $anchor ): void {
+		printf( '<div class="salt-block" data-block="{slug}"><h%1$d id="%2$s__heading">…</h%1$d>…</div>', $level, esc_attr( $anchor ) );
+	}
+);
+```
+
+The band then takes the row's tone, dark tone, spacing, width, divider,
+background image and anchor, the page's adjacency collapse and the H1
+claim, and salt.css styles it. The same call works in a child-only
+layout's template (tier 6).
 
 - **No child template, no section.** If the declaration says `logic` but
   the child has no `template-parts/sections/{slug}.php`, the section logs
@@ -320,6 +427,66 @@ makes no network calls and stores nothing.
 
 Not supported yet. The theme's token layer has no rungs for the dials to
 move; the dials extension point arrives with ID-3612.
+
+## Removed template parts and CSS (6.0.0, ID-3946) — BREAKING
+
+The sections, views and chrome draw the Salt contract's markup, styled by
+the contract's salt.css, so the parts and rules only the old markup used
+are gone. Nothing in the parent calls them.
+
+**Template parts removed.** `salt_component()` / `salt_get_component()` on
+one of these logs `component "…" not found.`, throws under `WP_DEBUG` and
+draws nothing in production; `get_template_part()` on a removed
+`content/` part draws nothing, silently. A child that still needs one
+keeps its own copy at the same path (`locate_template()` finds the child's
+first) and lists it in its override manifest, but must also ship the CSS
+for it (below).
+
+- `template-parts/components/accordion.php` (x-accordion)
+- `template-parts/components/button.php` (x-button; the contract's button
+  is `components/contract-button.php`)
+- `template-parts/components/card.php` (x-card)
+- `template-parts/components/card-post.php` (x-card-post)
+- `template-parts/components/card-service.php` (x-card-service)
+- `template-parts/components/card-work.php` (x-card-work)
+- `template-parts/components/cta.php` (x-cta)
+- `template-parts/components/eyebrow.php` (x-eyebrow)
+- `template-parts/components/heading.php` (x-heading)
+- `template-parts/components/icon.php` (x-icon; `salt_contract_icon()`
+  draws the contract's icon)
+- `template-parts/components/stat.php` (x-stat)
+- `template-parts/content/card.php`, `card-post.php`, `card-service.php`,
+  `card-work.php` and `none.php` (the archive and search loops draw
+  `components/contract-card.php` and the contract's empty states)
+
+**Booking markup changed.** `components/booking.php` draws salt-contract
+`markup/booking.json`: `a.salt-button.salt-booking` with `data-style`,
+`data-track-control="cta"` and `data-provider`. The `x-booking`,
+`x-button`, `x-button-primary` and utility classes, `data-salt-booking`
+and `data-url` are gone, and so is the `classes` arg (the contract fixes
+the element's classes; an extra arg is ignored). Select the link by
+`.salt-booking`; its `href` is the booking URL.
+
+**CSS no longer in app.css.**
+
+- Tailwind utilities for child markup. app.css builds utilities only from
+  `components/section.php`, `sections/fallback.php` and `single.php`; a
+  utility class in a child's own template is no longer generated unless
+  one of those uses it. Ship the child's own stylesheet for its markup.
+- `.x-prose` (long-form typography); the contract draws rich text as
+  `.salt-rich-text`, which salt.css styles.
+- `.x-logo*` (the dark-logo swap) and `.x-header.is-sticky`; the chrome
+  draws `salt-logo` and `salt-header[data-sticky]`, which salt.css styles.
+- The chips for core's `the_posts_pagination()` (`.pagination`,
+  `.nav-links`, `.page-numbers`); `components/pagination.php` draws the
+  contract's `salt-pagination`.
+- `@utility visually-hidden`; use `salt-sr-only` (salt.css).
+- Tailwind's default theme variables that only the removed utilities
+  used: `--text-sm` to `--text-5xl` (and their `--line-height`s),
+  `--font-weight-medium`/`-semibold`/`-bold`, `--tracking-tight`/`-widest`,
+  `--default-transition-duration`/`-timing-function`, and the `--tw-*`
+  internals. The theme's token layer (colour roles, the contract's type,
+  space, radius and layout tokens) is unchanged; use those instead.
 
 ## Component render rule (Open Q6 — resolved)
 

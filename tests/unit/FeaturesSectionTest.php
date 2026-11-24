@@ -69,10 +69,37 @@ final class FeaturesSectionTest extends SaltTestCase {
 	// States (COMPL02).
 	// -----------------------------------------------------------------
 
-	public function test_zero_items_renders_nothing(): void {
-		$this->assertSame( '', $this->render_features_section( array( 'heading' => 'Why us' ) ) );
+	public function test_zero_state_renders_nothing(): void {
 		$this->assertSame( '', $this->render_features_section( array( 'items' => array() ) ) );
 		$this->assertSame( '', $this->render_features_section( array( 'items' => 'not-an-array' ) ) );
+		$this->assertSame(
+			'',
+			$this->render_features_section(
+				array(
+					'eyebrow' => '  ',
+					'heading' => ' ',
+					'intro'   => '',
+					'items'   => array(),
+				)
+			),
+			'Eyebrow, heading, intro and items all empty (markup zeroState).'
+		);
+	}
+
+	public function test_heading_without_items_renders_the_band_without_a_list(): void {
+		$html = $this->render_features_section( array( 'heading' => 'Why us' ) );
+
+		$this->assertStringStartsWith( '<section class="salt-section" id="features" aria-labelledby="features__heading"', $html );
+		$this->assertStringContainsString( '<div class="salt-block" data-block="features"><h1 id="features__heading">Why us</h1></div>', $html );
+		$this->assertStringNotContainsString( 'salt-grid', $html, 'The list is drawn only when an item has a title.' );
+	}
+
+	public function test_intro_alone_is_drawn_in_a_div_band(): void {
+		$html = $this->render_features_section( array( 'intro' => 'What we do & why.' ) );
+
+		$this->assertStringStartsWith( '<div class="salt-section" id="features"', $html, 'No heading: a div band (section#labelled-by).' );
+		$this->assertStringNotContainsString( 'aria-labelledby', $html );
+		$this->assertStringContainsString( '<div class="salt-block" data-block="features"><p class="salt-intro">What we do &amp; why.</p></div>', $html, 'The intro is drawn, escaped, as p.salt-intro.' );
 	}
 
 	public function test_single_item_is_a_valid_static_layout(): void {
@@ -94,15 +121,15 @@ final class FeaturesSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'x-features-grid', $html );
-		$this->assertSame( 1, preg_match_all( '/<article\b/', $html ) );
-		$this->assertStringContainsString( 'Fast', $html );
-		$this->assertStringContainsString( '<h1', $html, 'Primary section with heading claims the H1.' );
-		$this->assertStringContainsString( '<h2', $html, 'Card title steps to level + 1.' );
+		$this->assertStringContainsString( '<ul class="salt-grid" role="list" data-columns="3">', $html );
+		$this->assertSame( 1, preg_match_all( '/<li><div class="salt-card">/', $html ) );
+		$this->assertStringContainsString( '<h1 id="features__heading">Why us</h1>', $html, 'Primary section with heading claims the H1.' );
+		$this->assertStringContainsString( '<h2>Fast</h2>', $html, 'Card titles are h2 under an h1.' );
+		$this->assertStringContainsString( '<div class="salt-rich-text">Pages load quickly.</div>', $html );
 		$this->assertStringNotContainsString( '<script', $html, 'No JS in this section — ever.' );
 	}
 
-	public function test_n_items_render_with_links_and_column_class(): void {
+	public function test_n_items_render_with_icons_links_and_columns(): void {
 		$html = $this->render_features_section(
 			array(
 				'eyebrow' => 'Benefits',
@@ -124,14 +151,41 @@ final class FeaturesSectionTest extends SaltTestCase {
 						'title' => 'Low carbon',
 					),
 				),
+			),
+			array(
+				'index'      => 1,
+				'is_primary' => false,
 			)
 		);
 
-		$this->assertSame( 3, preg_match_all( '/<article\b/', $html ) );
-		$this->assertStringContainsString( 'lg:grid-cols-4', $html );
-		$this->assertStringContainsString( 'href="https://example.test/fast/"', $html );
-		$this->assertStringContainsString( 'x-eyebrow', $html );
-		$this->assertStringContainsString( 'x-icon', $html );
+		$this->assertSame( 3, preg_match_all( '/<li><div class="salt-card">/', $html ) );
+		$this->assertStringContainsString( '<ul class="salt-grid" role="list" data-columns="4">', $html );
+		$this->assertStringContainsString( '<p class="salt-eyebrow">Benefits</p><h2 id="features__heading">Why us</h2>', $html );
+		$this->assertStringContainsString( '<h3><a class="salt-card__link" href="/fast/">Fast<span class="salt-arrow" aria-hidden="true">&#x2060;→</span></a></h3>', $html, 'A linked title under an h2 is an h3 with the site\'s arrow.' );
+		$this->assertStringContainsString( '<h3>Accessible</h3>', $html, 'No url: a plain title.' );
+		$this->assertSame( 1, preg_match_all( '/<a\b/', $html ) );
+		$this->assertSame( 2, preg_match_all( '/<svg class="salt-icon" data-icon="(check|star)" data-size="lg"/', $html ), 'An icon per item that sets one, large.' );
+		$this->assertStringContainsString( '<div class="salt-card"><svg class="salt-icon" data-icon="check"', $html, 'The icon leads the card.' );
+		$this->assertStringContainsString( '<li><div class="salt-card"><h3>Accessible</h3>', $html, 'No icon set: none drawn.' );
+		$this->assertStringContainsString( '<h3>Low carbon</h3></div></li>', $html, 'No words: no rich-text body.' );
+	}
+
+	public function test_a_linked_title_draws_no_arrow_when_the_site_has_none(): void {
+		add_filter( 'salt_contract_arrow', static fn() => null );
+
+		$html = $this->render_features_section(
+			array(
+				'items' => array(
+					array(
+						'title' => 'Fast',
+						'url'   => '/fast',
+					),
+				),
+			)
+		);
+
+		$this->assertStringContainsString( '<h2><a class="salt-card__link" href="/fast">Fast</a></h2>', $html );
+		$this->assertStringNotContainsString( 'salt-arrow', $html );
 	}
 
 	public function test_malformed_items_are_skipped_and_logged(): void {
@@ -150,14 +204,24 @@ final class FeaturesSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( 1, preg_match_all( '/<article\b/', $html ), 'Only the valid item renders.' );
+		$this->assertSame( 1, preg_match_all( '/<li\b/', $html ), 'Only the valid item renders.' );
+		$this->assertStringContainsString( '<h2>Kept</h2>', $html );
 		$logs = implode( ' ', $this->logs() );
 		$this->assertStringContainsString( 'features section: item 1 has no title', $logs );
 		$this->assertStringContainsString( 'features section: item 2 is not a row array', $logs );
 		$this->assertStringContainsString( 'features section: item 3 has no title', $logs );
 	}
 
-	public function test_all_items_malformed_renders_nothing(): void {
+	public function test_all_items_malformed_and_nothing_else_renders_nothing(): void {
+		$html = $this->render_features_section(
+			array( 'items' => array( array( 'text' => 'no title' ) ) )
+		);
+
+		$this->assertSame( '', $html, 'Never a blank band (COMPL02).' );
+		$this->assertStringContainsString( 'features section: item 0 has no title', implode( ' ', $this->logs() ) );
+	}
+
+	public function test_all_items_malformed_under_a_heading_renders_the_band_without_a_list(): void {
 		$html = $this->render_features_section(
 			array(
 				'heading' => 'Why us',
@@ -165,8 +229,9 @@ final class FeaturesSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( '', $html, 'Never a blank band (COMPL02).' );
-		$this->assertNotSame( array(), $this->logs() );
+		$this->assertStringContainsString( '<h1 id="features__heading">Why us</h1></div>', $html );
+		$this->assertStringNotContainsString( '<ul', $html, 'No blank card and no empty list (COMPL02).' );
+		$this->assertStringContainsString( 'features section: item 0 has no title', implode( ' ', $this->logs() ) );
 	}
 
 	// -----------------------------------------------------------------
@@ -203,7 +268,10 @@ final class FeaturesSectionTest extends SaltTestCase {
 			)
 		);
 
+		$this->assertStringStartsWith( '<div class="salt-section" id="features"', $html, 'No heading: a div band, not a section.' );
+		$this->assertStringNotContainsString( 'aria-labelledby', $html );
 		$this->assertStringNotContainsString( '<h1', $html );
+		$this->assertStringContainsString( '<h2>Fast</h2>', $html, 'With no band heading the card titles are h2.' );
 		$this->assertFalse( salt_h1_claimed(), 'Heading-less primary section must not consume the H1 claim (A11Y01).' );
 	}
 
@@ -261,8 +329,8 @@ final class FeaturesSectionTest extends SaltTestCase {
 		return $resolver( $context );
 	}
 
-	public function test_resolver_returns_null_without_valid_items(): void {
-		$this->assertNull( $this->resolve_features( array( 'heading' => 'Why us' ) ) );
+	public function test_resolver_returns_null_only_in_the_zero_state(): void {
+		$this->assertNull( $this->resolve_features( array() ) );
 		$this->assertNull(
 			$this->resolve_features(
 				array(
@@ -273,6 +341,12 @@ final class FeaturesSectionTest extends SaltTestCase {
 				)
 			)
 		);
+
+		$heading_only = $this->resolve_features( array( 'heading' => 'Why us' ) );
+		$this->assertSame( array(), $heading_only['props']['items'], 'A heading alone is drawn: items may be empty.' );
+		$this->assertTrue( $heading_only['section']['has_heading'] );
+		$this->assertSame( 'Lead in', $this->resolve_features( array( 'intro' => 'Lead in' ) )['props']['intro'] );
+		$this->assertSame( 'Kicker', $this->resolve_features( array( 'eyebrow' => 'Kicker' ) )['props']['eyebrow'] );
 	}
 
 	public function test_resolver_props_use_the_contract_names(): void {
@@ -280,6 +354,7 @@ final class FeaturesSectionTest extends SaltTestCase {
 			array(
 				'eyebrow' => 'Benefits',
 				'heading' => 'Why us',
+				'intro'   => 'Three reasons.',
 				'columns' => '4',
 				'items'   => array(
 					array(
@@ -293,9 +368,11 @@ final class FeaturesSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertSame( array( 'eyebrow', 'heading', 'columns', 'items' ), array_keys( $resolved['props'] ) );
+		$this->assertSame( array( 'eyebrow', 'heading', 'intro', 'columns', 'items', 'arrow' ), array_keys( $resolved['props'] ) );
 		$this->assertSame( 'Benefits', $resolved['props']['eyebrow'] );
 		$this->assertSame( 'Why us', $resolved['props']['heading'] );
+		$this->assertSame( 'Three reasons.', $resolved['props']['intro'] );
+		$this->assertSame( '→', $resolved['props']['arrow'], 'The site\'s arrow (salt_contract_arrow()).' );
 		$this->assertSame( '4', $resolved['props']['columns'] );
 		$this->assertSame(
 			array(
@@ -320,6 +397,7 @@ final class FeaturesSectionTest extends SaltTestCase {
 		$resolved = $this->resolve_features(
 			array(
 				'eyebrow'  => '  ',
+				'intro'    => ' ',
 				'columns'  => '7',
 				'settings' => array( 'spacing' => 'lg' ),
 				'items'    => array( array( 'title' => 'One' ) ),
@@ -328,8 +406,10 @@ final class FeaturesSectionTest extends SaltTestCase {
 
 		$this->assertNull( $resolved['props']['eyebrow'] );
 		$this->assertNull( $resolved['props']['heading'] );
+		$this->assertNull( $resolved['props']['intro'] );
 		$this->assertSame( '3', $resolved['props']['columns'] );
 		$this->assertSame( 'features', $resolved['section']['name'] );
+		$this->assertTrue( $resolved['section']['contract'], 'Drawn in the contract\'s wrapper (M4).' );
 		$this->assertSame( 'lg', $resolved['section']['spacing'] );
 		$this->assertFalse( $resolved['section']['has_heading'] );
 	}
@@ -343,6 +423,7 @@ final class FeaturesSectionTest extends SaltTestCase {
 				'props' => array(
 					'eyebrow' => 'Eyebrow from props',
 					'heading' => 'From props',
+					'intro'   => 'Intro from props',
 					'columns' => '2',
 					'items'   => array(
 						array(
@@ -352,23 +433,26 @@ final class FeaturesSectionTest extends SaltTestCase {
 							'href'  => '/card',
 						),
 					),
+					'arrow'   => '>',
 				),
 				'plan'  => array(
 					'index'         => 0,
+					'anchor'        => 'why',
 					'headingLevel'  => 2,
+					'headingId'     => 'why__heading',
+					'bodyBaseLevel' => 2,
 					'priorityMedia' => false,
 				),
 			)
 		);
 		$html = (string) ob_get_clean();
 
-		$this->assertSame( 1, preg_match_all( '/<h2[\s>]/', $html ) );
-		$this->assertSame( 1, preg_match_all( '/<h3[\s>]/', $html ), 'Card titles step one level below the heading.' );
-		$this->assertStringContainsString( 'Eyebrow from props', $html );
-		$this->assertStringContainsString( '<div class="x-card-body x-prose text-ink-muted"><p>Card copy</p></div>', $html, 'Rich text drawn as sanitised HTML.' );
-		$this->assertStringContainsString( 'href="/card"', $html );
-		$this->assertStringContainsString( 'sm:grid-cols-2', $html );
-		$this->assertStringNotContainsString( 'data-section=', $html, 'The wrapper is the entry\'s, not the view\'s.' );
+		$this->assertSame(
+			'<div class="salt-block" data-block="features"><p class="salt-eyebrow">Eyebrow from props</p><h2 id="why__heading">From props</h2><p class="salt-intro">Intro from props</p>'
+			. '<ul class="salt-grid" role="list" data-columns="2"><li><div class="salt-card"><h3><a class="salt-card__link" href="/card">Card title<span class="salt-arrow" aria-hidden="true">&#x2060;&gt;</span></a></h3><div class="salt-rich-text"><p>Card copy</p></div></div></li></ul></div>',
+			$html,
+			'The block only: the band is the entry\'s, not the view\'s; card titles one below the body base; the arrow from props, escaped.'
+		);
 	}
 	public function test_item_text_keeps_no_heading_under_the_card_title(): void {
 		$resolved = $this->resolve_features(

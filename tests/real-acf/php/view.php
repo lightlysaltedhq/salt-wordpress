@@ -23,7 +23,9 @@
  *    `documents` pages whose slug is the href's last segment;
  *  - `site`: name (blogname), timezone (timezone_string), organisation,
  *    logos, logo height, sticky header, header call to action and footer
- *    text into the theme's options, as the adapter's chrome cases do;
+ *    text into the theme's options, as the adapter's chrome cases do; the
+ *    header's menu and the footer's columns as the site's menus, and the
+ *    rest of the chrome for site/salt-harness-chrome.php (salt_view_chrome());
  *  - the page: a page with the document's title, at the case's path (the
  *    front page for /), its `document.sections` as rows of `sections`;
  *  - post, service, case-study: the document as singles.php seeds it, at
@@ -145,23 +147,106 @@ function salt_view_site( array $site ): void {
 		update_option( 'timezone_string', (string) $site['timezone'] );
 	}
 	$options = array(
-		'org_name'           => $site['organisation'] ?? null,
-		'logo_light'         => isset( $site['logo']['light'] ) ? salt_harness_attachment( (string) $site['logo']['light'] ) : null,
-		'logo_dark'          => isset( $site['logo']['dark'] ) ? salt_harness_attachment( (string) $site['logo']['dark'] ) : null,
-		'logo_height'        => $site['logoHeight'] ?? null,
-		'header_sticky'      => $site['header']['sticky'] ?? null,
-		'header_cta'         => isset( $site['header']['cta']['label'], $site['header']['cta']['href'] ) ? array(
+		'org_name'               => $site['organisation'] ?? null,
+		'logo_light'             => isset( $site['logo']['light'] ) ? salt_harness_attachment( (string) $site['logo']['light'] ) : null,
+		'logo_dark'              => isset( $site['logo']['dark'] ) ? salt_harness_attachment( (string) $site['logo']['dark'] ) : null,
+		'logo_height'            => $site['logoHeight'] ?? null,
+		'header_sticky'          => $site['header']['sticky'] ?? null,
+		'header_cta'             => isset( $site['header']['cta']['label'], $site['header']['cta']['href'] ) ? array(
 			'title' => $site['header']['cta']['label'],
 			'url'   => $site['header']['cta']['href'],
 		) : null,
-		'footer_text'        => $site['footer']['text'] ?? null,
-		'footer_show_social' => isset( $site['footer'] ) ? ! empty( $site['footer']['profiles'] ) : null,
+		'footer_text'            => $site['footer']['text'] ?? null,
+		'footer_show_social'     => isset( $site['footer'] ) ? ! empty( $site['footer']['profiles'] ) : null,
+		'company_phone'          => $site['header']['phone']['text'] ?? null,
+		'header_show_phone'      => isset( $site['header']['phone']['text'] ) ? true : null,
+		'theme_toggle_placement' => true === ( $site['themeToggle'] ?? null ) ? 'header' : ( $site['themeToggle']['placed'] ?? null ),
+		'footer_tone'            => isset( $site['footer'] ) ? ( $site['footer']['tone'] ?? 'surface' ) : null,
+		'footer_show_logo'       => isset( $site['footer'] ) ? ! empty( $site['footer']['showLogo'] ) : null,
 	);
 	foreach ( $options as $name => $value ) {
 		if ( null !== $value ) {
 			update_field( $name, $value, 'option' );
 		}
 	}
+}
+
+/**
+ * One menu location's items from a case's menu ({ label, href?, children? }):
+ * a same-site href as the site's own address (as a page's permalink is), an
+ * item with no href as a custom link with none, which the theme draws as its
+ * span form.
+ *
+ * @param int                            $menu      Menu ID.
+ * @param array<int,array<string,mixed>> $items     The case's items.
+ * @param int                            $parent_id The parent menu item's ID.
+ * @return void
+ */
+function salt_view_menu_items( int $menu, array $items, int $parent_id = 0 ): void {
+	foreach ( $items as $item ) {
+		$href = isset( $item['href'] ) ? (string) $item['href'] : '';
+		$id   = wp_update_nav_menu_item(
+			$menu,
+			0,
+			array(
+				'menu-item-title'     => (string) ( $item['label'] ?? '' ),
+				'menu-item-url'       => str_starts_with( $href, '/' ) ? home_url( $href ) : $href,
+				'menu-item-type'      => 'custom',
+				'menu-item-status'    => 'publish',
+				'menu-item-parent-id' => $parent_id,
+			)
+		);
+		salt_view_menu_items( $menu, (array) ( $item['children'] ?? array() ), (int) $id );
+	}
+}
+
+/**
+ * The case's chrome (EP-72 M4 U5): its menus in place of the harness's own
+ * (the header's menu, and the footer's columns as a menu the theme reads
+ * back as columns: a titled column a parent with no address, an untitled
+ * one its links at the top level), and the parts of `site` no Site Setting
+ * holds for the harness's chrome mu-plugin (site/salt-harness-chrome.php)
+ * to feed the theme's code seams on the requested page, as the adapter's chrome cases do. A
+ * location the case gives nothing gets an empty menu: no items, and no
+ * fallback log line.
+ *
+ * @param array<string,mixed> $site The case's `site`.
+ * @return void
+ */
+function salt_view_chrome( array $site ): void {
+	$footer = array();
+	foreach ( (array) ( $site['footer']['columns'] ?? array() ) as $column ) {
+		if ( isset( $column['title'] ) && '' !== (string) $column['title'] ) {
+			$footer[] = array(
+				'label'    => $column['title'],
+				'children' => (array) ( $column['links'] ?? array() ),
+			);
+		} else {
+			$footer = array_merge( $footer, (array) ( $column['links'] ?? array() ) );
+		}
+	}
+	$locations = array();
+	foreach ( array(
+		'primary' => (array) ( $site['header']['menu'] ?? array() ),
+		'footer'  => $footer,
+	) as $location => $items ) {
+		$menu = (int) wp_create_nav_menu( 'Case ' . $location );
+		salt_view_menu_items( $menu, $items );
+		$locations[ $location ] = $menu;
+	}
+	set_theme_mod( 'nav_menu_locations', $locations );
+
+	// A case's site.consent says a WP Consent API plugin is wired (ruling
+	// C, SC-030), as the adapter's footer cases seed it.
+	update_option(
+		'salt_harness_chrome',
+		array(
+			'labels'    => (array) ( $site['labels'] ?? array() ),
+			'copyright' => $site['footer']['copyright'] ?? null,
+			'profiles'  => $site['footer']['profiles'] ?? null,
+			'consent'   => isset( $site['consent'] ) ? (array) $site['consent'] : null,
+		)
+	);
 }
 
 /**
@@ -275,6 +360,170 @@ function salt_view_card( array $card, array $media, array $more ): int {
 	return $id;
 }
 
+/**
+ * A view case's site as WordPress holds it, and the rest for the theme's
+ * seams (tests/real-acf/site/salt-harness-case.php):
+ *  - site.home (a path, or `{ href, title }`) as a published static front
+ *    page, and none as a static front page that is not chosen, so a site
+ *    with no home page has none (salt_contract_home()); a page case at /
+ *    keeps its own page as the front page;
+ *  - site.collectionIndexes.post as the posts page, with its title;
+ *  - the case's site, document, route and context in the `salt_harness_case` option,
+ *    which the mu-plugin reads.
+ *
+ * @param array<string,mixed> $input The case.
+ * @return void
+ */
+function salt_view_case_site( array $input ): void {
+	$site = (array) ( $input['site'] ?? array() );
+	$page = static function ( string $href, string $title ): int {
+		$slug = salt_harness_slug( $href );
+		return (int) wp_insert_post(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_title'  => $title,
+				'post_name'   => '' !== $slug ? $slug : sanitize_title( $title ),
+			)
+		);
+	};
+	// A page case at / is already the front page, and the home page itself.
+	$front = (int) get_option( 'page_on_front' );
+	if ( 'page' !== get_option( 'show_on_front' ) || 'publish' !== get_post_status( $front ) ) {
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', 0 );
+		if ( isset( $site['home'] ) ) {
+			$home = is_array( $site['home'] ) ? $site['home'] : array( 'href' => (string) $site['home'] );
+			update_option( 'page_on_front', $page( (string) ( $home['href'] ?? '/' ), (string) ( $home['title'] ?? 'Home' ) ) );
+		}
+	}
+	if ( isset( $site['collectionIndexes']['post'] ) ) {
+		$index = (array) $site['collectionIndexes']['post'];
+		update_option( 'page_for_posts', $page( (string) $index['href'], (string) ( $index['title'] ?? '' ) ) );
+	}
+	update_option(
+		'salt_harness_case',
+		array(
+			'site'     => $site,
+			'document' => (array) ( $input['document'] ?? array() ),
+			'route'    => (array) ( $input['route'] ?? array() ),
+			'context'  => (array) ( $input['context'] ?? array() ),
+		)
+	);
+}
+
+/**
+ * Each attachment a case's media names (its title is the media name, as
+ * seed.php makes them) served from the record's `{width}` template, as
+ * the adapter's upload URL filter serves it: the template on the
+ * attachment (the mu-plugin draws it), and a `salt-<width>` sub-size for
+ * every contract candidate below the upload's width (salt_image_candidates()).
+ *
+ * @param array<string,mixed> $media The case's media.
+ * @return void
+ */
+function salt_view_media_urls( array $media ): void {
+	foreach ( get_posts(
+		array(
+			'post_type'   => 'attachment',
+			'post_status' => 'inherit',
+			'numberposts' => -1,
+		)
+	) as $attachment ) {
+		$record = $media[ $attachment->post_title ] ?? null;
+		if ( ! is_array( $record ) || ! isset( $record['url'] ) ) {
+			continue;
+		}
+		$meta   = (array) wp_get_attachment_metadata( $attachment->ID );
+		$width  = (int) ( $meta['width'] ?? 0 );
+		$height = (int) ( $meta['height'] ?? 0 );
+		foreach ( salt_image_candidates() as $candidate ) {
+			if ( $candidate < $width ) {
+				$meta['sizes'][ 'salt-' . $candidate ] = array(
+					'file'      => $attachment->post_title . '-' . $candidate . '.png',
+					'width'     => $candidate,
+					'height'    => (int) round( $height * $candidate / max( 1, $width ) ),
+					'mime-type' => 'image/png',
+				);
+			}
+		}
+		wp_update_attachment_metadata( $attachment->ID, $meta );
+		update_post_meta( $attachment->ID, '_salt_harness_url', (string) $record['url'] );
+	}
+}
+
+/**
+ * Each attachment a case's media names gets the record's caption where
+ * WordPress keeps it, the attachment's excerpt (wp_get_attachment_caption()),
+ * as an editor sets it in the media library; the adapter's attachment shim
+ * carries it the same way.
+ *
+ * @param array<string,mixed> $media The case's media.
+ * @return void
+ */
+function salt_view_media_captions( array $media ): void {
+	foreach ( get_posts(
+		array(
+			'post_type'   => 'attachment',
+			'post_status' => 'inherit',
+			'numberposts' => -1,
+		)
+	) as $attachment ) {
+		$caption = $media[ $attachment->post_title ]['caption'] ?? null;
+		if ( is_string( $caption ) && '' !== $caption ) {
+			wp_update_post(
+				array(
+					'ID'           => $attachment->ID,
+					'post_excerpt' => $caption,
+				)
+			);
+		}
+	}
+}
+
+/**
+ * The search case's results hold its query in their text, so WordPress's
+ * own search finds each one (a result's title need not hold it).
+ *
+ * @param array<string,mixed> $doc The case's document.
+ * @return void
+ */
+function salt_view_search_text( array $doc ): void {
+	foreach ( (array) ( $doc['results'] ?? array() ) as $result ) {
+		$found = get_posts(
+			array(
+				'post_type'   => 'any',
+				'title'       => (string) $result['title'],
+				'numberposts' => 1,
+			)
+		);
+		if ( array() !== $found ) {
+			wp_update_post(
+				array(
+					'ID'           => $found[0]->ID,
+					'post_content' => (string) ( $doc['query'] ?? '' ),
+				)
+			);
+		}
+	}
+}
+
+/**
+ * A case's site.caseStudy (the layout a site sets once for its case
+ * studies) on Site Settings → Case Studies, as an editor saves it
+ * (inc/fields/options-case-studies.php): each setting the case gives, a dark
+ * tone left out as automatic, and the default (plain) otherwise.
+ *
+ * @param array<string,mixed> $site The case's `site`.
+ * @return void
+ */
+function salt_view_case_study_options( array $site ): void {
+	$layout = (array) ( $site['caseStudy'] ?? array() );
+	update_field( 'field_salt_options_case_study_header', (string) ( $layout['header'] ?? 'plain' ), 'option' );
+	update_field( 'field_salt_options_case_study_header_tone', (string) ( $layout['headerTone'] ?? 'surface' ), 'option' );
+	update_field( 'field_salt_options_case_study_header_tone_dark', (string) ( $layout['headerToneDark'] ?? 'auto' ), 'option' );
+}
+
 ob_start();
 $GLOBALS['salt_harness_media'] = (array) ( $salt_view_input['media'] ?? array() );
 $salt_view_doc                 = (array) ( $salt_view_input['document'] ?? array() );
@@ -283,6 +532,7 @@ $salt_view_kind                = (string) ( $salt_view_input['view'] ?? 'page' )
 $salt_view_path                = (string) ( $salt_view_input['context']['path'] ?? '/' );
 
 salt_view_site( (array) ( $salt_view_input['site'] ?? array() ) );
+salt_view_chrome( (array) ( $salt_view_input['site'] ?? array() ) );
 foreach ( array_keys( (array) ( $salt_view_input['documents'] ?? array() ) ) as $salt_view_name ) {
 	salt_harness_case_document( $salt_view_input, (string) $salt_view_name );
 }
@@ -328,6 +578,7 @@ switch ( $salt_view_kind ) {
 		break;
 	case 'case-study':
 		salt_harness_seed_case_study( $salt_view_input );
+		salt_view_case_study_options( (array) ( $salt_view_input['site'] ?? array() ) );
 		break;
 	case 'archive':
 		$salt_view_slug = salt_harness_slug( (string) ( $salt_view_doc['href'] ?? $salt_view_path ) );
@@ -389,6 +640,7 @@ switch ( $salt_view_kind ) {
 				)
 			);
 		}
+		salt_view_search_text( $salt_view_doc );
 		$salt_view_path = '/?s=' . rawurlencode( (string) ( $salt_view_doc['query'] ?? '' ) );
 		break;
 	case 'not-found':
@@ -398,6 +650,9 @@ switch ( $salt_view_kind ) {
 		fwrite( STDERR, "salt harness: the view {$salt_view_kind} is not rendered by the harness yet: view.php has no seeding for it\n" );
 		exit( 4 );
 }
+salt_view_case_site( $salt_view_input );
+salt_view_media_urls( $salt_view_media );
+salt_view_media_captions( $salt_view_media );
 $salt_view_stray = (string) ob_get_clean();
 if ( '' !== $salt_view_stray ) {
 	fwrite( STDERR, 'seeding printed: ' . $salt_view_stray . "\n" );

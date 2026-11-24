@@ -156,7 +156,8 @@ function salt_resolve_section_carousel( array $context ): ?array {
 			'labels'    => salt_contract_labels(),
 			'arrow'     => salt_contract_arrow(),
 		),
-		// A renderable background takes the priority image over the cards'.
-		'plan'    => array( 'priorityMedia' => $priority && null === $settings['background_image'] ),
+		// A renderable background takes the priority image over the cards':
+		// the first card's image, never a quotation's photo.
+		'plan'    => array( 'priorityMedia' => $priority && null === $settings['background_image'] && 'quote' !== $style && is_array( $cards[0]['image'] ?? null ) ),
 	);
 }

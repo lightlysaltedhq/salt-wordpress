@@ -99,6 +99,15 @@ try {
 		manifest[logical] = outName;
 	}
 
+	// MapLibre's CSP-build worker (maps/maplibre.js imports the CSP build),
+	// copied byte for byte from the pinned package and hashed like the rest:
+	// maps.js hands its same-origin address to maplibregl.setWorkerUrl(), so
+	// the map needs no blob: worker under the theme's CSP.
+	const worker = fs.readFileSync(path.join(root, 'node_modules/maplibre-gl/dist/maplibre-gl-csp-worker.js'));
+	const workerName = `maps/${hashedName('maplibre-worker.js', worker)}`;
+	fs.writeFileSync(path.join(dist, workerName), worker);
+	manifest['maps/maplibre-worker.js'] = workerName;
+
 	// 4. The contract's stylesheet, copied byte for byte: never through
 	// Tailwind or esbuild, which would rewrite it, since the contract's
 	// conformance runner pins the served file to the package's. The hash

@@ -1,41 +1,30 @@
 <?php
 /**
- * View: Locations (spec §10 #20, Appendix A.6) — the CASW pattern.
+ * View: Locations (salt-contract markup/locations.json, rc.8; spec §10 #20,
+ * Appendix A.6).
  *
  * Draws the props from salt_resolve_section_locations() (inc/sections/
- * locations.php), inside the x-section wrapper the shared entry opens. No
- * field reads, queries, status calls (the clock), schema or logging here:
- * a child theme overriding this file overrides the markup only.
+ * locations.php) as the contract's block, inside the band the shared entry
+ * opens. No field reads, queries, status calls (the clock), schema or
+ * logging here: a child theme overriding this file overrides the markup only.
  *
- * A zero-JS native <details> accordion of offices: summary = office name +
- * the status pill ('unknown' status draws NO pill — COMPL02; the pill's
- * non-colour signal is its label text itself); body = address, tel:/mailto:
- * links, x-opening-hours and a "Get directions" link (a plain external
- * link: nothing loads from that origin unless the visitor clicks — PRIV01).
- *
- * MARKUP COUPLING: the office rows deliberately reuse x-accordion's
- * details/summary class hooks (x-accordion-item / x-accordion-summary /
- * x-accordion-chevron / x-accordion-content — see components/accordion.php)
- * so accordion styling applies fleet-wide, but are built directly because
- * the body is rich composed markup, not a sanitised HTML string. A markup
- * change in accordion.php must be mirrored here (both snapshot-guarded).
- * The office block is kept byte for byte, indentation included: it is
- * output, and the snapshots compare it (CONVENTIONS.md rule 1).
+ * A zero-JS native <details> accordion of offices (the contract's accordion
+ * classes): summary = office name + its status ('unknown' draws none —
+ * COMPL02; the label text is the non-colour signal), the status span
+ * carrying data-hours, data-timezone and data-labels for the on-load
+ * status script (SC-007, deferred to its own Work Item: today the server's
+ * status stands); body = address, tel:/mailto: links, opening hours, the
+ * map facade when the office has one, and a "Get directions" link (a plain
+ * external link: nothing loads from that origin unless the visitor clicks
+ * — PRIV01).
  *
  * TEASER RULE (§6): the location CPT is not public (no archive URL), so
  * no "view all" link renders — the section is the canonical surface.
  *
  * $args:
- *   props  array{ eyebrow: string|null, heading: string|null,
- *                 offices: array<int, array{id: string, title: string, address: string[],
- *                                          phone: string|null, phoneHref: string|null,
- *                                          email: string|null, opening_hours: array,
- *                                          status: string, status_label: string,
- *                                          directionsHref: string|null}>,
- *                 details_group: string }
- *          offices is never empty. details_group names the <details>
- *          group (always 'locations-0' today — see the resolver).
- *   plan   array{ index: int, headingLevel: int, priorityMedia: bool }
+ *   props  array{ eyebrow: string|null, heading: string|null, offices: array, timezone: string,
+ *                 labels: array<string,string> } (see the resolver).
+ *   plan   array{ index: int, anchor: string, headingLevel: int, headingId: string|null, bodyBaseLevel: int, priorityMedia: bool }
  *
  * @package Salt
  */
@@ -44,109 +33,97 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$salt_props = $args['props'];
-$salt_plan  = $args['plan'];
-
-if ( null !== $salt_props['eyebrow'] ) {
-	salt_component(
-		'eyebrow',
-		array(
-			'text'    => $salt_props['eyebrow'],
-			'classes' => 'mb-2',
-		)
-	);
-}
-if ( null !== $salt_props['heading'] ) {
-	salt_component(
-		'heading',
-		array(
-			'text'    => $salt_props['heading'],
-			'level'   => $salt_plan['headingLevel'],
-			'classes' => 'mb-6',
-		)
-	);
-}
-
-// Status => pill role-token text class. 'unknown' is absent on
-// purpose: no hours means NO pill (COMPL02). The label text is the
-// non-colour signal (A11Y: never colour alone).
-$salt_pill_classes = array(
-	'open'        => 'text-success',
-	'appointment' => 'text-info',
-	'closed'      => 'text-ink-muted',
+$salt_props  = $args['props'];
+$salt_plan   = $args['plan'];
+$salt_level  = max( 1, min( 6, (int) $salt_plan['headingLevel'] ) );
+$salt_id     = $salt_plan['headingId'] ?? null;
+$salt_labels = (array) $salt_props['labels'];
+// One exclusive-open group per band (locations-<plan index>), on every details.
+$salt_group = 'locations-' . (int) $salt_plan['index'];
+// data-labels: the three status words, keyed by status.
+$salt_status_labels = (string) wp_json_encode(
+	array(
+		'open'        => (string) ( $salt_labels['open'] ?? '' ),
+		'appointment' => (string) ( $salt_labels['appointment'] ?? '' ),
+		'closed'      => (string) ( $salt_labels['closed'] ?? '' ),
+	),
+	JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
 );
 
-echo '<div class="x-locations flex flex-col" data-section-component="locations">';
+echo '<div class="salt-block" data-block="locations">';
 
-foreach ( $salt_props['offices'] as $salt_office ) {
-	// --- Office markup (x-accordion class coupling — see docblock).
-	?>
-			<details class="x-accordion-item group border-b border-border" name="<?php echo esc_attr( $salt_props['details_group'] ); ?>">
-				<summary class="x-accordion-summary list-none flex items-center justify-between gap-4 py-4 font-medium cursor-pointer">
-					<span class="flex flex-wrap items-center gap-x-3 gap-y-1">
-						<?php
-						// Not a heading: heading semantics inside <summary> are
-						// inconsistently exposed to AT; offices are accordion
-						// entries, the outline is owned by the section heading.
-						printf(
-							'<span class="text-lg font-semibold">%s</span>',
-							esc_html( $salt_office['title'] )
-						);
-						if ( isset( $salt_pill_classes[ $salt_office['status'] ] ) ) {
-							printf(
-								'<span class="x-status-pill inline-flex items-center rounded-full border border-border px-2 py-0.5 text-sm font-normal %1$s" data-status="%2$s">%3$s</span>',
-								esc_attr( $salt_pill_classes[ $salt_office['status'] ] ),
-								esc_attr( $salt_office['status'] ),
-								esc_html( $salt_office['status_label'] )
-							);
-						}
-						?>
-					</span>
-					<span class="x-accordion-chevron transition-transform group-open:rotate-180" aria-hidden="true">
-						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
-					</span>
-				</summary>
-				<div class="x-accordion-content pb-4 text-ink-muted">
-					<div class="x-location-card flex flex-col items-start gap-4">
-						<?php if ( array() !== $salt_office['address'] ) : ?>
-						<address class="not-italic">
-							<?php foreach ( $salt_office['address'] as $salt_line ) : ?>
-							<span class="block"><?php echo esc_html( $salt_line ); ?></span>
-							<?php endforeach; ?>
-						</address>
-						<?php endif; ?>
-						<?php if ( null !== $salt_office['phone'] || null !== $salt_office['email'] ) : ?>
-						<ul class="flex flex-col gap-1">
-							<?php
-							if ( null !== $salt_office['phoneHref'] ) :
-								?>
-							<li><a class="text-brand underline" href="<?php echo esc_url( $salt_office['phoneHref'] ); ?>"><?php echo esc_html( $salt_office['phone'] ); ?></a></li>
-							<?php elseif ( null !== $salt_office['phone'] ) : ?>
-							<li><?php echo esc_html( $salt_office['phone'] ); ?></li>
-							<?php endif; ?>
-							<?php if ( null !== $salt_office['email'] ) : ?>
-							<li><a class="text-brand underline" href="<?php echo esc_url( 'mailto:' . $salt_office['email'] ); ?>"><?php echo esc_html( $salt_office['email'] ); ?></a></li>
-							<?php endif; ?>
-						</ul>
-						<?php endif; ?>
-						<?php
-						if ( array() !== $salt_office['opening_hours'] ) {
-							salt_component(
-								'opening-hours',
-								array(
-									'hours'   => $salt_office['opening_hours'],
-									'compact' => false,
-								)
-							);
-						}
-						?>
-						<?php if ( null !== $salt_office['directionsHref'] ) : ?>
-						<a class="text-brand underline" href="<?php echo esc_url( $salt_office['directionsHref'] ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: office name. */ __( 'Get directions to %s', 'salt' ), $salt_office['title'] ) ); ?>"><?php esc_html_e( 'Get directions', 'salt' ); ?></a>
-						<?php endif; ?>
-					</div>
-				</div>
-			</details>
-			<?php
+if ( null !== $salt_props['eyebrow'] ) {
+	echo '<p class="salt-eyebrow">' . esc_html( (string) $salt_props['eyebrow'] ) . '</p>';
 }
+if ( null !== $salt_props['heading'] ) {
+	printf(
+		'<h%1$d%2$s>%3$s</h%1$d>',
+		(int) $salt_level,
+		is_string( $salt_id ) ? ' id="' . esc_attr( $salt_id ) . '"' : '',
+		esc_html( (string) $salt_props['heading'] )
+	);
+}
+
+echo '<div class="salt-accordion salt-locations">';
+foreach ( $salt_props['offices'] as $salt_office ) {
+	echo '<details class="salt-accordion__item" name="' . esc_attr( $salt_group ) . '">';
+
+	// Not a heading: the office names are summary text; the outline is the section heading's.
+	echo '<summary class="salt-accordion__summary"><span class="salt-locations__name">' . esc_html( (string) $salt_office['title'] ) . '</span>';
+	if ( isset( $salt_labels[ $salt_office['status'] ] ) && in_array( $salt_office['status'], array( 'open', 'appointment', 'closed' ), true ) ) {
+		printf(
+			'<span class="salt-locations__status" data-status="%1$s" data-hours="%2$s" data-timezone="%3$s" data-labels="%4$s">%5$s</span>',
+			esc_attr( (string) $salt_office['status'] ),
+			esc_attr( (string) wp_json_encode( $salt_office['hours'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ),
+			esc_attr( (string) $salt_props['timezone'] ),
+			esc_attr( $salt_status_labels ),
+			esc_html( (string) $salt_labels[ $salt_office['status'] ] )
+		);
+	}
+	echo '</summary>';
+
+	echo '<div class="salt-accordion__content"><div class="salt-locations__office">';
+	if ( array() !== $salt_office['address'] ) {
+		// A line break between the lines: a space a visitor sees when the stylesheet keeps them inline.
+		$salt_lines = array_map( static fn( $line ): string => '<span class="salt-locations__line">' . esc_html( (string) $line ) . '</span>', $salt_office['address'] );
+		echo '<address class="salt-locations__address">' . implode( "\n", $salt_lines ) . '</address>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each line escaped above.
+	}
+	if ( null !== $salt_office['phone'] || null !== $salt_office['email'] ) {
+		echo '<ul class="salt-locations__contact" role="list">';
+		if ( null !== $salt_office['phoneHref'] ) {
+			echo '<li><a href="' . esc_url( (string) $salt_office['phoneHref'] ) . '">' . esc_html( (string) $salt_office['phone'] ) . '</a></li>';
+		} elseif ( null !== $salt_office['phone'] ) {
+			echo '<li>' . esc_html( (string) $salt_office['phone'] ) . '</li>';
+		}
+		if ( null !== $salt_office['email'] ) {
+			echo '<li><a href="' . esc_url( 'mailto:' . $salt_office['email'] ) . '">' . esc_html( (string) $salt_office['email'] ) . '</a></li>';
+		}
+		echo '</ul>';
+	}
+	if ( array() !== $salt_office['opening_hours'] ) {
+		salt_component(
+			'opening-hours',
+			array(
+				'hours'   => $salt_office['opening_hours'],
+				'compact' => false,
+			)
+		);
+	}
+	if ( null !== $salt_office['coordinates'] ) {
+		salt_component( 'map', $salt_office['coordinates'] );
+	}
+	if ( null !== $salt_office['directionsHref'] ) {
+		printf(
+			'<a class="salt-locations__directions" href="%1$s" aria-label="%2$s">%3$s</a>',
+			esc_url( (string) $salt_office['directionsHref'] ),
+			// {name} is replaced where it stands and nothing is appended: a label
+			// without it is drawn as written (README Labels, SC-031).
+			esc_attr( str_replace( '{name}', (string) $salt_office['title'], (string) ( $salt_labels['directions'] ?? '' ) ) ),
+			esc_html( (string) ( $salt_labels['getDirections'] ?? '' ) )
+		);
+	}
+	echo '</div></div></details>';
+}
+echo '</div>';
 
 echo '</div>';

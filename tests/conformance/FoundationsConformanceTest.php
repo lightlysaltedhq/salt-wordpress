@@ -455,8 +455,8 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		$rules   = array();
 		$imports = array();
 		$depth   = 0;
-		$start  = 0;
-		$open   = 0;
+		$start   = 0;
+		$open    = 0;
 
 		for ( $i = 0; $i < $length; $i++ ) {
 			$char = $blank[ $i ];
@@ -1410,13 +1410,11 @@ final class FoundationsConformanceTest extends SaltTestCase {
 
 	/**
 	 * Utilities from those families that are allowed, by file, with the exact
-	 * number of times each appears. The nav submenu's shadow-lg is on a <ul>
-	 * that takes no focus, in the header, which is never inside a section, so
-	 * it can replace no keyline. A new use needs a line here and a reason.
+	 * number of times each appears. None today: the header draws the
+	 * contract's markup, styled by salt.css. A new use needs a line here and
+	 * a reason.
 	 */
-	private const INDICATOR_UTILITIES_ALLOWED = array(
-		'inc/class-salt-nav-walker.php' => array( 'shadow-lg' => 1 ),
-	);
+	private const INDICATOR_UTILITIES_ALLOWED = array();
 
 	/**
 	 * No file Tailwind scans for classes carries a utility that draws over the
@@ -1490,12 +1488,22 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		$files = array();
 		foreach ( $sources[1] as $source ) {
 			$path = $base . '/' . $source;
-			if ( str_contains( $source, '*' ) ) {
-				$files = array_merge( $files, (array) glob( $path ) );
+			// A glob (`*`, or one brace list naming several files, which
+			// Tailwind reads as one source) or a single file.
+			if ( str_contains( $source, '*' ) || str_contains( $source, '{' ) ) {
+				$matched = (array) glob( $path, GLOB_BRACE );
+				if ( array() === $matched ) {
+					self::fail( "app.css's @source \"{$source}\" matches no file." );
+				}
+				$files = array_merge( $files, $matched );
+				continue;
+			}
+			if ( is_file( $path ) ) {
+				$files[] = $path;
 				continue;
 			}
 			if ( ! is_dir( $path ) ) {
-				self::fail( "app.css's @source \"{$source}\" is neither a glob nor a directory." );
+				self::fail( "app.css's @source \"{$source}\" is neither a glob, a file nor a directory." );
 			}
 			foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $file ) {
 				$files[] = $file->getPathname();

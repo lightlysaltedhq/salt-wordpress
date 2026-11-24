@@ -96,6 +96,7 @@ final class GallerySectionSnapshotTest extends SaltSnapshotTestCase {
 			$this->render_gallery(
 				array(
 					'layout'   => 'carousel',
+					'label'    => 'Studio photographs',
 					'captions' => 0,
 					'images'   => array( 71, 72, 73 ),
 				)

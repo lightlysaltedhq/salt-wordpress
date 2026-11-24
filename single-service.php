@@ -1,15 +1,18 @@
 <?php
 /**
- * Single service (spec §6, service-page build-out) — hero (icon + category
- * eyebrow → H1 → summary lede → price-from), benefits checklist, the
- * introduction, CTA band, related-services grid + Service schema.
+ * Single service, as the contract draws it (salt-contract rc.8
+ * markup/service.json): the article with its header (the title as the
+ * document's h1, the summary), the introduction, the benefits named by
+ * service__benefits-heading, the price after its label, the call to action
+ * as a primary button without the arrow, and the related services as cards
+ * named by service__related-heading; then the Service schema. The page
+ * draws no icon and no image: the title names the service.
  *
  * Reads salt-contract's service (collections/services.json): the title,
- * topics (the service_category terms), summary (the excerpt), intro (the
- * body, drawn by salt_service_intro_html(): paragraphs added and its
- * contract list kept, with no shortcodes, embeds or other the_content
- * filters) and featuredImage (the featured image) from WordPress, and icon,
- * benefits, priceFrom, relatedServices and cta from the generated group.
+ * summary (the excerpt) and intro (the body, drawn by
+ * salt_service_intro_html(): paragraphs added and its contract list kept,
+ * with no shortcodes, embeds or other the_content filters) from WordPress,
+ * and benefits, priceFrom, relatedServices and cta from the generated group.
  *
  * @package Salt
  */
@@ -20,187 +23,106 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 get_header();
 
+$salt_labels = salt_contract_labels( 'service' );
+
 while ( have_posts() ) {
 	the_post();
 
 	$salt_service_id = (int) get_the_ID();
 	$salt_permalink  = (string) get_permalink();
-
-	$salt_icon       = (string) get_field( 'icon', $salt_service_id );
 	$salt_summary    = salt_post_summary( $salt_service_id );
 	$salt_price_from = trim( (string) get_field( 'priceFrom', $salt_service_id ) );
+	$salt_intro      = salt_service_intro_html( (string) get_post_field( 'post_content', $salt_service_id, 'raw' ) );
 
-	$salt_benefits = get_field( 'benefits', $salt_service_id );
-	$salt_benefits = is_array( $salt_benefits ) ? $salt_benefits : array();
+	$salt_benefits = array();
+	foreach ( (array) get_field( 'benefits', $salt_service_id ) as $salt_row ) {
+		$salt_benefit = is_array( $salt_row ) ? trim( (string) ( $salt_row['text'] ?? '' ) ) : '';
+		if ( '' !== $salt_benefit ) {
+			$salt_benefits[] = $salt_benefit;
+		}
+	}
 
+	// Never the service itself (collections/services.json, relatedServices).
 	$salt_related_ids = get_field( 'relatedServices', $salt_service_id );
 	$salt_related_ids = is_array( $salt_related_ids ) ? array_map( 'intval', $salt_related_ids ) : array();
-	// Never the service itself (collections/services.json, relatedServices).
-	$salt_related_ids = array_values( array_diff( $salt_related_ids, array( $salt_service_id ) ) );
+	$salt_related     = array();
+	$salt_card_sizes  = salt_image_slot_sizes( 'card', 'full', '3' );
+	foreach ( array_diff( $salt_related_ids, array( $salt_service_id ) ) as $salt_related_id ) {
+		$salt_related_post = get_post( $salt_related_id );
+		$salt_card         = $salt_related_post instanceof WP_Post && 'publish' === $salt_related_post->post_status ? salt_contract_view_card( $salt_related_post, 'services', $salt_card_sizes ) : null;
+		if ( null !== $salt_card ) {
+			$salt_related[] = $salt_card;
+		}
+	}
 
 	// The contract's link (label, type, document, url, newTab); null when unusable.
 	$salt_cta = salt_contract_link( get_field( 'cta', $salt_service_id ) );
 
-	$salt_categories = get_the_terms( $salt_service_id, 'service_category' );
-	$salt_categories = is_array( $salt_categories ) ? $salt_categories : array();
-
-	// ------------------------------------------------------------------
-	// Hero.
-	// ------------------------------------------------------------------
-	echo '<header class="x-service-hero bg-surface-alt py-14 md:py-20">';
-	echo '<div class="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">';
-
-	if ( '' !== trim( $salt_icon ) && '' !== salt_icon_svg( $salt_icon ) ) {
-		echo '<div class="x-service-icon mb-6 inline-flex size-14 items-center justify-center rounded-lg bg-brand-tint text-brand">';
-		salt_component(
-			'icon',
-			array(
-				'name' => $salt_icon,
-				'size' => 'lg',
-			)
-		);
-		echo '</div>';
-	}
-
-	if ( array() !== $salt_categories ) {
-		salt_component(
-			'eyebrow',
-			array(
-				'text'    => implode( ' · ', wp_list_pluck( $salt_categories, 'name' ) ),
-				'classes' => 'mb-3',
-			)
-		);
-	}
-
-	salt_the_document_h1( (string) get_the_title(), 'x-heading text-4xl md:text-5xl font-bold tracking-tight' );
-
+	echo '<article class="salt-service">';
+	echo '<header class="salt-service__header">';
+	salt_the_document_h1( salt_view_title( $salt_service_id ) );
 	if ( '' !== trim( $salt_summary ) ) {
-		printf(
-			'<p class="x-service-summary mt-4 max-w-prose text-lg text-ink-muted">%s</p>',
-			esc_html( $salt_summary )
-		);
+		echo '<p class="salt-service__summary">' . esc_html( $salt_summary ) . '</p>';
 	}
-
-	// priceFrom is a display value, drawn as written (£500, POA).
-	if ( '' !== $salt_price_from ) {
-		printf(
-			'<p class="x-service-price mt-6 text-sm font-semibold uppercase tracking-widest text-ink-muted">%s</p>',
-			esc_html(
-				sprintf(
-					/* translators: %s: the starting price as the editor wrote it, such as £500. */
-					__( 'Projects from %s', 'salt' ),
-					$salt_price_from
-				)
-			)
-		);
-	}
-
-	echo '</div>';
 	echo '</header>';
 
-	// ------------------------------------------------------------------
-	// Benefits checklist.
-	// ------------------------------------------------------------------
-	$salt_benefit_items = array();
-	foreach ( $salt_benefits as $salt_row ) {
-		$salt_benefit = is_array( $salt_row ) ? trim( (string) ( $salt_row['text'] ?? '' ) ) : '';
-		if ( '' !== $salt_benefit ) {
-			$salt_benefit_items[] = $salt_benefit;
-		}
-	}
-	if ( array() !== $salt_benefit_items ) {
-		echo '<div class="x-service-benefits mx-auto w-full max-w-5xl px-4 pt-14 sm:px-6 lg:px-8 md:pt-20">';
-		salt_component(
-			'heading',
-			array(
-				'text'    => __( 'What you get', 'salt' ),
-				'level'   => 2,
-				'size'    => 'md',
-				'classes' => 'mb-6',
-			)
-		);
-		echo '<ul class="grid gap-3 sm:grid-cols-2">';
-		foreach ( $salt_benefit_items as $salt_benefit ) {
-			echo '<li class="flex items-start gap-3"><span class="mt-0.5 shrink-0 text-brand">';
-			salt_component(
-				'icon',
-				array(
-					'name' => 'check',
-					'size' => 'sm',
-				)
-			);
-			echo '</span><span>' . esc_html( $salt_benefit ) . '</span></li>';
-		}
-		echo '</ul>';
-		echo '</div>';
+	if ( salt_rich_text_has_words( $salt_intro ) ) {
+		echo '<div class="salt-service__intro"><div class="salt-rich-text">' . $salt_intro . '</div></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised to the intro's contract list.
 	}
 
-	// ------------------------------------------------------------------
-	// The introduction (the contract's intro, stored in the body).
-	// ------------------------------------------------------------------
-	if ( '' !== trim( (string) get_post_field( 'post_content', $salt_service_id ) ) ) {
-		echo '<div class="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
-		echo '<div class="x-prose">';
-		echo salt_service_intro_html( (string) get_post_field( 'post_content', $salt_service_id, 'raw' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised to the intro's contract list.
-		echo '</div>';
-		echo '</div>';
+	if ( array() !== $salt_benefits ) {
+		echo '<section class="salt-service__benefits" aria-labelledby="service__benefits-heading">';
+		echo '<h2 id="service__benefits-heading">' . esc_html( (string) $salt_labels['benefits'] ) . '</h2>';
+		echo '<ul role="list">';
+		foreach ( $salt_benefits as $salt_benefit ) {
+			echo '<li>' . esc_html( $salt_benefit ) . '</li>';
+		}
+		echo '</ul></section>';
 	}
 
-	// ------------------------------------------------------------------
-	// CTA band.
-	// ------------------------------------------------------------------
+	// priceFrom is a display value, drawn as written after the label (£500, POA).
+	if ( '' !== $salt_price_from ) {
+		echo '<p class="salt-service__price"><span class="salt-service__price-label">' . esc_html( (string) $salt_labels['price'] ) . '</span> ' . esc_html( $salt_price_from ) . '</p>';
+	}
+
 	if ( null !== $salt_cta ) {
-		echo '<div class="x-service-cta bg-brand-tint py-14 md:py-20">';
-		echo '<div class="mx-auto w-full max-w-5xl px-4 text-center sm:px-6 lg:px-8">';
+		echo '<p class="salt-service__cta">';
 		salt_component(
-			'button',
+			'contract-button',
 			array(
-				'label'  => $salt_cta['label'],
-				'url'    => $salt_cta['url'],
-				'style'  => 'primary',
-				'target' => $salt_cta['target'],
+				'button' => array(
+					'label'  => $salt_cta['label'],
+					'href'   => salt_contract_url( $salt_cta['url'] ),
+					'style'  => 'primary',
+					'newTab' => '_blank' === $salt_cta['target'],
+				),
+				'arrow'  => null,
 			)
 		);
-		echo '</div>';
-		echo '</div>';
+		echo '</p>';
 	}
 
-	// ------------------------------------------------------------------
-	// Related services grid.
-	// ------------------------------------------------------------------
-	if ( array() !== $salt_related_ids ) {
-		echo '<div class="x-service-related mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 md:py-20">';
-		salt_component(
-			'heading',
-			array(
-				'text'    => __( 'Related services', 'salt' ),
-				'level'   => 2,
-				'size'    => 'md',
-				'classes' => 'mb-6',
-			)
-		);
-		echo '<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">';
-		foreach ( $salt_related_ids as $salt_related_id ) {
-			$salt_related_title = (string) get_the_title( $salt_related_id );
-			if ( '' === $salt_related_title ) {
-				continue;
-			}
-			$salt_related_icon = get_field( 'icon', $salt_related_id );
+	if ( array() !== $salt_related ) {
+		echo '<section class="salt-related" aria-labelledby="service__related-heading">';
+		echo '<h2 id="service__related-heading">' . esc_html( (string) $salt_labels['relatedServices'] ) . '</h2>';
+		echo '<ul class="salt-grid salt-showcase salt-related__list" role="list" data-layout="grid">';
+		foreach ( $salt_related as $salt_card ) {
+			echo '<li>';
 			salt_component(
-				'card-service',
+				'contract-card',
 				array(
-					'title'    => $salt_related_title,
-					'url'      => (string) get_permalink( $salt_related_id ),
-					'summary'  => salt_post_summary( $salt_related_id ),
-					'icon'     => is_string( $salt_related_icon ) ? $salt_related_icon : '',
-					'image_id' => (int) get_post_thumbnail_id( $salt_related_id ),
-					'level'    => 3,
+					'card'   => $salt_card,
+					'style'  => 'generic',
+					'level'  => 3,
+					'labels' => $salt_labels,
+					'arrow'  => salt_contract_arrow(),
 				)
 			);
+			echo '</li>';
 		}
-		echo '</div>';
-		echo '</div>';
+		echo '</ul></section>';
 	}
+	echo '</article>';
 
 	// ------------------------------------------------------------------
 	// Service schema (queued into the single page @graph — SEO §15).

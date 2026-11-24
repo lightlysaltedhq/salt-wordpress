@@ -367,7 +367,7 @@ after `?>`. So when a callback body moves to file scope in the view:
 ```php
 foreach ( $salt_props['offices'] as $salt_office ) {
 	?>
-			<details class="x-accordion-item …" name="<?php echo esc_attr( $salt_props['details_group'] ); ?>">
+			<details class="salt-accordion__item …" name="<?php echo esc_attr( $salt_props['details_group'] ); ?>">
 			…
 			</details>
 			<?php
