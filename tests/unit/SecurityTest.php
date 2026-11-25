@@ -69,104 +69,39 @@ final class SecurityTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------------
-	// SEC03 — tokenless updater; scoping of a legacy token if one is defined.
+	// SEC03 — tokenless updater.
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Tokenless updates (SC-005): with no SALT_UPDATER_TOKEN the updater leaves
-	 * every request to the theme's own repo exactly as WordPress built it, so
-	 * Git Updater reads the public repo unauthenticated. Separate process:
-	 * another test in this file defines the constant, and a constant cannot be
-	 * undefined.
+	 * Updates carry no credential (SC-005). A fresh PHP process loads the
+	 * theme exactly as a site does, with a leftover SALT_UPDATER_TOKEN from
+	 * wp-config.php defined, and runs GitHub requests for this repo through
+	 * the http_request_args filter: none may gain an Authorization header.
+	 * A subprocess, because setUp() clears the hooks the bootstrap registered.
 	 */
-	#[RunInSeparateProcess]
-	#[PreserveGlobalState( false )]
-	public function test_updater_is_a_no_op_when_no_token_is_defined(): void {
-		$this->assertFalse( defined( 'SALT_UPDATER_TOKEN' ) );
-
-		$request = array(
-			'timeout' => 5,
-			'headers' => array( 'Accept' => 'application/vnd.github+json' ),
-		);
-		$urls    = array(
+	public function test_no_authorization_header_is_added_to_github_requests(): void {
+		$urls = array(
 			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/tags',
 			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/zipball/v6.0.0',
 			'https://codeload.github.com/lightlysaltedhq/salt-wordpress/legacy.zip/refs/tags/v6.0.0',
 			'https://github.com/lightlysaltedhq/salt-wordpress/archive/refs/tags/v6.0.0.zip',
-		);
-		foreach ( $urls as $url ) {
-			$this->assertSame( $request, salt_updater_authorize_request( $request, $url ), $url );
-			$this->assertSame( array(), salt_updater_authorize_request( array(), $url ), 'No headers key is invented: ' . $url );
-		}
-	}
-
-	/**
-	 * An empty constant counts as no token: no `token ` header with nothing
-	 * after it. Separate process, because the constant it defines is permanent.
-	 */
-	#[RunInSeparateProcess]
-	#[PreserveGlobalState( false )]
-	public function test_updater_is_a_no_op_when_the_token_is_empty(): void {
-		define( 'SALT_UPDATER_TOKEN', '' );
-
-		$this->assertSame(
-			array(),
-			salt_updater_authorize_request( array(), 'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/tags' )
-		);
-	}
-
-	public function test_updater_scopes_token_to_our_repo_only(): void {
-		if ( ! defined( 'SALT_UPDATER_TOKEN' ) ) {
-			define( 'SALT_UPDATER_TOKEN', 'test-token-value' );
-		}
-
-		$ours = salt_updater_authorize_request( array(), 'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/releases' );
-		$this->assertSame( 'token test-token-value', $ours['headers']['Authorization'] );
-
-		$other_repo = salt_updater_authorize_request( array(), 'https://api.github.com/repos/someone/else' );
-		$this->assertArrayNotHasKey( 'headers', $other_repo, 'Token must never leak to other repos.' );
-
-		$other_host = salt_updater_authorize_request( array(), 'https://evil.example/repos/lightlysaltedhq/salt-wordpress' );
-		$this->assertArrayNotHasKey( 'headers', $other_host, 'Token must never leak to non-GitHub hosts.' );
-
-		$existing = salt_updater_authorize_request(
-			array( 'headers' => array( 'Authorization' => 'Bearer keep-me' ) ),
-			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/releases'
-		);
-		$this->assertSame( 'Bearer keep-me', $existing['headers']['Authorization'], 'Existing auth is never overwritten.' );
-	}
-
-	public function test_updater_matches_only_the_exact_repo(): void {
-		$ours = array(
-			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress',
-			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/zipball/v5.0.0',
-			'https://api.github.com/repos/LightlySaltedHQ/Salt-WordPress/releases/latest',
-			'https://github.com/lightlysaltedhq/salt-wordpress/archive/refs/tags/v5.0.0.zip',
-			'https://codeload.github.com/lightlysaltedhq/salt-wordpress/zip/refs/heads/main',
 			'https://raw.githubusercontent.com/lightlysaltedhq/salt-wordpress/main/style.css',
 		);
-		foreach ( $ours as $url ) {
-			$this->assertTrue( salt_updater_is_repo_url( $url ), $url );
-		}
+		$code = 'define( "SALT_UPDATER_TOKEN", "leftover-token" ); require $argv[1];'
+			. ' $out = array(); foreach ( array_slice( $argv, 2 ) as $url ) {'
+			. ' $out[ $url ] = apply_filters( "http_request_args", array( "headers" => array( "Accept" => "application/vnd.github+json" ) ), $url ); }'
+			. ' echo json_encode( $out );';
 
-		$not_ours = array(
-			// A sibling repo whose name starts with ours.
-			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress-legacy/releases',
-			'https://github.com/lightlysaltedhq/salt-wordpress-legacy',
-			// The pair embedded further down someone else's path.
-			'https://api.github.com/repos/evil/x/contents/lightlysaltedhq/salt-wordpress',
-			'https://github.com/evil/lightlysaltedhq/salt-wordpress/archive/main.zip',
-			// The API form needs /repos/, the others must not have it.
-			'https://api.github.com/lightlysaltedhq/salt-wordpress',
-			'https://github.com/repos/lightlysaltedhq/salt-wordpress',
-			// Dot segments the HTTP client could resolve to another repo.
-			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/../../evil/x',
-			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/%2e%2e/%2e%2e/evil/x',
-			// Plain HTTP would send the token in the clear.
-			'http://api.github.com/repos/lightlysaltedhq/salt-wordpress/releases',
-		);
-		foreach ( $not_ours as $url ) {
-			$this->assertFalse( salt_updater_is_repo_url( $url ), $url );
+		$command = escapeshellarg( PHP_BINARY ) . ' -r ' . escapeshellarg( $code ) . ' ' . escapeshellarg( __DIR__ . '/../bootstrap.php' )
+			. ' ' . implode( ' ', array_map( 'escapeshellarg', $urls ) );
+		$out     = shell_exec( $command ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_shell_exec -- test-only subprocess.
+		$this->assertIsString( $out );
+
+		$requests = json_decode( $out, true );
+		$this->assertIsArray( $requests, 'The subprocess must print JSON: ' . $out );
+		$this->assertCount( count( $urls ), $requests );
+		foreach ( $urls as $url ) {
+			$this->assertSame( array( 'Accept' => 'application/vnd.github+json' ), $requests[ $url ]['headers'], $url );
 		}
 	}
 
