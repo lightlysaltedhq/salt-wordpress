@@ -15,11 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class SaltContractPinTest extends SaltTestCase {
 
 	private const PACKAGE = '@lightlysaltedhq/salt-contract';
-	private const PINNED  = '1.0.0';
+	private const PINNED  = '2.0.0';
 	private const ROOT    = __DIR__ . '/../..';
 
 	/** SHA-256 of the sorted path, NUL, hex file SHA-256 and LF for every file in the public pack. */
-	private const CONTENT_SHA256 = '402cc7d9286550c41dce29810021ae715beb45e906ea41221b9365fe06ebd0a1';
+	private const CONTENT_SHA256 = '702dcea1f12877a9c3ea95750a3c620b60b3710d694c22a7203635df1c84d8d5';
 
 	/** A range, candidate file or alternate registry is not the checked release. */
 	public function test_exact_public_registry_pin(): void {

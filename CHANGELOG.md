@@ -109,7 +109,7 @@ Kept: stored rows whose tone is the old `inverse` still read as `surface-inverse
   section views, CTA clicks, accordion opens and carousel controls on the
   bands drawn to the contract's markup (`data-track`).
 
-- **Full contract conformance.** `npm ci` installs `@lightlysaltedhq/salt-contract` at exactly `1.0.0` from the public registry instead of a vendored candidate. `npm run conformance:harness` checks all 14 shipped sections and all chrome, view and page fixtures. CI compares the report with `tests/contract-adapter/baseline/` on both PHP versions, including ACF field parity and the served stylesheet. Tabs, listing and pricing are explicitly not shipped.
+- **Full contract conformance.** `npm ci` installs `@lightlysaltedhq/salt-contract` at exactly `2.0.0` from the public registry instead of a vendored candidate. 2.0.0 changes only the stylesheet: a social icon hidden from assistive technology has no contrast floor, and one with an accessible name must reach 3:1 against its background (ID-4033); no markup, field or fixture changes. `npm run conformance:harness` checks all 14 shipped sections and all chrome, view and page fixtures. CI compares the report with `tests/contract-adapter/baseline/` on both PHP versions, including ACF field parity and the served stylesheet. Tabs, listing and pricing are explicitly not shipped.
 - **The contract's view and page cases render on the real-ACF harness's
   WordPress (ID-3626, EP-72 M3 unit 5b).** `npm run conformance:harness`
   (`tests/real-acf/run.sh --conformance`) builds the harness's site with

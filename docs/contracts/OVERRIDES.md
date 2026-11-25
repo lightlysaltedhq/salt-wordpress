@@ -252,10 +252,10 @@ does not repeat it. The parent reads only the JSON, never the manifest.
 
 ```json
 {
-  "$schema": "https://unpkg.com/@lightlysaltedhq/salt-contract@1.0.0/schema/replaced-logic.schema.json",
+  "$schema": "https://unpkg.com/@lightlysaltedhq/salt-contract@2.0.0/schema/replaced-logic.schema.json",
   "site": "salt-{client}",
   "platform": "wordpress",
-  "contract": "1.0.0",
+  "contract": "2.0.0",
   "sections": [
     { "section": "call-to-action", "tier": "view", "files": ["template-parts/sections/call-to-action.php"],
       "reason": "…", "since": "16/11/2026", "verified": "1.0.0" },
