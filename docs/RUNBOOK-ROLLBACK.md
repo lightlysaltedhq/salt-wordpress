@@ -92,9 +92,7 @@ cannot see the theme.
    contents with the v5.0.0 release, renaming the extracted
    `salt-wordpress-5.0.0/` folder to `salt-wordpress`. Then delete the
    site's `SALT_UPDATER_TOKEN` line from `wp-config.php` if it has one: the
-   repo is public and updates need no token (§Updates without a token). A
-   token issued for `otigs/salt` does not cover the transferred repo, and
-   a dead token makes GitHub answer a public read with 401.
+   repo is public and updates need no token (§Updates without a token).
 5. **Confirm Git Updater sees the repo.** Themes shows Salt 5.0.0 as the
    parent, the "Git Updater will not offer updates" notice is absent, and
    Git Updater's Remote Management/theme list shows
@@ -124,10 +122,8 @@ to expire, rotate or revoke.
   rotate and revoke, and a site nobody maintains any more cannot do that.
   Git Updater's own authenticated requests are also tied to its paid licence:
   once the 14-day trial ends it deletes stored access tokens every month
-  unless licensed (`GU_Upgrade::flush_tokens()`). Salt's own header could carry
-  a token past that, but only by working around the licence gate, and only
-  until the token is revoked. Unauthenticated reads of a public repo need
-  neither a licence nor a credential.
+  unless licensed (`GU_Upgrade::flush_tokens()`). Unauthenticated reads of a
+  public repo need neither a licence nor a credential.
 - **Distribution.** A release is the repository's tag zipball (Git Updater
   fetches `api.github.com/repos/lightlysaltedhq/salt-wordpress/zipball/<tag>`).
   The tag carries `assets/dist` committed and the runtime libraries vendored
@@ -139,11 +135,9 @@ to expire, rotate or revoke.
   `wp-content/themes/salt-wordpress`, and add nothing to `wp-config.php`. Leave
   the Git Updater GitHub token field empty and do not click "Connect GitHub".
 - **Legacy token.** A site set up before this rule may still have
-  `SALT_UPDATER_TOKEN` in `wp-config.php`. Delete the line, then revoke that
-  token in GitHub → Settings → Developer settings. While it stays, the theme
-  sends it with requests for this repo only, and once GitHub revokes or
-  expires it every one of those requests, though the repo is public, is
-  answered 401.
+  `SALT_UPDATER_TOKEN` in `wp-config.php`. The theme no longer reads it, so it
+  does nothing. Delete the line, then revoke that token in GitHub → Settings →
+  Developer settings so no live credential is left behind.
 - **The 60-an-hour limit.** GitHub lets an unauthenticated client make 60 API
   requests an hour **per IP address**, shared by everything on that address.
   On shared hosting other sites' updaters and plugins draw on the same 60.

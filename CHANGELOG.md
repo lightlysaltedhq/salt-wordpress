@@ -11,6 +11,13 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
+### Breaking: updates need no token (ID-3633)
+
+Sites update through Git Updater from the public repository and hold no credential, so a site we stop maintaining keeps working on its installed version.
+
+- **Delete `SALT_UPDATER_TOKEN` from `wp-config.php`.** The theme no longer reads it or adds an `Authorization` header to any request; `salt_updater_authorize_request()` and `salt_updater_is_repo_url()` are removed. A leftover constant does nothing, but revoke the token in GitHub as well. The Git Updater GitHub token field stays empty.
+- **Rate limit.** GitHub allows 60 unauthenticated API requests an hour per server address. If a shared host runs out, the site keeps its installed version and the update appears after the limit resets. docs/RUNBOOK-ROLLBACK.md §Updates without a token has the detail and the manual install from the public tag zip.
+
 ### Breaking: native team profiles (salt-contract rc.8)
 
 Team is no longer a `team_member` post type. Publish a native user's profile in **Tools → Team profiles**; this never grants account privileges. The public address is `/team/{slug}/`. Only the separate public email field is shown. Posts credit `post_author`, not the removed ACF `author` relationship. Before upgrading a populated site, map former team records and manual selections to the intended users, set their public slugs, and verify native post authors. Old post IDs are not user IDs; no automatic account creation or data migration runs.

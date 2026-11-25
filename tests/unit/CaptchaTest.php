@@ -5,8 +5,7 @@
  * NOTE on ordering: secret keys are wp-config CONSTANTS, which persist for
  * the whole PHPUnit process once defined. The missing-secret tests are
  * declared (and therefore run) BEFORE any test that defines
- * SALT_TURNSTILE_SECRET / SALT_RECAPTCHA_SECRET — the same declaration-
- * order pattern SecurityTest uses for SALT_UPDATER_TOKEN.
+ * SALT_TURNSTILE_SECRET / SALT_RECAPTCHA_SECRET.
  *
  * @package Salt\Tests
  */
