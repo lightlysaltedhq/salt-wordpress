@@ -269,7 +269,7 @@ final class SanitizationTest extends SaltTestCase {
 	public function test_field_lists_come_from_the_generated_json(): void {
 		$lists = self::generated_lists();
 
-		$this->assertCount( 10, $lists, 'Every generated rich-text field.' );
+		$this->assertCount( 11, $lists, 'Every generated rich-text field.' );
 		foreach ( $lists as $key => $allowed ) {
 			$this->assertSame( $allowed, salt_field_allowed( $key, true ), $key );
 		}

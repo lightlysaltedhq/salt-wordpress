@@ -50,13 +50,14 @@ salt_harness_info( sprintf( '%d section bands drawn from %d rows: %s', count( $d
 
 // faq, locations and collection-showcase query posts the harness does not
 // create (fixtures carry their collections only as data), so they correctly
-// draw nothing (COMPL02); carousel draws its inline cases.
-$need    = array_diff( $state['layouts'], array( 'faq', 'locations', 'collection-showcase' ) );
+// draw nothing (COMPL02); carousel draws its inline cases. Listing has no
+// route on this singular page; its route states are checked separately.
+$need    = array_diff( $state['layouts'], array( 'faq', 'locations', 'collection-showcase', 'listing' ) );
 $missing = array_values( array_diff( $need, array_keys( $counts ) ) );
 salt_harness_result(
 	array() === $missing,
 	'every generated section with content draws from real ACF values',
-	array() === $missing ? sprintf( '%d of %d layouts drew (faq, locations and collection-showcase have no posts to query here)', count( $need ), count( $state['layouts'] ) ) : 'no band for: ' . implode( ', ', $missing )
+	array() === $missing ? sprintf( '%d of %d layouts drew (faq, locations and collection-showcase have no posts; listing has no route here)', count( $need ), count( $state['layouts'] ) ) : 'no band for: ' . implode( ', ', $missing )
 );
 
 // An internal link is drawn root-relative on the site's own host, as the

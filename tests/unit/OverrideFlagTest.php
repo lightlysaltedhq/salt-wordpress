@@ -72,9 +72,9 @@ final class OverrideFlagTest extends SaltOverridesTestCase {
 						),
 						self::entry(
 							array(
-								'section' => 'tabs',
+								'section' => 'pricing',
 								'tier'    => 'logic',
-								'files'   => array( 'template-parts/sections/tabs.php' ),
+								'files'   => array( 'template-parts/sections/pricing.php' ),
 							)
 						),
 						self::entry(

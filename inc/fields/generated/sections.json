@@ -3470,6 +3470,305 @@
             ]
           },
           {
+            "key": "layout_salt_tabs",
+            "name": "tabs",
+            "label": "Tabs",
+            "display": "block",
+            "sub_fields": [
+              {
+                "key": "field_salt_tabs_eyebrow",
+                "label": "Eyebrow",
+                "name": "eyebrow",
+                "type": "text",
+                "instructions": "A short label above the heading. Drawn as a paragraph, never a heading."
+              },
+              {
+                "key": "field_salt_tabs_heading",
+                "label": "Heading",
+                "name": "heading",
+                "type": "text",
+                "instructions": "Also names the tab set for screen readers."
+              },
+              {
+                "key": "field_salt_tabs_intro",
+                "label": "Intro",
+                "name": "intro",
+                "type": "textarea",
+                "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
+                "salt": {
+                  "target": 300
+                }
+              },
+              {
+                "key": "field_salt_tabs_label",
+                "label": "Tab set name",
+                "name": "label",
+                "type": "text",
+                "instructions": "Names the tab set for screen readers when there is no heading. Never shown.",
+                "conditional_logic": [
+                  [
+                    {
+                      "field": "field_salt_tabs_heading",
+                      "operator": "==empty"
+                    }
+                  ]
+                ]
+              },
+              {
+                "key": "field_salt_tabs_tabs",
+                "label": "Tabs",
+                "name": "tabs",
+                "type": "repeater",
+                "layout": "block",
+                "max": 8,
+                "button_label": "Add tab",
+                "collapsed": "field_salt_tabs_tabs_label",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_tabs_tabs_label",
+                    "label": "Label",
+                    "name": "label",
+                    "type": "text",
+                    "required": 1
+                  },
+                  {
+                    "key": "field_salt_tabs_tabs_content",
+                    "label": "Content",
+                    "name": "content",
+                    "type": "wysiwyg",
+                    "tabs": "visual",
+                    "toolbar": "full",
+                    "media_upload": 0,
+                    "salt": {
+                      "allowed": [
+                        "paragraph",
+                        "bold",
+                        "italic",
+                        "code",
+                        "link",
+                        "unordered-list",
+                        "ordered-list",
+                        "blockquote",
+                        "heading-3",
+                        "heading-4"
+                      ]
+                    }
+                  }
+                ],
+                "salt": {
+                  "rowLabel": "label",
+                  "itemLabel": "Tab"
+                }
+              },
+              {
+                "key": "field_salt_tabs_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
+                "key": "field_salt_tabs_settings",
+                "label": "Section settings",
+                "name": "settings",
+                "type": "group",
+                "layout": "block",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_tabs_settings_spacing",
+                    "label": "Spacing",
+                    "name": "spacing",
+                    "type": "select",
+                    "instructions": "Space above and below the section.",
+                    "choices": {
+                      "none": "None (flush against its neighbours)",
+                      "sm": "Small",
+                      "md": "Medium",
+                      "lg": "Large"
+                    },
+                    "default_value": "md"
+                  },
+                  {
+                    "key": "field_salt_tabs_settings_tone",
+                    "label": "Tone",
+                    "name": "tone",
+                    "type": "select",
+                    "instructions": "The section's background and text colour roles.",
+                    "choices": {
+                      "surface": "Surface (the page background)",
+                      "surface-alt": "Surface, alternate (a subtle step away from it)",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse (light on dark)"
+                    },
+                    "default_value": "surface"
+                  },
+                  {
+                    "key": "field_salt_tabs_settings_tone_dark",
+                    "label": "Dark mode tone",
+                    "name": "toneDark",
+                    "type": "select",
+                    "instructions": "The tone in dark mode. Automatic keeps the tone above, and the dark palette draws it in its dark form.",
+                    "choices": {
+                      "auto": "Automatic (the tone above, in its dark form)",
+                      "surface": "Surface",
+                      "surface-alt": "Surface, alternate",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse"
+                    },
+                    "default_value": "auto"
+                  },
+                  {
+                    "key": "field_salt_tabs_settings_width",
+                    "label": "Width",
+                    "name": "width",
+                    "type": "select",
+                    "instructions": "How wide the section's content runs.",
+                    "choices": {
+                      "full": "Full (edge to edge)",
+                      "wide": "Wide",
+                      "default": "Default",
+                      "narrow": "Narrow (reading measure)"
+                    },
+                    "default_value": "default"
+                  },
+                  {
+                    "key": "field_salt_tabs_settings_background_image",
+                    "label": "Background image",
+                    "name": "backgroundImage",
+                    "type": "group",
+                    "layout": "block",
+                    "sub_fields": [
+                      {
+                        "key": "field_salt_tabs_settings_background_image_image",
+                        "label": "Image",
+                        "name": "image",
+                        "type": "image",
+                        "instructions": "Decorative: hidden from screen readers, with empty alternative text.",
+                        "return_format": "id"
+                      },
+                      {
+                        "key": "field_salt_tabs_settings_background_image_fit",
+                        "label": "Fit",
+                        "name": "fit",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_tabs_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "cover": "Cover (fill the section, cropping as needed)",
+                          "contain": "Contain (fit the whole image in)"
+                        },
+                        "default_value": "cover"
+                      },
+                      {
+                        "key": "field_salt_tabs_settings_background_image_position",
+                        "label": "Position",
+                        "name": "position",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_tabs_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "focal-point": "Focal point (from the image)",
+                          "top-left": "Top left",
+                          "top": "Top",
+                          "top-right": "Top right",
+                          "left": "Left",
+                          "centre": "Centre",
+                          "right": "Right",
+                          "bottom-left": "Bottom left",
+                          "bottom": "Bottom",
+                          "bottom-right": "Bottom right"
+                        },
+                        "default_value": "focal-point"
+                      },
+                      {
+                        "key": "field_salt_tabs_settings_background_image_scrim",
+                        "label": "Tint the image with the section's colour behind the text",
+                        "name": "scrim",
+                        "type": "true_false",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_tabs_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "ui": 1,
+                        "default_value": 1
+                      },
+                      {
+                        "key": "field_salt_tabs_settings_background_image_scrim_strength",
+                        "label": "Tint strength",
+                        "name": "scrimStrength",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_tabs_settings_background_image_image",
+                              "operator": "!=empty"
+                            },
+                            {
+                              "field": "field_salt_tabs_settings_background_image_scrim",
+                              "operator": "==",
+                              "value": "1"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "subtle": "Subtle",
+                          "standard": "Standard",
+                          "strong": "Strong"
+                        },
+                        "default_value": "strong"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "field_salt_tabs_settings_anchor_id",
+                    "label": "Anchor",
+                    "name": "anchorId",
+                    "type": "text",
+                    "instructions": "Optional, for links to this section. Saved as a slug of lower-case letters, digits and single hyphens: accented letters become plain ones as the site's language writes them, punctuation is dropped, and spaces, underscores and encoded characters become hyphens. We're hiring gives were-hiring, Straße gives strase (strasse on a German site), contact__form gives contact-form. An anchor that leaves nothing (日本語) counts as none. On the page, an anchor that is one of the landmark ids main, content, header, footer, nav, site-navigation, search or skip-link becomes <anchor>-section, and one an earlier section has taken takes the next free -2, -3. Ids the page draws itself contain __, so they never meet yours. Nothing is added on save. The slug is applied again on the page, to whatever is stored.",
+                    "salt": {
+                      "format": "anchor"
+                    }
+                  },
+                  {
+                    "key": "field_salt_tabs_settings_first_page_only",
+                    "label": "First page only",
+                    "name": "firstPageOnly",
+                    "type": "true_false",
+                    "instructions": "On a paginated index, hide this section after the first page.",
+                    "ui": 1,
+                    "default_value": 0
+                  },
+                  {
+                    "key": "field_salt_tabs_settings_divider",
+                    "label": "Rule above this section",
+                    "name": "divider",
+                    "type": "true_false",
+                    "instructions": "A hairline rule between this section and the one before. It also stops two sections of the same tone running together.",
+                    "ui": 1,
+                    "default_value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "key": "layout_salt_collection_showcase",
             "name": "collection-showcase",
             "label": "Collection showcase",
@@ -4828,6 +5127,235 @@
                   },
                   {
                     "key": "field_salt_carousel_settings_divider",
+                    "label": "Rule above this section",
+                    "name": "divider",
+                    "type": "true_false",
+                    "instructions": "A hairline rule between this section and the one before. It also stops two sections of the same tone running together.",
+                    "ui": 1,
+                    "default_value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "layout_salt_listing",
+            "name": "listing",
+            "label": "Listing",
+            "display": "block",
+            "sub_fields": [
+              {
+                "key": "field_salt_listing_eyebrow",
+                "label": "Eyebrow",
+                "name": "eyebrow",
+                "type": "text",
+                "instructions": "A short label above the heading. Drawn as a paragraph, never a heading."
+              },
+              {
+                "key": "field_salt_listing_heading",
+                "label": "Heading",
+                "name": "heading",
+                "type": "text",
+                "instructions": "Optional. The cards come from the page: a blog index, a category or a search result."
+              },
+              {
+                "key": "field_salt_listing_intro",
+                "label": "Intro",
+                "name": "intro",
+                "type": "textarea",
+                "instructions": "Optional. A line or two under the heading, drawn as one paragraph.",
+                "salt": {
+                  "target": 300
+                }
+              },
+              {
+                "key": "field_salt_listing_settings_tab",
+                "label": "Settings",
+                "name": "",
+                "type": "tab",
+                "placement": "top",
+                "endpoint": 0
+              },
+              {
+                "key": "field_salt_listing_settings",
+                "label": "Section settings",
+                "name": "settings",
+                "type": "group",
+                "layout": "block",
+                "sub_fields": [
+                  {
+                    "key": "field_salt_listing_settings_spacing",
+                    "label": "Spacing",
+                    "name": "spacing",
+                    "type": "select",
+                    "instructions": "Space above and below the section.",
+                    "choices": {
+                      "none": "None (flush against its neighbours)",
+                      "sm": "Small",
+                      "md": "Medium",
+                      "lg": "Large"
+                    },
+                    "default_value": "md"
+                  },
+                  {
+                    "key": "field_salt_listing_settings_tone",
+                    "label": "Tone",
+                    "name": "tone",
+                    "type": "select",
+                    "instructions": "The section's background and text colour roles.",
+                    "choices": {
+                      "surface": "Surface (the page background)",
+                      "surface-alt": "Surface, alternate (a subtle step away from it)",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse (light on dark)"
+                    },
+                    "default_value": "surface"
+                  },
+                  {
+                    "key": "field_salt_listing_settings_tone_dark",
+                    "label": "Dark mode tone",
+                    "name": "toneDark",
+                    "type": "select",
+                    "instructions": "The tone in dark mode. Automatic keeps the tone above, and the dark palette draws it in its dark form.",
+                    "choices": {
+                      "auto": "Automatic (the tone above, in its dark form)",
+                      "surface": "Surface",
+                      "surface-alt": "Surface, alternate",
+                      "brand-tint": "Brand tint",
+                      "surface-inverse": "Inverse"
+                    },
+                    "default_value": "auto"
+                  },
+                  {
+                    "key": "field_salt_listing_settings_width",
+                    "label": "Width",
+                    "name": "width",
+                    "type": "select",
+                    "instructions": "How wide the section's content runs.",
+                    "choices": {
+                      "full": "Full (edge to edge)",
+                      "wide": "Wide",
+                      "default": "Default",
+                      "narrow": "Narrow (reading measure)"
+                    },
+                    "default_value": "default"
+                  },
+                  {
+                    "key": "field_salt_listing_settings_background_image",
+                    "label": "Background image",
+                    "name": "backgroundImage",
+                    "type": "group",
+                    "layout": "block",
+                    "sub_fields": [
+                      {
+                        "key": "field_salt_listing_settings_background_image_image",
+                        "label": "Image",
+                        "name": "image",
+                        "type": "image",
+                        "instructions": "Decorative: hidden from screen readers, with empty alternative text.",
+                        "return_format": "id"
+                      },
+                      {
+                        "key": "field_salt_listing_settings_background_image_fit",
+                        "label": "Fit",
+                        "name": "fit",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_listing_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "cover": "Cover (fill the section, cropping as needed)",
+                          "contain": "Contain (fit the whole image in)"
+                        },
+                        "default_value": "cover"
+                      },
+                      {
+                        "key": "field_salt_listing_settings_background_image_position",
+                        "label": "Position",
+                        "name": "position",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_listing_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "focal-point": "Focal point (from the image)",
+                          "top-left": "Top left",
+                          "top": "Top",
+                          "top-right": "Top right",
+                          "left": "Left",
+                          "centre": "Centre",
+                          "right": "Right",
+                          "bottom-left": "Bottom left",
+                          "bottom": "Bottom",
+                          "bottom-right": "Bottom right"
+                        },
+                        "default_value": "focal-point"
+                      },
+                      {
+                        "key": "field_salt_listing_settings_background_image_scrim",
+                        "label": "Tint the image with the section's colour behind the text",
+                        "name": "scrim",
+                        "type": "true_false",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_listing_settings_background_image_image",
+                              "operator": "!=empty"
+                            }
+                          ]
+                        ],
+                        "ui": 1,
+                        "default_value": 1
+                      },
+                      {
+                        "key": "field_salt_listing_settings_background_image_scrim_strength",
+                        "label": "Tint strength",
+                        "name": "scrimStrength",
+                        "type": "select",
+                        "conditional_logic": [
+                          [
+                            {
+                              "field": "field_salt_listing_settings_background_image_image",
+                              "operator": "!=empty"
+                            },
+                            {
+                              "field": "field_salt_listing_settings_background_image_scrim",
+                              "operator": "==",
+                              "value": "1"
+                            }
+                          ]
+                        ],
+                        "choices": {
+                          "subtle": "Subtle",
+                          "standard": "Standard",
+                          "strong": "Strong"
+                        },
+                        "default_value": "strong"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "field_salt_listing_settings_anchor_id",
+                    "label": "Anchor",
+                    "name": "anchorId",
+                    "type": "text",
+                    "instructions": "Optional, for links to this section. Saved as a slug of lower-case letters, digits and single hyphens: accented letters become plain ones as the site's language writes them, punctuation is dropped, and spaces, underscores and encoded characters become hyphens. We're hiring gives were-hiring, Straße gives strase (strasse on a German site), contact__form gives contact-form. An anchor that leaves nothing (日本語) counts as none. On the page, an anchor that is one of the landmark ids main, content, header, footer, nav, site-navigation, search or skip-link becomes <anchor>-section, and one an earlier section has taken takes the next free -2, -3. Ids the page draws itself contain __, so they never meet yours. Nothing is added on save. The slug is applied again on the page, to whatever is stored.",
+                    "salt": {
+                      "format": "anchor"
+                    }
+                  },
+                  {
+                    "key": "field_salt_listing_settings_divider",
                     "label": "Rule above this section",
                     "name": "divider",
                     "type": "true_false",

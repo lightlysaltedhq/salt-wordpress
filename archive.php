@@ -76,52 +76,7 @@ if ( null !== $salt_archive_member && ! is_paged() ) {
 }
 
 if ( have_posts() || null === $salt_archive_member ) {
-	salt_section(
-		array(
-			'name'        => 'listing',
-			'contract'    => true,
-			'anchor'      => 'posts',
-			'has_heading' => true,
-		),
-		static function ( int $level, string $anchor ) use ( $salt_labels ): void {
-			echo '<div class="salt-block" data-block="listing">';
-			printf( '<h%1$d id="%2$s">%3$s</h%1$d>', (int) $level, esc_attr( $anchor . '__heading' ), esc_html__( 'Latest posts', 'salt' ) );
-			if ( ! have_posts() ) {
-				echo '<p class="salt-listing__empty">' . esc_html( (string) $salt_labels['empty'] ) . '</p>';
-			} else {
-				$salt_sizes = salt_image_slot_sizes( 'card', 'default', '3' );
-				echo '<ul class="salt-grid salt-showcase" role="list" data-layout="grid">';
-				while ( have_posts() ) {
-					the_post();
-					$salt_card = salt_contract_view_card( get_post(), 'posts', $salt_sizes );
-					if ( null === $salt_card ) {
-						continue;
-					}
-					echo '<li>';
-					salt_component(
-						'contract-card',
-						array(
-							'card'   => $salt_card,
-							'style'  => 'generic',
-							'level'  => $level + 1,
-							'labels' => $salt_labels,
-							'arrow'  => salt_contract_arrow(),
-						)
-					);
-					echo '</li>';
-				}
-				echo '</ul>';
-			}
-			salt_component(
-				'pagination',
-				salt_view_pages() + array(
-					'href'   => static fn( int $page ): string => salt_contract_url( (string) get_pagenum_link( $page ) ),
-					'labels' => $salt_labels,
-				)
-			);
-			echo '</div>';
-		}
-	);
+	salt_render_section( 'listing', array( 'archive' => true ) );
 }
 
 get_footer();

@@ -1,6 +1,6 @@
 # Salt conformance: wordpress 6.0.0-dev against @lightlysaltedhq/salt-contract 1.0.0
 
-**Pass.** 14 section(s) pass, 0 fail, 0 incomplete, 3 not shipped. Chrome, views and page: 9 pass, 0 fail, 0 not shipped. Adapter: command `php tests/contract-adapter/adapter.php`.
+**Pass.** 16 section(s) pass, 0 fail, 0 incomplete, 1 not shipped. Chrome, views and page: 9 pass, 0 fail, 0 not shipped. Adapter: command `php tests/contract-adapter/adapter.php`.
 
 | Section | Fixtures | Field parity | Classes | Inline styles | Stylesheet pin |
 | --- | --- | --- | --- | --- | --- |
@@ -14,10 +14,10 @@
 | gallery | 6/6 | pass | pass | pass | pass |
 | process | 4/4 | pass | pass | pass | pass |
 | faq | 3/3 | pass | pass | pass | pass |
-| tabs | not shipped | not shipped | not shipped | not shipped | not shipped |
+| tabs | 5/5 | pass | pass | pass | pass |
 | collection-showcase | 8/8 | pass | pass | pass | pass |
 | carousel | 8/8 | pass | pass | pass | pass |
-| listing | not shipped | not shipped | not shipped | not shipped | not shipped |
+| listing | 5/5 | pass | pass | pass | pass |
 | contact | 5/5 | pass | pass | pass | pass |
 | locations | 4/4 | pass | pass | pass | pass |
 | pricing | not shipped | not shipped | not shipped | not shipped | not shipped |
