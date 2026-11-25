@@ -1,8 +1,8 @@
 {
     "name": "lightly-salted/salt",
-    "description": "Salt — private, opinionated WordPress parent theme for the Lightly Salted fleet.",
+    "description": "Salt — opinionated WordPress parent theme for the Lightly Salted fleet.",
     "type": "wordpress-theme",
-    "license": "proprietary",
+    "license": "MIT",
     "require": {
         "php": ">=8.2",
         "enshrined/svg-sanitize": "0.22.0"

@@ -2,7 +2,7 @@
     "name": "lightly-salted/salt-real-acf-harness-acf-pro",
     "description": "Dev-only: ACF Pro for the real-ACF harness, from ACF's private Composer repository. Needs COMPOSER_AUTH (ACF Pro licence key and an activated site URL); the zip is the alternative. Never shipped.",
     "type": "project",
-    "license": "proprietary",
+    "license": "MIT",
     "repositories": [
         {
             "type": "composer",
