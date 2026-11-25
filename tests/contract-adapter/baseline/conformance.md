@@ -1,4 +1,4 @@
-# Salt conformance: wordpress 6.0.0-dev against @lightlysaltedhq/salt-contract 2.0.0
+# Salt conformance: wordpress 6.0.0 against @lightlysaltedhq/salt-contract 2.0.0
 
 **Pass.** 16 section(s) pass, 0 fail, 0 incomplete, 1 not shipped. Chrome, views and page: 9 pass, 0 fail, 0 not shipped. Adapter: command `php tests/contract-adapter/adapter.php`.
 
