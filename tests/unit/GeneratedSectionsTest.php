@@ -19,7 +19,7 @@ final class GeneratedSectionsTest extends SaltTestCase {
 	/**
 	 * The sections the theme renders, in the contract's order.
 	 */
-	private const GENERATED = array( 'hero', 'rich-text', 'call-to-action', 'media-text', 'features', 'stats', 'logos', 'gallery', 'process', 'faq', 'collection-showcase', 'carousel', 'contact', 'locations' );
+	private const GENERATED = array( 'hero', 'rich-text', 'call-to-action', 'media-text', 'features', 'stats', 'logos', 'gallery', 'process', 'faq', 'tabs', 'collection-showcase', 'carousel', 'listing', 'contact', 'locations' );
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -36,7 +36,7 @@ final class GeneratedSectionsTest extends SaltTestCase {
 
 		$this->assertSame( self::GENERATED, array_slice( $names, 0, count( self::GENERATED ) ) );
 		$this->assertSame( array(), array_slice( $names, count( self::GENERATED ) ), 'No layout is hand-written since unit 8.' );
-		foreach ( array( 'intro', 'pricing', 'tabs', 'listing', 'blog_teaser', 'scroll_carousel', 'services', 'team', 'testimonials', 'work' ) as $absent ) {
+		foreach ( array( 'intro', 'pricing', 'blog_teaser', 'scroll_carousel', 'services', 'team', 'testimonials', 'work' ) as $absent ) {
 			$this->assertNotContains( $absent, $names );
 		}
 	}

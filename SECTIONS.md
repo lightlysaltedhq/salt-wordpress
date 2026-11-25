@@ -67,6 +67,8 @@ end-to-end — copy it.
 | 13 | FAQ | `faq` | `faq` ✦ (contract `query`) | FAQPage (merged once per page, SEO03) | Native `<details>`, zero JS |
 | 14 | Process | `process` | inline repeater | HowTo (opt-in toggle, AEO) | `<ol>` semantics |
 | 16 | Gallery | `gallery` | inline | — | Carousel = scroll-snap base + JS enhancement (FAIL02) |
+| 21 | Tabs | `tabs` | inline repeater | — | Named sets use native radios and salt.css, no JS; one panel or no name draws stacked |
+| 22 | Listing | `listing` | current route's main query | — | Cards and pagination from the route; empty route message, no band on a singular page; no editor query controls |
 | 17 | Collection showcase | `collection-showcase` | services, case studies, team, testimonials or posts ✦ (contract `query`) | Service / CreativeWork / Person (no PII) | Layouts grid, list, featured, accordion, index; cards per each collection's approved `display`; in place of services, work, team, testimonials (grid) and blog_teaser (unit 8) |
 | 18 | Carousel | `carousel` | inline cards, or a collection ✦ (contract `query`) | as collection-showcase | Generic or quote cards; scroll-snap track, previous and next mounted by `sections/carousel.js`; in place of scroll_carousel and testimonials (slider) (unit 8) |
 | 19 | Contact | `contact` | inline + options | ContactPoint | **LIVE (v2)**: REST + no-JS paths, honeypot/time-trap/rate-limit/CAPTCHA (SEC01/02), privacy link at collection; goes live when a recipient is configured (`salt_contact_form_enabled` kill-switch remains) |

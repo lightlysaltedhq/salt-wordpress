@@ -102,7 +102,7 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    and outbound HTTP blocked.
 2. **The theme's own groups.** It loads every field group the theme registers through ACF. That
    includes one group on the user edit form: team (no old `profile_photo` field).
-   The page sections group holds the 14 layouts generated from the contract
+   The page sections group holds the 16 layouts generated from the contract
    (`inc/fields/generated/sections.json`); none is hand-written since unit 8. The 7
    collection groups are generated too (`inc/fields/generated/collections.json`).
    Any PHP notice, warning, deprecation or `salt_log` line in `debug.log` fails the phase. This
@@ -160,6 +160,11 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    testimonial rated 4.5 draws 90% of five stars on a page. The rc.8 service intro draws both
    fixture paragraphs without a heading. This is a smoke render, not conformance: the view cases'
    markup is a later unit.
+   **Tabs and listing** (`php/sections.php`, `sections.mjs`) render the saved ACF fixture rows
+   through their resolvers and views. Listing uses real paged WordPress queries. Chromium,
+   with JavaScript disabled, checks native radio arrows and wraparound, Tab/Shift+Tab focus,
+   selected-panel visibility, stacked and unnamed sets, pagination gaps, image priority,
+   empty and absent routes, and mobile overflow. `SALT_HARNESS_SCREENSHOTS` keeps these states.
 7. **The editor, in headless Chromium** against the same server (`browser.mjs`):
    - the fixtures page's classic edit screen renders every row and layout with no console errors;
    - the faq section's collection query mode shows categories or items, and order and count unless
@@ -234,10 +239,10 @@ These changes are expected and reported, not failed:
 ## What it does not prove
 
 - **Rendered markup.** The render phase checks the resolvers read the shape and draw; it does
-  not compare markup with the contract's fixtures (that is M4; collection-showcase and carousel
-  are proved by `npm run conformance:contract`). Tabs and listing are not registered yet, so their
-  fixtures are not seeded. Collection-showcase rows draw nothing here: the harness creates no posts
-  for their queries.
+  not compare markup with the contract's fixtures (the full conformance run does that).
+  Collection-showcase rows draw nothing on the fixtures page: the harness creates no posts
+  for their queries. Listing draws nothing on that singular page; its separate render checks
+  supply a real route and paged query.
 - **The categories search.** The picker's ajax search, filtered to the chosen source's taxonomy,
   is not exercised in the browser; only its visibility and the save check are.
 - **Licensing.** It does not cover ACF Pro licence activation or updates. Pro field types work on

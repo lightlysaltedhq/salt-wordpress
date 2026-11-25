@@ -45,7 +45,7 @@ const SALT_OVERRIDES_MAX_BYTES = 65536;
  * collection-showcase and carousel are layouts of their own, in place of
  * the six layouts the contract folded into them — the same mapping as the
  * slug table in docs/contracts/CONVENTIONS.md. A section WordPress does not
- * ship (tabs, listing, and pricing, a Grain for WordPress recipe since 6.0.0, SC-006) maps to no layout. salt-wordpress takes no dependency on the
+ * ship (pricing, a Grain for WordPress recipe since 6.0.0, SC-006) maps to no layout. salt-wordpress takes no dependency on the
  * contract package, so this list is kept by hand: a new contract section
  * or a new layout adds a row here.
  *
@@ -63,10 +63,10 @@ function salt_contract_section_layouts(): array {
 		'gallery'             => array( 'gallery' ),
 		'process'             => array( 'process' ),
 		'faq'                 => array( 'faq' ),
-		'tabs'                => array(),
+		'tabs'                => array( 'tabs' ),
 		'collection-showcase' => array( 'collection-showcase' ),
 		'carousel'            => array( 'carousel' ),
-		'listing'             => array(),
+		'listing'             => array( 'listing' ),
 		'contact'             => array( 'contact' ),
 		'locations'           => array( 'locations' ),
 		'pricing'             => array(),

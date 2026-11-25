@@ -309,7 +309,9 @@ done
 
 if [ "$LIMITS" = 0 ] && [ "$INPUT_VARS" = 0 ]; then
 phase "single templates over HTTP (the contract's service, case-study and post fixtures)" "$PHP" "$HERE/php/singles.php"
+phase "tabs and listing with real ACF rows and paged routes" "$PHP" "$HERE/php/sections.php"
 if [ "$BROWSER" = 1 ]; then
+	phase "tabs keyboard behaviour and listing rendering in Chromium (no script)" node "$HERE/sections.mjs"
 	phase "contact form over real requests in Chromium, with and without script (CSP on)" node "$HERE/contact.mjs"
 	phase "the theme's pages under its CSP in Chromium" node "$HERE/csp.mjs"
 	phase "no style the CSP refuses on the representative pages, signed out and in (Chromium)" node "$HERE/inline-styles.mjs"

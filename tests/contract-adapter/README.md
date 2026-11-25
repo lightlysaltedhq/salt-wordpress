@@ -9,7 +9,7 @@ npm run conformance:harness -- --php 8.5
 
 On Studio, add `--offline` to skip the WordPress release freshness lookup. This does not skip any fixture. The two runs must produce byte-identical `baseline/conformance.{md,json}`. Check and commit intentional baseline changes alongside the theme change; do not update expected HTML to excuse a mismatch.
 
-The harness starts WordPress, sets `SALT_HARNESS_WP` and `SALT_HARNESS_URL`, and runs `npm run conformance:contract` with the chosen PHP first on `PATH`. The runner checks normalised fixture HTML, class names, inline styles, emitted field parity and the bytes of the contract CSS in `assets/dist`. It runs without `--partial`; only `tabs`, `listing` and `pricing` are declared not shipped. The contract runner's non-zero exit fails the gate, and the harness checks the site's PHP diagnostics. The report names both the contract and implementation versions.
+The harness starts WordPress, sets `SALT_HARNESS_WP` and `SALT_HARNESS_URL`, and runs `npm run conformance:contract` with the chosen PHP first on `PATH`. The runner checks normalised fixture HTML, class names, inline styles, emitted field parity and the bytes of the contract CSS in `assets/dist`. It runs without `--partial`; only `pricing` is declared not shipped. The contract runner's non-zero exit fails the gate, and the harness checks the site's PHP diagnostics. The report names both the contract and implementation versions.
 
 ## Diagnose a failed case
 
