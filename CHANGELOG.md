@@ -11,6 +11,15 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
+## [6.0.0] — 2026-11-25
+
+Salt for WordPress conforms to `@lightlysaltedhq/salt-contract` 2.0.0, published from the
+public repository under MIT. MAJOR per RELEASE-POLICY: every section and view draws the
+contract's markup, child overrides change, the x-* hooks, Tailwind utilities and the team
+post type are removed, and sites update with no token (see each Breaking section below and
+BREAKING). Manual accessibility sign-off on the new markup is not part of this release; the
+owner accepted that gap (decision 8B, 25/11/2026).
+
 ### Added: design dials in Site Settings (ID-3612)
 
 Site Settings → Brand & Design → Appearance now offers the contract's four design dials (salt-contract `contract/dials.json`). Each is a choice, never a raw value, and only administrators (`manage_options`) see or save them; ACF draws no dial for anyone else and drops dials posted by another user.
@@ -420,7 +429,8 @@ Kept: stored rows whose tone is the old `inverse` still read as `surface-inverse
 - **The six collection layouts are gone; collection-showcase and carousel
   replace them (ID-3600, EP-72 M3 unit 8).** Layouts `services`, `work`,
   `team`, `testimonials`, `blog_teaser` and `scroll_carousel` are removed,
-  with their field files (`inc/fields/layouts/`), resolvers, views,
+  with their field files (`inc/fields/layouts/`, including the fields
+  `card_type` and `view_all`, which no other layout uses), resolvers, views,
   scripts (`sections/testimonials.js`, `sections/scroll-carousel.js`),
   tests and snapshots, and with `inc/query/controls.php`
   (`salt_query_control_fields()`), `salt_query_controls_from_row()`,
