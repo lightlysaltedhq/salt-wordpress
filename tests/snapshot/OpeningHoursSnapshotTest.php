@@ -1,6 +1,6 @@
 <?php
 /**
- * x-opening-hours snapshots (FLEET01) — fully deterministic markup (no live
+ * Opening-hours component snapshots (FLEET01) — fully deterministic markup (no live
  * status in the component).
  *
  * @package Salt\Tests

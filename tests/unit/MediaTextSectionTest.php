@@ -178,7 +178,6 @@ final class MediaTextSectionTest extends SaltTestCase {
 			'#<div class="salt-section__content"><div class="salt-block" data-block="media-text"><div class="salt-media-text"><div class="salt-media-text__row" data-media-side="left"><div class="salt-media-text__media"><img [^>]*></div><div class="salt-media-text__body"><h1 id="media-text__heading">One row</h1><div class="salt-rich-text"><p>Body.</p></div></div></div></div></div></div></section>$#',
 			$html
 		);
-		$this->assertStringNotContainsString( 'data-section', $html, 'The x-section band is gone.' );
 		$this->assertStringNotContainsString( 'data-salt-', $html, 'Media + Text ships no JS trigger in any state.' );
 	}
 
@@ -577,7 +576,6 @@ final class MediaTextSectionTest extends SaltTestCase {
 			$html,
 			'Unstyled buttons default to secondary.'
 		);
-		$this->assertStringNotContainsString( 'x-button', $html );
 	}
 
 	public function test_malformed_cta_is_skipped_and_logged_row_still_renders(): void {
@@ -779,7 +777,6 @@ final class MediaTextSectionTest extends SaltTestCase {
 		);
 
 		$this->assertSame( 'media-text', $resolved['section']['name'] );
-		$this->assertTrue( $resolved['section']['contract'], 'Drawn in the contract\'s wrapper (M4).' );
 		$this->assertSame( 'lg', $resolved['section']['spacing'] );
 		$this->assertTrue( $resolved['section']['is_primary'] );
 		$this->assertTrue( $resolved['section']['has_heading'] );

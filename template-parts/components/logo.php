@@ -89,7 +89,7 @@ $salt_logo_image = static function ( int $id, string $variant, int $height ): ?a
 	}
 	$full = wp_get_attachment_image_src( $id, 'full' );
 	if ( ! is_array( $full ) || empty( $full[0] ) ) {
-		salt_log( sprintf( 'x-logo: %s logo attachment %d is unresolvable — %s.', $variant, $id, 'light' === $variant ? 'rendered the wordmark' : 'rendered the light logo only' ) );
+		salt_log( sprintf( 'logo: %s logo attachment %d is unresolvable — %s.', $variant, $id, 'light' === $variant ? 'rendered the wordmark' : 'rendered the light logo only' ) );
 		return null;
 	}
 	$width   = (int) ( $full[1] ?? 0 );

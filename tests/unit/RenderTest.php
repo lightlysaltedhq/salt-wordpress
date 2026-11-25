@@ -133,7 +133,7 @@ final class RenderTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------------
-	// salt_section + wrapper.
+	// salt_section(): the contract's band.
 	// -----------------------------------------------------------------------
 
 	public function test_section_body_receives_level_2_by_default(): void {
@@ -150,9 +150,9 @@ final class RenderTest extends SaltTestCase {
 		$html = ob_get_clean();
 
 		$this->assertSame( 2, $seen );
-		$this->assertStringContainsString( 'data-section="rich-text"', $html );
+		$this->assertStringContainsString( 'data-track="rich-text-1"', $html );
 		$this->assertStringContainsString( '<p>body</p>', $html );
-		$this->assertStringContainsString( 'bg-surface text-ink', $html );
+		$this->assertStringContainsString( 'data-tone="surface" data-tone-dark="surface"', $html );
 	}
 
 	public function test_primary_section_gets_h1_level_once(): void {
@@ -201,8 +201,9 @@ final class RenderTest extends SaltTestCase {
 		ob_start();
 		salt_section(
 			array(
-				'name'       => 'hero',
-				'background' => 'hotpink',
+				'name'      => 'hero',
+				'tone'      => 'hotpink',
+				'container' => 'huge',
 			),
 			static function ( int $level ): void {
 				echo 'x';
@@ -210,8 +211,9 @@ final class RenderTest extends SaltTestCase {
 		);
 		$html = ob_get_clean();
 
-		$this->assertStringContainsString( 'bg-surface text-ink', $html, 'Unknown background falls back to surface.' );
-		$this->assertNotEmpty( $this->logs() );
+		$this->assertStringContainsString( 'data-tone="surface" data-tone-dark="surface"', $html, 'An unknown tone falls back to surface.' );
+		$this->assertStringContainsString( 'data-width="default"', $html, 'An unknown width falls back to default.' );
+		$this->assertCount( 2, $this->logs() );
 	}
 
 	/**

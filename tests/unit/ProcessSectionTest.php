@@ -1,6 +1,6 @@
 <?php
 /**
- * Process / Steps slice unit tests: x-process-step component contract
+ * Process / Steps slice unit tests: the process-step component contract
  * (Appendix B), layout shape (DATA02), section 0/1/N states (COMPL02),
  * <ol> semantics with position-derived numbers, malformed rows skipped +
  * logged, and the OPT-IN HowTo schema (default OFF — AEO not SEO, §15).
@@ -84,7 +84,7 @@ final class ProcessSectionTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// x-process-step component (Appendix B).
+	// The process-step component (Appendix B).
 	// -----------------------------------------------------------------
 
 	public function test_process_step_component_renders_number_title_and_text(): void {
@@ -128,8 +128,7 @@ final class ProcessSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringNotContainsString( 'x-process-step-text', $html );
-		$this->assertStringNotContainsString( 'x-icon', $html );
+		$this->assertSame( '<li class="salt-process__step"><span class="salt-process__number" aria-hidden="true">1</span><h3>Discover</h3></li>', $html );
 	}
 
 	public function test_process_step_component_with_blank_title_renders_nothing(): void {

@@ -264,7 +264,7 @@ function salt_footer_copyright(): string {
  * Labels are proper nouns (not translated). The icon is only USED when the
  * built-in set ships it (salt_chrome_icon_exists()) — otherwise the label
  * renders as text. The built-in set ships these social glyphs since 4.0.0
- * (shared with x-share-links and the team-card socials).
+ * (shared with the share links and the team-card socials).
  *
  * @return array<string,array{label:string,icon:string}>
  */
@@ -783,7 +783,7 @@ function salt_consent_panel(): array {
 	// The words are the site's; the boxes stay the theme's.
 	$by_id = array_column( (array) $given['categories'], null, 'id' );
 	foreach ( $panel['categories'] as $i => $box ) {
-		$site                       = (array) ( $by_id[ $box['id'] ] ?? array() );
+		$site                                     = (array) ( $by_id[ $box['id'] ] ?? array() );
 		$panel['categories'][ $i ]['label']       = (string) ( $site['label'] ?? $box['label'] );
 		$panel['categories'][ $i ]['description'] = (string) ( $site['description'] ?? $box['description'] );
 	}

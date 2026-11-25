@@ -25,6 +25,20 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
 - **Contact, maps and gallery.** Update overrides to the emitted contact fields and contract markup. The closed state replaces the old email button. Scripted contact uses the site's REST address on plain permalinks and refreshes expired credentials. Enquiry dates are now stored for retention; this does not repair historical records. Maps use the same-origin MapLibre worker. Gallery no longer loads `gallery.js` or supplies `data-salt-carousel`. Core styles and speculation rules follow the existing CSP without granting arbitrary inline styles or scripts.
 - **Removed parts and styles.** Old card, button and other `x-*` parts, utilities generated only for the old views, and booking hooks are no longer supplied. See the [removed parts and migration paths](docs/contracts/OVERRIDES.md#removed-template-parts-and-css-600-id-3946--breaking). Recheck child copies of sections, site chrome, archives and single templates before updating a site.
 
+### BREAKING: the last x-* hooks and Tailwind utilities removed (ID-3946)
+
+Every section, view and chrome part already draws the Salt contract's markup, so 6.0.0 removes what only the old markup used ([migration paths](docs/contracts/OVERRIDES.md#removed-template-parts-and-css-600-id-3946--breaking)). No parent page changes: the five representative routes and the generic single render pixel-identical, and each page is about 2.2 KB smaller (about 0.5 KB gzipped).
+
+- **The x-section band.** `template-parts/components/section.php` is gone. `salt_section()` always draws the contract's band (`components/contract-section.php`). Its `background`, `flush_top` and `contract` args are gone; pass `tone` and `tone_dark` (`surface`, `surface-alt`, `brand-tint`, `surface-inverse`). An unknown tone, spacing or width is logged and drawn as the default.
+- **`salt_section_wrapper_args()`.** Removed. A child's own whole section (tier `logic`) or child-only layout passes `salt_section_contract_args( '{slug}', $args )` to `salt_section()` and draws `div.salt-block[data-block=…]`, as the parent's sections do.
+- **x-image.** `template-parts/components/image.php`, the pluggable `salt_image_data()` and `salt_image_sizes()` are gone. Draw an image with `salt_image_contract_html( salt_image_contract( $id, salt_image_slot_sizes( … ) ) )`.
+- **`salt_classnames()`.** Removed; only the two parts above used it.
+- **Tailwind utilities.** app.css builds none (`@import "tailwindcss" source(none)` with no `@source`). A utility class in a child template draws nothing; ship the child's own CSS, reading the theme's tokens.
+- **The inverse-band focus keyline in app.css.** `.bg-surface-inverse :focus-visible` and `--focus-keyline-width` are gone. salt.css draws the keyline on every contract control in a `surface-inverse` band.
+- **Diagnostics.** `salt_require_args()` log messages name the component without an `x-` prefix (`map: required arg "lat" missing.`), and so do the logo and display-preferences warnings.
+
+Kept: stored rows whose tone is the old `inverse` still read as `surface-inverse`.
+
 ### Accessibility fixes
 
 - The pinned rc.9 stylesheet uses normal ink for secondary text on light alternate surfaces. On narrow screens without JavaScript, the header links wrap, open submenus stay within the page, and the header scrolls away rather than covering the focused contact reply.

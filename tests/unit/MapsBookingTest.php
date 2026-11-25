@@ -100,7 +100,7 @@ final class MapsBookingTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// x-map facade.
+	// The map facade.
 	// -----------------------------------------------------------------
 
 	public function test_map_facade_renders_placeholder_with_inert_data_attrs(): void {
@@ -162,7 +162,7 @@ final class MapsBookingTest extends SaltTestCase {
 	}
 
 	/**
-	 * Assert the x-map contract throws (cleaning the render buffer the
+	 * Assert the map component's args contract throws (cleaning the render buffer the
 	 * aborted salt_get_component() leaves open).
 	 *
 	 * @param array<string,mixed> $args     Component args.

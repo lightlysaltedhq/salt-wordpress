@@ -95,7 +95,7 @@ final class SectionCompletenessTest extends SaltTestCase {
 $a = 'get_sub_field( "in a string" )';
 $b = "salt_schema_add( in a double-quoted string )";
 $c = $salt_log;
-$d = salt_section_wrapper_args( 'x', array() );
+$d = salt_section_contract_args( 'x', array() );
 echo salt_section ( array(), null );
 echo \wp_create_nonce( 'x' );
 ?>

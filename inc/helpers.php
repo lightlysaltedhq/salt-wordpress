@@ -60,16 +60,6 @@ function salt_option( string $selector ) {
 }
 
 /**
- * Join a class list, dropping empties.
- *
- * @param array<int,string> $class_names Class name fragments.
- * @return string
- */
-function salt_classnames( array $class_names ): string {
-	return implode( ' ', array_filter( array_map( 'trim', $class_names ), static fn( string $c ): bool => '' !== $c ) );
-}
-
-/**
  * A collection item's `summary`: on WordPress it is stored in the post's
  * own excerpt (salt-contract collections, platforms.WordPress.native). The
  * stored excerpt only — never one WordPress makes up from the body.

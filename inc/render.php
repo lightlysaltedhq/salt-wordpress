@@ -53,7 +53,7 @@ function salt_require_args( array $args, array $contract, string $component ): a
 
 		if ( ! $has_arg ) {
 			if ( $required ) {
-				$message = sprintf( 'x-%s: required arg "%s" missing.', $component, $name );
+				$message = sprintf( '%s: required arg "%s" missing.', $component, $name );
 				salt_log( $message );
 				if ( salt_is_debug() ) {
 					throw new InvalidArgumentException( esc_html( $message ) );
@@ -74,7 +74,7 @@ function salt_require_args( array $args, array $contract, string $component ): a
 		};
 
 		if ( ! $valid ) {
-			$message = sprintf( 'x-%s: arg "%s" must be %s, %s given.', $component, $name, $type, get_debug_type( $args[ $name ] ) );
+			$message = sprintf( '%s: arg "%s" must be %s, %s given.', $component, $name, $type, get_debug_type( $args[ $name ] ) );
 			salt_log( $message );
 			if ( salt_is_debug() ) {
 				throw new InvalidArgumentException( esc_html( $message ) );
@@ -143,34 +143,32 @@ function salt_component( string $name, array $args = array(), array $slots = arr
  * @param string      $op    'get'|'set'|'reset'.
  * @param string|null $key   Key when setting.
  * @param mixed       $value Value when setting.
- * Since unit 8 it also holds what the contract's wrapper (salt_section()
- * with `contract`) needs of the page so far: each section id's count for
- * data-track (`tracks`), the previous band's dark tone, background image
- * and spacing for the adjacency collapse, and whether a section has taken
+ * It also holds what the band (salt_section()) needs of the page so far:
+ * each section id's count for data-track (`tracks`), the previous band's
+ * tone, dark tone, background image and spacing for the adjacency collapse, and whether a section has taken
  * the page's priority image (`priority_media`); and the page plan's minted
  * id for the row a loop is drawing (`plan_id`, salt_section_plan_rows())
  * and the minted ids a band has already drawn (`plan_drawn`).
  *
- * @return array{h1_claimed: bool, h1_source: string, section_index: int, anchors: array<string,bool>, last_background: string, last_divider: bool, last_tone_dark: string, last_media: bool, last_spacing: string, tracks: array<string,int>, priority_media: bool, plan_id: string, plan_drawn: array<string,bool>}
+ * @return array{h1_claimed: bool, h1_source: string, section_index: int, anchors: array<string,bool>, last_tone: string, last_tone_dark: string, last_media: bool, last_spacing: string, tracks: array<string,int>, priority_media: bool, plan_id: string, plan_drawn: array<string,bool>}
  */
 function salt_render_state( string $op = 'get', ?string $key = null, $value = null ): array {
 	static $state = null;
 
 	if ( null === $state || 'reset' === $op ) {
 		$state = array(
-			'h1_claimed'      => false,
-			'h1_source'       => '',
-			'section_index'   => 0,
-			'anchors'         => array(),
-			'last_background' => '',
-			'last_divider'    => false,
-			'last_tone_dark'  => '',
-			'last_media'      => false,
-			'last_spacing'    => '',
-			'tracks'          => array(),
-			'priority_media'  => false,
-			'plan_id'         => '',
-			'plan_drawn'      => array(),
+			'h1_claimed'     => false,
+			'h1_source'      => '',
+			'section_index'  => 0,
+			'anchors'        => array(),
+			'last_tone'      => '',
+			'last_tone_dark' => '',
+			'last_media'     => false,
+			'last_spacing'   => '',
+			'tracks'         => array(),
+			'priority_media' => false,
+			'plan_id'        => '',
+			'plan_drawn'     => array(),
 		);
 	}
 
@@ -417,16 +415,15 @@ function salt_section_plan_rows( string $selector, $post_id = false, ?callable $
 // ---------------------------------------------------------------------------
 
 /**
- * Render a section body inside the shared x-section wrapper.
+ * Render a section body inside the contract's band (salt-contract
+ * markup/section.json, components/contract-section.php).
  *
  * The canonical section entry point: computes the heading level BEFORE the
  * body renders (the wrapper knows document position — AMBIG03), claims the
  * H1 when this section is the page's designated primary heading, then
- * renders the body inside the wrapper component.
+ * renders the body inside the band.
  *
- * THE SHARED CONTRACT WRAPPER (EP-72 M4, ID-3620): how a section moves to
- * the contract's band (salt-contract markup/section.json). Every converted
- * section does the same three things, and nothing else of the band:
+ * Every section does the same three things, and nothing else of the band:
  *  1. Its resolver returns as `section` the contract args for its row,
  *     plus whether it draws a heading:
  *       array_merge( salt_section_contract_args( '<section id>', $context ),
@@ -444,12 +441,10 @@ function salt_section_plan_rows( string $selector, $post_id = false, ?callable $
  *     place among the page's rendered bands, from 0: accordion names) and
  *     priorityMedia.
  *  3. It never prints an id of its own but <anchor>__<part> (plan.anchor).
- * Every parent section passes `contract`. Without it, salt_section()
- * draws the x-section band (components/section.php): only a child theme's
- * own whole section does that now (salt_section_wrapper_args()), and the
- * band is deprecated (docs/contracts/OVERRIDES.md, tier 5).
+ * A child theme's own whole section (tier "logic") calls this the same way,
+ * with salt_section_contract_args() for its row.
  *
- * With `contract` the band (components/contract-section.php) is:
+ * The band is:
  *  - a section named by its heading (aria-labelledby <anchor>__heading)
  *    when has_heading, otherwise a div.salt-section (section#labelled-by);
  *  - id: an editor's anchor, settled as the band draws among the anchored
@@ -465,17 +460,13 @@ function salt_section_plan_rows( string $selector, $post_id = false, ?callable $
  *  - data-collapse-top as section#adjacent-collapse says: the previous band
  *    shares the tone and dark tone, neither has a background image, this
  *    band has no divider and neither spacing is none.
- * An x-section band with an editor's anchor settles it the same way, as it
- * draws; one without draws no id, as before.
  *
  * The content callback receives the heading level and the settled id:
  * function( int $heading_level, string $anchor ): void.
  *
- * @param array<string,mixed> $args    Wrapper args: name (required), spacing,
- *                                     background, container, anchor, id,
- *                                     divider, is_primary, has_heading,
- *                                     flush_top; and for the contract's
- *                                     wrapper: contract, tone, tone_dark,
+ * @param array<string,mixed> $args    Band args: name (required), spacing,
+ *                                     tone, tone_dark, container, anchor,
+ *                                     id, divider, is_primary, has_heading,
  *                                     background_image
  *                                     (salt_section_background()) and
  *                                     background_priority.
@@ -492,9 +483,13 @@ function salt_section( array $args, callable $content ): void {
 			'type'    => 'string',
 			'default' => 'md',
 		),
-		'background'          => array(
+		'tone'                => array(
 			'type'    => 'string',
 			'default' => 'surface',
+		),
+		'tone_dark'           => array(
+			'type'    => 'string',
+			'default' => '',
 		),
 		'container'           => array(
 			'type'    => 'string',
@@ -520,22 +515,6 @@ function salt_section( array $args, callable $content ): void {
 			'type'    => 'bool',
 			'default' => true,
 		),
-		'flush_top'           => array(
-			'type'    => 'bool',
-			'default' => false,
-		),
-		'contract'            => array(
-			'type'    => 'bool',
-			'default' => false,
-		),
-		'tone'                => array(
-			'type'    => 'string',
-			'default' => 'surface',
-		),
-		'tone_dark'           => array(
-			'type'    => 'string',
-			'default' => '',
-		),
 		'background_image'    => array(
 			'type'    => 'mixed',
 			'default' => null,
@@ -548,6 +527,20 @@ function salt_section( array $args, callable $content ): void {
 
 	$args = salt_require_args( $args, $contract, 'section' );
 
+	// An unknown value draws the contract's default, logged (FAIL01).
+	$tones = array( 'surface', 'surface-alt', 'brand-tint', 'surface-inverse' );
+	foreach ( array(
+		'spacing'   => array( 'md', array( 'none', 'sm', 'md', 'lg' ) ),
+		'tone'      => array( 'surface', $tones ),
+		'tone_dark' => array( '', array_merge( array( '' ), $tones ) ),
+		'container' => array( 'default', array( 'full', 'wide', 'default', 'narrow' ) ),
+	) as $arg => list( $fallback, $known ) ) {
+		if ( ! in_array( $args[ $arg ], $known, true ) ) {
+			salt_log( sprintf( 'section "%s": unknown %s "%s" — using the default.', $args['name'], $arg, $args[ $arg ] ) );
+			$args[ $arg ] = $fallback;
+		}
+	}
+
 	// Claim the H1 only when this section will actually RENDER a heading —
 	// a heading-less primary section must not consume the claim, or the
 	// page-level fallback H1 could never fire (A11Y01).
@@ -557,18 +550,17 @@ function salt_section( array $args, callable $content ): void {
 	}
 
 	$state = salt_render_state();
-	$index = $state['section_index'];
-	salt_render_state( 'set', 'section_index', $index + 1 );
+	salt_render_state( 'set', 'section_index', $state['section_index'] + 1 );
 
 	// The id is settled before the body draws, so the body can name its
 	// heading <anchor>__heading (SC-012). An editor's anchor settles now, as
 	// the band draws, among the anchored bands drawn so far and the page
 	// plan's minted ids (section#anchors): a row that draws nothing never
-	// takes one. A contract band with none takes the plan's minted id: its
-	// `id`, or else the one the loop holds for its row (`plan_id`), which a
-	// child's own template or an override of salt_render_section() reaches
-	// without passing it on. The row's id is its first band's alone: a later
-	// band of the same row mints its own in one pass.
+	// takes one. A band with none takes the plan's minted id: its `id`, or
+	// else the one the loop holds for its row (`plan_id`), which a child's
+	// own template or an override of salt_render_section() reaches without
+	// passing it on. The row's id is its first band's alone: a later band of
+	// the same row mints its own in one pass.
 	$planned = '' !== $args['id'] ? $args['id'] : $state['plan_id'];
 	salt_render_state( 'set', 'plan_id', '' );
 	if ( isset( $state['plan_drawn'][ $planned ] ) ) {
@@ -576,51 +568,29 @@ function salt_section( array $args, callable $content ): void {
 	}
 	if ( '' !== sanitize_title( $args['anchor'] ) ) {
 		$anchor = salt_anchor_id( $args['anchor'] );
-	} elseif ( $args['contract'] && '' !== $planned ) {
+	} elseif ( '' !== $planned ) {
 		$anchor                          = $planned;
 		$state['plan_drawn'][ $planned ] = true;
 		salt_render_state( 'set', 'plan_drawn', $state['plan_drawn'] );
-	} elseif ( $args['contract'] ) {
-		$anchor = salt_anchor_id( $args['name'] );
 	} else {
-		$anchor = '';
+		$anchor = salt_anchor_id( $args['name'] );
 	}
 
 	$tracks                  = $state['tracks'];
 	$tracks[ $args['name'] ] = ( $tracks[ $args['name'] ] ?? 0 ) + 1;
 	salt_render_state( 'set', 'tracks', $tracks );
 
-	// The dark tone in the state's vocabulary (x-section's inverse), so a
-	// contract band and an x-section band compare alike.
-	$tone_dark = '' === $args['tone_dark'] ? $args['background'] : ( 'surface-inverse' === $args['tone_dark'] ? 'inverse' : $args['tone_dark'] );
-	$has_media = is_array( $args['background_image'] );
-
-	if ( $args['contract'] ) {
-		$last_dark    = '' !== $state['last_tone_dark'] ? $state['last_tone_dark'] : $state['last_background'];
-		$collapse_top = '' !== $state['last_background']
-			&& $state['last_background'] === $args['background']
-			&& $last_dark === $tone_dark
-			&& ! $state['last_media']
-			&& ! $has_media
-			&& ! $args['divider']
-			&& 'none' !== $args['spacing']
-			&& 'none' !== $state['last_spacing'];
-	} else {
-		// Same-background adjacency collapse: two neighbouring sections sharing a
-		// background have no visual boundary, so their paddings stack into a dead
-		// zone (pb + pt of the same colour). The later section drops its top
-		// padding — ONE unit of spacing between them, not two. A divider on the
-		// previous section is a boundary and keeps the full gap. A section may
-		// also force the collapse itself (flush_top — e.g. the full-bleed hero
-		// banner meeting the header).
-		$collapse_top = $args['flush_top']
-			|| ( 'none' !== $args['spacing']
-				&& '' !== $state['last_background']
-				&& $state['last_background'] === $args['background']
-				&& ! $state['last_divider'] );
-	}
-	salt_render_state( 'set', 'last_background', $args['background'] );
-	salt_render_state( 'set', 'last_divider', $args['divider'] );
+	$tone_dark    = '' !== $args['tone_dark'] ? $args['tone_dark'] : $args['tone'];
+	$has_media    = is_array( $args['background_image'] );
+	$collapse_top = '' !== $state['last_tone']
+		&& $state['last_tone'] === $args['tone']
+		&& $state['last_tone_dark'] === $tone_dark
+		&& ! $state['last_media']
+		&& ! $has_media
+		&& ! $args['divider']
+		&& 'none' !== $args['spacing']
+		&& 'none' !== $state['last_spacing'];
+	salt_render_state( 'set', 'last_tone', $args['tone'] );
 	salt_render_state( 'set', 'last_tone_dark', $tone_dark );
 	salt_render_state( 'set', 'last_media', $has_media );
 	salt_render_state( 'set', 'last_spacing', $args['spacing'] );
@@ -629,122 +599,68 @@ function salt_section( array $args, callable $content ): void {
 	$content( $level, $anchor );
 	$body = (string) ob_get_clean();
 
-	if ( $args['contract'] ) {
-		salt_component(
-			'contract-section',
-			array(
-				'anchor'              => $anchor,
-				'labelled'            => $args['has_heading'],
-				'tone'                => $args['tone'],
-				'tone_dark'           => '' !== $args['tone_dark'] ? $args['tone_dark'] : $args['tone'],
-				'spacing'             => $args['spacing'],
-				'width'               => $args['container'],
-				'track'               => $args['name'] . '-' . $tracks[ $args['name'] ],
-				'collapse_top'        => $collapse_top,
-				'divider'             => $args['divider'],
-				'background_image'    => $has_media ? $args['background_image'] : null,
-				'background_priority' => $args['background_priority'],
-			),
-			array( 'default' => $body )
-		);
-		return;
-	}
-
 	salt_component(
-		'section',
+		'contract-section',
 		array(
-			'name'         => $args['name'],
-			'spacing'      => $args['spacing'],
-			'background'   => $args['background'],
-			'container'    => $args['container'],
-			'anchor'       => $anchor,
-			'divider'      => $args['divider'],
-			'index'        => $index,
-			'collapse_top' => $collapse_top,
+			'anchor'              => $anchor,
+			'labelled'            => $args['has_heading'],
+			'tone'                => $args['tone'],
+			'tone_dark'           => $tone_dark,
+			'spacing'             => $args['spacing'],
+			'width'               => $args['container'],
+			'track'               => $args['name'] . '-' . $tracks[ $args['name'] ],
+			'collapse_top'        => $collapse_top,
+			'divider'             => $args['divider'],
+			'background_image'    => $has_media ? $args['background_image'] : null,
+			'background_priority' => $args['background_priority'],
 		),
 		array( 'default' => $body )
 	);
 }
 
 /**
- * Build the x-section wrapper args for the current Flexible Content row
+ * The band's args for the current Flexible Content row (salt_section()),
  * from its `settings` group (the contract's section settings,
- * contract/fields/_section-settings.json) + loop context (AMBIG03).
- *
- * Every setting is read by its contract name and value and mapped to the
- * wrapper's args: spacing, tone (surface-inverse is x-section's inverse
- * background), width (x-section's container), anchorId and divider.
- * toneDark and backgroundImage are stored but not drawn yet: they need the
- * contract stylesheet (EP-72 M3 unit 9). firstPageOnly is the page loop's
+ * contract/fields/_section-settings.json) and the loop context (AMBIG03):
+ * spacing, tone, the dark tone resolved (auto is the tone itself, SC-016),
+ * width (`container`), anchorId, divider and the background image
+ * (salt_section_background()). firstPageOnly is the page loop's
  * (salt_section_hidden_on_this_page()). The context's `id` is the loop's
- * id for the band, passed on so a child's own template keeps it.
- *
- * @param string              $name    Section slug (hyphenated).
- * @param array<string,mixed> $context Loop context: index, is_primary, id.
- * @return array<string,mixed>
- */
-function salt_section_wrapper_args( string $name, array $context = array() ): array {
-	$settings = salt_section_settings();
-	$setting  = static function ( string $field, string $fallback ) use ( $settings ): string {
-		$value = $settings[ $field ] ?? null;
-		return is_string( $value ) && '' !== $value ? $value : $fallback;
-	};
-
-	$tone = $setting( 'tone', 'surface' );
-
-	return array(
-		'name'       => $name,
-		'spacing'    => $setting( 'spacing', 'md' ),
-		'background' => 'surface-inverse' === $tone ? 'inverse' : $tone,
-		'container'  => $setting( 'width', 'default' ),
-		'anchor'     => $setting( 'anchorId', '' ),
-		'divider'    => (bool) ( $settings['divider'] ?? false ),
-		'is_primary' => (bool) ( $context['is_primary'] ?? false ),
-		// The loop's minted id for the band (salt_section_plan_rows()), so a
-		// child's own template keeps it.
-		'id'         => (string) ( $context['id'] ?? '' ),
-	);
-}
-
-/**
- * The contract wrapper's args for the current row (salt_section() with
- * `contract`): salt_section_wrapper_args() plus the tone in the contract's
- * vocabulary, the dark tone resolved (auto is the tone itself, SC-016) and
- * the background image (salt_section_background()).
+ * id for the band, passed on so a child's own template keeps it. An
+ * unknown spacing, width or tone falls back to md, default and surface.
  *
  * @param string              $name    Contract section id.
- * @param array<string,mixed> $context Loop context: index, is_primary.
+ * @param array<string,mixed> $context Loop context: index, is_primary, id.
  * @return array<string,mixed>
  */
 function salt_section_contract_args( string $name, array $context = array() ): array {
 	$settings = salt_section_settings();
-	$args     = salt_section_wrapper_args( $name, $context );
 	$tones    = array( 'surface', 'surface-alt', 'brand-tint', 'surface-inverse' );
-	// WordPress's stored 'inverse' is the contract's surface-inverse
-	// (markup/section.json).
+	// A stored 'inverse' (the value older rows hold) is the contract's
+	// surface-inverse (markup/section.json).
 	$stored = array();
 	foreach ( array( 'tone', 'toneDark' ) as $field ) {
 		$stored[ $field ] = 'inverse' === ( $settings[ $field ] ?? null ) ? 'surface-inverse' : ( $settings[ $field ] ?? null );
 	}
-	$tone = in_array( $stored['tone'], $tones, true ) ? (string) $stored['tone'] : 'surface';
-	$dark = in_array( $stored['toneDark'], $tones, true ) ? (string) $stored['toneDark'] : $tone;
+	$tone    = in_array( $stored['tone'], $tones, true ) ? (string) $stored['tone'] : 'surface';
+	$dark    = in_array( $stored['toneDark'], $tones, true ) ? (string) $stored['toneDark'] : $tone;
+	$spacing = $settings['spacing'] ?? null;
+	$width   = $settings['width'] ?? null;
+	$anchor  = $settings['anchorId'] ?? null;
 
-	if ( ! in_array( $args['spacing'], array( 'none', 'sm', 'md', 'lg' ), true ) ) {
-		$args['spacing'] = 'md';
-	}
-	if ( ! in_array( $args['container'], array( 'full', 'wide', 'default', 'narrow' ), true ) ) {
-		$args['container'] = 'default';
-	}
-
-	return array_merge(
-		$args,
-		array(
-			'contract'         => true,
-			'background'       => 'surface-inverse' === $tone ? 'inverse' : $tone,
-			'tone'             => $tone,
-			'tone_dark'        => $dark,
-			'background_image' => salt_section_background( $settings ),
-		)
+	return array(
+		'name'             => $name,
+		'spacing'          => in_array( $spacing, array( 'none', 'sm', 'md', 'lg' ), true ) ? $spacing : 'md',
+		'tone'             => $tone,
+		'tone_dark'        => $dark,
+		'container'        => in_array( $width, array( 'full', 'wide', 'default', 'narrow' ), true ) ? $width : 'default',
+		'anchor'           => is_string( $anchor ) ? $anchor : '',
+		'divider'          => (bool) ( $settings['divider'] ?? false ),
+		'is_primary'       => (bool) ( $context['is_primary'] ?? false ),
+		// The loop's minted id for the band (salt_section_plan_rows()), so a
+		// child's own template keeps it.
+		'id'               => (string) ( $context['id'] ?? '' ),
+		'background_image' => salt_section_background( $settings ),
 	);
 }
 
@@ -1157,11 +1073,11 @@ function salt_render_resolved_section( string $layout, string $view, array $cont
 	$has_heading = (bool) ( $section['has_heading'] ?? true );
 
 	// The page's one priority image (section#priority-media): the first band
-	// with one takes it. A contract band's background image is its principal
+	// with one takes it. A band's background image is its principal
 	// image, over the block's own; a block's image counts when its resolver
 	// asks for it (plan.priorityMedia).
 	$free                           = ! salt_render_state()['priority_media'];
-	$background                     = ! empty( $section['contract'] ) && is_array( $section['background_image'] ?? null );
+	$background                     = is_array( $section['background_image'] ?? null );
 	$section['background_priority'] = $free && $background;
 	$priority_media                 = $free && ! $background && (bool) ( $plan_in['priorityMedia'] ?? false );
 	if ( $section['background_priority'] || $priority_media ) {

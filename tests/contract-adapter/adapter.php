@@ -773,7 +773,7 @@ function salt_adapter_render_section( array $input, array $ids ): string {
 
 	// The page plan's context for this band (fixtures README, "The input"):
 	// its position, whether it claims the h1, and the collapse with the band
-	// above, which the theme draws from the previous band's background.
+	// above, which the theme draws from the previous band's tones.
 	$index         = (int) ( $context['index'] ?? 0 );
 	$heading_level = (int) ( $context['headingLevel'] ?? ( 0 === $index ? 1 : 2 ) );
 	salt_render_state( 'set', 'section_index', $index );
@@ -785,7 +785,9 @@ function salt_adapter_render_section( array $input, array $ids ): string {
 		salt_render_state( 'set', 'tracks', array( $track[1] => (int) $track[2] - 1 ) );
 	}
 	if ( ! empty( $context['collapseTop'] ) ) {
-		salt_render_state( 'set', 'last_background', salt_section_wrapper_args( $slug )['background'] );
+		$previous = salt_section_contract_args( $slug );
+		salt_render_state( 'set', 'last_tone', $previous['tone'] );
+		salt_render_state( 'set', 'last_tone_dark', $previous['tone_dark'] );
 	}
 	salt_adapter_seed_section_plan( $context );
 

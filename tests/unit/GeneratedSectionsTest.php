@@ -82,7 +82,7 @@ final class GeneratedSectionsTest extends SaltTestCase {
 	// -----------------------------------------------------------------
 
 	/**
-	 * Wrapper args for one row holding these fields.
+	 * Band args for one row holding these fields.
 	 *
 	 * @param array<string,mixed> $fields Row fields.
 	 * @return array<string,mixed>
@@ -97,7 +97,7 @@ final class GeneratedSectionsTest extends SaltTestCase {
 			)
 		);
 		the_row();
-		return salt_section_wrapper_args( 'rich-text', array( 'is_primary' => true ) );
+		return salt_section_contract_args( 'rich-text', array( 'is_primary' => true ) );
 	}
 
 	public function test_the_wrapper_maps_every_setting_by_its_contract_name(): void {
@@ -116,19 +116,20 @@ final class GeneratedSectionsTest extends SaltTestCase {
 			)
 		);
 
+		unset( $args['background_image'] );
 		$this->assertSame(
 			array(
 				'name'       => 'rich-text',
 				'spacing'    => 'lg',
-				'background' => 'inverse',
+				'tone'       => 'surface-inverse',
+				'tone_dark'  => 'surface',
 				'container'  => 'narrow',
 				'anchor'     => 'about',
 				'divider'    => true,
 				'is_primary' => true,
 				'id'         => '',
 			),
-			$args,
-			'toneDark and backgroundImage are inert until the contract stylesheet (unit 9).'
+			$args
 		);
 	}
 
@@ -141,7 +142,7 @@ final class GeneratedSectionsTest extends SaltTestCase {
 		);
 
 		$this->assertSame( 'md', $args['spacing'] );
-		$this->assertSame( 'surface', $args['background'] );
+		$this->assertSame( 'surface', $args['tone'] );
 		$this->assertSame( 'default', $args['container'] );
 		$this->assertFalse( $args['divider'] );
 	}

@@ -1,6 +1,6 @@
 <?php
 /**
- * Display preferences service + x-display-preferences widget (spec §14;
+ * Display preferences service + display-preferences widget (spec §14;
  * A11Y05/06; FAIL02) — gating, controls filtering, args contract, enqueue.
  *
  * The service module is not in the foundation bootstrap, so this file
