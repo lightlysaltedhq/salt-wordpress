@@ -468,8 +468,8 @@ img:is([sizes="auto" i], [sizes^="auto," i]) {
 .salt-section-fallback {
 	margin: 0;
 	padding: 1rem;
-	border: 2px dashed var(--color-border);
-	color: var(--color-ink-muted);
+	border: 2px dashed var(--salt-section-border);
+	color: var(--salt-section-ink-muted);
 }
 
 /*
