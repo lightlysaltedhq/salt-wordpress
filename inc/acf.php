@@ -104,6 +104,52 @@ function salt_acf_admin_notice(): void {
 add_action( 'admin_notices', 'salt_acf_admin_notice' );
 
 /**
+ * A completion marker AFTER the classic editor form, associated by HTML's
+ * form attribute. Successful controls are submitted in document order, so
+ * PHP loses this marker if max_input_vars cuts off any earlier ACF fields.
+ * No JavaScript is needed, including when saving a draft without validation.
+ *
+ * @return void
+ */
+function salt_acf_form_complete(): void {
+	echo '<input type="hidden" form="post" name="salt_form_complete" value="1">';
+}
+add_action( 'admin_footer-post.php', 'salt_acf_form_complete', PHP_INT_MAX );
+add_action( 'admin_footer-post-new.php', 'salt_acf_form_complete', PHP_INT_MAX );
+
+/**
+ * Refuse incomplete classic-editor requests before core updates the post,
+ * its revisions or any save_post handler writes meta. ACF validation alone
+ * is too late, and its AJAX request has a different input count from the save.
+ * The marker proves completeness, not authorisation: core still checks its
+ * own nonce and capabilities on every accepted save.
+ *
+ * @return void
+ */
+function salt_acf_refuse_incomplete_form(): void {
+	global $pagenow;
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Read-only completeness check before core's nonce/capability checks; never writes data.
+	// phpcs:disable WordPress.Security.ValidatedSanitizedInput -- Exact literal comparisons only; no input is stored or echoed.
+	if ( 'post.php' !== $pagenow || 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || 'editpost' !== ( $_POST['action'] ?? '' ) ) {
+		return;
+	}
+	if ( '1' === ( $_POST['salt_form_complete'] ?? null ) ) {
+		return;
+	}
+	// phpcs:enable WordPress.Security.ValidatedSanitizedInput
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
+	wp_die(
+		esc_html__( 'Salt stopped this save because the editor form was incomplete. Nothing from this save was written. Your host may have truncated the form: ask them to raise PHP max_input_vars to at least 20000 (or higher for this page). Go back to keep your unsaved edits, then retry after the limit is raised. If it is already high enough, reload the editor in another tab and check that the form loads completely.', 'salt' ),
+		esc_html__( 'Save stopped — incomplete editor form', 'salt' ),
+		array(
+			'response'  => 400,
+			'back_link' => true,
+		)
+	);
+}
+add_action( 'admin_init', 'salt_acf_refuse_incomplete_form', 0 );
+
+/**
  * Register a field group with key-convention enforcement (DATA02).
  *
  * Thin wrapper over acf_add_local_field_group() that, under debug, asserts

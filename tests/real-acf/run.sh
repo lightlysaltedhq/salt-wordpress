@@ -4,7 +4,7 @@
 # contract fixture, checks storage paths, drives the classic editor in a real browser, prints
 # a pass/fail report and removes everything it made. See tests/real-acf/README.md.
 #
-# usage: tests/real-acf/run.sh [--php 8.2|8.5|<binary>] [--no-browser] [--keep] [--offline] [--report <file>] [--conformance|--limits]
+# usage: tests/real-acf/run.sh [--php 8.2|8.5|<binary>] [--no-browser] [--keep] [--offline] [--report <file>] [--conformance|--limits|--input-vars]
 # --offline skips the check that the pinned WordPress is the latest release (reported as not checked).
 # --conformance builds the site, keeps it up and runs salt-conformance against it instead of the checks:
 #   the adapter sends the contract's view and page cases here (tests/contract-adapter/README.md).
@@ -20,6 +20,7 @@ OFFLINE=0
 REPORT=""
 CONFORMANCE=0
 LIMITS=0
+INPUT_VARS=0
 
 usage() { sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; }
 
@@ -32,6 +33,7 @@ while [ $# -gt 0 ]; do
 		--report) REPORT="${2:?--report needs a file}"; shift 2 ;;
 		--conformance) CONFORMANCE=1; BROWSER=0; shift ;;
 		--limits) LIMITS=1; shift ;;
+		--input-vars) INPUT_VARS=1; shift ;;
 		-h|--help) usage; exit 0 ;;
 		*) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
 	esac
@@ -284,7 +286,7 @@ if [ "$CONFORMANCE" = 1 ]; then
 	phase "salt-conformance with the view and page cases on this site (tests/contract-adapter/baseline)" conformance
 else
 # Every check below is the harness's own run; --conformance runs none of them.
-if [ "$LIMITS" = 0 ]; then
+if [ "$LIMITS" = 0 ] && [ "$INPUT_VARS" = 0 ]; then
 phase "theme's field groups" "$PHP" "$HERE/php/theme-groups.php"
 
 # The theme registers the generated JSON itself (inc/acf.php); the contract phase checks it.
@@ -305,7 +307,7 @@ for _ in $(seq 1 50); do
 	sleep 0.2
 done
 
-if [ "$LIMITS" = 0 ]; then
+if [ "$LIMITS" = 0 ] && [ "$INPUT_VARS" = 0 ]; then
 phase "single templates over HTTP (the contract's service, case-study and post fixtures)" "$PHP" "$HERE/php/singles.php"
 if [ "$BROWSER" = 1 ]; then
 	phase "contact form over real requests in Chromium, with and without script (CSP on)" node "$HERE/contact.mjs"
@@ -323,9 +325,25 @@ fi
 fi
 
 # Last: the limits fixtures add published services and topics to this site.
+if [ "$INPUT_VARS" = 0 ]; then
 phase "limits and targets: outside writes" "$PHP" "$HERE/php/limits.php"
 if [ "$BROWSER" = 1 ]; then
 	phase "limits and targets: editor" node "$HERE/limits.mjs"
+fi
+fi
+
+# An independent site-local destructive control, always at PHP's default limit.
+# Run after the other browser checks so its seeded pages cannot affect their queries.
+if [ "$BROWSER" = 1 ] && [ "$LIMITS" = 0 ]; then
+	stop_server
+	start_server "$PHP" -d max_input_vars=1000 -d max_execution_time=600 -S "127.0.0.1:$PORT" -t "$WP" "$HERE/php/router.php"
+	for _ in $(seq 1 50); do
+		curl -fs -o /dev/null "$URL/wp-login.php" && break
+		sleep 0.2
+	done
+	phase "input truncation at 1000: refusal, unchanged storage and destructive negative control" node "$HERE/input-vars.mjs"
+elif [ "$LIMITS" = 0 ]; then
+	PHASES+=("SKIP  input truncation in a real browser (--no-browser)")
 fi
 fi
 
