@@ -18,6 +18,28 @@ inspection (it prints how to drop them), `--offline` skips the latest-release ch
 reports it as `STALENESS NOT CHECKED`, `--report <file>` copies the report. The script exits 0
 only when every check passes.
 
+`--input-vars` runs only the ID-3963 input-truncation regression, which also runs at
+the end of every full browser run. Its server is restarted with `max_input_vars=1000`
+regardless of the full run's `SALT_HARNESS_MAX_INPUT_VARS` (default 20000). Two 80-row
+drafts submit the same native multipart form: with the guard on, the save must return
+400 and leave the native post, all metadata and revisions unchanged (apart from core's
+separate unload-time `_edit_lock` release); with only the guard disabled by a harness-only
+MU plugin, it must silently lose rows. Removing the production guard therefore fails
+the guarded assertion, rather than turning the reproduction green. A small form must
+still save. URL-encoded requests check 1000, 1001 and 1002 inputs and a missing marker
+(the built-in server retains one extra input at 1001, unlike `parse_str()`);
+a no-script browser checks the completion marker is server-rendered. This deliberately
+bypasses ACF's client validation to test the actual save, including draft/direct submissions.
+Set `SALT_HARNESS_SCREENSHOTS` for the refusal screen. PHP's expected request-startup
+input-limit warnings go to the server log (and may appear above the error in this local
+debug environment); runtime entries in WordPress's `debug.log` still fail the phase.
+No negative-control bypass is shipped in the theme.
+
+To verify that the regression check itself goes red without protection, run
+`SALT_HARNESS_DISABLE_INPUT_GUARD=1 tests/real-acf/run.sh --php 8.2 --input-vars`.
+That environment variable is read only by the disposable site's MU plugin; it
+disables the guard even for the guarded probe, which must now fail.
+
 `--limits` runs just the ID-3971 phases (outside ACF PHP writes, the core REST
 post/page routes and the classic editor in Chromium). Set `SALT_HARNESS_SCREENSHOTS`
 to a directory to keep the rendered states. ACF's PHP row helpers return success
@@ -197,10 +219,12 @@ These changes are expected and reported, not failed:
 
 ## Known limits on a real site
 
-- **`max_input_vars`.** The fixtures page posts about 1,800 variables. PHP's default of 1000 makes
-  PHP drop the rest, and ACF then saves a truncated sections list. The harness server raises the
-  limit and reports the count. A site with long section pages needs its host's limit above the
-  page's count.
+- **`max_input_vars`.** The fixtures page posts about 1,800 variables. PHP's default of 1000
+  drops the rest. Salt now refuses incomplete classic-editor saves before core/ACF writes,
+  rather than silently saving a truncated sections list. The full harness still raises the
+  limit so its re-save can succeed, then tests the refusal and a destructive negative control
+  at 1000. Hosting must provide at least 20000, or more than the largest page needs: see
+  [hosting requirements and v5.0.0 exposure](../../docs/HOSTING.md).
 - **Save time.** Saving that page takes about 20–40 s on the built-in server. That is beyond PHP's
   default 30 s `max_execution_time` there, so the harness raises it too.
 - **Chromium's unload reports.** Chromium reports each `unload` listener in TinyMCE as a
