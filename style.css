@@ -3,7 +3,7 @@ Theme Name: Salt
 Theme URI: https://github.com/lightlysaltedhq/salt-wordpress
 Author: Lightly Salted
 Author URI: https://lightlysalted.agency
-Description: Private, opinionated WordPress parent theme for the Lightly Salted fleet. Composable ACF section library, OKLCH design tokens, Gutenberg disabled. Customised per site via child themes; never edited on a site.
+Description: Opinionated WordPress parent theme for the Lightly Salted fleet. Composable ACF section library, OKLCH design tokens, Gutenberg disabled. Customised per site via child themes; never edited on a site.
 Version: 6.0.0-dev
 Requires at least: 7.1
 Tested up to: 7.1
@@ -18,6 +18,6 @@ Primary Branch: main
 
 /*
 This file is the theme header only. All styles ship pre-built and
-content-hashed in assets/dist/ (built once in core CI — see docs/BUILD-BRIEF.md §3).
+content-hashed in assets/dist/ (built once in core CI by bin/build-assets.mjs).
 This stylesheet is intentionally not enqueued.
 */

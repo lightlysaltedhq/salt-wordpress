@@ -1,6 +1,6 @@
 # Salt for WordPress
 
-Salt for WordPress: the private, opinionated WordPress parent theme for the Lightly Salted fleet, customised per site through child themes.
+Salt for WordPress: the opinionated WordPress parent theme for the Lightly Salted fleet, customised per site through child themes.
 
 ## Planning and the next piece of work
 
