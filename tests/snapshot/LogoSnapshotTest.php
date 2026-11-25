@@ -1,6 +1,6 @@
 <?php
 /**
- * x-logo snapshots (FLEET01) — light-only, light+dark (.has-dark swap) and
+ * Logo component snapshots (FLEET01) — light-only, light+dark (.has-dark swap) and
  * the styled text fallback. Fixture attachment URLs keep the markup
  * deterministic.
  *

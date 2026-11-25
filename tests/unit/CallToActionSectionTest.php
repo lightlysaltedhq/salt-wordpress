@@ -110,7 +110,6 @@ final class CallToActionSectionTest extends SaltTestCase {
 			)
 		);
 
-		$this->assertStringNotContainsString( 'x-cta', $html, 'The view draws the contract\'s block, not x-cta.' );
 		$this->assertStringContainsString( '<div class="salt-block" data-block="call-to-action" data-align="centre">', $html );
 		$this->assertSame( 1, preg_match_all( '/<a\b/', $html ) );
 		$this->assertStringContainsString( '<div class="salt-cta__actions"><a class="salt-button" href="/contact/" data-style="primary" data-track-control="cta" target="_blank" rel="noopener noreferrer">', $html, 'A new tab adds target and rel.' );
@@ -173,8 +172,6 @@ final class CallToActionSectionTest extends SaltTestCase {
 
 		$this->assertStringStartsWith( '<section class="salt-section" id="call-to-action" aria-labelledby="call-to-action__heading" data-tone="brand-tint" data-tone-dark="brand-tint" ', $html );
 		$this->assertStringContainsString( 'data-track="call-to-action-1"', $html );
-		$this->assertStringNotContainsString( 'data-section=', $html, 'The x-section wrapper is gone.' );
-		$this->assertStringNotContainsString( 'x-section', $html );
 	}
 
 	public function test_dark_tone_follows_the_default_unless_the_editor_sets_one(): void {
@@ -208,7 +205,7 @@ final class CallToActionSectionTest extends SaltTestCase {
 	}
 
 	public function test_a_stored_inverse_tone_is_surface_inverse(): void {
-		// The x-section era stored `inverse`; it must not turn light (review #2).
+		// Older rows store `inverse`; it must not turn light (review #2).
 		$html = $this->render_cta_section(
 			array(
 				'heading'  => 'Ready?',
@@ -228,7 +225,6 @@ final class CallToActionSectionTest extends SaltTestCase {
 		);
 		$this->assertSame( 'surface-inverse', $resolved['section']['tone'] );
 		$this->assertSame( 'surface-inverse', $resolved['section']['tone_dark'], 'An unset dark tone follows it.' );
-		$this->assertSame( 'inverse', $resolved['section']['background'] );
 	}
 
 	public function test_a_plain_text_body_takes_paragraphs_and_a_block_body_is_kept(): void {
@@ -470,8 +466,6 @@ final class CallToActionSectionTest extends SaltTestCase {
 	public function test_resolver_owns_the_wrapper_inputs_and_the_brand_tint_default(): void {
 		$resolved = $this->resolve_cta( array( 'heading' => 'Hi' ) );
 		$this->assertSame( 'call-to-action', $resolved['section']['name'] );
-		$this->assertTrue( $resolved['section']['contract'], 'Drawn in the contract\'s wrapper (M4).' );
-		$this->assertSame( 'brand-tint', $resolved['section']['background'] );
 		$this->assertSame( 'brand-tint', $resolved['section']['tone'] );
 		$this->assertSame( 'brand-tint', $resolved['section']['tone_dark'] );
 		$this->assertTrue( $resolved['section']['has_heading'] );
@@ -482,7 +476,6 @@ final class CallToActionSectionTest extends SaltTestCase {
 				'settings' => array( 'tone' => 'surface-alt' ),
 			)
 		);
-		$this->assertSame( 'surface-alt', $resolved['section']['background'] );
 		$this->assertSame( 'surface-alt', $resolved['section']['tone'] );
 		$this->assertSame( 'surface-alt', $resolved['section']['tone_dark'] );
 	}

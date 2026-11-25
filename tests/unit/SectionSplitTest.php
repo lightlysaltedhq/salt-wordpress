@@ -188,7 +188,7 @@ final class SectionSplitTest extends SaltTestCase {
 
 		$this->assertStringContainsString( 'data-track="rich-text-1"', $html, 'The entry opens the wrapper.' );
 		$this->assertStringContainsString( '<p class="child" data-level="1" data-index="3">Child heading|props,plan</p>', $html );
-		$this->assertStringNotContainsString( 'x-prose', $html, 'The parent view did not run.' );
+		$this->assertStringNotContainsString( 'data-block="rich-text"', $html, 'The parent view did not run.' );
 		$this->assertTrue( salt_h1_claimed() );
 	}
 

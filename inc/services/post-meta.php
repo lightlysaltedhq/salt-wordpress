@@ -420,7 +420,7 @@ function salt_the_post_layout( int $post_id ): void {
 					'<div class="salt-rich-text">%s</div>',
 					salt_render_rich_text_headings( salt_sanitize_html( $body, salt_field_allowed( 'field_salt_collection_posts_layout_rich_text_body' ) ), 1 ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Sanitised to the field's contract list before adjusting ranks.
 				);
-				salt_render_state( 'set', 'last_background', '' );
+				salt_render_state( 'set', 'last_tone', '' );
 				++$prose;
 			}
 			continue;

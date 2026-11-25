@@ -1,12 +1,10 @@
 <?php
 /**
- * The contract's section wrapper (salt-contract markup/section.json), for
- * every parent section (EP-72 M4). components/section.php, the x-section
- * band, is left only for a child theme's own whole sections and is
- * deprecated (docs/contracts/OVERRIDES.md, tier 5).
+ * The contract's section band (salt-contract markup/section.json), for
+ * every section, the parent's and a child theme's own.
  *
- * Render via salt_section() with `contract` true, which settles the id,
- * the heading level, the track and the collapse — not directly.
+ * Render via salt_section(), which settles the id, the heading level, the
+ * track and the collapse — not directly.
  *
  * ARGS:
  *   anchor              string  The settled id (never empty).

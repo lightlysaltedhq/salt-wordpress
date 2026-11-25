@@ -48,7 +48,7 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 		$this->assertStringContainsString( '<div class="grain-cta">', $html, 'The child view drew it.' );
 		$this->assertStringContainsString( '<h1>Ready?</h1>', $html, 'From the parent resolver\'s props and plan.' );
 		$this->assertStringContainsString( 'href="/contact/"', $html );
-		$this->assertStringNotContainsString( 'x-cta', $html, 'The parent view did not run.' );
+		$this->assertStringNotContainsString( 'data-block="call-to-action"', $html, 'The parent view did not run.' );
 	}
 
 	public function test_acceptance_the_declared_logic_section_is_the_childs_whole_template(): void {
@@ -74,7 +74,7 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 		);
 
 		$this->assertStringContainsString( '<div class="grain-stats"><h1>Our numbers</h1>', $html, 'The child composed the band and claimed the H1 itself.' );
-		$this->assertSame( 1, substr_count( $html, 'data-section="stats"' ), 'One band: the child\'s, not one nested in the parent\'s.' );
+		$this->assertSame( 1, substr_count( $html, 'data-track="stats-1"' ), 'One band: the child\'s, not one nested in the parent\'s.' );
 		$this->assertSame( array(), $this->logs(), 'No parent resolver log, no whole-section-override warning.' );
 	}
 
@@ -137,8 +137,8 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 
 		$html = $this->render( 'rich-text', $view );
 
-		$this->assertSame( 1, substr_count( $html, 'data-track="rich-text-1"' ), 'The entry\'s band (the contract\'s since M4) …' );
-		$this->assertSame( 1, substr_count( $html, 'data-section="rich-text"' ), '… nests the legacy template\'s own band, as before the declaration existed.' );
+		$this->assertSame( 1, substr_count( $html, 'data-track="rich-text-1"' ), 'The entry\'s band …' );
+		$this->assertSame( 1, substr_count( $html, 'data-track="rich-text-2"' ), '… nests the legacy template\'s own band, as before the declaration existed.' );
 		$this->assertStringContainsString( 'whole-section override', implode( ' ', $this->logs() ) );
 	}
 
@@ -256,7 +256,7 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 					'style.css'                         => (string) file_get_contents( $fixture . '/style.css' ),
 					'salt-overrides.json'               => (string) file_get_contents( $fixture . '/salt-overrides.json' ),
 					'template-parts/sections/stats.php' => (string) file_get_contents( $fixture . '/template-parts/sections/stats.php' ),
-					'template-parts/sections/showroom-finder.php' => '<?php salt_section( salt_section_wrapper_args( "showroom-finder", $args ), static function ( int $level ): void { echo "<p>Find a showroom</p>"; } );',
+					'template-parts/sections/showroom-finder.php' => '<?php salt_section( salt_section_contract_args( "showroom-finder", $args ), static function ( int $level ): void { echo "<p>Find a showroom</p>"; } );',
 				),
 				$extra
 			)
@@ -345,7 +345,7 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 	public function test_a_child_templates_own_anchor_and_a_parent_band_share_one_registry(): void {
 		salt_test_use_child_theme(
 			$this->grain_child(
-				array( 'template-parts/sections/showroom-finder.php' => '<?php salt_section( array_merge( salt_section_wrapper_args( "showroom-finder", $args ), array( "anchor" => "foo" ) ), static function ( int $level ): void { echo "<p>Find a showroom</p>"; } );' )
+				array( 'template-parts/sections/showroom-finder.php' => '<?php salt_section( array_merge( salt_section_contract_args( "showroom-finder", $args ), array( "anchor" => "foo" ) ), static function ( int $level ): void { echo "<p>Find a showroom</p>"; } );' )
 			)
 		);
 
@@ -362,7 +362,7 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 	public function test_an_unanchored_band_never_takes_a_child_bands_anchor(): void {
 		salt_test_use_child_theme(
 			$this->grain_child(
-				array( 'template-parts/sections/showroom-finder.php' => '<?php salt_section( array_merge( salt_section_wrapper_args( "showroom-finder", $args ), array( "contract" => true, "has_heading" => false ) ), static function ( int $level ): void { echo "<p>Find a showroom</p>"; } );' )
+				array( 'template-parts/sections/showroom-finder.php' => '<?php salt_section( array_merge( salt_section_contract_args( "showroom-finder", $args ), array( "has_heading" => false ) ), static function ( int $level ): void { echo "<p>Find a showroom</p>"; } );' )
 			)
 		);
 
@@ -377,7 +377,7 @@ final class ExtensionPointsTest extends SaltOverridesTestCase {
 	}
 
 	public function test_a_rows_second_band_mints_its_own_id(): void {
-		$band = 'salt_section( array_merge( salt_section_wrapper_args( "showroom-finder", $args ), array( "contract" => true, "has_heading" => false ) ), static function ( int $level ): void { echo "<p>Band</p>"; } );';
+		$band = 'salt_section( array_merge( salt_section_contract_args( "showroom-finder", $args ), array( "has_heading" => false ) ), static function ( int $level ): void { echo "<p>Band</p>"; } );';
 		salt_test_use_child_theme( $this->grain_child( array( 'template-parts/sections/showroom-finder.php' => '<?php ' . $band . ' ' . $band ) ) );
 
 		$html = $this->render_page(

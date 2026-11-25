@@ -19,9 +19,9 @@ $salt_missing = isset( $args['missing_layout'] ) && is_string( $args['missing_la
 ?>
 <!-- salt: section unavailable -->
 <?php if ( current_user_can( 'edit_posts' ) ) : ?>
-	<div class="x-section section-fallback py-8" data-section="fallback">
-		<div class="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">
-			<p class="border-2 border-dashed border-border p-4 text-ink-muted" role="status">
+	<div class="salt-section" data-tone="surface" data-tone-dark="surface" data-spacing="sm" data-width="default">
+		<div class="salt-section__content">
+			<p class="salt-section-fallback" role="status">
 				<?php
 				printf(
 					/* translators: %s: the missing section layout slug. */

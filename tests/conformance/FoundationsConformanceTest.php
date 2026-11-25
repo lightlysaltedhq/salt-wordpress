@@ -76,9 +76,9 @@
  *   `text-brand` on `surface` (links, eyebrows), which is not measured.
  *   The `focus` ring is, against the three grounds 3.0.0 requires
  *   (`surface`, `surface.alt`, `brand.tint`). On `surface.inverse` the contract does not rely on the
- *   ring; the `ink.inverse` keyline salt draws there is measured instead.
+ *   ring; the `ink.inverse` keyline salt.css draws there is measured instead.
  * - What only a rendered page shows: that the keyline is painted where
- *   app.css says, and the 24 x 24 target size.
+ *   salt.css says, and the 24 x 24 target size.
  * - Brands between the grid points. On-brand at rest holds for any seed by
  *   construction (salt_text_on()); hover and every other pair are measured
  *   for the frozen seeds and the grid only.
@@ -1120,7 +1120,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			}
 		}
 
-		// The keyline salt draws outside the ring where the ring is not relied
+		// The keyline salt.css draws outside the ring where the ring is not relied
 		// on (focusIndicator.keyline) is the part of the indicator that meets
 		// that ground, so it is held to the ring's own ratio there. The contract
 		// counts it covered by [ink.inverse, surface.inverse] at 4.5:1; this
@@ -1344,8 +1344,8 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * name, because each can draw a thinner or closer ring than the token says
 	 * (review of lightlysaltedhq/salt-wordpress#8).
 	 *
-	 * Templates cannot add their own outline utilities either:
-	 * test_no_template_draws_over_the_focus_indicator() refuses them.
+	 * Nor can a template add an outline utility:
+	 * test_tailwind_builds_no_utility() refuses them.
 	 */
 	public function test_the_focus_ring_geometry_meets_the_contract(): void {
 		$geometry = self::dig( self::contract( './vocabulary' ), 'contrast.focusIndicator.geometry' );
@@ -1400,183 +1400,21 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
-	 * Utility families that draw over, or take away, the focus indicator:
-	 * `outline` sets the ring's own lengths, and `shadow`, `inset-shadow`,
-	 * `ring` and `inset-ring` all write box-shadow, which replaces the keyline
-	 * on the inverse band. Tailwind builds each from a class it finds in an
-	 * @source file, and a utility beats the base layer.
+	 * Tailwind builds no utility: app.css imports it with source(none) and
+	 * names no @source, so it scans no file. Every section, view and chrome
+	 * part draws the contract's markup, styled by salt.css (6.0.0, ID-3946),
+	 * and a utility could only draw over it: an `outline-*` beats the ring's
+	 * tokens, and a `shadow-*` or `ring-*` replaces salt.css's keyline on
+	 * the inverse band (the review of lightlysaltedhq/salt-wordpress#8 saw
+	 * the ring then measure 2.77:1 on the band in light mode, 2.24:1 in dark).
+	 * A new @source line, or the import without source(none), fails here.
 	 */
-	private const INDICATOR_UTILITIES = '/^(?:outline|shadow|inset-shadow|ring|inset-ring)(?:-|$)/';
+	public function test_tailwind_builds_no_utility(): void {
+		$css = self::app_css();
 
-	/**
-	 * Utilities from those families that are allowed, by file, with the exact
-	 * number of times each appears. None today: the header draws the
-	 * contract's markup, styled by salt.css. A new use needs a line here and
-	 * a reason.
-	 */
-	private const INDICATOR_UTILITIES_ALLOWED = array();
-
-	/**
-	 * No file Tailwind scans for classes carries a utility that draws over the
-	 * focus indicator (INDICATOR_UTILITIES), so every ring on the page is the
-	 * global rule's, drawn from the tokens, and every keyline on the inverse
-	 * band is the keyline rule's. Five templates carried
-	 * `focus-visible:outline-2` until the review of lightlysaltedhq/salt-wordpress#8, whose
-	 * re-review showed a `shadow-sm` or `ring-2` on a control in an inverse
-	 * section takes the keyline away (the ring then measured 2.77:1 on the
-	 * band in light mode, 2.24:1 in dark) with the suite green.
-	 *
-	 * The files are the ones app.css's @source lines name, so a new source is
-	 * read without a change here. Classes are read from where they can be
-	 * written: `class="…"` and `class='…'` attributes in a template's HTML or
-	 * inside a string, and PHP and JS string literals. A token is refused
-	 * behind any variant (`focus-visible:`, `md:hover:`) and in either
-	 * important spelling (`!ring-2`, `ring-2!`). A bare family name
-	 * (`outline`, `shadow`, `ring`) counts only in a class attribute or a
-	 * literal that is nothing but class-like tokens, since "outline" is also
-	 * a word; a token with a suffix, a variant or an important mark counts
-	 * anywhere. Tailwind builds a bare `outline` as `outline-width: 1px`,
-	 * which beats the ring.
-	 */
-	public function test_no_template_draws_over_the_focus_indicator(): void {
-		$found = array();
-		$root  = dirname( __DIR__, 2 ) . '/';
-		foreach ( self::source_files() as $file ) {
-			$relative = str_replace( $root, '', (string) realpath( $file ) );
-			$counts   = array();
-			foreach ( self::class_strings( $file ) as list( $text, $class_context ) ) {
-				foreach ( preg_split( '/\s+/', trim( $text ) ) as $token ) {
-					$utility = self::utility_of( $token );
-					if ( '' === $utility || 1 !== preg_match( self::INDICATOR_UTILITIES, $utility ) ) {
-						continue;
-					}
-					$bare = $token === $utility && 1 === preg_match( '/^(?:outline|shadow|inset-shadow|ring|inset-ring)$/', $utility );
-					if ( $bare && ! $class_context ) {
-						continue;
-					}
-					$counts[ $token ] = ( $counts[ $token ] ?? 0 ) + 1;
-				}
-			}
-			$allowed = self::INDICATOR_UTILITIES_ALLOWED[ $relative ] ?? array();
-			foreach ( $counts as $token => $count ) {
-				if ( ( $allowed[ $token ] ?? 0 ) !== $count ) {
-					$found[] = "{$relative}: {$token}" . ( $count > 1 ? " ({$count} times)" : '' ) . ( isset( $allowed[ $token ] ) ? ", allowed {$allowed[ $token ]} times" : '' );
-				}
-			}
-			foreach ( $allowed as $token => $count ) {
-				if ( ! isset( $counts[ $token ] ) ) {
-					$found[] = "{$relative}: {$token} is allowed {$count} times but no longer appears; remove its line from INDICATOR_UTILITIES_ALLOWED.";
-				}
-			}
-		}
-
-		$this->assertSame( array(), $found, "These files carry utilities that draw over the focus indicator (an outline beats the ring's tokens; a shadow or ring replaces the keyline on the inverse band). Remove them; the global :focus-visible rule and the keyline rule draw every indicator:\n  " . implode( "\n  ", $found ) );
-	}
-
-	/**
-	 * Every file app.css's @source lines name.
-	 *
-	 * @return list<string>
-	 */
-	private static function source_files(): array {
-		preg_match_all( '/@source\s+"([^"]+)"/', self::app_css(), $sources );
-		if ( array() === $sources[1] ) {
-			self::fail( 'app.css names no @source, so there is nothing to scan.' );
-		}
-
-		$base  = dirname( self::APP_CSS );
-		$files = array();
-		foreach ( $sources[1] as $source ) {
-			$path = $base . '/' . $source;
-			// A glob (`*`, or one brace list naming several files, which
-			// Tailwind reads as one source) or a single file.
-			if ( str_contains( $source, '*' ) || str_contains( $source, '{' ) ) {
-				$matched = (array) glob( $path, GLOB_BRACE );
-				if ( array() === $matched ) {
-					self::fail( "app.css's @source \"{$source}\" matches no file." );
-				}
-				$files = array_merge( $files, $matched );
-				continue;
-			}
-			if ( is_file( $path ) ) {
-				$files[] = $path;
-				continue;
-			}
-			if ( ! is_dir( $path ) ) {
-				self::fail( "app.css's @source \"{$source}\" is neither a glob, a file nor a directory." );
-			}
-			foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $file ) {
-				$files[] = $file->getPathname();
-			}
-		}
-
-		return array_values( array_unique( $files ) );
-	}
-
-	/**
-	 * Every place a class can be written in one source file, each with
-	 * whether it is certainly a class list: class attributes (true), and
-	 * string literals, which are a class list when every token in them looks
-	 * like a class. PHP is read with its own tokenizer, so HTML outside PHP
-	 * tags and strings inside it are told apart exactly; JS by its three
-	 * quote forms.
-	 *
-	 * @param string $file Path.
-	 * @return list<array{0: string, 1: bool}>
-	 */
-	private static function class_strings( string $file ): array {
-		$code    = (string) file_get_contents( $file );
-		$html    = array();
-		$strings = array();
-
-		if ( str_ends_with( $file, '.php' ) ) {
-			foreach ( token_get_all( $code ) as $token ) {
-				if ( ! is_array( $token ) ) {
-					continue;
-				}
-				if ( T_INLINE_HTML === $token[0] ) {
-					$html[] = $token[1];
-				} elseif ( T_CONSTANT_ENCAPSED_STRING === $token[0] ) {
-					$strings[] = stripcslashes( substr( $token[1], 1, -1 ) );
-				} elseif ( T_ENCAPSED_AND_WHITESPACE === $token[0] ) {
-					$strings[] = $token[1];
-				}
-			}
-		} else {
-			preg_match_all( '/(["\'`])((?:\\\\.|(?!\1).)*)\1/s', $code, $literals );
-			$strings = $literals[2];
-		}
-
-		$out = array();
-		foreach ( array_merge( $html, $strings ) as $text ) {
-			preg_match_all( '/\bclass\s*=\s*(["\'])(.*?)\1/s', $text, $attributes );
-			foreach ( $attributes[2] as $attribute ) {
-				$out[] = array( $attribute, true );
-			}
-		}
-		foreach ( $strings as $text ) {
-			$class_like = '' !== trim( $text ) && 1 === preg_match( '/^[\s!a-z0-9:\[\]().%\/_#-]+$/', $text );
-			$out[]      = array( $text, $class_like );
-		}
-
-		return $out;
-	}
-
-	/**
-	 * The utility a class token names, with its variants (`focus-visible:`,
-	 * `md:hover:`) and either important mark (`!ring-2`, `ring-2!`) removed,
-	 * or '' for a token that is not class-shaped.
-	 *
-	 * @param string $token Whitespace-free token.
-	 * @return string
-	 */
-	private static function utility_of( string $token ): string {
-		if ( 1 !== preg_match( '/^[!a-z0-9:\[\]().%\/_#-]+$/', $token ) ) {
-			return '';
-		}
-		$parts = preg_split( '/:(?![^\[]*\])/', $token );
-
-		return trim( (string) end( $parts ), '!' );
+		preg_match_all( '/@import\s+"tailwindcss"([^;]*);/', $css, $imports );
+		$this->assertSame( array( ' source(none)' ), $imports[1], 'app.css must import Tailwind once, as `@import "tailwindcss" source(none);`, so it scans no file for classes.' );
+		$this->assertSame( 0, preg_match( '/@source\b/', $css ), 'app.css names an @source, so Tailwind builds utilities again. Nothing the theme draws uses one: the contract\'s stylesheet styles its markup.' );
 	}
 
 	/**
@@ -1725,92 +1563,66 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
+	 * The contract's stylesheet as the theme serves it: the pinned package's
+	 * styles/salt.css, which the build copies byte for byte
+	 * (ContractStylesheetTest).
+	 *
+	 * @return string
+	 */
+	private static function salt_css(): string {
+		$path = dirname( __DIR__, 2 ) . '/node_modules/@lightlysaltedhq/salt-contract/styles/salt.css';
+		if ( ! is_file( $path ) ) {
+			self::fail( 'The pinned salt-contract is not installed (run npm ci), so there is no stylesheet to read the keyline from.' );
+		}
+
+		return (string) file_get_contents( $path );
+	}
+
+	/**
 	 * Where the contract does not rely on the ring (focusIndicator.keyline,
-	 * `surface.inverse` in 3.0.0), salt draws a keyline in the named role as
-	 * the indicator's outermost part, at least as thick as the contract asks.
+	 * `surface.inverse` in 3.0.0), a keyline in the named role is the
+	 * indicator's outermost part, at least as thick as the contract asks.
 	 *
-	 * The keyline rule is read as one exact shape and anything else is
-	 * refused: `.bg-{ground} :focus-visible` with a single box-shadow whose
-	 * first layer repaints the offset gap in the ground and whose second
-	 * reaches past the ring by --focus-keyline-width in the keyline's role.
-	 * The ground's class is the one x-section prints for its inverse
-	 * background, checked by rendering one. Nothing else in app.css may set a
-	 * box-shadow, and the nested-ground reset may only set `none`: any other
-	 * box-shadow on a focused control replaces the keyline. Utilities that do
-	 * the same from a template are test_no_template_draws_over_the_focus_indicator()'s.
+	 * Since 6.0.0 (ID-3946) every band is the contract's, and its stylesheet
+	 * (salt.css) draws the keyline: each focused control's box-shadow reaches
+	 * past the ring in the band's ink (--salt-section-ink), and the band whose
+	 * tone is the keyline's ground sets that ink to the keyline's role. This
+	 * reads both from the served salt.css, and the keyline's reach past the
+	 * ring against the contract's floor. app.css may then set no box-shadow
+	 * at all, at any depth, in any case or with a vendor prefix: any one on a
+	 * focused control replaces the keyline, as a later
+	 * `.salt-button:focus-visible { box-shadow: none }` would.
 	 *
-	 * What this does not see: whether the browser paints it. Chrome for
-	 * Testing 148.0.7778.96 (headless) did, for a button and a link, light and
-	 * dark, at 320 and 1280 CSS px wide (CHANGELOG, Unreleased).
+	 * What this does not see: whether the browser paints it. The contract's
+	 * own conformance runner renders the bands.
 	 */
 	public function test_the_focus_keyline_is_drawn_where_the_ring_is_not_relied_on(): void {
-		$css = self::app_css();
-
-		ob_start();
-		salt_section(
-			array(
-				'name'       => 'rich-text',
-				'background' => 'inverse',
-			),
-			static function (): void {}
-		);
-		$section = (string) ob_get_clean();
-
-		$blank    = self::blank_strings( $css );
-		$shadows  = array();
+		$salt     = self::salt_css();
 		$failures = array();
 		foreach ( self::keylines() as $keyline ) {
-			$ground = 'bg-' . str_replace( '.', '-', $keyline['ground'] );
-			$role   = '--color-' . str_replace( '.', '-', $keyline['role'] );
+			$tone = str_replace( '.', '-', $keyline['ground'] );
+			$role = '--color-' . str_replace( '.', '-', $keyline['role'] );
 
-			$failure = self::px_floor_failure( $css, '--focus-keyline-width', 'atLeastCssPx', $keyline['floor'] );
-			if ( null !== $failure ) {
-				$failures[] = $failure;
+			$ink = '/\.salt-section\[data-tone=' . preg_quote( $tone, '/' ) . '\][^{]*\{[^}]*--salt-section-ink:\s*var\(' . preg_quote( $role, '/' ) . '\)/';
+			if ( 1 !== preg_match( $ink, $salt ) ) {
+				$failures[] = "salt.css's `{$tone}` band does not set --salt-section-ink to var({$role}), so its keyline is not drawn in {$keyline['role']}.";
 			}
 
-			if ( 1 !== preg_match( '/\bclass="[^"]*(?<![\w-])' . preg_quote( $ground, '/' ) . '(?![\w-])/', $section ) ) {
-				$failures[] = "x-section's inverse background does not print `{$ground}`, so a keyline keyed to that class draws on no section.";
+			preg_match_all( '/:focus-visible[^{]*\{[^}]*box-shadow:[^}]*calc\(var\(--focus-ring-offset\)\s*\+\s*var\(--focus-ring-width\)\s*\+\s*([0-9.]+)px\)\s*var\(--salt-section-ink\b/', $salt, $reaches );
+			if ( array() === $reaches[1] ) {
+				$failures[] = 'salt.css draws no focus box-shadow reaching past the ring in var(--salt-section-ink), so nothing draws the keyline.';
 			}
-
-			$selector = '(?:^|[{};])\s*\.' . preg_quote( $ground, '/' ) . '\s+:focus-visible\s*\{([^{}]*)\}';
-			if ( 1 !== preg_match_all( '/' . $selector . '/', $blank, $rule, PREG_OFFSET_CAPTURE ) ) {
-				$failures[] = "app.css has no single `.{$ground} :focus-visible` rule, so nothing draws the {$keyline['role']} keyline on {$keyline['ground']}.";
-				continue;
-			}
-			$shadows[]  = array( $rule[1][0][1], $rule[1][0][1] + strlen( $rule[1][0][0] ) );
-			$rule[1][0] = $rule[1][0][0];
-
-			// The nested-ground reset: a card or panel inside the band is its own
-			// ground. Its body may only take the keyline away.
-			$reset = '(?:^|[{};])\s*\.' . preg_quote( $ground, '/' ) . '\s+:is\([^(){}]*\)\s+:focus-visible\s*\{([^{}]*)\}';
-			preg_match_all( '/' . $reset . '/', $blank, $resets, PREG_OFFSET_CAPTURE );
-			foreach ( $resets[1] as $body ) {
-				if ( 'box-shadow:none' !== trim( (string) preg_replace( '/\s+/', '', $body[0] ), ';' ) ) {
-					$failures[] = "The nested-ground reset under `.{$ground}` is `" . trim( $body[0] ) . '`; it may only be `box-shadow: none`.';
-					continue;
+			foreach ( array_unique( $reaches[1] ) as $reach ) {
+				if ( self::compare_decimal( $reach, $keyline['floor'] ) < 0 ) {
+					$failures[] = "salt.css's keyline reaches {$reach}px past the ring; the contract needs at least {$keyline['floor']}px on {$keyline['ground']}.";
 				}
-				$shadows[] = array( $body[1], $body[1] + strlen( $body[0] ) );
-			}
-
-			$want = 'box-shadow:0 0 0 var(--focus-ring-offset) var(--color-' . str_replace( '.', '-', $keyline['ground'] ) . '),0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width) + var(--focus-keyline-width)) var(' . $role . ')';
-			$got  = trim( (string) preg_replace( '/\s*,\s*/', ',', (string) preg_replace( '/\s*:\s*/', ':', (string) preg_replace( '/\s+/', ' ', $rule[1][0] ) ) ), ' ;' );
-			if ( $want !== $got ) {
-				$failures[] = "`.{$ground} :focus-visible` is `{$got}`. This suite reads one shape only, `{$want}`: the ground repainted across the offset gap, then the keyline in {$keyline['role']} reaching --focus-keyline-width past the ring.";
 			}
 		}
 
-		// Any other box-shadow in app.css, at any depth, in any case or with a
-		// vendor prefix, can replace the keyline on a focused control, as a
-		// later `.x-button:focus-visible { box-shadow: none }` would, leaving the
-		// ring alone on the band at 2.77:1 light and 2.24:1 dark. So only the
-		// keyline rule and its nested-ground reset may declare one.
-		preg_match_all( '/(?<=[{;])\s*((?i:-webkit-)?(?i:box-shadow))\s*:([^;{}]*)/', $blank, $declared, PREG_OFFSET_CAPTURE | PREG_SET_ORDER );
-		foreach ( $declared as $declaration ) {
-			$at      = $declaration[1][1];
-			$covered = array_filter( $shadows, static fn( array $range ): bool => $at >= $range[0] && $at < $range[1] );
-			if ( array() === $covered ) {
-				$failures[] = "app.css declares `{$declaration[1][0]}:" . substr( $css, $declaration[2][1], strlen( $declaration[2][0] ) ) . '` in `' . self::excerpt( $css, $at ) . '`. Only the keyline rule and its nested-ground reset may set a box-shadow: any other can take the keyline off a focused control on the inverse band.';
-			}
+		$css = self::app_css();
+		preg_match_all( '/(?<=[{;])\s*((?i:-webkit-)?(?i:box-shadow))\s*:/', self::blank_strings( $css ), $declared, PREG_OFFSET_CAPTURE );
+		foreach ( $declared[1] as $declaration ) {
+			$failures[] = "app.css declares `{$declaration[0]}` in `" . self::excerpt( $css, $declaration[1] ) . '`. It may set no box-shadow: any one can take salt.css\'s keyline off a focused control on the inverse band.';
 		}
 
 		$this->assertSame( array(), $failures, "The focus keyline does not meet the contract:\n  " . implode( "\n  ", $failures ) );

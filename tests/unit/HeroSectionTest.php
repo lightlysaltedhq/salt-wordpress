@@ -583,7 +583,6 @@ final class HeroSectionTest extends SaltTestCase {
 		);
 
 		$this->assertSame( 'hero', $resolved['section']['name'] );
-		$this->assertTrue( $resolved['section']['contract'], 'Drawn in the contract\'s wrapper (M4).' );
 		$this->assertSame( 'wide', $resolved['section']['container'], 'The width is the editor\'s, not forced to full.' );
 		$this->assertArrayNotHasKey( 'flush_top', $resolved['section'] );
 		$this->assertSame( 'https://example.test/uploads/hero.jpg', $resolved['section']['background_image']['image']['src'], 'The photograph is the band\'s background.' );

@@ -26,7 +26,6 @@ the filters below instead.
 | `salt_derive_ramp()` | inc/colors.php | Ramp lightness/chroma ladder |
 | `salt_location_status()` | inc/services/location-status.php | Open-status computation |
 | `salt_best_image_format()` | inc/performance.php | Format capability probe |
-| `salt_image_data()` | inc/media.php | Attachment → renderable data |
 | `salt_render_section()` | inc/render.php | Layout → template resolution (an override must render through `salt_render_resolved_section()`, see Section views) |
 
 ## Filter priority bands
@@ -324,8 +323,8 @@ the child's `template-parts/sections/{slug}.php` **whole**, with the loop
 context (`index`, `is_primary`) as `$args`, exactly as a child-only layout
 is loaded. That template is a whole section: it does its own reads,
 queries, sanitising and schema, and **must** wrap what it draws in
-`salt_section( salt_section_wrapper_args( '{slug}', $args ) + … )`. The
-wrapper is what moves the page's render state on: without it the section
+`salt_section()` with `salt_section_contract_args( '{slug}', $args )`
+(below). The band is what moves the page's render state on: without it the section
 index is not advanced and the adjacency-collapse state still describes the
 section before, so the NEXT section gets this one's index (a duplicate
 accordion group name, for example) and collapses or keeps its top space
@@ -335,12 +334,8 @@ template draws markup without it (a template that draws nothing is a
 0-state and is not warned about). Name its helpers with the child's own
 prefix, never `salt_resolve_section_*()`.
 
-**The x-section band is deprecated (6.0.0, ID-3946).** Called with
-`salt_section_wrapper_args()`, `salt_section()` draws the old x-section
-band (`template-parts/components/section.php`, Tailwind utilities). It
-still works, and app.css still builds the utilities that part prints, but
-no parent section uses it and a later major release removes it. Draw the
-contract's band instead, as the parent's own sections do: pass
+`salt_section()` draws the contract's band, as for the parent's own
+sections (since 6.0.0 it has no other band; ID-3946). Pass
 `salt_section_contract_args()` and say whether the block draws a heading,
 then draw the block, `div.salt-block[data-block=…]`, with its heading's id
 `<anchor>__heading`:
@@ -454,6 +449,10 @@ for it (below).
 - `template-parts/components/heading.php` (x-heading)
 - `template-parts/components/icon.php` (x-icon; `salt_contract_icon()`
   draws the contract's icon)
+- `template-parts/components/image.php` (x-image; draw an image with
+  `salt_image_contract_html( salt_image_contract( $id, salt_image_slot_sizes( … ) ) )`)
+- `template-parts/components/section.php` (the x-section band;
+  `salt_section()` always draws `components/contract-section.php`)
 - `template-parts/components/stat.php` (x-stat)
 - `template-parts/content/card.php`, `card-post.php`, `card-service.php`,
   `card-work.php` and `none.php` (the archive and search loops draw
@@ -467,12 +466,31 @@ and `data-url` are gone, and so is the `classes` arg (the contract fixes
 the element's classes; an extra arg is ignored). Select the link by
 `.salt-booking`; its `href` is the booking URL.
 
+**Functions removed.** Calling one is a fatal error.
+
+- `salt_section_wrapper_args()`; use `salt_section_contract_args()`, which
+  returns the band's args in the contract's vocabulary: `tone` and
+  `tone_dark` (`surface`, `surface-alt`, `brand-tint`, `surface-inverse`),
+  not `background` (`inverse`).
+- `salt_image_data()` (pluggable) and `salt_image_sizes()`, x-image's
+  attachment resolver and sizes map; use `salt_image_contract()` with
+  `salt_image_slot_sizes()`.
+- `salt_classnames()`, which only those two parts used.
+
+**`salt_section()` args changed.** It draws the contract's band only. The
+`background`, `flush_top` and `contract` args are gone (an extra arg is
+ignored): pass `tone` and `tone_dark` instead. An unknown tone, dark tone,
+spacing or width is logged and draws the default.
+
 **CSS no longer in app.css.**
 
-- Tailwind utilities for child markup. app.css builds utilities only from
-  `components/section.php`, `sections/fallback.php` and `single.php`; a
-  utility class in a child's own template is no longer generated unless
-  one of those uses it. Ship the child's own stylesheet for its markup.
+- Every Tailwind utility. app.css builds none (`source(none)` with no
+  `@source`), so a utility class in a child's own template draws nothing.
+  Ship the child's own stylesheet for its markup, reading the theme's
+  tokens (`var(--color-brand)`, `var(--space-section-md)`).
+- The inverse band's focus keyline rule (`.bg-surface-inverse
+  :focus-visible`) and its `--focus-keyline-width` token; salt.css draws
+  the keyline on every contract control in a `surface-inverse` band.
 - `.x-prose` (long-form typography); the contract draws rich text as
   `.salt-rich-text`, which salt.css styles.
 - `.x-logo*` (the dark-logo swap) and `.x-header.is-sticky`; the chrome
@@ -496,8 +514,8 @@ the element's classes; an extra arg is ignored). Select the link by
 - **Simple data-only parts** (content cards, loops) render via raw
   `get_template_part( $slug, $variant, $args )`.
 - Sections render via `salt_render_section()` from the loop. A split
-  section's resolver returns the wrapper args and props, and the shared
-  entry draws its view inside `salt_section( $wrapper_args,
+  section's resolver returns the band args and props, and the shared
+  entry draws its view inside `salt_section( $band_args,
   $content_callback )`, passing the derived heading level as
   `$args['plan']['headingLevel']` (A11Y01). An unsplit (child-only)
   section composes its body inside `salt_section()` itself, as before.

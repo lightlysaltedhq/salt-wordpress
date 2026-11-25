@@ -18,7 +18,7 @@ $grain_heading = function_exists( 'get_sub_field' ) ? (string) get_sub_field( 'h
 
 salt_section(
 	array_merge(
-		salt_section_wrapper_args( 'stats', $args ),
+		salt_section_contract_args( 'stats', $args ),
 		array( 'has_heading' => '' !== $grain_heading )
 	),
 	static function ( int $level ) use ( $grain_heading ): void {

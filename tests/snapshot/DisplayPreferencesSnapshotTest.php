@@ -1,6 +1,6 @@
 <?php
 /**
- * x-display-preferences snapshots (FLEET01) — fully deterministic markup
+ * Display-preferences component snapshots (FLEET01) — fully deterministic markup
  * (controls are passed in; the JS owns all state).
  *
  * @package Salt\Tests
