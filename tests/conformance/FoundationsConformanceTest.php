@@ -690,6 +690,79 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
+	 * The colour input of every combination of the design dials (each option
+	 * of each dial in salt_design_dials()), grouped where it is identical: the
+	 * `--color-…` declarations salt_dials_css() writes on `:root`, which join
+	 * the runtime block, and those under `[data-theme="dark"]`, as a dark-mode
+	 * rule ranked with app.css's. A colour declared in its @media rule, or a
+	 * rule this cannot read, fails: rank could not say when it applies.
+	 *
+	 * @return list<array{label: string, root: array<string, string>, rules: list<array{selector: string, modes: list<string>, rank: int, set: array<string, string>}>}>
+	 */
+	private static function dial_groups(): array {
+		static $groups = null;
+		if ( null !== $groups ) {
+			return $groups;
+		}
+
+		$combos = array( array() );
+		foreach ( salt_design_dials() as $id => $dial ) {
+			$next = array();
+			foreach ( $combos as $combo ) {
+				foreach ( array_keys( $dial['options'] ) as $value ) {
+					$next[] = $combo + array( $id => $value );
+				}
+			}
+			$combos = $next;
+		}
+
+		$colours = static function ( string $block ): array {
+			preg_match_all( '/(--color-[\w-]+):([^;]+)/', $block, $found );
+			return array_combine( $found[1], $found[2] );
+		};
+
+		$by_input = array();
+		foreach ( $combos as $combo ) {
+			$css = salt_dials_css( $combo );
+			if ( 1 !== preg_match( '/^(?::root\{(?<root>[^{}]*)\})?(?:@media \(width>=48rem\)\{:root\{(?<wide>[^{}]*)\}\})?(?:\[data-theme="dark"\]\{(?<dark>[^{}]*)\})?$/', $css, $found ) ) {
+				self::fail( "salt_dials_css() wrote rules this suite cannot read: {$css}" );
+			}
+			if ( array() !== $colours( $found['wide'] ?? '' ) ) {
+				self::fail( "salt_dials_css() declares a colour in its @media rule, which the contrast checks cannot rank: {$css}" );
+			}
+
+			$dark  = $colours( $found['dark'] ?? '' );
+			$input = array(
+				'root'  => $colours( $found['root'] ?? '' ),
+				'rules' => array() === $dark ? array() : array(
+					array(
+						'selector' => self::MODES['dark'],
+						'modes'    => array( 'dark' ),
+						'rank'     => 1,
+						'set'      => $dark,
+					),
+				),
+			);
+
+			$key                         = (string) wp_json_encode( $input );
+			$by_input[ $key ]          ??= $input + array( 'combos' => 0 );
+			$by_input[ $key ]['combos'] += 1;
+		}
+
+		$groups = array();
+		foreach ( $by_input as $input ) {
+			$declared = array_keys( $input['root'] + ( $input['rules'][0]['set'] ?? array() ) );
+			$groups[] = array(
+				'label' => sprintf( '%s (%d of %d combinations)', array() === $declared ? 'no dial colour' : implode( ', ', $declared ), $input['combos'], count( $combos ) ),
+				'root'  => $input['root'],
+				'rules' => $input['rules'],
+			);
+		}
+
+		return $groups;
+	}
+
+	/**
 	 * Every colour token's value in one combination of display modes: @theme,
 	 * then the runtime block, then each applicable mode rule, the highest rank
 	 * winning. Two rules of equal rank that set a token differently cannot be
@@ -1078,7 +1151,8 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * of display modes, for every frozen and grid seed and the compiled
 	 * defaults, at rest and on hover. Every failure in the combination is
 	 * reported together, one line per rule, with its worst palette and the
-	 * colours that produced it.
+	 * colours that produced it. Each palette is checked under every
+	 * combination of the design dials (dial_groups()).
 	 *
 	 * @param list<string> $combo Mode names in force.
 	 */
@@ -1165,23 +1239,31 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			}
 		}
 
+		// Every palette again under every combination of the design dials. A
+		// dial's colour declarations join the runtime block (`:root`) or rank as
+		// a dark-mode rule; combinations that give identical colour input are
+		// one group, measured once.
 		$ties     = array();
 		$failures = array();
-		foreach ( $palettes as $palette => $runtime ) {
-			$tokens = self::tokens( $rules, $combo, $runtime, $ties );
+		foreach ( self::dial_groups() as $group ) {
+			$with = array_merge( $rules, $group['rules'] );
+			foreach ( $palettes as $palette => $runtime ) {
+				$tokens = self::tokens( $with, $combo, array_merge( $runtime, $group['root'] ), $ties );
 
-			foreach ( $checks as list( $label, $fg_role, $bg_role, $min ) ) {
-				list( $fg, $fg_why ) = self::measure( $tokens, $fg_role );
-				list( $bg, $bg_why ) = self::measure( $tokens, $bg_role );
+				foreach ( $checks as list( $label, $fg_role, $bg_role, $min ) ) {
+					$check               = "{$label} [dials: {$group['label']}]";
+					list( $fg, $fg_why ) = self::measure( $tokens, $fg_role );
+					list( $bg, $bg_why ) = self::measure( $tokens, $bg_role );
 
-				if ( null === $fg || null === $bg ) {
-					$failures[ $label ]['unverified'][ trim( "{$fg_why}; {$bg_why}", '; ' ) ][] = $palette;
-					continue;
-				}
+					if ( null === $fg || null === $bg ) {
+						$failures[ $check ]['unverified'][ trim( "{$fg_why}; {$bg_why}", '; ' ) ][] = $palette;
+						continue;
+					}
 
-				$ratio = salt_contrast_ratio( $fg, $bg );
-				if ( $ratio < $min ) {
-					$failures[ $label ]['below'][] = array( $ratio, $palette, $fg, $bg, $min );
+					$ratio = salt_contrast_ratio( $fg, $bg );
+					if ( $ratio < $min ) {
+						$failures[ $check ]['below'][] = array( $ratio, $palette, $fg, $bg, $min );
+					}
 				}
 			}
 		}
@@ -1252,6 +1334,9 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 */
 	public function test_colour_tokens_are_declared_only_where_they_can_be_ranked(): void {
 		$runtime = self::runtime( '#4b5563' );
+		foreach ( self::dial_groups() as $group ) {
+			$runtime += $group['root'];
+		}
 
 		foreach ( self::colour_rules() as $rule ) {
 			if ( 0 === $rule['rank'] ) {

@@ -420,8 +420,18 @@ makes no network calls and stores nothing.
 
 ### Design dials (tier 2)
 
-Not supported yet. The theme's token layer has no rungs for the dials to
-move; the dials extension point arrives with ID-3612.
+Set in Site Settings → Brand & Design → Appearance, by an administrator
+only: Corners, Shadows, Button style and Density, the contract's four
+(`contract/dials.json`). Each is a choice; `salt_brand_css()` writes the
+tokens it maps after the brand colours, and a dial left on its default
+writes nothing. A child theme has no dial configuration: do not set dial
+tokens (`--radius-*`, `--salt-card-shadow`, `--salt-button-radius`,
+`--space-section-*`) in a child stylesheet to stand in for a dial, and
+do not list dials in `salt-overrides.json` (the schema refuses them). The
+dials print with the brand colours in `<style id="salt-brand-vars">`, after
+every enqueued stylesheet, the child's included, so a child's `:root` rule
+for one of those tokens loses to a set dial, as it does to the brand
+colours; only the Customizer's Additional CSS prints after them.
 
 ## Removed template parts and CSS (6.0.0, ID-3946) — BREAKING
 

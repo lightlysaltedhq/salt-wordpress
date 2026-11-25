@@ -11,6 +11,17 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
+### Added: design dials in Site Settings (ID-3612)
+
+Site Settings → Brand & Design → Appearance now offers the contract's four design dials (salt-contract `contract/dials.json`). Each is a choice, never a raw value, and only administrators (`manage_options`) see or save them; ACF draws no dial for anyone else and drops dials posted by another user.
+
+- **Corners:** Square, Soft (the theme's own) or Round. Moves `--radius-sm`, `--radius-md` and `--radius-lg`.
+- **Shadows:** None (the default), Subtle or Raised. Writes `--salt-card-shadow` from the shadow rungs, and while set, the shadow colours `--color-shadow-sm/-md/-lg` in light and dark.
+- **Button style:** Square, Soft (follows the corners) or Pill. Writes `--salt-button-radius`.
+- **Density:** Compact, Comfortable (the theme's own) or Spacious. Moves `--space-section-sm/-md/-lg`, narrow and from 48rem, and with them the case-study page's gaps.
+
+`salt_brand_css()` writes the chosen rungs' values after the brand colours in the same nonce-carrying `<style id="salt-brand-vars">`, so they follow the theme's stylesheet and precede Customizer CSS. A dial left unset or on its default writes nothing, and a site that sets no colour and no dial prints nothing, as before. Child themes have no dial config: set the dials in Site Settings.
+
 ### Breaking: updates need no token (ID-3633)
 
 Sites update through Git Updater from the public repository and hold no credential, so a site we stop maintaining keeps working on its installed version.

@@ -165,6 +165,13 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    with JavaScript disabled, checks native radio arrows and wraparound, Tab/Shift+Tab focus,
    selected-panel visibility, stacked and unnamed sets, pagination gaps, image priority,
    empty and absent routes, and mobile overflow. `SALT_HARNESS_SCREENSHOTS` keeps these states.
+   **Design dials** (`php/dials.php`, `dials.mjs`): an administrator sees the four dials on
+   Brand & Design as choices and saves one through the form; a page of cards, buttons and
+   bands at each spacing renders as before with every dial unset; each non-default choice
+   changes only its own tokens and visibly draws (computed corners, card shadow, section
+   padding, density also at 600px), with the brand `<style>` carrying the CSP nonce and no
+   refusal; an Editor gets no Brand & Design link, a 403 on the page, and through ACF's own
+   save neither a drawn nor a stored dial. `SALT_HARNESS_SCREENSHOTS` keeps each state.
 7. **The editor, in headless Chromium** against the same server (`browser.mjs`):
    - the fixtures page's classic edit screen renders every row and layout with no console errors;
    - the faq section's collection query mode shows categories or items, and order and count unless

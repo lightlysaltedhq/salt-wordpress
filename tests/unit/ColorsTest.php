@@ -174,6 +174,21 @@ final class ColorsTest extends SaltTestCase {
 		$this->assertStringContainsString( "--color-primary-500:{$neutral_500};", $css );
 	}
 
+	/**
+	 * A dial left unset, on its default, or holding a choice the table does
+	 * not have, writes nothing: the site renders as it did before the dials.
+	 */
+	public function test_brand_css_is_unchanged_by_dials_that_set_nothing(): void {
+		$colours = array( 'primary' => '#3b82f6' );
+		$plain   = salt_brand_css( $colours );
+
+		$this->assertSame( $plain, salt_brand_css( $colours + array_fill_keys( array_keys( salt_design_dials() ), '' ) ) );
+		$this->assertSame( $plain, salt_brand_css( $colours + array_map( static fn( array $dial ): string => $dial['default'], salt_design_dials() ) ) );
+		$this->assertSame( $plain, salt_brand_css( $colours + array_fill_keys( array_keys( salt_design_dials() ), 'pill;}body{display:none' ) ) );
+		$this->assertSame( '', salt_dials_css( array( 'corners' => 'soft' ) ) );
+		$this->assertNotSame( $plain, salt_brand_css( $colours + array( 'corners' => 'square' ) ) );
+	}
+
 	public function test_brand_css_fallback_chain_accent_inherits_secondary(): void {
 		$css = salt_brand_css(
 			array(

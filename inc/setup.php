@@ -35,8 +35,10 @@ add_action( 'after_setup_theme', 'salt_setup' );
  *
  * Derived at render from the three admin-set brand colours by the SAME
  * math (inc/colors.php) that produced the compiled neutral defaults —
- * so an unconfigured site simply keeps the defaults (FAIL03). Runs late
- * (priority 20) so the override follows the enqueued stylesheet.
+ * so an unconfigured site simply keeps the defaults (FAIL03). The admin-set
+ * design dials follow (salt_dials_css()); a dial left unset, or on its
+ * default, prints nothing. Runs late (priority 20) so the override follows
+ * the enqueued stylesheet.
  *
  * @return void
  */
@@ -50,15 +52,21 @@ function salt_output_brand_css(): void {
 		'secondary' => (string) ( salt_option( 'brand_secondary' ) ?? '' ),
 		'accent'    => (string) ( salt_option( 'brand_accent' ) ?? '' ),
 	);
+	$dials = array();
+	foreach ( salt_design_dials() as $id => $dial ) {
+		$dials[ $id ] = (string) ( salt_option( $dial['field'] ) ?? '' );
+	}
 
-	if ( '' === implode( '', $brand ) ) {
+	// No colour set: the compiled colour defaults stand, and only the dials print.
+	$css = '' === implode( '', $brand ) ? salt_dials_css( $dials ) : salt_brand_css( $brand + $dials );
+	if ( '' === $css ) {
 		return; // Nothing configured — compiled defaults are already correct.
 	}
 
 	printf(
 		'<style id="salt-brand-vars" nonce="%s">%s</style>' . "\n",
 		esc_attr( salt_csp_nonce() ),
-		salt_brand_css( $brand ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Generated exclusively from validated hex values by salt_brand_css().
+		$css // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Generated exclusively from validated hex values and the dial table's own values (choices outside it are dropped) by salt_brand_css().
 	);
 }
 add_action( 'wp_head', 'salt_output_brand_css', 20 );
