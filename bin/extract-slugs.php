@@ -56,6 +56,7 @@ if ( ! function_exists( 'salt_log' ) ) {
 require_once $salt_root . '/inc/helpers.php';
 require_once $salt_root . '/inc/modules.php';
 require_once $salt_root . '/inc/acf.php';
+require_once $salt_root . '/inc/colors.php'; // The design dials' choices (options-brand.php).
 require_once $salt_root . '/inc/query/resolver.php';
 require_once $salt_root . '/inc/cpt/records.php';
 remove_filter( 'init', 'salt_register_cpt_records' ); // Only its field helpers are needed here.

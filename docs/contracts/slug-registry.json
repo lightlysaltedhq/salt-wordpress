@@ -152,6 +152,10 @@
 			"brand_primary",
 			"brand_secondary",
 			"dark_mode",
+			"dial_button_style",
+			"dial_corners",
+			"dial_density",
+			"dial_shadows",
 			"reduce_motion"
 		],
 		"group_salt_options_captcha": [
@@ -533,6 +537,10 @@
 			"brand_primary",
 			"brand_secondary",
 			"dark_mode",
+			"dial_button_style",
+			"dial_corners",
+			"dial_density",
+			"dial_shadows",
 			"reduce_motion"
 		],
 		"group_salt_options_captcha": [
