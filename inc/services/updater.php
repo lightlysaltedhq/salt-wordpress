@@ -1,20 +1,29 @@
 <?php
 /**
- * Git Updater support: private-repo token custody (spec §4; review SEC03).
+ * Git Updater support: tokenless updates from the public repo (SEC03, SC-005).
  *
- * TOKEN CUSTODY CONTRACT (SEC03):
- * - The repo access token lives in a wp-config.php constant,
- *   SALT_UPDATER_TOKEN — NEVER in wp_options or anywhere in the database,
- *   so it stays out of DB backups and admin-visible screens.
- * - Each site gets its own FINE-GRAINED, READ-ONLY deploy token scoped to
- *   the single parent-theme repo, so one breached site cannot be used
- *   against the rest of the fleet. Rotation + revocation procedure:
- *   docs/RUNBOOK-ROLLBACK.md §Token custody.
+ * UPDATE CUSTODY CONTRACT (SEC03):
+ * - A site holds NO credential for updates. The repository is public, so Git
+ *   Updater reads it unauthenticated and a site needs nothing in wp-config.php,
+ *   wp_options or anywhere else. There is no per-site token to issue, rotate or
+ *   revoke, and a site keeps working on its installed version if the repo stops
+ *   being maintained (SC-005 handoff rule).
+ * - Git Updater's own authenticated requests are tied to its licence (after the
+ *   trial it flushes stored access tokens monthly unless licensed), so
+ *   unauthenticated reads are the only licence-free path. GitHub allows 60
+ *   unauthenticated API requests per hour per server IP; see
+ *   docs/RUNBOOK-ROLLBACK.md §Updates without a token.
+ * - Distribution is the repository's tag zipball with assets/dist committed and
+ *   the runtime libraries vendored (FLEET08), so the zipball installs as it
+ *   stands: no build step on the site, no release asset to build, upload and
+ *   authenticate.
  *
- * Mechanism: rather than depending on a specific updater plugin's own
- * token storage, salt injects the Authorization header into WP HTTP
- * requests that target THIS theme's GitHub repo (works with Git Updater
- * and plain WP HTTP alike). The pure resolver is unit-tested.
+ * Mechanism: salt_updater_authorize_request() is a no-op unless the legacy
+ * wp-config constant SALT_UPDATER_TOKEN is defined. Nothing issues that
+ * constant any more. A site still carrying one from before this contract
+ * removes it (a revoked token turns public reads into 401s); while it is
+ * defined the header only goes to requests for THIS theme's GitHub repo. The
+ * pure resolver is unit-tested.
  *
  * @package Salt
  */
@@ -73,12 +82,13 @@ function salt_updater_is_repo_url( string $url ): bool {
 }
 
 /**
- * Inject the deploy token into HTTP requests for the parent-theme repo.
+ * Inject a legacy wp-config token into HTTP requests for the parent-theme repo.
  *
- * Pure decision function (unit-tested): only HTTPS GitHub requests for
- * exactly SALT_UPDATE_REPO (salt_updater_is_repo_url()) get the header, and only
- * when the wp-config constant is defined and no Authorization header is
- * already present.
+ * Pure decision function (unit-tested). With no SALT_UPDATER_TOKEN defined, or
+ * an empty one, it returns the request untouched: that is the tokenless
+ * contract. Otherwise only HTTPS GitHub requests for exactly SALT_UPDATE_REPO
+ * (salt_updater_is_repo_url()) get the header, and only when no Authorization
+ * header is already present.
  *
  * @param array<string,mixed> $parsed_args HTTP request args.
  * @param string              $url         Request URL.
