@@ -1,7 +1,7 @@
 <?php
 /**
  * Gate-1 smoke test: a composed page renders with a correct heading
- * outline and zero third-party loads (BUILD-BRIEF §5 Gate 1; A11Y01,
+ * outline and zero third-party loads (Gate 1; A11Y01,
  * PRIV01 invariant).
  *
  * @package Salt\Tests

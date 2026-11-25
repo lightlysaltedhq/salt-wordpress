@@ -2,7 +2,7 @@
   "format": "salt-conformance/1",
   "contract": {
     "package": "@lightlysaltedhq/salt-contract",
-    "version": "1.0.0"
+    "version": "2.0.0"
   },
   "platform": "wordpress",
   "implementation": {
@@ -16,10 +16,10 @@
   "partial": false,
   "problems": [],
   "summary": {
-    "pass": 14,
+    "pass": 16,
     "fail": 0,
     "incomplete": 0,
-    "notShipped": 3,
+    "notShipped": 1,
     "files": {
       "pass": 9,
       "fail": 0,
@@ -33,9 +33,9 @@
     "problems": []
   },
   "stylesheets": {
-    "served": "assets/dist/salt.71b124b497/salt.css",
+    "served": "assets/dist/salt.721fad818f/salt.css",
     "bundle": "styles/salt.css",
-    "contract": "1.0.0",
+    "contract": "2.0.0",
     "ok": true,
     "status": "identical"
   },
@@ -292,7 +292,28 @@
     },
     {
       "id": "tabs",
-      "status": "not shipped"
+      "status": "pass",
+      "fixtures": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0,
+        "failures": []
+      },
+      "fields": {
+        "status": "pass",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
+      },
+      "stylesheets": {
+        "status": "pass"
+      }
     },
     {
       "id": "collection-showcase",
@@ -346,7 +367,28 @@
     },
     {
       "id": "listing",
-      "status": "not shipped"
+      "status": "pass",
+      "fixtures": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0,
+        "failures": []
+      },
+      "fields": {
+        "status": "pass",
+        "problems": []
+      },
+      "classes": {
+        "status": "pass",
+        "unknown": []
+      },
+      "inlineStyles": {
+        "status": "pass",
+        "cases": []
+      },
+      "stylesheets": {
+        "status": "pass"
+      }
     },
     {
       "id": "contact",

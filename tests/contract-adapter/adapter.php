@@ -97,7 +97,6 @@ function salt_adapter_stop( int $code, string $message ) {
  * section's former WordPress names (`formerly`); the theme's layouts have
  * since taken the contract's ids where one exists (cta is call-to-action;
  * collection-showcase and carousel since unit 8).
- * tabs and listing are owed: the theme has no section for them.
  *
  * @return array<string,string|array<string,string>|null>
  */
@@ -113,10 +112,10 @@ function salt_adapter_sections(): array {
 		'gallery'             => 'gallery',
 		'process'             => 'process',
 		'faq'                 => 'faq',
-		'tabs'                => null,
+		'tabs'                => 'tabs',
 		'collection-showcase' => 'collection-showcase',
 		'carousel'            => 'carousel',
-		'listing'             => null,
+		'listing'             => 'listing',
 		'contact'             => 'contact',
 		'locations'           => 'locations',
 		'pricing'             => null,
@@ -749,6 +748,19 @@ function salt_adapter_render_section( array $input, array $ids ): string {
 		salt_adapter_stop( 3, sprintf( 'salt adapter: not shipped: Salt for WordPress has no section for %s%s.', $section, '' !== $source ? ' with source ' . $source : '' ) );
 	}
 
+	if ( 'listing' === $section ) {
+		require_once SALT_ADAPTER_THEME . '/tests/shims/listing.php';
+		$route                                    = $input['route'] ?? null;
+		$GLOBALS['salt_test_schema']['is_home']   = null !== $route;
+		$GLOBALS['salt_test_query_vars']['paged'] = $route['pagination']['current'] ?? 1;
+		$GLOBALS['salt_test_page_links']          = $route['pagination']['hrefs'] ?? array();
+		$listing_ids                              = salt_adapter_seed_collections( array( 'posts' => $route['cards'] ?? array() ), $ids['media'] );
+		$GLOBALS['wp_query']                      = (object) array(
+			'posts'         => array_map( 'get_post', array_values( $listing_ids['posts'] ?? array() ) ),
+			'max_num_pages' => $route['pagination']['total'] ?? 1,
+		);
+	}
+
 	salt_test_seed_fc(
 		array(
 			array(
@@ -761,7 +773,7 @@ function salt_adapter_render_section( array $input, array $ids ): string {
 
 	// The page plan's context for this band (fixtures README, "The input"):
 	// its position, whether it claims the h1, and the collapse with the band
-	// above, which the theme draws from the previous band's background.
+	// above, which the theme draws from the previous band's tones.
 	$index         = (int) ( $context['index'] ?? 0 );
 	$heading_level = (int) ( $context['headingLevel'] ?? ( 0 === $index ? 1 : 2 ) );
 	salt_render_state( 'set', 'section_index', $index );
@@ -773,7 +785,9 @@ function salt_adapter_render_section( array $input, array $ids ): string {
 		salt_render_state( 'set', 'tracks', array( $track[1] => (int) $track[2] - 1 ) );
 	}
 	if ( ! empty( $context['collapseTop'] ) ) {
-		salt_render_state( 'set', 'last_background', salt_section_wrapper_args( $slug )['background'] );
+		$previous = salt_section_contract_args( $slug );
+		salt_render_state( 'set', 'last_tone', $previous['tone'] );
+		salt_render_state( 'set', 'last_tone_dark', $previous['tone_dark'] );
 	}
 	salt_adapter_seed_section_plan( $context );
 

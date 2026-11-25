@@ -51,11 +51,12 @@
  * --------
  * Every rule in `contrast.requirements`, and every rule in
  * `contrast.conditionalRequirements` whose `when` roles app.css declares (in
- * 3.0.0 that is still one: `ink` on `brand.tint`), and every pair in
- * SALT_PAIRS (pairs salt paints that the contract has no rule for, measured
- * the same way), is evaluated in every display mode a visitor can combine
+ * 3.0.0 that is still one: `ink` on `brand.tint`), and every pair the
+ * stylesheets themselves draw (the census, ContrastCensus: read from the CSS
+ * of the served salt.css and the built app.css, never listed here), is
+ * evaluated in every display mode a visitor can combine
  * (MODES: light or dark, with or without high contrast, with or without
- * grayscale), at rest and on hover (HOVER), for
+ * grayscale), at rest and, for the contract's own pairs, on hover (HOVER), for
  * each of the contract's frozen seeds and each seed on the sRGB grid at a
  * step of 15 (5,832) as salt_brand_css() emits it, and for the compiled
  * defaults a site with no brand set renders. Ratios come from
@@ -71,14 +72,14 @@
  *
  * WHAT THIS DOES NOT CHECK
  * ------------------------
- * - Pairs the contract has no rule for, except those listed in SALT_PAIRS,
- *   which are measured beside the contract's. salt also paints
- *   `text-brand` on `surface` (links, eyebrows), which is not measured.
+ * - Pairs no stylesheet draws: a colour a template or a site sets outside the
+ *   served salt.css and the built app.css, and what ContrastCensus lists as
+ *   not read (a photograph under a band, outline and box-shadow).
  *   The `focus` ring is, against the three grounds 3.0.0 requires
  *   (`surface`, `surface.alt`, `brand.tint`). On `surface.inverse` the contract does not rely on the
- *   ring; the `ink.inverse` keyline salt draws there is measured instead.
+ *   ring; the `ink.inverse` keyline salt.css draws there is measured instead.
  * - What only a rendered page shows: that the keyline is painted where
- *   app.css says, and the 24 x 24 target size.
+ *   salt.css says, and the 24 x 24 target size.
  * - Brands between the grid points. On-brand at rest holds for any seed by
  *   construction (salt_text_on()); hover and every other pair are measured
  *   for the frozen seeds and the grid only.
@@ -98,9 +99,9 @@
  *
  * A green run here says the vocabulary's rules are the ones last read, the
  * derivation reproduces the frozen vectors, every required role is declared
- * and the contract's contrast rules and SALT_PAIRS hold in every display
- * mode for the frozen seeds and the grid. It says nothing about other
- * pairs, brands off the grid or component discipline.
+ * and the contract's contrast rules and every pair the stylesheets draw hold
+ * in every display mode for the frozen seeds and the grid. It says nothing
+ * about brands off the grid or component discipline.
  *
  * FAILS CLOSED. If the package or any file it exports is absent, this test
  * FAILS rather than skips — salt cannot claim to conform to something it cannot
@@ -119,6 +120,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+require_once __DIR__ . '/ContrastCensus.php';
 
 final class FoundationsConformanceTest extends SaltTestCase {
 
@@ -176,24 +179,6 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * salt's templates.
 	 */
 	private const HOVER = array( 'brand' => 'brand.strong' );
-
-	/**
-	 * Pairs salt paints that the contract has no rule for, measured exactly
-	 * as its rules are. `ink.muted` on `brand.tint`: a brand-tint section
-	 * (section.php, the CTA's default ground) and the featured service card
-	 * (services.php) set their supporting copy in text-ink-muted. The
-	 * contract measures `ink` on `brand.tint` and `ink.muted` on `surface`
-	 * but not this, and in light mode with grayscale it measured 4.40:1
-	 * (lightlysaltedhq/salt-wordpress#6). `border.strong` on `surface` and
-	 * `surface.alt`: the contract's stylesheet (salt.css) draws a control's
-	 * boundary with it on the light tones, and its token layer holds it to
-	 * 3:1 there, a rule the vocabulary does not state.
-	 */
-	private const SALT_PAIRS = array(
-		array( 'ink.muted', 'brand.tint', 4.5 ),
-		array( 'border.strong', 'surface', 3.0 ),
-		array( 'border.strong', 'surface.alt', 3.0 ),
-	);
 
 	/**
 	 * Decode a JSON file, failing by name if it is absent or not an object.
@@ -403,12 +388,23 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * @return string
 	 */
 	private static function app_css(): string {
-		// Comments go first, but not the `/*` in `@source "../../../*.php"`: a
-		// match that ignored strings would eat everything up to the next `*/`.
+		return self::without_comments( (string) file_get_contents( self::APP_CSS ) );
+	}
+
+	/**
+	 * A stylesheet with its comments removed, strings kept.
+	 *
+	 * Comments go first, but not the `/*` in `@source "../../../*.php"`: a
+	 * match that ignored strings would eat everything up to the next `*` + `/`.
+	 *
+	 * @param string $css Stylesheet.
+	 * @return string
+	 */
+	private static function without_comments( string $css ): string {
 		return (string) preg_replace_callback(
 			'#("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\')|/\*.*?\*/#s',
 			static fn( array $found ): string => $found[1] ?? '',
-			(string) file_get_contents( self::APP_CSS )
+			$css
 		);
 	}
 
@@ -690,6 +686,79 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
+	 * The colour input of every combination of the design dials (each option
+	 * of each dial in salt_design_dials()), grouped where it is identical: the
+	 * `--color-…` declarations salt_dials_css() writes on `:root`, which join
+	 * the runtime block, and those under `[data-theme="dark"]`, as a dark-mode
+	 * rule ranked with app.css's. A colour declared in its @media rule, or a
+	 * rule this cannot read, fails: rank could not say when it applies.
+	 *
+	 * @return list<array{label: string, root: array<string, string>, rules: list<array{selector: string, modes: list<string>, rank: int, set: array<string, string>}>}>
+	 */
+	private static function dial_groups(): array {
+		static $groups = null;
+		if ( null !== $groups ) {
+			return $groups;
+		}
+
+		$combos = array( array() );
+		foreach ( salt_design_dials() as $id => $dial ) {
+			$next = array();
+			foreach ( $combos as $combo ) {
+				foreach ( array_keys( $dial['options'] ) as $value ) {
+					$next[] = $combo + array( $id => $value );
+				}
+			}
+			$combos = $next;
+		}
+
+		$colours = static function ( string $block ): array {
+			preg_match_all( '/(--color-[\w-]+):([^;]+)/', $block, $found );
+			return array_combine( $found[1], $found[2] );
+		};
+
+		$by_input = array();
+		foreach ( $combos as $combo ) {
+			$css = salt_dials_css( $combo );
+			if ( 1 !== preg_match( '/^(?::root\{(?<root>[^{}]*)\})?(?:@media \(width>=48rem\)\{:root\{(?<wide>[^{}]*)\}\})?(?:\[data-theme="dark"\]\{(?<dark>[^{}]*)\})?$/', $css, $found ) ) {
+				self::fail( "salt_dials_css() wrote rules this suite cannot read: {$css}" );
+			}
+			if ( array() !== $colours( $found['wide'] ?? '' ) ) {
+				self::fail( "salt_dials_css() declares a colour in its @media rule, which the contrast checks cannot rank: {$css}" );
+			}
+
+			$dark  = $colours( $found['dark'] ?? '' );
+			$input = array(
+				'root'  => $colours( $found['root'] ?? '' ),
+				'rules' => array() === $dark ? array() : array(
+					array(
+						'selector' => self::MODES['dark'],
+						'modes'    => array( 'dark' ),
+						'rank'     => 1,
+						'set'      => $dark,
+					),
+				),
+			);
+
+			$key                         = (string) wp_json_encode( $input );
+			$by_input[ $key ]          ??= $input + array( 'combos' => 0 );
+			$by_input[ $key ]['combos'] += 1;
+		}
+
+		$groups = array();
+		foreach ( $by_input as $input ) {
+			$declared = array_keys( $input['root'] + ( $input['rules'][0]['set'] ?? array() ) );
+			$groups[] = array(
+				'label' => sprintf( '%s (%d of %d combinations)', array() === $declared ? 'no dial colour' : implode( ', ', $declared ), $input['combos'], count( $combos ) ),
+				'root'  => $input['root'],
+				'rules' => $input['rules'],
+			);
+		}
+
+		return $groups;
+	}
+
+	/**
 	 * Every colour token's value in one combination of display modes: @theme,
 	 * then the runtime block, then each applicable mode rule, the highest rank
 	 * winning. Two rules of equal rank that set a token differently cannot be
@@ -783,7 +852,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * @return array{0: string|null, 1: string}
 	 */
 	private static function measure( array $tokens, string $role ): array {
-		$prop = '--color-' . str_replace( '.', '-', $role );
+		$prop = self::prop( $role );
 
 		for ( $hop = 0; $hop < 12; $hop++ ) {
 			if ( ! array_key_exists( $prop, $tokens ) ) {
@@ -1074,11 +1143,152 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
-	 * The contract's contrast rules and SALT_PAIRS hold in one combination
-	 * of display modes, for every frozen and grid seed and the compiled
+	 * Every check measured in one combination of display modes, for each
+	 * palette: the checks that fall below their floor, and the ones that
+	 * cannot be measured, by label.
+	 *
+	 * @param list<array{0: string, 1: string, 2: string, 3: float}> $checks   Label, foreground role, ground role, floor.
+	 * @param list<array<string, mixed>>                              $rules    colour_rules().
+	 * @param list<string>                                            $combo    Mode names in force.
+	 * @param array<string, array<string, string>>                    $palettes Name => runtime().
+	 * @param array<string, string>                                   $ties     Receives tokens() ties.
+	 * @return array<string, array<string, mixed>>
+	 */
+	private static function failures( array $checks, array $rules, array $combo, array $palettes, array &$ties ): array {
+		$failures = array();
+		foreach ( $palettes as $palette => $runtime ) {
+			$tokens = self::tokens( $rules, $combo, $runtime, $ties );
+
+			foreach ( $checks as list( $label, $fg_role, $bg_role, $min ) ) {
+				list( $fg, $fg_why ) = self::measure( $tokens, $fg_role );
+				list( $bg, $bg_why ) = self::measure( $tokens, $bg_role );
+
+				if ( null === $fg || null === $bg ) {
+					$failures[ $label ]['unverified'][ trim( "{$fg_why}; {$bg_why}", '; ' ) ][] = $palette;
+					continue;
+				}
+
+				$ratio = salt_contrast_ratio( $fg, $bg );
+				if ( $ratio < $min ) {
+					$failures[ $label ]['below'][] = array( $ratio, $palette, $fg, $bg, $min );
+				}
+			}
+		}
+
+		return $failures;
+	}
+
+	/**
+	 * The stylesheets the theme serves, read as rules: the pinned salt.css
+	 * and the built app.css, by the names the manifest gives them.
+	 *
+	 * @return list<array{selectors: list<string>, decl: array<string, string>, at: list<string>, file: string}>
+	 */
+	private static function drawn_rules(): array {
+		static $rules = null;
+
+		if ( null === $rules ) {
+			$manifest = self::decode( __DIR__ . '/../../assets/dist/manifest.json' );
+			$rules    = array();
+			foreach ( array( 'salt.css', 'app.css' ) as $name ) {
+				if ( ! is_string( $manifest[ $name ] ?? null ) || ! is_file( __DIR__ . '/../../assets/dist/' . $manifest[ $name ] ) ) {
+					self::fail( "assets/dist/manifest.json names no built {$name}, so the census has no stylesheet to read. Run npm run build." );
+				}
+				$rules = array_merge( $rules, ContrastCensus::rules( self::without_comments( (string) file_get_contents( __DIR__ . '/../../assets/dist/' . $manifest[ $name ] ) ), $name ) );
+			}
+		}
+
+		return $rules;
+	}
+
+	/**
+	 * The roles the token layer calls a hairline, whose pairs the census names
+	 * and holds to no ratio (a decorative rule is outside WCAG 1.4.11).
+	 *
+	 * @return list<string>
+	 */
+	private static function hairline_properties(): array {
+		$layer = self::decode( __DIR__ . '/../../node_modules/@lightlysaltedhq/salt-contract/contract/token-layer.json' );
+		$found = array();
+		foreach ( (array) ( $layer['groups'] ?? array() ) as $group ) {
+			foreach ( (array) ( $group['tokens'] ?? array() ) as $token ) {
+				if ( isset( $token['name'] ) && str_starts_with( (string) $token['name'], '--color-' ) && false !== stripos( (string) ( $token['meaning'] ?? '' ), 'hairline' ) ) {
+					$found[] = (string) $token['name'];
+				}
+			}
+		}
+		if ( array() === $found ) {
+			self::fail( "salt-contract's token-layer.json calls no colour a hairline, so the census cannot tell a decorative rule from a control's boundary." );
+		}
+
+		return $found;
+	}
+
+	/**
+	 * The contract's fixture pages and the theme's own rendered markup (its
+	 * committed snapshots): what the census reads to see where each class is
+	 * printed and whether an icon is named.
+	 *
+	 * @return list<string>
+	 */
+	private static function markup_files(): array {
+		$files = array_merge(
+			(array) glob( __DIR__ . '/../../node_modules/@lightlysaltedhq/salt-contract/fixtures/*/*.html' ),
+			(array) glob( __DIR__ . '/../snapshot/__snapshots__/*.snap.html' )
+		);
+		if ( array() === (array) glob( __DIR__ . '/../../node_modules/@lightlysaltedhq/salt-contract/fixtures/*/*.html' ) || array() === (array) glob( __DIR__ . '/../snapshot/__snapshots__/*.snap.html' ) ) {
+			self::fail( 'Either salt-contract ships no fixture pages or the theme has no committed snapshots, so the census cannot place a rule on the grounds its element sits on or tell a named icon from a decorative one.' );
+		}
+
+		return $files;
+	}
+
+	/**
+	 * The HTML of markup_files().
+	 *
+	 * @return list<string>
+	 */
+	private static function markup(): array {
+		return array_map( static fn( string $file ): string => (string) file_get_contents( $file ), self::markup_files() );
+	}
+
+	/**
+	 * The pairs the stylesheets draw, with `[data-theme=dark]` in force or not.
+	 *
+	 * @param bool $dark Whether dark mode is in force.
+	 * @return array<string, array{kind: string, fg: string, bg: string, min: float, from: list<string>}>
+	 */
+	private static function census( bool $dark ): array {
+		static $cache = array();
+
+		if ( ! isset( $cache[ (int) $dark ] ) ) {
+			$cache[ (int) $dark ] = ContrastCensus::pairs( self::drawn_rules(), $dark, self::hairline_properties(), self::markup() );
+			if ( array() === $cache[ (int) $dark ] ) {
+				self::fail( 'The stylesheets draw no foreground and ground pair this census can read, so a green run would verify nothing.' );
+			}
+		}
+
+		return $cache[ (int) $dark ];
+	}
+
+	/**
+	 * The custom property a role names: 'brand.tint' is --color-brand-tint,
+	 * and a property is itself.
+	 *
+	 * @param string $role Contract role id or `--color-…` property.
+	 * @return string
+	 */
+	private static function prop( string $role ): string {
+		return str_starts_with( $role, '--' ) ? $role : '--color-' . str_replace( '.', '-', $role );
+	}
+
+	/**
+	 * The contract's contrast rules and every pair the stylesheets draw hold in
+	 * one combination of display modes, for every frozen and grid seed and the compiled
 	 * defaults, at rest and on hover. Every failure in the combination is
 	 * reported together, one line per rule, with its worst palette and the
-	 * colours that produced it.
+	 * colours that produced it. Each palette is checked under every
+	 * combination of the design dials (dial_groups()).
 	 *
 	 * @param list<string> $combo Mode names in force.
 	 */
@@ -1120,7 +1330,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			}
 		}
 
-		// The keyline salt draws outside the ring where the ring is not relied
+		// The keyline salt.css draws outside the ring where the ring is not relied
 		// on (focusIndicator.keyline) is the part of the indicator that meets
 		// that ground, so it is held to the ring's own ratio there. The contract
 		// counts it covered by [ink.inverse, surface.inverse] at 4.5:1; this
@@ -1138,11 +1348,19 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			$checks[] = array( "focus keyline {$keyline['role']} on {$keyline['ground']}", $keyline['role'], $keyline['ground'], $ring_min );
 		}
 
-		foreach ( self::SALT_PAIRS as list( $fg, $bg, $min ) ) {
-			$checks[] = array( "{$fg} on {$bg} (salt's own pair), at rest", $fg, $bg, $min );
-			if ( isset( self::HOVER[ $bg ] ) ) {
-				$checks[] = array( "{$fg} on {$bg} (salt's own pair), on hover (" . self::HOVER[ $bg ] . ')', $fg, self::HOVER[ $bg ], $min );
+		// Every pair the stylesheets draw (ContrastCensus), beside the contract's.
+		// One the contract already states at the same or a higher floor is not
+		// measured twice.
+		$stated = array();
+		foreach ( $checks as list( , $fg, $bg, $min ) ) {
+			$key            = self::prop( $fg ) . ' ' . self::prop( $bg );
+			$stated[ $key ] = max( $stated[ $key ] ?? 0.0, $min );
+		}
+		foreach ( self::census( in_array( 'dark', $combo, true ) ) as $pair ) {
+			if ( ( $stated[ "{$pair['fg']} {$pair['bg']}" ] ?? 0.0 ) >= $pair['min'] ) {
+				continue;
 			}
+			$checks[] = array( "census: {$pair['kind']} {$pair['fg']} on {$pair['bg']} (" . $pair['from'][0] . ')', $pair['fg'], $pair['bg'], $pair['min'] );
 		}
 
 		$palettes = array( 'compiled defaults' => array() );
@@ -1165,24 +1383,16 @@ final class FoundationsConformanceTest extends SaltTestCase {
 			}
 		}
 
+		// Every palette again under every combination of the design dials. A
+		// dial's colour declarations join the runtime block (`:root`) or rank as
+		// a dark-mode rule; combinations that give identical colour input are
+		// one group, measured once.
 		$ties     = array();
 		$failures = array();
-		foreach ( $palettes as $palette => $runtime ) {
-			$tokens = self::tokens( $rules, $combo, $runtime, $ties );
-
-			foreach ( $checks as list( $label, $fg_role, $bg_role, $min ) ) {
-				list( $fg, $fg_why ) = self::measure( $tokens, $fg_role );
-				list( $bg, $bg_why ) = self::measure( $tokens, $bg_role );
-
-				if ( null === $fg || null === $bg ) {
-					$failures[ $label ]['unverified'][ trim( "{$fg_why}; {$bg_why}", '; ' ) ][] = $palette;
-					continue;
-				}
-
-				$ratio = salt_contrast_ratio( $fg, $bg );
-				if ( $ratio < $min ) {
-					$failures[ $label ]['below'][] = array( $ratio, $palette, $fg, $bg, $min );
-				}
+		foreach ( self::dial_groups() as $group ) {
+			$runtimes = array_map( static fn( array $runtime ): array => array_merge( $runtime, $group['root'] ), $palettes );
+			foreach ( self::failures( $checks, array_merge( $rules, $group['rules'] ), $combo, $runtimes, $ties ) as $label => $failure ) {
+				$failures[ "{$label} [dials: {$group['label']}]" ] = $failure;
 			}
 		}
 
@@ -1232,7 +1442,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		if ( array() !== $report ) {
 			$this->fail(
 				sprintf(
-					"%s: the contract's contrast rules and SALT_PAIRS do not hold (%d checks per palette; %d conditional rules skipped because app.css does not declare their roles).\n%s\n"
+					"%s: the contract's contrast rules and the pairs the stylesheets draw do not hold (%d checks per palette; %d conditional rules skipped because app.css does not declare their roles).\n%s\n"
 					. '  A palette is a seed as salt_brand_css() emits it (the contract\'s frozen seeds plus the sRGB grid at a step of 15), or the compiled defaults of a site with no brand set.',
 					$this->dataName(),
 					count( $checks ),
@@ -1244,6 +1454,152 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
+	 * Negative control for the census: a pair the contract has no rule for,
+	 * added to what the stylesheets draw, is named and measured, and the
+	 * measurement fails it. Without this, a census that quietly read nothing
+	 * would pass for ever.
+	 *
+	 * `.salt-new-label` paints the inverse band's muted ink on whatever band
+	 * it sits on, and `.salt-new-card` paints ink on brand.strong, a ground
+	 * the contract names no text on. Neither is in the stylesheets today.
+	 */
+	public function test_the_census_catches_a_failing_pair_added_to_the_stylesheets(): void {
+		$real  = self::census( false );
+		$added = ContrastCensus::rules( '.salt-new-label{color:var(--color-ink-muted-inverse)}.salt-new-card{background-color:var(--color-brand-strong);color:var(--color-ink)}', 'control.css' );
+		$with  = ContrastCensus::pairs( array_merge( self::drawn_rules(), $added ), false, self::hairline_properties(), self::markup() );
+		$new   = array_diff_key( $with, $real );
+
+		$this->assertSame(
+			array(
+				'text --color-ink on --color-brand-strong',
+				'text --color-ink-muted-inverse on --color-brand-tint',
+				'text --color-ink-muted-inverse on --color-surface',
+				'text --color-ink-muted-inverse on --color-surface-alt',
+			),
+			array_keys( $new ),
+			'The census names the two added rules\' pairs, on every ground they can sit on, and nothing else.'
+		);
+
+		$checks = array();
+		foreach ( $new as $label => $pair ) {
+			$checks[] = array( $label, $pair['fg'], $pair['bg'], $pair['min'] );
+		}
+		$ties     = array();
+		$failures = self::failures( $checks, self::colour_rules(), array(), array( 'compiled defaults' => array() ), $ties );
+
+		$this->assertSame( array(), $ties );
+		$this->assertSame( array_keys( $new ), array_keys( $failures ), 'Each added pair is measured below its floor.' );
+		foreach ( $failures as $failure ) {
+			$this->assertArrayHasKey( 'below', $failure );
+		}
+
+		// And the census does read what is there: pairs a stylesheet draws that
+		// no list here names, on grounds beside the contract's.
+		foreach ( array( 'text --color-on-brand on --color-brand', 'text --color-ink-muted on --color-brand-tint', 'boundary --color-border-strong on --color-surface-alt', 'text --color-ink-inverse on --color-surface-inverse' ) as $named ) {
+			$this->assertArrayHasKey( $named, $real );
+		}
+	}
+
+	/**
+	 * Negative control for icons: the markup decides whether an icon is held
+	 * to a floor. A named icon (not aria-hidden) is held to 3:1 and a
+	 * low-contrast one fails, an aria-hidden icon is named and held to none,
+	 * and a more specific rule that gives the colour back to the link (the
+	 * shape the contract's 1.0.1 takes for social icons) removes the pair for
+	 * the icons it reaches and no others.
+	 */
+	public function test_the_census_holds_a_named_icon_to_three_to_one_and_not_a_hidden_one(): void {
+		// ink.muted.inverse on a light band is about 2.6:1: under 3:1, and not the pair of any real rule.
+		$css    = '.salt-new-icon{color:var(--color-ink-muted-inverse)}.salt-showcase__social-link .salt-new-icon{color:inherit}';
+		$named  = '<div class="salt-section" data-tone="surface"><svg class="salt-new-icon" role="img" aria-label="New"></svg></div>';
+		$hidden = '<div class="salt-section" data-tone="surface"><svg class="salt-new-icon" aria-hidden="true"></svg></div>';
+		$linked = '<div class="salt-section" data-tone="surface"><a class="salt-showcase__social-link"><svg class="salt-new-icon" role="img" aria-label="New"></svg></a></div>';
+		$added  = static fn( string $html ): array => array_diff_key(
+			ContrastCensus::pairs( array_merge( self::drawn_rules(), ContrastCensus::rules( $css, 'control.css' ) ), false, self::hairline_properties(), array( $html ) ),
+			ContrastCensus::pairs( self::drawn_rules(), false, self::hairline_properties(), array( $html ) )
+		);
+		$kinds  = static fn( array $pairs ): array => array_values( array_unique( array_column( $pairs, 'kind' ) ) );
+
+		$new = $added( $named );
+		$this->assertSame( array( 'graphic' ), $kinds( $new ), 'A named icon is held to the icon floor.' );
+		$this->assertArrayHasKey( 'graphic --color-ink-muted-inverse on --color-surface', $new );
+		$this->assertSame( 3.0, $new['graphic --color-ink-muted-inverse on --color-surface']['min'] );
+
+		$checks = array();
+		foreach ( $new as $label => $pair ) {
+			$checks[] = array( $label, $pair['fg'], $pair['bg'], $pair['min'] );
+		}
+		$ties     = array();
+		$failures = self::failures( $checks, self::colour_rules(), array(), array( 'compiled defaults' => array() ), $ties );
+		$this->assertArrayHasKey( 'graphic --color-ink-muted-inverse on --color-surface', $failures, 'A named icon below 3:1 fails.' );
+		$this->assertArrayHasKey( 'below', $failures['graphic --color-ink-muted-inverse on --color-surface'] );
+
+		$new = $added( $hidden );
+		$this->assertSame( array( 'decorative' ), $kinds( $new ), 'An aria-hidden icon is named, and held to no floor.' );
+		$this->assertSame( array( 1.0 ), array_values( array_unique( array_column( $new, 'min' ) ) ) );
+
+		$this->assertSame( array(), $added( $linked ), 'A named icon whose colour a more specific rule gives to its link draws no pair of its own.' );
+		$this->assertSame( array( 'graphic' ), $kinds( $added( $linked . $named ) ), 'The override does not reach a named icon outside the link.' );
+	}
+
+	/**
+	 * Negative control for what the census refuses: a rule it could not
+	 * measure fails by name instead of being passed over.
+	 */
+	public function test_the_census_refuses_rules_it_cannot_read(): void {
+		$refused = array(
+			'.x{color:#123456}'               => 'a literal colour',
+			'.x{background:rgb(0 0 0 / 50%)}' => 'a literal colour',
+			'.x{fill:var(--color-brand)}'     => 'does not read',
+			'.x{text-decoration-color:var(--salt-section-ink)}' => 'does not read',
+			'@media (prefers-color-scheme: dark){.x{color:var(--color-ink)}}' => 'does not model',
+			'@container (min-width: 20rem){.x{color:var(--color-ink)}}' => 'does not model',
+			'.x{color:var(--color-ink)'       => 'unbalanced',
+		);
+		foreach ( $refused as $css => $why ) {
+			$message = null;
+			try {
+				ContrastCensus::rules( $css, 'control.css' );
+			} catch ( PHPUnit\Framework\AssertionFailedError $failure ) {
+				$message = $failure->getMessage();
+			}
+			$this->assertNotNull( $message, "The census read `{$css}` without complaint." );
+			$this->assertStringContainsString( $why, (string) $message );
+		}
+
+		// Preflight's transparent reset paints nothing, so it is not refused.
+		$this->assertSame( array(), ContrastCensus::pairs( ContrastCensus::rules( 'button{background-color:#0000}', 'control.css' ), false, array(), array() ) );
+	}
+
+	/**
+	 * Tailwind's preflight sets `::placeholder` to half the current colour,
+	 * which the census cannot state as a pair, and so reads only while no
+	 * markup draws a placeholder: none of the contract's fixtures, and none of
+	 * the theme's templates or scripts, prints one. One that does fails here,
+	 * so its text is not left unmeasured.
+	 */
+	public function test_no_markup_prints_a_placeholder(): void {
+		$root  = dirname( __DIR__, 2 );
+		$files = array_merge(
+			self::markup_files(),
+			(array) glob( $root . '/*.php' ),
+			iterator_to_array( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root . '/template-parts', FilesystemIterator::SKIP_DOTS ) ), false ),
+			iterator_to_array( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root . '/assets/src/js', FilesystemIterator::SKIP_DOTS ) ), false )
+		);
+
+		$found = array();
+		foreach ( $files as $file ) {
+			$path = $file instanceof SplFileInfo ? $file->getPathname() : (string) $file;
+			if ( is_file( $path ) && 1 === preg_match( '/\bplaceholder\s*=/i', (string) file_get_contents( $path ) ) ) {
+				$found[] = str_replace( $root . '/', '', $path );
+			}
+		}
+
+		$this->assertGreaterThan( 100, count( $files ), 'The scan found too few files to mean anything.' );
+		$this->assertSame( array(), $found, 'These files print a placeholder, whose colour the census cannot measure (preflight sets it to half the text colour). Teach ContrastCensus the pair before drawing one.' );
+	}
+
+	/**
 	 * app.css declares colour tokens only in shapes the contrast checks can
 	 * rank (colour_rules() fails on any other), and no mode rule sets a token
 	 * salt_brand_css() prints in its `:root` block. `:root` and a one-mode rule
@@ -1252,6 +1608,9 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 */
 	public function test_colour_tokens_are_declared_only_where_they_can_be_ranked(): void {
 		$runtime = self::runtime( '#4b5563' );
+		foreach ( self::dial_groups() as $group ) {
+			$runtime += $group['root'];
+		}
 
 		foreach ( self::colour_rules() as $rule ) {
 			if ( 0 === $rule['rank'] ) {
@@ -1344,8 +1703,8 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	 * name, because each can draw a thinner or closer ring than the token says
 	 * (review of lightlysaltedhq/salt-wordpress#8).
 	 *
-	 * Templates cannot add their own outline utilities either:
-	 * test_no_template_draws_over_the_focus_indicator() refuses them.
+	 * Nor can a template add an outline utility:
+	 * test_tailwind_builds_no_utility() refuses them.
 	 */
 	public function test_the_focus_ring_geometry_meets_the_contract(): void {
 		$geometry = self::dig( self::contract( './vocabulary' ), 'contrast.focusIndicator.geometry' );
@@ -1400,183 +1759,21 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
-	 * Utility families that draw over, or take away, the focus indicator:
-	 * `outline` sets the ring's own lengths, and `shadow`, `inset-shadow`,
-	 * `ring` and `inset-ring` all write box-shadow, which replaces the keyline
-	 * on the inverse band. Tailwind builds each from a class it finds in an
-	 * @source file, and a utility beats the base layer.
+	 * Tailwind builds no utility: app.css imports it with source(none) and
+	 * names no @source, so it scans no file. Every section, view and chrome
+	 * part draws the contract's markup, styled by salt.css (6.0.0, ID-3946),
+	 * and a utility could only draw over it: an `outline-*` beats the ring's
+	 * tokens, and a `shadow-*` or `ring-*` replaces salt.css's keyline on
+	 * the inverse band (the review of lightlysaltedhq/salt-wordpress#8 saw
+	 * the ring then measure 2.77:1 on the band in light mode, 2.24:1 in dark).
+	 * A new @source line, or the import without source(none), fails here.
 	 */
-	private const INDICATOR_UTILITIES = '/^(?:outline|shadow|inset-shadow|ring|inset-ring)(?:-|$)/';
+	public function test_tailwind_builds_no_utility(): void {
+		$css = self::app_css();
 
-	/**
-	 * Utilities from those families that are allowed, by file, with the exact
-	 * number of times each appears. None today: the header draws the
-	 * contract's markup, styled by salt.css. A new use needs a line here and
-	 * a reason.
-	 */
-	private const INDICATOR_UTILITIES_ALLOWED = array();
-
-	/**
-	 * No file Tailwind scans for classes carries a utility that draws over the
-	 * focus indicator (INDICATOR_UTILITIES), so every ring on the page is the
-	 * global rule's, drawn from the tokens, and every keyline on the inverse
-	 * band is the keyline rule's. Five templates carried
-	 * `focus-visible:outline-2` until the review of lightlysaltedhq/salt-wordpress#8, whose
-	 * re-review showed a `shadow-sm` or `ring-2` on a control in an inverse
-	 * section takes the keyline away (the ring then measured 2.77:1 on the
-	 * band in light mode, 2.24:1 in dark) with the suite green.
-	 *
-	 * The files are the ones app.css's @source lines name, so a new source is
-	 * read without a change here. Classes are read from where they can be
-	 * written: `class="…"` and `class='…'` attributes in a template's HTML or
-	 * inside a string, and PHP and JS string literals. A token is refused
-	 * behind any variant (`focus-visible:`, `md:hover:`) and in either
-	 * important spelling (`!ring-2`, `ring-2!`). A bare family name
-	 * (`outline`, `shadow`, `ring`) counts only in a class attribute or a
-	 * literal that is nothing but class-like tokens, since "outline" is also
-	 * a word; a token with a suffix, a variant or an important mark counts
-	 * anywhere. Tailwind builds a bare `outline` as `outline-width: 1px`,
-	 * which beats the ring.
-	 */
-	public function test_no_template_draws_over_the_focus_indicator(): void {
-		$found = array();
-		$root  = dirname( __DIR__, 2 ) . '/';
-		foreach ( self::source_files() as $file ) {
-			$relative = str_replace( $root, '', (string) realpath( $file ) );
-			$counts   = array();
-			foreach ( self::class_strings( $file ) as list( $text, $class_context ) ) {
-				foreach ( preg_split( '/\s+/', trim( $text ) ) as $token ) {
-					$utility = self::utility_of( $token );
-					if ( '' === $utility || 1 !== preg_match( self::INDICATOR_UTILITIES, $utility ) ) {
-						continue;
-					}
-					$bare = $token === $utility && 1 === preg_match( '/^(?:outline|shadow|inset-shadow|ring|inset-ring)$/', $utility );
-					if ( $bare && ! $class_context ) {
-						continue;
-					}
-					$counts[ $token ] = ( $counts[ $token ] ?? 0 ) + 1;
-				}
-			}
-			$allowed = self::INDICATOR_UTILITIES_ALLOWED[ $relative ] ?? array();
-			foreach ( $counts as $token => $count ) {
-				if ( ( $allowed[ $token ] ?? 0 ) !== $count ) {
-					$found[] = "{$relative}: {$token}" . ( $count > 1 ? " ({$count} times)" : '' ) . ( isset( $allowed[ $token ] ) ? ", allowed {$allowed[ $token ]} times" : '' );
-				}
-			}
-			foreach ( $allowed as $token => $count ) {
-				if ( ! isset( $counts[ $token ] ) ) {
-					$found[] = "{$relative}: {$token} is allowed {$count} times but no longer appears; remove its line from INDICATOR_UTILITIES_ALLOWED.";
-				}
-			}
-		}
-
-		$this->assertSame( array(), $found, "These files carry utilities that draw over the focus indicator (an outline beats the ring's tokens; a shadow or ring replaces the keyline on the inverse band). Remove them; the global :focus-visible rule and the keyline rule draw every indicator:\n  " . implode( "\n  ", $found ) );
-	}
-
-	/**
-	 * Every file app.css's @source lines name.
-	 *
-	 * @return list<string>
-	 */
-	private static function source_files(): array {
-		preg_match_all( '/@source\s+"([^"]+)"/', self::app_css(), $sources );
-		if ( array() === $sources[1] ) {
-			self::fail( 'app.css names no @source, so there is nothing to scan.' );
-		}
-
-		$base  = dirname( self::APP_CSS );
-		$files = array();
-		foreach ( $sources[1] as $source ) {
-			$path = $base . '/' . $source;
-			// A glob (`*`, or one brace list naming several files, which
-			// Tailwind reads as one source) or a single file.
-			if ( str_contains( $source, '*' ) || str_contains( $source, '{' ) ) {
-				$matched = (array) glob( $path, GLOB_BRACE );
-				if ( array() === $matched ) {
-					self::fail( "app.css's @source \"{$source}\" matches no file." );
-				}
-				$files = array_merge( $files, $matched );
-				continue;
-			}
-			if ( is_file( $path ) ) {
-				$files[] = $path;
-				continue;
-			}
-			if ( ! is_dir( $path ) ) {
-				self::fail( "app.css's @source \"{$source}\" is neither a glob, a file nor a directory." );
-			}
-			foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $file ) {
-				$files[] = $file->getPathname();
-			}
-		}
-
-		return array_values( array_unique( $files ) );
-	}
-
-	/**
-	 * Every place a class can be written in one source file, each with
-	 * whether it is certainly a class list: class attributes (true), and
-	 * string literals, which are a class list when every token in them looks
-	 * like a class. PHP is read with its own tokenizer, so HTML outside PHP
-	 * tags and strings inside it are told apart exactly; JS by its three
-	 * quote forms.
-	 *
-	 * @param string $file Path.
-	 * @return list<array{0: string, 1: bool}>
-	 */
-	private static function class_strings( string $file ): array {
-		$code    = (string) file_get_contents( $file );
-		$html    = array();
-		$strings = array();
-
-		if ( str_ends_with( $file, '.php' ) ) {
-			foreach ( token_get_all( $code ) as $token ) {
-				if ( ! is_array( $token ) ) {
-					continue;
-				}
-				if ( T_INLINE_HTML === $token[0] ) {
-					$html[] = $token[1];
-				} elseif ( T_CONSTANT_ENCAPSED_STRING === $token[0] ) {
-					$strings[] = stripcslashes( substr( $token[1], 1, -1 ) );
-				} elseif ( T_ENCAPSED_AND_WHITESPACE === $token[0] ) {
-					$strings[] = $token[1];
-				}
-			}
-		} else {
-			preg_match_all( '/(["\'`])((?:\\\\.|(?!\1).)*)\1/s', $code, $literals );
-			$strings = $literals[2];
-		}
-
-		$out = array();
-		foreach ( array_merge( $html, $strings ) as $text ) {
-			preg_match_all( '/\bclass\s*=\s*(["\'])(.*?)\1/s', $text, $attributes );
-			foreach ( $attributes[2] as $attribute ) {
-				$out[] = array( $attribute, true );
-			}
-		}
-		foreach ( $strings as $text ) {
-			$class_like = '' !== trim( $text ) && 1 === preg_match( '/^[\s!a-z0-9:\[\]().%\/_#-]+$/', $text );
-			$out[]      = array( $text, $class_like );
-		}
-
-		return $out;
-	}
-
-	/**
-	 * The utility a class token names, with its variants (`focus-visible:`,
-	 * `md:hover:`) and either important mark (`!ring-2`, `ring-2!`) removed,
-	 * or '' for a token that is not class-shaped.
-	 *
-	 * @param string $token Whitespace-free token.
-	 * @return string
-	 */
-	private static function utility_of( string $token ): string {
-		if ( 1 !== preg_match( '/^[!a-z0-9:\[\]().%\/_#-]+$/', $token ) ) {
-			return '';
-		}
-		$parts = preg_split( '/:(?![^\[]*\])/', $token );
-
-		return trim( (string) end( $parts ), '!' );
+		preg_match_all( '/@import\s+"tailwindcss"([^;]*);/', $css, $imports );
+		$this->assertSame( array( ' source(none)' ), $imports[1], 'app.css must import Tailwind once, as `@import "tailwindcss" source(none);`, so it scans no file for classes.' );
+		$this->assertSame( 0, preg_match( '/@source\b/', $css ), 'app.css names an @source, so Tailwind builds utilities again. Nothing the theme draws uses one: the contract\'s stylesheet styles its markup.' );
 	}
 
 	/**
@@ -1725,92 +1922,66 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
+	 * The contract's stylesheet as the theme serves it: the pinned package's
+	 * styles/salt.css, which the build copies byte for byte
+	 * (ContractStylesheetTest).
+	 *
+	 * @return string
+	 */
+	private static function salt_css(): string {
+		$path = dirname( __DIR__, 2 ) . '/node_modules/@lightlysaltedhq/salt-contract/styles/salt.css';
+		if ( ! is_file( $path ) ) {
+			self::fail( 'The pinned salt-contract is not installed (run npm ci), so there is no stylesheet to read the keyline from.' );
+		}
+
+		return (string) file_get_contents( $path );
+	}
+
+	/**
 	 * Where the contract does not rely on the ring (focusIndicator.keyline,
-	 * `surface.inverse` in 3.0.0), salt draws a keyline in the named role as
-	 * the indicator's outermost part, at least as thick as the contract asks.
+	 * `surface.inverse` in 3.0.0), a keyline in the named role is the
+	 * indicator's outermost part, at least as thick as the contract asks.
 	 *
-	 * The keyline rule is read as one exact shape and anything else is
-	 * refused: `.bg-{ground} :focus-visible` with a single box-shadow whose
-	 * first layer repaints the offset gap in the ground and whose second
-	 * reaches past the ring by --focus-keyline-width in the keyline's role.
-	 * The ground's class is the one x-section prints for its inverse
-	 * background, checked by rendering one. Nothing else in app.css may set a
-	 * box-shadow, and the nested-ground reset may only set `none`: any other
-	 * box-shadow on a focused control replaces the keyline. Utilities that do
-	 * the same from a template are test_no_template_draws_over_the_focus_indicator()'s.
+	 * Since 6.0.0 (ID-3946) every band is the contract's, and its stylesheet
+	 * (salt.css) draws the keyline: each focused control's box-shadow reaches
+	 * past the ring in the band's ink (--salt-section-ink), and the band whose
+	 * tone is the keyline's ground sets that ink to the keyline's role. This
+	 * reads both from the served salt.css, and the keyline's reach past the
+	 * ring against the contract's floor. app.css may then set no box-shadow
+	 * at all, at any depth, in any case or with a vendor prefix: any one on a
+	 * focused control replaces the keyline, as a later
+	 * `.salt-button:focus-visible { box-shadow: none }` would.
 	 *
-	 * What this does not see: whether the browser paints it. Chrome for
-	 * Testing 148.0.7778.96 (headless) did, for a button and a link, light and
-	 * dark, at 320 and 1280 CSS px wide (CHANGELOG, Unreleased).
+	 * What this does not see: whether the browser paints it. The contract's
+	 * own conformance runner renders the bands.
 	 */
 	public function test_the_focus_keyline_is_drawn_where_the_ring_is_not_relied_on(): void {
-		$css = self::app_css();
-
-		ob_start();
-		salt_section(
-			array(
-				'name'       => 'rich-text',
-				'background' => 'inverse',
-			),
-			static function (): void {}
-		);
-		$section = (string) ob_get_clean();
-
-		$blank    = self::blank_strings( $css );
-		$shadows  = array();
+		$salt     = self::salt_css();
 		$failures = array();
 		foreach ( self::keylines() as $keyline ) {
-			$ground = 'bg-' . str_replace( '.', '-', $keyline['ground'] );
-			$role   = '--color-' . str_replace( '.', '-', $keyline['role'] );
+			$tone = str_replace( '.', '-', $keyline['ground'] );
+			$role = '--color-' . str_replace( '.', '-', $keyline['role'] );
 
-			$failure = self::px_floor_failure( $css, '--focus-keyline-width', 'atLeastCssPx', $keyline['floor'] );
-			if ( null !== $failure ) {
-				$failures[] = $failure;
+			$ink = '/\.salt-section\[data-tone=' . preg_quote( $tone, '/' ) . '\][^{]*\{[^}]*--salt-section-ink:\s*var\(' . preg_quote( $role, '/' ) . '\)/';
+			if ( 1 !== preg_match( $ink, $salt ) ) {
+				$failures[] = "salt.css's `{$tone}` band does not set --salt-section-ink to var({$role}), so its keyline is not drawn in {$keyline['role']}.";
 			}
 
-			if ( 1 !== preg_match( '/\bclass="[^"]*(?<![\w-])' . preg_quote( $ground, '/' ) . '(?![\w-])/', $section ) ) {
-				$failures[] = "x-section's inverse background does not print `{$ground}`, so a keyline keyed to that class draws on no section.";
+			preg_match_all( '/:focus-visible[^{]*\{[^}]*box-shadow:[^}]*calc\(var\(--focus-ring-offset\)\s*\+\s*var\(--focus-ring-width\)\s*\+\s*([0-9.]+)px\)\s*var\(--salt-section-ink\b/', $salt, $reaches );
+			if ( array() === $reaches[1] ) {
+				$failures[] = 'salt.css draws no focus box-shadow reaching past the ring in var(--salt-section-ink), so nothing draws the keyline.';
 			}
-
-			$selector = '(?:^|[{};])\s*\.' . preg_quote( $ground, '/' ) . '\s+:focus-visible\s*\{([^{}]*)\}';
-			if ( 1 !== preg_match_all( '/' . $selector . '/', $blank, $rule, PREG_OFFSET_CAPTURE ) ) {
-				$failures[] = "app.css has no single `.{$ground} :focus-visible` rule, so nothing draws the {$keyline['role']} keyline on {$keyline['ground']}.";
-				continue;
-			}
-			$shadows[]  = array( $rule[1][0][1], $rule[1][0][1] + strlen( $rule[1][0][0] ) );
-			$rule[1][0] = $rule[1][0][0];
-
-			// The nested-ground reset: a card or panel inside the band is its own
-			// ground. Its body may only take the keyline away.
-			$reset = '(?:^|[{};])\s*\.' . preg_quote( $ground, '/' ) . '\s+:is\([^(){}]*\)\s+:focus-visible\s*\{([^{}]*)\}';
-			preg_match_all( '/' . $reset . '/', $blank, $resets, PREG_OFFSET_CAPTURE );
-			foreach ( $resets[1] as $body ) {
-				if ( 'box-shadow:none' !== trim( (string) preg_replace( '/\s+/', '', $body[0] ), ';' ) ) {
-					$failures[] = "The nested-ground reset under `.{$ground}` is `" . trim( $body[0] ) . '`; it may only be `box-shadow: none`.';
-					continue;
+			foreach ( array_unique( $reaches[1] ) as $reach ) {
+				if ( self::compare_decimal( $reach, $keyline['floor'] ) < 0 ) {
+					$failures[] = "salt.css's keyline reaches {$reach}px past the ring; the contract needs at least {$keyline['floor']}px on {$keyline['ground']}.";
 				}
-				$shadows[] = array( $body[1], $body[1] + strlen( $body[0] ) );
-			}
-
-			$want = 'box-shadow:0 0 0 var(--focus-ring-offset) var(--color-' . str_replace( '.', '-', $keyline['ground'] ) . '),0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width) + var(--focus-keyline-width)) var(' . $role . ')';
-			$got  = trim( (string) preg_replace( '/\s*,\s*/', ',', (string) preg_replace( '/\s*:\s*/', ':', (string) preg_replace( '/\s+/', ' ', $rule[1][0] ) ) ), ' ;' );
-			if ( $want !== $got ) {
-				$failures[] = "`.{$ground} :focus-visible` is `{$got}`. This suite reads one shape only, `{$want}`: the ground repainted across the offset gap, then the keyline in {$keyline['role']} reaching --focus-keyline-width past the ring.";
 			}
 		}
 
-		// Any other box-shadow in app.css, at any depth, in any case or with a
-		// vendor prefix, can replace the keyline on a focused control, as a
-		// later `.x-button:focus-visible { box-shadow: none }` would, leaving the
-		// ring alone on the band at 2.77:1 light and 2.24:1 dark. So only the
-		// keyline rule and its nested-ground reset may declare one.
-		preg_match_all( '/(?<=[{;])\s*((?i:-webkit-)?(?i:box-shadow))\s*:([^;{}]*)/', $blank, $declared, PREG_OFFSET_CAPTURE | PREG_SET_ORDER );
-		foreach ( $declared as $declaration ) {
-			$at      = $declaration[1][1];
-			$covered = array_filter( $shadows, static fn( array $range ): bool => $at >= $range[0] && $at < $range[1] );
-			if ( array() === $covered ) {
-				$failures[] = "app.css declares `{$declaration[1][0]}:" . substr( $css, $declaration[2][1], strlen( $declaration[2][0] ) ) . '` in `' . self::excerpt( $css, $at ) . '`. Only the keyline rule and its nested-ground reset may set a box-shadow: any other can take the keyline off a focused control on the inverse band.';
-			}
+		$css = self::app_css();
+		preg_match_all( '/(?<=[{;])\s*((?i:-webkit-)?(?i:box-shadow))\s*:/', self::blank_strings( $css ), $declared, PREG_OFFSET_CAPTURE );
+		foreach ( $declared[1] as $declaration ) {
+			$failures[] = "app.css declares `{$declaration[0]}` in `" . self::excerpt( $css, $declaration[1] ) . '`. It may set no box-shadow: any one can take salt.css\'s keyline off a focused control on the inverse band.';
 		}
 
 		$this->assertSame( array(), $failures, "The focus keyline does not meet the contract:\n  " . implode( "\n  ", $failures ) );

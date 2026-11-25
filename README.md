@@ -1,6 +1,6 @@
 # salt-wordpress
 
-Salt for WordPress: a private, opinionated WordPress **parent theme** for the
+Salt for WordPress: an opinionated WordPress **parent theme** for the
 Lightly Salted fleet. Composable ACF section library, three-tier OKLCH design
 tokens, Gutenberg disabled, PHP 8.2+. Customised per site via child themes;
 the parent is **read-only on every site** and updated in place via Git Updater.
@@ -16,11 +16,13 @@ The Next.js counterpart is
 
 ## Governing documents
 
-| Doc | Role |
-|---|---|
-| [docs/lightly-salted-starter-spec-v3.md](docs/lightly-salted-starter-spec-v3.md) | Design, output & authoring intent |
-| [docs/SPEC-REVIEW.md](docs/SPEC-REVIEW.md) | Corrected requirements (3 Blockers + 37 Majors) — **wins on conflict** |
-| [docs/BUILD-BRIEF.md](docs/BUILD-BRIEF.md) | The build contract: phases, gates, locked decisions, traceability |
+The Salt contract,
+[`@lightlysaltedhq/salt-contract`](https://www.npmjs.com/package/@lightlysaltedhq/salt-contract)
+at the exact version pinned in `package.json`, defines the sections, fields
+and markup; the conformance tests hold this theme to it.
+[docs/RELEASE-POLICY.md](docs/RELEASE-POLICY.md),
+[docs/RUNBOOK-ROLLBACK.md](docs/RUNBOOK-ROLLBACK.md) and
+[docs/DEPENDENCY-MATRIX.md](docs/DEPENDENCY-MATRIX.md) govern releases.
 
 ## Repo layout
 
@@ -49,3 +51,22 @@ npm install        # asset toolchain + the design contract — never shipped
 npm run build      # rebuild assets/dist (commit the output)
 composer lint && composer test
 ```
+
+## Licence
+
+Lightly Salted's own code in this repository is released under the
+[MIT licence](LICENSE). The theme also ships third-party code under its own
+licences:
+
+| Code | Where | Licence |
+|---|---|---|
+| [enshrined/svg-sanitize](https://github.com/darylldoyle/svg-sanitizer) | `vendor/enshrined/svg-sanitize/` | GPL-2.0-or-later ([its LICENSE](vendor/enshrined/svg-sanitize/LICENSE)) |
+| [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js) | bundled in `assets/dist/maps/` | BSD-3-Clause |
+| [PostHog JS](https://github.com/PostHog/posthog-js) | bundled in `assets/dist/analytics/` | Apache-2.0 and MIT |
+| [Tailwind CSS](https://tailwindcss.com) | compiled into `assets/dist/app.*.css` | MIT |
+| [`@lightlysaltedhq/salt-contract`](https://www.npmjs.com/package/@lightlysaltedhq/salt-contract) | `assets/dist/salt.*/salt.css` | MIT |
+
+Because the theme as shipped includes a GPL-2.0-or-later library, anyone who
+redistributes the whole theme must do so on terms compatible with the GPL;
+MIT is compatible, so the theme's own files stay MIT and can be reused on
+their own under MIT.

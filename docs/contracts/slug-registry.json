@@ -9,12 +9,14 @@
 		"features",
 		"gallery",
 		"hero",
+		"listing",
 		"locations",
 		"logos",
 		"media-text",
 		"process",
 		"rich-text",
-		"stats"
+		"stats",
+		"tabs"
 	],
 	"fields": {
 		"group_salt_collection_case_studies": [
@@ -150,6 +152,10 @@
 			"brand_primary",
 			"brand_secondary",
 			"dark_mode",
+			"dial_button_style",
+			"dial_corners",
+			"dial_density",
+			"dial_shadows",
 			"reduce_motion"
 		],
 		"group_salt_options_captcha": [
@@ -299,6 +305,7 @@
 			"style",
 			"subheading",
 			"suffix",
+			"tabs",
 			"text",
 			"title",
 			"tone",
@@ -530,6 +537,10 @@
 			"brand_primary",
 			"brand_secondary",
 			"dark_mode",
+			"dial_button_style",
+			"dial_corners",
+			"dial_density",
+			"dial_shadows",
 			"reduce_motion"
 		],
 		"group_salt_options_captcha": [
@@ -849,6 +860,24 @@
 			"sections_N_subheading",
 			"sections_N_variant"
 		],
+		"group_salt_sections / listing": [
+			"sections_N_eyebrow",
+			"sections_N_heading",
+			"sections_N_intro",
+			"sections_N_settings",
+			"sections_N_settings_anchorId",
+			"sections_N_settings_backgroundImage",
+			"sections_N_settings_backgroundImage_fit",
+			"sections_N_settings_backgroundImage_image",
+			"sections_N_settings_backgroundImage_position",
+			"sections_N_settings_backgroundImage_scrim",
+			"sections_N_settings_backgroundImage_scrimStrength",
+			"sections_N_settings_divider",
+			"sections_N_settings_spacing",
+			"sections_N_settings_tone",
+			"sections_N_settings_toneDark",
+			"sections_N_settings_width"
+		],
 		"group_salt_sections / locations": [
 			"sections_N_eyebrow",
 			"sections_N_heading",
@@ -1002,6 +1031,29 @@
 			"sections_N_settings_tone",
 			"sections_N_settings_toneDark",
 			"sections_N_settings_width"
+		],
+		"group_salt_sections / tabs": [
+			"sections_N_eyebrow",
+			"sections_N_heading",
+			"sections_N_intro",
+			"sections_N_label",
+			"sections_N_settings",
+			"sections_N_settings_anchorId",
+			"sections_N_settings_backgroundImage",
+			"sections_N_settings_backgroundImage_fit",
+			"sections_N_settings_backgroundImage_image",
+			"sections_N_settings_backgroundImage_position",
+			"sections_N_settings_backgroundImage_scrim",
+			"sections_N_settings_backgroundImage_scrimStrength",
+			"sections_N_settings_divider",
+			"sections_N_settings_firstPageOnly",
+			"sections_N_settings_spacing",
+			"sections_N_settings_tone",
+			"sections_N_settings_toneDark",
+			"sections_N_settings_width",
+			"sections_N_tabs",
+			"sections_N_tabs_N_content",
+			"sections_N_tabs_N_label"
 		]
 	}
 }

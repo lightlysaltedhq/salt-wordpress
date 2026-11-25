@@ -16,11 +16,11 @@ Three tiers, authored in `assets/src/css/app.css` (`@theme`, Tailwind v4):
    `success|warning|error|info`. The focus ring's geometry is
    `--focus-ring-width` and `--focus-ring-offset`, in px, at least 2px and
    1px (design-foundations 3.0.0's `focusIndicator`). Inside a
-   `bg-surface-inverse` section the ring gets an `ink.inverse` keyline
-   `--focus-keyline-width` thick outside it, because the ring alone does
-   not reach 3:1 on that ground.
-3. **Components** — utility classes over role tokens (`bg-surface`,
-   `text-ink-muted`, `border-border`, `bg-brand text-on-brand`…).
+   `surface-inverse` band the ring gets an `ink.inverse` keyline outside
+   it, drawn by salt.css, because the ring alone does not reach 3:1 on
+   that ground.
+3. **Components** — the Salt contract's stylesheet (salt.css), which reads
+   role tokens only. app.css builds no Tailwind utility.
 
 **Dark mode (§13a)** is a semantic-role inversion under
 `[data-theme=dark]` — primitives never change, no section has a dark
@@ -38,5 +38,6 @@ contrast and grayscale (tests/conformance/FoundationsConformanceTest.php),
 and refuses a colour rule it cannot rank. Section backgrounds are a fixed set of role
 tokens (§11) — arbitrary colour is not an editor capability in v1.
 
-**Wrapper class maps** (spacing/background/container) are frozen in
-`template-parts/components/section.php` and snapshot-locked (FLEET01).
+**The section band** (tone, dark tone, spacing, width) is the contract's
+`markup/section.json`, drawn by `template-parts/components/contract-section.php`
+and snapshot-locked (FLEET01).

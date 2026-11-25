@@ -1,6 +1,6 @@
 <?php
 /**
- * Cross-section integration (BUILD-BRIEF §6 integration pass, Gate 2):
+ * Cross-section integration (Gate 2):
  * a full composed page with multiple schema-emitting sections renders with
  * a correct heading outline (A11Y01), assembles ONE valid @graph with ONE
  * FAQPage (SEO03), and drives per-section asset enqueue from the FC

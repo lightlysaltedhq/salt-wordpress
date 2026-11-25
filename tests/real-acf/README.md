@@ -18,6 +18,28 @@ inspection (it prints how to drop them), `--offline` skips the latest-release ch
 reports it as `STALENESS NOT CHECKED`, `--report <file>` copies the report. The script exits 0
 only when every check passes.
 
+`--input-vars` runs only the ID-3963 input-truncation regression, which also runs at
+the end of every full browser run. Its server is restarted with `max_input_vars=1000`
+regardless of the full run's `SALT_HARNESS_MAX_INPUT_VARS` (default 20000). Two 80-row
+drafts submit the same native multipart form: with the guard on, the save must return
+400 and leave the native post, all metadata and revisions unchanged (apart from core's
+separate unload-time `_edit_lock` release); with only the guard disabled by a harness-only
+MU plugin, it must silently lose rows. Removing the production guard therefore fails
+the guarded assertion, rather than turning the reproduction green. A small form must
+still save. URL-encoded requests check 1000, 1001 and 1002 inputs and a missing marker
+(the built-in server retains one extra input at 1001, unlike `parse_str()`);
+a no-script browser checks the completion marker is server-rendered. This deliberately
+bypasses ACF's client validation to test the actual save, including draft/direct submissions.
+Set `SALT_HARNESS_SCREENSHOTS` for the refusal screen. PHP's expected request-startup
+input-limit warnings go to the server log (and may appear above the error in this local
+debug environment); runtime entries in WordPress's `debug.log` still fail the phase.
+No negative-control bypass is shipped in the theme.
+
+To verify that the regression check itself goes red without protection, run
+`SALT_HARNESS_DISABLE_INPUT_GUARD=1 tests/real-acf/run.sh --php 8.2 --input-vars`.
+That environment variable is read only by the disposable site's MU plugin; it
+disables the guard even for the guarded probe, which must now fail.
+
 `--limits` runs just the ID-3971 phases (outside ACF PHP writes, the core REST
 post/page routes and the classic editor in Chromium). Set `SALT_HARNESS_SCREENSHOTS`
 to a directory to keep the rendered states. ACF's PHP row helpers return success
@@ -80,7 +102,7 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    and outbound HTTP blocked.
 2. **The theme's own groups.** It loads every field group the theme registers through ACF. That
    includes one group on the user edit form: team (no old `profile_photo` field).
-   The page sections group holds the 14 layouts generated from the contract
+   The page sections group holds the 16 layouts generated from the contract
    (`inc/fields/generated/sections.json`); none is hand-written since unit 8. The 7
    collection groups are generated too (`inc/fields/generated/collections.json`).
    Any PHP notice, warning, deprecation or `salt_log` line in `debug.log` fails the phase. This
@@ -138,6 +160,18 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    testimonial rated 4.5 draws 90% of five stars on a page. The rc.8 service intro draws both
    fixture paragraphs without a heading. This is a smoke render, not conformance: the view cases'
    markup is a later unit.
+   **Tabs and listing** (`php/sections.php`, `sections.mjs`) render the saved ACF fixture rows
+   through their resolvers and views. Listing uses real paged WordPress queries. Chromium,
+   with JavaScript disabled, checks native radio arrows and wraparound, Tab/Shift+Tab focus,
+   selected-panel visibility, stacked and unnamed sets, pagination gaps, image priority,
+   empty and absent routes, and mobile overflow. `SALT_HARNESS_SCREENSHOTS` keeps these states.
+   **Design dials** (`php/dials.php`, `dials.mjs`): an administrator sees the four dials on
+   Brand & Design as choices and saves one through the form; a page of cards, buttons and
+   bands at each spacing renders as before with every dial unset; each non-default choice
+   changes only its own tokens and visibly draws (computed corners, card shadow, section
+   padding, density also at 600px), with the brand `<style>` carrying the CSP nonce and no
+   refusal; an Editor gets no Brand & Design link, a 403 on the page, and through ACF's own
+   save neither a drawn nor a stored dial. `SALT_HARNESS_SCREENSHOTS` keeps each state.
 7. **The editor, in headless Chromium** against the same server (`browser.mjs`):
    - the fixtures page's classic edit screen renders every row and layout with no console errors;
    - the faq section's collection query mode shows categories or items, and order and count unless
@@ -197,10 +231,12 @@ These changes are expected and reported, not failed:
 
 ## Known limits on a real site
 
-- **`max_input_vars`.** The fixtures page posts about 1,800 variables. PHP's default of 1000 makes
-  PHP drop the rest, and ACF then saves a truncated sections list. The harness server raises the
-  limit and reports the count. A site with long section pages needs its host's limit above the
-  page's count.
+- **`max_input_vars`.** The fixtures page posts about 1,800 variables. PHP's default of 1000
+  drops the rest. Salt now refuses incomplete classic-editor saves before core/ACF writes,
+  rather than silently saving a truncated sections list. The full harness still raises the
+  limit so its re-save can succeed, then tests the refusal and a destructive negative control
+  at 1000. Hosting must provide at least 20000, or more than the largest page needs: see
+  [hosting requirements and v5.0.0 exposure](../../docs/HOSTING.md).
 - **Save time.** Saving that page takes about 20–40 s on the built-in server. That is beyond PHP's
   default 30 s `max_execution_time` there, so the harness raises it too.
 - **Chromium's unload reports.** Chromium reports each `unload` listener in TinyMCE as a
@@ -210,10 +246,10 @@ These changes are expected and reported, not failed:
 ## What it does not prove
 
 - **Rendered markup.** The render phase checks the resolvers read the shape and draw; it does
-  not compare markup with the contract's fixtures (that is M4; collection-showcase and carousel
-  are proved by `npm run conformance:contract`). Tabs and listing are not registered yet, so their
-  fixtures are not seeded. Collection-showcase rows draw nothing here: the harness creates no posts
-  for their queries.
+  not compare markup with the contract's fixtures (the full conformance run does that).
+  Collection-showcase rows draw nothing on the fixtures page: the harness creates no posts
+  for their queries. Listing draws nothing on that singular page; its separate render checks
+  supply a real route and paged query.
 - **The categories search.** The picker's ajax search, filtered to the chosen source's taxonomy,
   is not exercised in the browser; only its visibility and the save check are.
 - **Licensing.** It does not cover ACF Pro licence activation or updates. Pro field types work on

@@ -24,7 +24,7 @@ release requirement ("SECTIONS.md current" checklist line).
    run `php bin/check-fields-from-contract.php --write` and commit
    `inc/fields/generated/sections.json` as written. Every layout carries
    the contract's section settings in a group named `settings`, read only
-   by `salt_section_wrapper_args()`; a section built on the contract's
+   by `salt_section_contract_args()`; a section built on the contract's
    collection query reads its `query` group with
    `salt_query_controls_from_query()`. No layout is hand-written since
    unit 8 (`inc/fields/layouts/` is gone; `bin/check-fields-from-contract.php`
@@ -35,7 +35,7 @@ release requirement ("SECTIONS.md current" checklist line).
      `salt_resolve_section_{name_}( array $context ): ?array` reads
      `get_sub_field()`, decides its 0/1/N states (0 items ⇒ return `null`
      or props for a visible empty-state, NEVER a blank band — COMPL02),
-     and returns the wrapper args (`salt_section_wrapper_args()` +
+     and returns the band args (`salt_section_contract_args()` +
      `['has_heading' => …]`, A11Y01) and the view props, named after the
      contract's view props.
    - `template-parts/sections/{name}.php` — the view: draws
@@ -61,12 +61,14 @@ end-to-end — copy it.
 | 3 | Rich Text | `rich-text` | inline | — | The §17 exemplar; intro folded in (6.0.0) |
 | 5 | Feature Grid | `features` | inline repeater | — | |
 | 6 | Media + Text | `media-text` | inline repeater | — | Alternating mode auto-flips |
-| 7 | Stats | `stats` | inline repeater | — | `x-stat`; no count-up JS (INP) |
+| 7 | Stats | `stats` | inline repeater | — | No count-up JS (INP) |
 | 9 | Logo Strip | `logos` | inline repeater | — | Also the "as featured in" home |
 | 10 | Call to Action | `call-to-action` | inline | — | Newsletter variant deferred (compliance phase) |
 | 13 | FAQ | `faq` | `faq` ✦ (contract `query`) | FAQPage (merged once per page, SEO03) | Native `<details>`, zero JS |
 | 14 | Process | `process` | inline repeater | HowTo (opt-in toggle, AEO) | `<ol>` semantics |
 | 16 | Gallery | `gallery` | inline | — | Carousel = scroll-snap base + JS enhancement (FAIL02) |
+| 21 | Tabs | `tabs` | inline repeater | — | Named sets use native radios and salt.css, no JS; one panel or no name draws stacked |
+| 22 | Listing | `listing` | current route's main query | — | Cards and pagination from the route; empty route message, no band on a singular page; no editor query controls |
 | 17 | Collection showcase | `collection-showcase` | services, case studies, team, testimonials or posts ✦ (contract `query`) | Service / CreativeWork / Person (no PII) | Layouts grid, list, featured, accordion, index; cards per each collection's approved `display`; in place of services, work, team, testimonials (grid) and blog_teaser (unit 8) |
 | 18 | Carousel | `carousel` | inline cards, or a collection ✦ (contract `query`) | as collection-showcase | Generic or quote cards; scroll-snap track, previous and next mounted by `sections/carousel.js`; in place of scroll_carousel and testimonials (slider) (unit 8) |
 | 19 | Contact | `contact` | inline + options | ContactPoint | **LIVE (v2)**: REST + no-JS paths, honeypot/time-trap/rate-limit/CAPTCHA (SEC01/02), privacy link at collection; goes live when a recipient is configured (`salt_contact_form_enabled` kill-switch remains) |
@@ -93,8 +95,7 @@ docblock at the top of its partial (enforced at runtime by
 
 | Component | File | Notes |
 |---|---|---|
-| x-section | components/section.php | Deprecated: only a child's own whole section draws it (OVERRIDES.md, tier 5) |
-| x-image | components/image.php | **`<img srcset>` default; `<picture>` opt-in (AMBIG01)** |
+| contract-section | components/contract-section.php | The contract's band (`salt-section`); drawn only by `salt_section()` |
 | logo | components/logo.php | `salt-logo`: light/dark display logos, text fallback; dark swap by salt.css |
 | display-preferences | components/display-preferences.php | §14 widget; server-rendered `hidden`, JS-activated (FAIL02) |
 | map | components/map.php | `salt-map` click-to-load facade; consent-gated; facade rules in app.css until salt.css has them |

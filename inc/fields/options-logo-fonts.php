@@ -8,7 +8,7 @@
  * uploads (nothing loads from a font CDN — consent contract); empty
  * repeaters keep the compiled system-font defaults (FAIL03).
  *
- * Runtime consumers: x-logo component (logo_*), inc/services/fonts.php
+ * Runtime consumers: the logo component (logo_*), inc/services/fonts.php
  * (font_*).
  *
  * @package Salt

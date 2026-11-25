@@ -115,7 +115,6 @@ final class StatsSectionTest extends SaltTestCase {
 		);
 
 		$this->assertStringContainsString( '<ul class="salt-grid" role="list" data-columns="3"><li class="salt-stat"><p class="salt-stat__value">45<span class="salt-stat__suffix">%</span></p><p class="salt-stat__label">More conversions</p></li></ul>', $html, 'The value is text in p.salt-stat__value: no number span (stat.json).' );
-		$this->assertStringNotContainsString( 'x-stat', $html );
 		$this->assertStringContainsString( '<h1 id="stats__heading">The numbers</h1>', $html, 'Primary section with heading claims the H1.' );
 		$this->assertSame( 1, preg_match_all( '/<h[1-6]/', $html ), 'A stat is never a heading (A11Y01).' );
 		$this->assertStringNotContainsString( '<script', $html, 'No JS — the count-up animation is out.' );
@@ -351,7 +350,6 @@ final class StatsSectionTest extends SaltTestCase {
 		$this->assertNull( $resolved['props']['heading'] );
 		$this->assertNull( $resolved['props']['intro'] );
 		$this->assertSame( 'stats', $resolved['section']['name'] );
-		$this->assertTrue( $resolved['section']['contract'], 'Drawn in the contract\'s wrapper (M4).' );
 		$this->assertSame( 'lg', $resolved['section']['spacing'] );
 		$this->assertFalse( $resolved['section']['has_heading'] );
 	}

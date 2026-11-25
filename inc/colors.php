@@ -5,7 +5,8 @@
  * Converts sRGB hex colours to/from OKLCH, computes WCAG 2.x luminance and
  * contrast ratios, derives an 11-step tonal ramp from a single brand colour
  * (SCOPE04), and emits the ':root' CSS custom-property block for the brand
- * palette with a legible neutral default on fresh installs (FAIL03).
+ * palette with a legible neutral default on fresh installs (FAIL03), followed
+ * by the rules the design dials write (salt-contract contract/dials.json).
  *
  * All conversions use Björn Ottosson's published OKLab matrices. Out-of-gamut
  * OKLCH values are mapped back into sRGB by reducing chroma (binary search),
@@ -349,8 +350,12 @@ function salt_text_on( string $background_hex ): string {
  * primary-400 (lightlysaltedhq/salt-wordpress#3). Output order is fixed (primary, secondary,
  * accent; steps ascending) regardless of input order.
  *
- * @param array<string, mixed> $brand Brand colours keyed by role.
- * @return string ':root{...}' CSS block.
+ * The design dials' rules follow the colour block (salt_dials_css()), so
+ * they come after the theme's stylesheet and before the Customizer's
+ * Additional CSS. With no dial set, the output is the colour block alone.
+ *
+ * @param array<string, mixed> $brand Brand colours keyed by role, and dial choices keyed by dial id.
+ * @return string ':root{...}' CSS block, then any dial rules.
  */
 function salt_brand_css( array $brand ): string {
 	$pick = static function ( string $role ) use ( $brand ): string {
@@ -408,5 +413,220 @@ function salt_brand_css( array $brand ): string {
 	}
 	$css .= '}';
 
-	return $css;
+	return $css . salt_dials_css( $brand );
+}
+
+/**
+ * The design dials (salt-contract contract/dials.json), keyed by dial id.
+ *
+ * A copy of the contract's table: each option names the tokens it sets and,
+ * for each, either a literal value or the rung (another token) whose value it
+ * takes. An option that sets nothing leaves the theme's own value. `requires`
+ * lists tokens the dial's values reference, as light and dark values,
+ * emitted while the dial sets anything. tests/conformance/DesignDialsTest.php
+ * holds this to the installed contract.
+ *
+ * @return array<string, array{field: string, label: string, description: string, default: string, options: array<string, array{label: string, sets: array<string, string>}>, requires?: array<string, array{light: string, dark: string}>}>
+ */
+function salt_design_dials(): array {
+	return array(
+		'corners'      => array(
+			'field'       => 'dial_corners',
+			'label'       => __( 'Corners', 'salt' ),
+			'description' => __( 'How rounded the site\'s corners are: small ones (image frames, tags, inline code), controls (inputs, and buttons unless the button style says otherwise) and large ones (cards, dialogs). Pills and circles (step numbers, portraits) stay round whatever you choose.', 'salt' ),
+			'default'     => 'soft',
+			'options'     => array(
+				'square' => array(
+					'label' => __( 'Square', 'salt' ),
+					'sets'  => array(
+						'--radius-sm' => '0',
+						'--radius-md' => '0',
+						'--radius-lg' => '0',
+					),
+				),
+				'soft'   => array(
+					'label' => __( 'Soft', 'salt' ),
+					'sets'  => array(),
+				),
+				'round'  => array(
+					'label' => __( 'Round', 'salt' ),
+					'sets'  => array(
+						'--radius-sm' => '--radius-md',
+						'--radius-md' => '--radius-lg',
+					),
+				),
+			),
+		),
+		'shadows'      => array(
+			'field'       => 'dial_shadows',
+			'label'       => __( 'Shadows', 'salt' ),
+			'description' => __( 'Whether cards sit flat on the page or lift off it with a shadow.', 'salt' ),
+			'default'     => 'none',
+			'options'     => array(
+				'none'   => array(
+					'label' => __( 'None', 'salt' ),
+					'sets'  => array(),
+				),
+				'subtle' => array(
+					'label' => __( 'Subtle', 'salt' ),
+					'sets'  => array( '--salt-card-shadow' => '--shadow-sm' ),
+				),
+				'raised' => array(
+					'label' => __( 'Raised', 'salt' ),
+					'sets'  => array( '--salt-card-shadow' => '--shadow-md' ),
+				),
+			),
+			// The design system's shadow colours (lightlysaltedhq/design_system
+			// builds): deeper in dark mode, so a shadow still reads there.
+			'requires'    => array(
+				'--color-shadow-sm' => array(
+					'light' => 'rgba(0,0,0,0.05)',
+					'dark'  => 'rgba(0,0,0,0.2)',
+				),
+				'--color-shadow-md' => array(
+					'light' => 'rgba(0,0,0,0.1)',
+					'dark'  => 'rgba(0,0,0,0.3)',
+				),
+				'--color-shadow-lg' => array(
+					'light' => 'rgba(0,0,0,0.1)',
+					'dark'  => 'rgba(0,0,0,0.4)',
+				),
+			),
+		),
+		'button-style' => array(
+			'field'       => 'dial_button_style',
+			'label'       => __( 'Button style', 'salt' ),
+			'description' => __( 'The corners of buttons and button-like controls (pagination links, the copy-link button): square, the same as the site\'s other controls, or fully rounded pills.', 'salt' ),
+			'default'     => 'soft',
+			'options'     => array(
+				'square' => array(
+					'label' => __( 'Square', 'salt' ),
+					'sets'  => array( '--salt-button-radius' => '0' ),
+				),
+				'soft'   => array(
+					'label' => __( 'Soft', 'salt' ),
+					'sets'  => array(),
+				),
+				'pill'   => array(
+					'label' => __( 'Pill', 'salt' ),
+					'sets'  => array( '--salt-button-radius' => '--radius-full' ),
+				),
+			),
+		),
+		'density'      => array(
+			'field'       => 'dial_density',
+			'label'       => __( 'Density', 'salt' ),
+			'description' => __( 'How much space sits above and below each section. Compact tightens the medium and large steps to the step below (small stays as it is); spacious loosens the small and medium steps to the step above (large stays). A section\'s own spacing setting still chooses among the steps, and the case-study page\'s gaps, which read the same steps, move with them.', 'salt' ),
+			'default'     => 'comfortable',
+			'options'     => array(
+				'compact'     => array(
+					'label' => __( 'Compact', 'salt' ),
+					'sets'  => array(
+						'--space-section-md' => '--space-section-sm',
+						'--space-section-lg' => '--space-section-md',
+					),
+				),
+				'comfortable' => array(
+					'label' => __( 'Comfortable', 'salt' ),
+					'sets'  => array(),
+				),
+				'spacious'    => array(
+					'label' => __( 'Spacious', 'salt' ),
+					'sets'  => array(
+						'--space-section-sm' => '--space-section-md',
+						'--space-section-md' => '--space-section-lg',
+					),
+				),
+			),
+		),
+	);
+}
+
+/**
+ * The value of each rung a dial option points at, as the theme gives it.
+ *
+ * Written out rather than as var() to the rung: the dials re-point rungs on
+ * the same element, so `--radius-sm:var(--radius-md)` beside
+ * `--radius-md:var(--radius-lg)` would give the small corner the large one.
+ * The radius and section rungs are assets/src/css/app.css's; a section rung
+ * steps up at 48rem there, so it has a narrow and a wide value. The shadow
+ * rungs are the design system's (design-foundations names them and carries
+ * no values) and reference the shadows dial's `requires`.
+ * tests/conformance/DesignDialsTest.php holds the app.css ones to app.css.
+ *
+ * @return array<string, string|array{narrow: string, wide: string}>
+ */
+function salt_dial_rungs(): array {
+	return array(
+		'--radius-md'        => '0.375rem',
+		'--radius-lg'        => '0.5rem',
+		'--radius-full'      => 'calc(infinity * 1px)',
+		'--shadow-sm'        => '0 1px 2px 0 var(--color-shadow-sm)',
+		'--shadow-md'        => '0 4px 6px -1px var(--color-shadow-md),0 2px 4px -2px var(--color-shadow-md)',
+		'--space-section-sm' => array(
+			'narrow' => 'var(--space-section-sm-min)',
+			'wide'   => 'var(--space-section-sm-max)',
+		),
+		'--space-section-md' => array(
+			'narrow' => 'var(--space-section-md-min)',
+			'wide'   => 'var(--space-section-md-max)',
+		),
+		'--space-section-lg' => array(
+			'narrow' => 'var(--space-section-lg-min)',
+			'wide'   => 'var(--space-section-lg-max)',
+		),
+	);
+}
+
+/**
+ * The rules the chosen design dials write, after the brand colours.
+ *
+ * Only an option that sets something writes anything, so a site with no
+ * dial chosen, or each on its default, gets ''. Rules, in order: `:root`
+ * with each set token's value, and the light value of each token the dial
+ * requires; `@media (width>=48rem)` with the wide value of a section rung;
+ * `[data-theme="dark"]` with the dark value of each required token. An
+ * unknown choice is logged and treated as unset.
+ *
+ * @param array<string, mixed> $brand Dial choices keyed by dial id (other keys ignored).
+ * @return string CSS, or ''.
+ */
+function salt_dials_css( array $brand ): string {
+	$rungs = salt_dial_rungs();
+	$root  = '';
+	$wide  = '';
+	$dark  = '';
+
+	foreach ( salt_design_dials() as $id => $dial ) {
+		$choice = $brand[ $id ] ?? '';
+		if ( ! is_string( $choice ) || '' === $choice ) {
+			continue;
+		}
+		if ( ! isset( $dial['options'][ $choice ] ) ) {
+			salt_log( sprintf( 'salt_dials_css: unknown %s choice "%s"; using the theme\'s own.', $id, $choice ) );
+			continue;
+		}
+
+		$sets = $dial['options'][ $choice ]['sets'];
+		foreach ( $sets as $token => $value ) {
+			$value = $rungs[ $value ] ?? $value;
+			if ( is_array( $value ) ) {
+				$wide .= "{$token}:{$value['wide']};";
+				$value = $value['narrow'];
+			}
+			$root .= "{$token}:{$value};";
+		}
+
+		if ( array() === $sets ) {
+			continue;
+		}
+		foreach ( $dial['requires'] ?? array() as $token => $values ) {
+			$root .= "{$token}:{$values['light']};";
+			$dark .= "{$token}:{$values['dark']};";
+		}
+	}
+
+	return ( '' === $root ? '' : ":root{{$root}}" )
+		. ( '' === $wide ? '' : "@media (width>=48rem){:root{{$wide}}}" )
+		. ( '' === $dark ? '' : "[data-theme=\"dark\"]{{$dark}}" );
 }

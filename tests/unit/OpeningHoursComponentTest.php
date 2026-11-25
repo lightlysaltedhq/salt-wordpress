@@ -1,6 +1,6 @@
 <?php
 /**
- * x-opening-hours — semantic <dl>/<time> rendering of the frozen
+ * The opening-hours component — semantic <dl>/<time> rendering of the frozen
  * opening_hours storage contract (Appendix A.6; COMPL02 0-state).
  *
  * @package Salt\Tests

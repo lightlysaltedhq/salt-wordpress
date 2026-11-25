@@ -159,7 +159,6 @@ final class RichTextSectionTest extends SaltTestCase {
 		);
 
 		$this->assertSame( 'rich-text', $resolved['section']['name'] );
-		$this->assertTrue( $resolved['section']['contract'], 'Drawn in the contract\'s wrapper (M4).' );
 		$this->assertSame( 'lg', $resolved['section']['spacing'] );
 		$this->assertSame( 'surface-alt', $resolved['section']['tone'] );
 		$this->assertSame( 'About', $resolved['section']['anchor'], 'Raw anchor: the wrapper settles it (EDIT02).' );

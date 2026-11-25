@@ -274,7 +274,7 @@ final class GallerySectionTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// Captions (<figure>/<figcaption> rendered directly — no x-figure).
+	// Captions (<figure>/<figcaption> rendered directly).
 	// -----------------------------------------------------------------
 
 	public function test_captions_on_renders_figcaption_from_attachment_caption(): void {

@@ -409,7 +409,6 @@ final class FeaturesSectionTest extends SaltTestCase {
 		$this->assertNull( $resolved['props']['intro'] );
 		$this->assertSame( '3', $resolved['props']['columns'] );
 		$this->assertSame( 'features', $resolved['section']['name'] );
-		$this->assertTrue( $resolved['section']['contract'], 'Drawn in the contract\'s wrapper (M4).' );
 		$this->assertSame( 'lg', $resolved['section']['spacing'] );
 		$this->assertFalse( $resolved['section']['has_heading'] );
 	}

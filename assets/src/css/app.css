@@ -9,42 +9,30 @@
  *            salt_brand_css() (inc/colors.php — the same math that
  *            produced these defaults) and emitted as a :root override.
  *   Tier 2 — semantic roles: what components are ALLOWED to consume.
- *   Tier 3 — components: utility classes referencing role tokens only.
+ *   Tier 3 — components: the contract's stylesheet (salt.css), which
+ *            reads role tokens only.
  *
  * Dark mode is a semantic-role inversion via [data-theme=dark] (§13a) —
  * no per-section dark variants anywhere.
  */
 
 /*
- * Content sources: only the files that still print utility classes. The
+ * Tailwind's theme and preflight (its base reset), and no utility: the
  * sections, views and chrome draw the Salt contract's markup, which the
- * contract's own stylesheet (salt.css) styles, so the rest of the theme
- * carries none. What is left:
- *   - components/section.php, the x-section band salt_section() still draws
- *     for a child theme's own whole sections (salt_section_wrapper_args();
- *     deprecated, see docs/contracts/OVERRIDES.md);
- *   - sections/fallback.php, the editor-only marker for a missing layout;
- *   - single.php, the generic single for a child's or plugin's post types.
- * One brace glob, not one @source per file. Tailwind 4.3 @source behaviour
- * (checked on 4.3.2): when several @source lines each name a single file at
- * a different directory depth, the scanner keeps only one of them, and the
- * utilities in the others silently drop out of the build. A brace glob is
- * read as one source and scans every file it names.
- * FoundationsConformanceTest::source_files() expands the same glob.
- * source(none) keeps Tailwind from scanning anything else, so prose in
- * inc/, bin/, tests/ and docs/ cannot leak candidate class names into the
- * built CSS (which would drift the FLEET08 artifact-integrity gate).
+ * contract's own stylesheet (salt.css) styles, so nothing here prints a
+ * utility class (6.0.0, ID-3946). source(none) with no @source line means
+ * Tailwind scans no file, so it builds none, and prose in the theme cannot
+ * leak a candidate class name into the built CSS (which would drift the
+ * FLEET08 artifact-integrity gate). FoundationsConformanceTest holds both.
  */
 @import "tailwindcss" source(none);
 
-@source "../../../{single,template-parts/components/section,template-parts/sections/fallback}.php";
-
 /*
  * `static`: Tailwind otherwise emits only the theme variables it sees used,
- * and the contract's stylesheet (salt.css, served beside this one and never
- * passed through Tailwind) reads roles no utility here uses, such as
- * --color-border-strong. Without it those roles would be missing from
- * assets/dist and every rule reading them would draw nothing.
+ * and nothing here is a utility, while the contract's stylesheet (salt.css,
+ * served beside this one and never passed through Tailwind) reads every
+ * role. Without it those roles would be missing from assets/dist and every
+ * rule reading them would draw nothing.
  */
 @theme static {
 	/* ------------------------------------------------------------------ */
@@ -129,10 +117,6 @@
 	--focus-ring-width: 2px;
 	--focus-ring-offset: 2px;
 
-	/* The ink.inverse keyline drawn outside the ring on the inverse band
-	   (focusIndicator.keyline): at least the ring's own 2px. */
-	--focus-keyline-width: 2px;
-
 	/* Status roles (fixed defaults, AA-safe on light surface). */
 	--color-success: oklch(45% 0.12 150deg);
 	--color-warning: oklch(50% 0.12 80deg);
@@ -153,12 +137,10 @@
  * The contract's token layer, less colour (@lightlysaltedhq/salt-contract
  * contract/token-layer.json): every other custom property its stylesheet
  * (salt.css) reads and a theme must emit. Outside @theme on purpose, so
- * Tailwind generates no utility from them and none of its own utilities
- * moves: --space-<n> inside @theme would take space-x-<n> off --spacing.
- * Unlayered, so where a name is also one of Tailwind's theme variables
+ * none of them is mistaken for a Tailwind theme namespace. Unlayered, so
+ * where a name is also one of Tailwind's theme variables
  * (--radius-sm/md/lg, --container-2xs/2xl/5xl/7xl, --leading-tight,
- * --ease-in-out) this wins, and each such value is Tailwind's own, the one
- * this theme's utilities already draw with.
+ * --ease-in-out) this wins; each such value is Tailwind's own.
  *
  * Values, by source:
  *   - Type: design-foundations 3.0.1's `balanced` named scale (step -5..5),
@@ -166,10 +148,10 @@
  *     type-tokens resolve() gives for them, with the optional quote and stat
  *     roles; families from this theme's --font-heading and --font-body,
  *     which inc/services/fonts.php re-points per site.
- *   - Section space and gutter: the layout roles from this theme's own
- *     section paddings and gutter (template-parts/components/section.php:
- *     py-8/12, py-14/20, py-20/32 at md; px-4/6/8 at sm and lg), as
- *     design-foundations' layout-roles overrides; all four invariants hold.
+ *   - Section space and gutter: the layout roles from this theme's
+ *     earlier section paddings and gutter (2/3rem, 3.5/5rem, 5/8rem from
+ *     md; 1/1.5/2rem at sm and lg), as design-foundations' layout-roles
+ *     overrides; all four invariants hold.
  *   - Space rungs: design-foundations' space scale on this theme's
  *     --spacing (0.25rem).
  *   - Card rhythm, opacity and scrims: Salt's own, as Salt for Next.js
@@ -326,8 +308,8 @@
 	--ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* The layout roles step where the theme's own paddings do: the gutter at
-   sm and lg (px-4 sm:px-6 lg:px-8), the section bands at md. */
+/* The layout roles step at the breakpoints: the gutter at sm and lg, the
+   section bands at md. */
 @media (width >= 40rem) {
 	:root {
 		--space-gutter: var(--container-padding-sm);
@@ -375,7 +357,7 @@
 /*
  * WordPress core's fix for images with sizes="auto" (WordPress 6.7+,
  * wp_enqueue_img_auto_sizes_contain_css_fix() in wp-includes/media.php),
- * carried here verbatim. Core prints it as an inline <style> with no nonce,
+ * carried here verbatim. Core prints it as an inline \3c style> with no nonce,
  * which the CSP refuses, so salt_dequeue_img_auto_sizes_contain()
  * (inc/security.php) dequeues it and this stylesheet supplies the rule.
  * Unlayered, as core's is.
@@ -418,26 +400,6 @@ img:is([sizes="auto" i], [sizes^="auto," i]) {
 	:focus-visible {
 		outline: var(--focus-ring-width) solid var(--color-focus);
 		outline-offset: var(--focus-ring-offset);
-	}
-
-	/* On the inverse band the ring is not relied on: `focus` is a brand step
-	   and surface-inverse sits at the far end of the neutral ramp, so the
-	   ring measured 2.05-2.99:1 against it. design-foundations 3.0.0 asks
-	   for an ink.inverse keyline as the indicator's outermost part, so the
-	   keyline, not the ring, meets the ground. The first shadow repaints the
-	   offset gap in the ground's colour (the second would otherwise fill
-	   it); the second reaches past the ring by the keyline's width. Outlines
-	   paint above box-shadows, so the ring sits between the two. */
-	.bg-surface-inverse :focus-visible {
-		box-shadow:
-			0 0 0 var(--focus-ring-offset) var(--color-surface-inverse),
-			0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width) + var(--focus-keyline-width)) var(--color-ink-inverse);
-	}
-
-	/* A card or panel painted inside the band is its own ground, where the
-	   ring meets the contract on its own. */
-	.bg-surface-inverse :is(.bg-surface, .bg-surface-alt, .bg-brand-tint) :focus-visible {
-		box-shadow: none;
 	}
 
 	/* Single reduced-motion switch gating both the media query and the
@@ -486,6 +448,28 @@ img:is([sizes="auto" i], [sizes^="auto," i]) {
 	padding: 0.75rem 1rem;
 	background-color: var(--color-surface);
 	color: var(--color-ink);
+}
+
+/*
+ * The generic single (single.php), for a child's or plugin's post types:
+ * the post's content in a 48rem column inside the gutter.
+ */
+.salt-single {
+	width: 100%;
+	max-width: 48rem;
+	margin-inline: auto;
+	padding: 3.5rem var(--space-gutter);
+}
+
+/*
+ * The editor-only marker for a section layout with no template
+ * (template-parts/sections/fallback.php), drawn in a contract band.
+ */
+.salt-section-fallback {
+	margin: 0;
+	padding: 1rem;
+	border: 2px dashed var(--salt-section-border);
+	color: var(--salt-section-ink-muted);
 }
 
 /*

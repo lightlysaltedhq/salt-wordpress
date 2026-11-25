@@ -1,20 +1,26 @@
 <?php
 /**
- * Git Updater support: private-repo token custody (spec §4; review SEC03).
+ * Git Updater support: tokenless updates from the public repo (SEC03, SC-005).
  *
- * TOKEN CUSTODY CONTRACT (SEC03):
- * - The repo access token lives in a wp-config.php constant,
- *   SALT_UPDATER_TOKEN — NEVER in wp_options or anywhere in the database,
- *   so it stays out of DB backups and admin-visible screens.
- * - Each site gets its own FINE-GRAINED, READ-ONLY deploy token scoped to
- *   the single parent-theme repo, so one breached site cannot be used
- *   against the rest of the fleet. Rotation + revocation procedure:
- *   docs/RUNBOOK-ROLLBACK.md §Token custody.
+ * UPDATE CUSTODY CONTRACT (SEC03):
+ * - A site holds NO credential for updates. The repository is public, so Git
+ *   Updater reads it unauthenticated and a site needs nothing in wp-config.php,
+ *   wp_options or anywhere else. There is no per-site token to issue, rotate or
+ *   revoke, and a site keeps working on its installed version if the repo stops
+ *   being maintained (SC-005 handoff rule).
+ * - Git Updater's own authenticated requests are tied to its licence (after the
+ *   trial it flushes stored access tokens monthly unless licensed), so
+ *   unauthenticated reads are the only licence-free path. GitHub allows 60
+ *   unauthenticated API requests per hour per server IP; see
+ *   docs/RUNBOOK-ROLLBACK.md §Updates without a token.
+ * - Distribution is the repository's tag zipball with assets/dist committed and
+ *   the runtime libraries vendored (FLEET08), so the zipball installs as it
+ *   stands: no build step on the site, no release asset to build, upload and
+ *   authenticate.
  *
- * Mechanism: rather than depending on a specific updater plugin's own
- * token storage, salt injects the Authorization header into WP HTTP
- * requests that target THIS theme's GitHub repo (works with Git Updater
- * and plain WP HTTP alike). The pure resolver is unit-tested.
+ * Mechanism: this theme adds no Authorization header to any request, and
+ * reads no credential from wp-config.php. This file keeps only the repo
+ * constant and the wrong-folder notice.
  *
  * @package Salt
  */
@@ -31,80 +37,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * name, so the part after the slash is the folder this theme must live in.
  */
 define( 'SALT_UPDATE_REPO', 'lightlysaltedhq/salt-wordpress' );
-
-/**
- * Whether a URL addresses THIS theme's GitHub repo, and nothing wider.
- *
- * The owner/repo pair must be whole path segments in the position each host
- * uses (api.github.com/repos/{owner}/{repo}, otherwise /{owner}/{repo}),
- * followed by "/" or the end. A substring match would also hand the token to
- * a sibling such as {repo}-legacy or to a path that merely embeds the pair.
- * Dot segments are refused outright because the HTTP client may resolve
- * them after this check, sending the token to a different repo.
- *
- * @param string $url Request URL.
- * @return bool
- */
-function salt_updater_is_repo_url( string $url ): bool {
-	if ( 'https' !== strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) ) ) {
-		return false;
-	}
-
-	$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
-	$path = (string) wp_parse_url( $url, PHP_URL_PATH );
-
-	if ( preg_match( '#(^|/)\.{1,2}(/|$)|%2e#i', $path ) ) {
-		return false;
-	}
-
-	if ( 'api.github.com' === $host ) {
-		$prefix = '/repos/';
-	} elseif ( in_array( $host, array( 'github.com', 'raw.githubusercontent.com', 'codeload.github.com' ), true ) ) {
-		$prefix = '/';
-	} else {
-		return false;
-	}
-
-	// GitHub owner and repo names are case-insensitive.
-	$base = strtolower( $prefix . SALT_UPDATE_REPO );
-	$path = strtolower( $path );
-
-	return $path === $base || str_starts_with( $path, $base . '/' );
-}
-
-/**
- * Inject the deploy token into HTTP requests for the parent-theme repo.
- *
- * Pure decision function (unit-tested): only HTTPS GitHub requests for
- * exactly SALT_UPDATE_REPO (salt_updater_is_repo_url()) get the header, and only
- * when the wp-config constant is defined and no Authorization header is
- * already present.
- *
- * @param array<string,mixed> $parsed_args HTTP request args.
- * @param string              $url         Request URL.
- * @return array<string,mixed>
- */
-function salt_updater_authorize_request( array $parsed_args, string $url ): array {
-	if ( ! defined( 'SALT_UPDATER_TOKEN' ) || '' === (string) SALT_UPDATER_TOKEN ) {
-		return $parsed_args;
-	}
-
-	if ( ! salt_updater_is_repo_url( $url ) ) {
-		return $parsed_args;
-	}
-
-	if ( isset( $parsed_args['headers']['Authorization'] ) || isset( $parsed_args['headers']['authorization'] ) ) {
-		return $parsed_args;
-	}
-
-	if ( ! isset( $parsed_args['headers'] ) || ! is_array( $parsed_args['headers'] ) ) {
-		$parsed_args['headers'] = array();
-	}
-	$parsed_args['headers']['Authorization'] = 'token ' . SALT_UPDATER_TOKEN;
-
-	return $parsed_args;
-}
-add_filter( 'http_request_args', 'salt_updater_authorize_request', 10, 2 );
 
 /**
  * The admin notice shown when the theme sits in the wrong folder.

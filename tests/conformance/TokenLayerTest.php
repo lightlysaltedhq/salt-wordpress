@@ -20,7 +20,8 @@
  * -------------------
  * The tokens whose `source` is `design-foundations` or `salt` (the theme's to
  * emit), less those marked `optional` (every read has a fallback) and those
- * with `requiredBy` (owed only while a dial is set: this theme has none). A
+ * with `requiredBy` (owed only while a dial is set: salt_brand_css() writes
+ * them with the dial, which DesignDialsTest checks; here no dial is set). A
  * text role is five properties, per schema/token-layer.schema.json. Tokens
  * whose source is `markup` or `script` are written on an element or at run
  * time, not by the theme's stylesheet, so they are not looked for here.

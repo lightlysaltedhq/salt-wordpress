@@ -57,7 +57,7 @@ function salt_resolve_section_call_to_action( array $context ): ?array {
 
 	$section = salt_section_contract_args( 'call-to-action', $context );
 
-	// The tone: the stored one, with the x-section era's `inverse` read as
+	// The tone: the stored one, with an older row's `inverse` read as
 	// surface-inverse, else this section's default, brand-tint, also for a
 	// row with none stored or an unknown one (salt_section_contract_args()
 	// falls back to surface). An unset or auto dark tone follows it.
@@ -66,9 +66,8 @@ function salt_resolve_section_call_to_action( array $context ): ?array {
 	$tone_of  = static fn( $tone ): ?string => 'inverse' === $tone ? 'surface-inverse' : ( in_array( $tone, $tones, true ) ? (string) $tone : null );
 	$tone     = $tone_of( $settings['tone'] ?? null ) ?? 'brand-tint';
 
-	$section['tone']       = $tone;
-	$section['background'] = 'surface-inverse' === $tone ? 'inverse' : $tone;
-	$section['tone_dark']  = $tone_of( $settings['toneDark'] ?? null ) ?? $tone;
+	$section['tone']      = $tone;
+	$section['tone_dark'] = $tone_of( $settings['toneDark'] ?? null ) ?? $tone;
 
 	return array(
 		'section' => array_merge(

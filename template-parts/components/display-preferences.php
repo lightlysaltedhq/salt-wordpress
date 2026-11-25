@@ -57,11 +57,11 @@ $salt_unknown  = array_diff( $salt_args['controls'], $salt_known );
 $salt_controls = array_values( array_intersect( $salt_known, $salt_args['controls'] ) );
 
 foreach ( $salt_unknown as $salt_bad ) {
-	salt_log( sprintf( 'x-display-preferences: unknown control "%s" — skipped.', (string) $salt_bad ) );
+	salt_log( sprintf( 'display-preferences: unknown control "%s" — skipped.', (string) $salt_bad ) );
 }
 
 if ( array() === $salt_controls ) {
-	salt_log( 'x-display-preferences: no valid controls — rendered nothing.' );
+	salt_log( 'display-preferences: no valid controls — rendered nothing.' );
 	return;
 }
 

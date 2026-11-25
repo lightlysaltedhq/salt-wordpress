@@ -1,8 +1,9 @@
 <?php
 /**
- * x-section wrapper snapshots (FLEET01).
+ * Section band snapshots (FLEET01): salt_section(), the contract's band
+ * (salt-contract markup/section.json).
  *
- * The wrapper is the single highest-blast-radius markup in the theme —
+ * The band is the single highest-blast-radius markup in the theme —
  * every section on every fleet site renders through it. Any structural
  * change here fails CI and forces the semver decision.
  *
@@ -45,7 +46,7 @@ final class SectionSnapshotTest extends SaltSnapshotTestCase {
 					'name'       => 'hero',
 					'is_primary' => true,
 					'spacing'    => 'lg',
-					'background' => 'inverse',
+					'tone'       => 'surface-inverse',
 					'container'  => 'wide',
 					'anchor'     => 'Welcome Section',
 					'divider'    => true,
@@ -59,24 +60,24 @@ final class SectionSnapshotTest extends SaltSnapshotTestCase {
 			'section-narrow-alt',
 			$this->render_section(
 				array(
-					'name'       => 'intro',
-					'spacing'    => 'sm',
-					'background' => 'surface-alt',
-					'container'  => 'narrow',
+					'name'      => 'intro',
+					'spacing'   => 'sm',
+					'tone'      => 'surface-alt',
+					'container' => 'narrow',
 				)
 			)
 		);
 	}
 
 	// -----------------------------------------------------------------------
-	// Same-background adjacency collapse (4.1.0).
+	// Adjacency collapse (section#adjacent-collapse).
 	// -----------------------------------------------------------------------
 
 	public function test_adjacent_same_background_collapses_top_padding(): void {
 		$first  = $this->render_section( array( 'name' => 'intro' ) );
 		$second = $this->render_section( array( 'name' => 'rich-text' ) );
 
-		$this->assertStringNotContainsString( 'pt-0', $first, 'First section keeps its full spacing.' );
+		$this->assertStringNotContainsString( 'data-collapse-top', $first, 'First section keeps its full spacing.' );
 		$this->assertMatchesHtmlSnapshot( 'section-adjacent-collapse', $second );
 	}
 
@@ -84,24 +85,36 @@ final class SectionSnapshotTest extends SaltSnapshotTestCase {
 		$this->render_section( array( 'name' => 'intro' ) );
 		$second = $this->render_section(
 			array(
-				'name'       => 'rich-text',
-				'background' => 'surface-alt',
+				'name' => 'rich-text',
+				'tone' => 'surface-alt',
 			)
 		);
 
-		$this->assertStringNotContainsString( 'pt-0', $second );
+		$this->assertStringNotContainsString( 'data-collapse-top', $second );
 	}
 
 	public function test_divider_is_a_boundary_no_collapse(): void {
-		$this->render_section(
+		$this->render_section( array( 'name' => 'intro' ) );
+		$second = $this->render_section(
 			array(
-				'name'    => 'intro',
+				'name'    => 'rich-text',
 				'divider' => true,
 			)
 		);
-		$second = $this->render_section( array( 'name' => 'rich-text' ) );
 
-		$this->assertStringNotContainsString( 'pt-0', $second, 'A divider keeps the full gap between same-bg sections.' );
+		$this->assertStringNotContainsString( 'data-collapse-top', $second, 'A divider keeps the full gap between same-tone sections.' );
+	}
+
+	public function test_a_different_dark_tone_keeps_the_full_gap(): void {
+		$this->render_section( array( 'name' => 'intro' ) );
+		$second = $this->render_section(
+			array(
+				'name'      => 'rich-text',
+				'tone_dark' => 'surface-inverse',
+			)
+		);
+
+		$this->assertStringNotContainsString( 'data-collapse-top', $second );
 	}
 
 	public function test_spacing_none_never_collapses(): void {
@@ -113,19 +126,6 @@ final class SectionSnapshotTest extends SaltSnapshotTestCase {
 			)
 		);
 
-		$this->assertStringNotContainsString( 'pt-0', $second );
-	}
-
-	public function test_flush_top_forces_the_collapse(): void {
-		$this->assertMatchesHtmlSnapshot(
-			'section-flush-top',
-			$this->render_section(
-				array(
-					'name'      => 'hero',
-					'container' => 'full',
-					'flush_top' => true,
-				)
-			)
-		);
+		$this->assertStringNotContainsString( 'data-collapse-top', $second );
 	}
 }

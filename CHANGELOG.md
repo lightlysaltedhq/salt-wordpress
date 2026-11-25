@@ -11,6 +11,24 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
+### Added: design dials in Site Settings (ID-3612)
+
+Site Settings → Brand & Design → Appearance now offers the contract's four design dials (salt-contract `contract/dials.json`). Each is a choice, never a raw value, and only administrators (`manage_options`) see or save them; ACF draws no dial for anyone else and drops dials posted by another user.
+
+- **Corners:** Square, Soft (the theme's own) or Round. Moves `--radius-sm`, `--radius-md` and `--radius-lg`.
+- **Shadows:** None (the default), Subtle or Raised. Writes `--salt-card-shadow` from the shadow rungs, and while set, the shadow colours `--color-shadow-sm/-md/-lg` in light and dark.
+- **Button style:** Square, Soft (follows the corners) or Pill. Writes `--salt-button-radius`.
+- **Density:** Compact, Comfortable (the theme's own) or Spacious. Moves `--space-section-sm/-md/-lg`, narrow and from 48rem, and with them the case-study page's gaps.
+
+`salt_brand_css()` writes the chosen rungs' values after the brand colours in the same nonce-carrying `<style id="salt-brand-vars">`, so they follow the theme's stylesheet and precede Customizer CSS. A dial left unset or on its default writes nothing, and a site that sets no colour and no dial prints nothing, as before. Child themes have no dial config: set the dials in Site Settings.
+
+### Breaking: updates need no token (ID-3633)
+
+Sites update through Git Updater from the public repository and hold no credential, so a site we stop maintaining keeps working on its installed version.
+
+- **Delete `SALT_UPDATER_TOKEN` from `wp-config.php`.** The theme no longer reads it or adds an `Authorization` header to any request; `salt_updater_authorize_request()` and `salt_updater_is_repo_url()` are removed. A leftover constant does nothing, but revoke the token in GitHub as well. The Git Updater GitHub token field stays empty.
+- **Rate limit.** GitHub allows 60 unauthenticated API requests an hour per server address. If a shared host runs out, the site keeps its installed version and the update appears after the limit resets. docs/RUNBOOK-ROLLBACK.md §Updates without a token has the detail and the manual install from the public tag zip.
+
 ### Breaking: native team profiles (salt-contract rc.8)
 
 Team is no longer a `team_member` post type. Publish a native user's profile in **Tools → Team profiles**; this never grants account privileges. The public address is `/team/{slug}/`. Only the separate public email field is shown. Posts credit `post_author`, not the removed ACF `author` relationship. Before upgrading a populated site, map former team records and manual selections to the intended users, set their public slugs, and verify native post authors. Old post IDs are not user IDs; no automatic account creation or data migration runs.
@@ -24,6 +42,20 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
 - **Chrome and consent.** Header and footer draw the contract's menu tree; child menu CSS classes and `wp_nav_menu_items` additions no longer apply there. `Salt_Nav_Walker::walk()` renders it; use `Salt_Nav_Walker::salt_menu()` for its tree. The optional header phone defaults off. The preferences control needs both an active consent provider and an integration that uses consent. It draws one checkbox per WP Consent API category in use (statistics or marketing), not per integration. Use `salt_consent_categories_in_use` for categories; `salt_consent_panel` supplies words only.
 - **Contact, maps and gallery.** Update overrides to the emitted contact fields and contract markup. The closed state replaces the old email button. Scripted contact uses the site's REST address on plain permalinks and refreshes expired credentials. Enquiry dates are now stored for retention; this does not repair historical records. Maps use the same-origin MapLibre worker. Gallery no longer loads `gallery.js` or supplies `data-salt-carousel`. Core styles and speculation rules follow the existing CSP without granting arbitrary inline styles or scripts.
 - **Removed parts and styles.** Old card, button and other `x-*` parts, utilities generated only for the old views, and booking hooks are no longer supplied. See the [removed parts and migration paths](docs/contracts/OVERRIDES.md#removed-template-parts-and-css-600-id-3946--breaking). Recheck child copies of sections, site chrome, archives and single templates before updating a site.
+
+### BREAKING: the last x-* hooks and Tailwind utilities removed (ID-3946)
+
+Every section, view and chrome part already draws the Salt contract's markup, so 6.0.0 removes what only the old markup used ([migration paths](docs/contracts/OVERRIDES.md#removed-template-parts-and-css-600-id-3946--breaking)). No parent page changes: the five representative routes and the generic single render pixel-identical, and each page is about 2.2 KB smaller (about 0.5 KB gzipped).
+
+- **The x-section band.** `template-parts/components/section.php` is gone. `salt_section()` always draws the contract's band (`components/contract-section.php`). Its `background`, `flush_top` and `contract` args are gone; pass `tone` and `tone_dark` (`surface`, `surface-alt`, `brand-tint`, `surface-inverse`). An unknown tone, spacing or width is logged and drawn as the default.
+- **`salt_section_wrapper_args()`.** Removed. A child's own whole section (tier `logic`) or child-only layout passes `salt_section_contract_args( '{slug}', $args )` to `salt_section()` and draws `div.salt-block[data-block=…]`, as the parent's sections do.
+- **x-image.** `template-parts/components/image.php`, the pluggable `salt_image_data()` and `salt_image_sizes()` are gone. Draw an image with `salt_image_contract_html( salt_image_contract( $id, salt_image_slot_sizes( … ) ) )`.
+- **`salt_classnames()`.** Removed; only the two parts above used it.
+- **Tailwind utilities.** app.css builds none (`@import "tailwindcss" source(none)` with no `@source`). A utility class in a child template draws nothing; ship the child's own CSS, reading the theme's tokens.
+- **The inverse-band focus keyline in app.css.** `.bg-surface-inverse :focus-visible` and `--focus-keyline-width` are gone. salt.css draws the keyline on every contract control in a `surface-inverse` band.
+- **Diagnostics.** `salt_require_args()` log messages name the component without an `x-` prefix (`map: required arg "lat" missing.`), and so do the logo and display-preferences warnings.
+
+Kept: stored rows whose tone is the old `inverse` still read as `surface-inverse`.
 
 ### Accessibility fixes
 
@@ -77,7 +109,7 @@ Team is no longer a `team_member` post type. Publish a native user's profile in 
   section views, CTA clicks, accordion opens and carousel controls on the
   bands drawn to the contract's markup (`data-track`).
 
-- **Full contract conformance.** `npm ci` installs `@lightlysaltedhq/salt-contract` at exactly `1.0.0` from the public registry instead of a vendored candidate. `npm run conformance:harness` checks all 14 shipped sections and all chrome, view and page fixtures. CI compares the report with `tests/contract-adapter/baseline/` on both PHP versions, including ACF field parity and the served stylesheet. Tabs, listing and pricing are explicitly not shipped.
+- **Full contract conformance.** `npm ci` installs `@lightlysaltedhq/salt-contract` at exactly `2.0.0` from the public registry instead of a vendored candidate. 2.0.0 changes only the stylesheet: a social icon hidden from assistive technology has no contrast floor, and one with an accessible name must reach 3:1 against its background (ID-4033); no markup, field or fixture changes. `npm run conformance:harness` checks all 14 shipped sections and all chrome, view and page fixtures. CI compares the report with `tests/contract-adapter/baseline/` on both PHP versions, including ACF field parity and the served stylesheet. Tabs, listing and pricing are explicitly not shipped.
 - **The contract's view and page cases render on the real-ACF harness's
   WordPress (ID-3626, EP-72 M3 unit 5b).** `npm run conformance:harness`
   (`tests/real-acf/run.sh --conformance`) builds the harness's site with

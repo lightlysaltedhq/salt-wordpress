@@ -35,9 +35,17 @@ production.
 
 1. Over SFTP/SSH, move the broken parent aside:
    `mv wp-content/themes/salt-wordpress wp-content/themes/.salt-broken`
-2. Restore the snapshot: `mv wp-content/themes/.salt-backup-<tag> wp-content/themes/salt-wordpress`
-   — or `git clone --branch <prior-tag> --depth 1 <repo> salt-wordpress` if no snapshot
-   exists (the deploy token is in wp-config as `SALT_UPDATER_TOKEN`, SEC03).
+2. Restore the snapshot: `mv wp-content/themes/.salt-backup-<tag> wp-content/themes/salt-wordpress`.
+   If no snapshot exists, install the prior tag from the public repository.
+   The repository is public, so this needs no token, key or login (SEC03):
+   `cd wp-content/themes && curl -fsSL -o salt-prior.zip https://github.com/lightlysaltedhq/salt-wordpress/archive/refs/tags/<prior-tag>.zip && unzip -q salt-prior.zip && mv salt-wordpress-<prior-version> salt-wordpress`,
+   where `<prior-version>` is the tag without its `v` (GitHub names the
+   extracted folder that way). That URL is a plain download, not a GitHub API
+   request, so it is not held back by the 60-requests-an-hour limit (§Updates
+   without a token). If the host cannot reach GitHub, upload the same zip from
+   a copy kept with the release record, then unzip and rename it the same way.
+   The zip needs no build step: it carries `assets/dist` and the vendored
+   runtime libraries (FLEET08).
 3. Confirm the site renders and wp-admin loads.
 4. Keep `.salt-broken` for diagnosis; delete after the post-mortem.
 
@@ -82,10 +90,9 @@ cannot see the theme.
 4. **Update the parent to 5.0.0** in place: in the parent folder,
    `git fetch --tags && git checkout v5.0.0` (git-deploy), or replace its
    contents with the v5.0.0 release, renaming the extracted
-   `salt-wordpress-5.0.0/` folder to `salt-wordpress`. Then replace the
-   site's `SALT_UPDATER_TOKEN` with a fine-grained read-only token scoped to
-   `lightlysaltedhq/salt-wordpress` (a token issued for `otigs/salt` does
-   not cover the transferred repo).
+   `salt-wordpress-5.0.0/` folder to `salt-wordpress`. Then delete the
+   site's `SALT_UPDATER_TOKEN` line from `wp-config.php` if it has one: the
+   repo is public and updates need no token (§Updates without a token).
 5. **Confirm Git Updater sees the repo.** Themes shows Salt 5.0.0 as the
    parent, the "Git Updater will not offer updates" notice is absent, and
    Git Updater's Remote Management/theme list shows
@@ -104,16 +111,52 @@ values.
   and reappear on roll-forward).
 - Options values (brand config etc.) are untouched by theme file swaps.
 
-## Token custody (SEC03)
+## Updates without a token (SEC03)
 
-- Each site holds its own **fine-grained, read-only** GitHub deploy token
-  scoped to this single repo, defined in `wp-config.php` as
-  `SALT_UPDATER_TOKEN`. Never store a token in the database.
-- **Rotation:** rotate annually and on staff departure. Issue the new token,
-  update wp-config, revoke the old one in GitHub settings.
-- **Incident revocation:** if a site is compromised, revoke THAT site's
-  token immediately in GitHub → the rest of the fleet is unaffected (this is
-  why tokens are per-site).
+A site holds **no credential** to update the parent. The repository is public,
+and Git Updater reads it unauthenticated. This is the handoff rule (SC-005): a
+site we stop maintaining keeps working on its installed version, with nothing
+to expire, rotate or revoke.
+
+- **Why not a token.** A per-site token is a credential someone must issue,
+  rotate and revoke, and a site nobody maintains any more cannot do that.
+  Git Updater's own authenticated requests are also tied to its paid licence:
+  once the 14-day trial ends it deletes stored access tokens every month
+  unless licensed (`GU_Upgrade::flush_tokens()`). Unauthenticated reads of a
+  public repo need neither a licence nor a credential.
+- **Distribution.** A release is the repository's tag zipball (Git Updater
+  fetches `api.github.com/repos/lightlysaltedhq/salt-wordpress/zipball/<tag>`).
+  The tag carries `assets/dist` committed and the runtime libraries vendored
+  (FLEET08), so the zipball installs as it stands: no build step on the site.
+  We do not use release assets: Git Updater only reads them when the theme
+  declares a `Release Asset` header, which also makes it fail the update if a
+  release has no uploaded asset, and it adds a call to the releases endpoint.
+- **Site setup.** Install Git Updater, put the theme in
+  `wp-content/themes/salt-wordpress`, and add nothing to `wp-config.php`. Leave
+  the Git Updater GitHub token field empty and do not click "Connect GitHub".
+- **Legacy token.** A site set up before this rule may still have
+  `SALT_UPDATER_TOKEN` in `wp-config.php`. The theme no longer reads it, so it
+  does nothing. Delete the line, then revoke that token in GitHub → Settings →
+  Developer settings so no live credential is left behind.
+- **The 60-an-hour limit.** GitHub lets an unauthenticated client make 60 API
+  requests an hour **per IP address**, shared by everything on that address.
+  On shared hosting other sites' updaters and plugins draw on the same 60.
+  One Git Updater refresh of this theme takes up to about 8 requests (file
+  header, repo contents, assets, readme, changelog, tags, branches, repo
+  metadata) and is cached for 12 hours, so one site normally uses far under 60.
+  The tag zipball download is a redirect to `codeload.github.com`; in testing
+  it did not count against the limit, but GitHub does not promise that.
+- **When the limit is hit.** GitHub answers 403 or 429 with
+  `x-ratelimit-remaining: 0` and a reset time. Git Updater (v14.5.0.10) gets
+  no refresh token, so it stops asking for that theme for 5 minutes, leaves
+  the refresh incomplete, and tries again within the hour. The site keeps
+  running on its installed version, and wp-admin shows no update, or Git
+  Updater's own error notice, until the limit resets. Nothing is lost and
+  nothing needs a token. To confirm from the server:
+  `curl -s https://api.github.com/rate_limit` (this call is free) shows
+  `core.remaining` and the `core.reset` time in epoch seconds. If the shared
+  address stays exhausted, wait for the reset, or install the release by hand
+  with the zip steps in §B.
 
 ## Rehearsal
 

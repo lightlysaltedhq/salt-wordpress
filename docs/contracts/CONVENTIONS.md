@@ -51,10 +51,10 @@ consume this document verbatim and must not deviate.
   commit the diff for review (FLEET01: a changed snapshot is the machine
   trigger for the semver major/minor decision).
 
-## Components (`x-…`)
+## Components
 
-- One file per component: `template-parts/components/{name}.php` renders
-  `<x-name>`; slot-style/validated components render via
+- One file per component: `template-parts/components/{name}.php`;
+  slot-style/validated components render via
   `salt_component( $name, $args, $slots )`; simple parts may use raw
   `get_template_part( …, $args )` (Open Q6 resolution — see OVERRIDES.md).
 - Args contract declared at the top of the partial in a documented
@@ -208,7 +208,7 @@ WordPress counterpart yet; `request_status`, `nonce`, `time_token`,
 ```php
 array(
 	'section' => array_merge(
-		salt_section_wrapper_args( '{slug}', $context ), // then any overrides: container, flush_top
+		salt_section_contract_args( '{slug}', $context ), // then any overrides: tone, container
 		array( 'has_heading' => '' !== trim( $heading ) ) // A11Y01
 	),
 	'props'   => array( /* view props */ ),
@@ -248,11 +248,9 @@ array(
   with a `phpcs:ignore` naming where they were made safe.
 - **Plain text, URLs, attributes:** raw strings; the view escapes them at
   output or passes them to a component that does.
-- **Images:** a validated (resolvable) attachment ID, `0` for none,
-  passed to x-image by the view, where the pre-split code validated it.
-  collection-showcase and carousel resolve images to the contract's
-  resolved image instead (`salt_image_contract()`, `inc/media.php`), drawn
-  with `salt_image_contract_html()`.
+- **Images:** the contract's resolved image (`salt_image_contract()`,
+  `inc/media.php`), or `null` for none; the view draws it with
+  `salt_image_contract_html()`.
 - **Components are never props** (rule 3): the view renders cards,
   images and every other component itself.
 
@@ -310,7 +308,7 @@ about it: tier `view` changes nothing at render time.
 - **May not:** read fields or options, query, sanitise, validate, log,
   queue schema, enqueue, call any service or stateful function (rule 4),
   decide a branch from raw data (rule 5), call `salt_section()` /
-  `salt_section_wrapper_args()` / `salt_claim_h1()` / `salt_anchor_id()`,
+  `salt_section_contract_args()` / `salt_claim_h1()` / `salt_anchor_id()`,
   or `return` before drawing anything (the 0-state is the resolver's;
   a `return` that ends a finished branch, as in hero, is fine).
 
@@ -329,7 +327,7 @@ about it: tier `view` changes nothing at render time.
    They now run before the wrapper's own work; rendered output and schema
    do not change, only the position of their log lines relative to the
    wrapper's (no section test asserts an exact log array — keep it so).
-4. Build `props`, `section` (`salt_section_wrapper_args()` + the old
+4. Build `props`, `section` (`salt_section_contract_args()` + the old
    overrides + `has_heading`) and, only if the section draws THE priority
    image, `plan`. Return them.
 5. Rewrite the template as the view: the old callback body, with
@@ -409,10 +407,10 @@ resolver returns the data the components need (`gallery.php`'s `items`,
 each an `image_id` and a `caption`). This cannot
 change output or any side effect that matters: no component touches the
 H1 claim, the section index, anchors, schema or enqueues (only
-`components/section.php`, the wrapper, uses render state); a component's
+`salt_section()`, the band, uses render state); a component's
 output depends only on its args (the icon cache in `inc/services/svg.php`
 is a pure cache); the resolver still validates the images and drops
-the unresolvable ones first, so x-image's own logs stay silent as before.
+the unresolvable ones first, so the image's own logs stay silent.
 The only difference is that a component's log line (e.g. an unresolvable
 logo) is written after the wrapper's own log lines instead of before.
 That is accepted; there is no exception to this rule.
