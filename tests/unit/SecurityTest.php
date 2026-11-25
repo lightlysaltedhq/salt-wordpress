@@ -1,6 +1,6 @@
 <?php
 /**
- * Security baseline: CSP nonce, headers (SEC06), updater token custody
+ * Security baseline: CSP nonce, headers (SEC06), tokenless updater
  * (SEC03), ACF guard (DEP01).
  *
  * @package Salt\Tests
@@ -69,12 +69,50 @@ final class SecurityTest extends SaltTestCase {
 	}
 
 	// -----------------------------------------------------------------------
-	// SEC03 — updater token scoping.
+	// SEC03 — tokenless updater; scoping of a legacy token if one is defined.
 	// -----------------------------------------------------------------------
 
-	public function test_updater_ignores_requests_when_token_undefined(): void {
-		$args = salt_updater_authorize_request( array(), 'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/releases' );
-		$this->assertArrayNotHasKey( 'headers', $args );
+	/**
+	 * Tokenless updates (SC-005): with no SALT_UPDATER_TOKEN the updater leaves
+	 * every request to the theme's own repo exactly as WordPress built it, so
+	 * Git Updater reads the public repo unauthenticated. Separate process:
+	 * another test in this file defines the constant, and a constant cannot be
+	 * undefined.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_updater_is_a_no_op_when_no_token_is_defined(): void {
+		$this->assertFalse( defined( 'SALT_UPDATER_TOKEN' ) );
+
+		$request = array(
+			'timeout' => 5,
+			'headers' => array( 'Accept' => 'application/vnd.github+json' ),
+		);
+		$urls    = array(
+			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/tags',
+			'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/zipball/v6.0.0',
+			'https://codeload.github.com/lightlysaltedhq/salt-wordpress/legacy.zip/refs/tags/v6.0.0',
+			'https://github.com/lightlysaltedhq/salt-wordpress/archive/refs/tags/v6.0.0.zip',
+		);
+		foreach ( $urls as $url ) {
+			$this->assertSame( $request, salt_updater_authorize_request( $request, $url ), $url );
+			$this->assertSame( array(), salt_updater_authorize_request( array(), $url ), 'No headers key is invented: ' . $url );
+		}
+	}
+
+	/**
+	 * An empty constant counts as no token: no `token ` header with nothing
+	 * after it. Separate process, because the constant it defines is permanent.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_updater_is_a_no_op_when_the_token_is_empty(): void {
+		define( 'SALT_UPDATER_TOKEN', '' );
+
+		$this->assertSame(
+			array(),
+			salt_updater_authorize_request( array(), 'https://api.github.com/repos/lightlysaltedhq/salt-wordpress/tags' )
+		);
 	}
 
 	public function test_updater_scopes_token_to_our_repo_only(): void {
