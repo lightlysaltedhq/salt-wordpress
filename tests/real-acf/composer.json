@@ -2,7 +2,7 @@
     "name": "lightly-salted/salt-real-acf-harness",
     "description": "Dev-only: the throwaway WordPress the real-ACF harness builds. Never shipped; needs no credential.",
     "type": "project",
-    "license": "proprietary",
+    "license": "MIT",
     "require": {
         "roots/wordpress-no-content": "7.1.5"
     },
