@@ -37,7 +37,7 @@
  * in every scope as well: it does not follow the band, and it is drawn
  * wherever its element can sit.
  *
- * Where a rule's element can sit is read from the contract's fixture pages: a
+ * Where a rule's element can sit is read from the markup (the contract's fixture pages and the theme's snapshots): a
  * rule whose classes are only ever printed outside a band (the header, the
  * post and archive views) is read on its own ground, or the page's, and every
  * other rule, and any rule no fixture prints, on every scope.
@@ -51,11 +51,20 @@
  * ---------------------
  * - `text`: `color`, 4.5:1 (WCAG 1.4.3).
  * - `boundary`: the border of a control or a structure, 3:1 (WCAG 1.4.11).
- * - `graphic`: `color` on an element only ever printed as an `svg` in the
- *   fixtures, an icon, 3:1 (WCAG 1.4.11). The contract's markup marks every
- *   icon `aria-hidden`, so this is the strict reading; a decorative icon is
- *   outside 1.4.11 and a ratio below 3:1 there is a decision, not a defect
- *   the census can settle.
+ * - `graphic`: the colour of an icon (an `svg`) that carries a name, 3:1
+ *   (WCAG 1.4.11). Whether an icon does is read from the markup the theme
+ *   and the contract draw (the contract's fixtures and the theme's committed
+ *   snapshots): an icon that is not `aria-hidden` has `role="img"` and an
+ *   `aria-label`, or is a mistake that should be named.
+ * - `decorative`: the colour of an `aria-hidden` icon, which 1.4.11 does not
+ *   cover. It is named and its roles must resolve, and it is held to no
+ *   ratio.
+ *   Which rule colours which icon is the cascade: among the rules that match
+ *   an icon, an unlayered rule beats a layered one, then the more specific
+ *   selector, then the later. A rule that wins on no icon draws no pair, so a
+ *   rule that gives an icon the colour of its link (`inherit`) takes its pair
+ *   away from the icons it reaches, and no others. A rule no icon in the
+ *   markup matches is read as naming (the strict reading).
  * - `hairline`: a border in a role the token layer calls a hairline, a
  *   decorative rule that 1.4.11 does not cover. It is named and its roles
  *   must resolve in every mode, and it is held to no ratio.
@@ -100,10 +109,10 @@ final class ContrastCensus {
 	public const BOUNDARY_FLOOR = 3.0;
 
 	/**
-	 * A decorative hairline has no floor in WCAG. It is named and its roles
-	 * must resolve, and a ratio is never below 1.
+	 * A decorative hairline or icon has no floor in WCAG. It is named and its
+	 * roles must resolve, and a ratio is never below 1.
 	 */
-	public const HAIRLINE_FLOOR = 1.0;
+	public const NO_FLOOR = 1.0;
 
 	/**
 	 * Properties that take a role and that the census leaves to other checks:
@@ -234,10 +243,10 @@ final class ContrastCensus {
 	 * @param list<list<list<string>>>                                                                         $class_groups Per template file, each class list it prints, as its tokens.
 	 * @param bool                                                                                           $dark        Whether `[data-theme=dark]` is in force.
 	 * @param list<string>                                                                                   $hairlines   Colour properties that are decorative hairlines.
-	 * @param list<string>                                                                                   $fixtures    The contract's fixture pages (HTML files).
+	 * @param list<string>                                                                                   $markup      The markup drawn: the contract's fixture pages and the theme's snapshots, each an HTML document.
 	 * @return array<string, array{kind: string, fg: string, bg: string, min: float, from: list<string>}> Keyed `kind fg on bg`.
 	 */
-	public static function pairs( array $rules, array $class_groups, bool $dark, array $hairlines, array $fixtures ): array {
+	public static function pairs( array $rules, array $class_groups, bool $dark, array $hairlines, array $markup ): array {
 		$pairs = array();
 		$add   = static function ( string $kind, string $fg, string $bg, string $from ) use ( &$pairs, $hairlines ): void {
 			if ( 'border' === $kind ) {
@@ -252,7 +261,7 @@ final class ContrastCensus {
 					'min'  => match ( $kind ) {
 						'text'                => self::TEXT_FLOOR,
 						'boundary', 'graphic' => self::BOUNDARY_FLOOR,
-						default               => self::HAIRLINE_FLOOR,
+						default               => self::NO_FLOOR,
 					},
 					'from' => array(),
 				);
@@ -264,16 +273,37 @@ final class ContrastCensus {
 
 		$drawn  = array_values( array_filter( $rules, static fn( array $rule ): bool => ! self::is_utility( $rule ) ) );
 		$scopes = self::scopes( $drawn, $dark );
-		$seen   = self::placements( $fixtures, array_merge( ...array_column( array_filter( $scopes, static fn( array $scope ): bool => array() !== $scope['classes'] ), 'classes' ) ) );
+		$seen   = self::placements( $markup, array_merge( ...array_column( array_filter( $scopes, static fn( array $scope ): bool => array() !== $scope['classes'] ), 'classes' ) ) );
+		$icons  = self::icon_verdicts( $drawn, $markup, $seen );
 
-		foreach ( $drawn as $rule ) {
+		foreach ( $drawn as $index => $rule ) {
 			$names = self::class_names( $rule['selectors'] );
 			$known = array_values( array_filter( $names, static fn( string $name ): bool => isset( $seen[ $name ] ) ) );
 			// Where the rule's element can sit. Every scope, unless the
-			// contract's fixtures show it only ever outside a band; a rule
-			// no fixture draws is read in every scope too.
-			$inside  = array() === $known || array() !== array_filter( $known, static fn( string $name ): bool => $seen[ $name ]['band'] );
-			$graphic = array() !== $known && array() === array_filter( $known, static fn( string $name ): bool => array() !== array_diff( array_keys( $seen[ $name ]['tags'] ), array( 'svg' ) ) );
+			// markup shows it only ever outside a band; a rule no markup
+			// draws is read in every scope too.
+			$inside = array() === $known || array() !== array_filter( $known, static fn( string $name ): bool => $seen[ $name ]['band'] );
+
+			// An icon rule's colour is held to the floor of the icons it
+			// reaches: the ones aria-hidden in the markup are decorative, and
+			// the ones that carry a name are held to 3:1. A rule that reaches
+			// none in the markup (or that an overriding rule wins over on
+			// every icon it reaches) is read as labelled, the strict reading,
+			// unless it loses everywhere.
+			$text_kinds = array( 'text' );
+			if ( isset( $icons[ $index ] ) ) {
+				$verdict    = $icons[ $index ];
+				$mixed      = array() !== array_filter( $known, static fn( string $name ): bool => array() !== array_diff( array_keys( $seen[ $name ]['tags'] ), array( 'svg' ) ) );
+				$text_kinds = array_keys(
+					array_filter(
+						array(
+							'text'       => $mixed,
+							'graphic'    => $verdict['labelled'] || ! $verdict['matched'],
+							'decorative' => $verdict['hidden'],
+						)
+					)
+				);
+			}
 
 			foreach ( $scopes as $scope ) {
 				$ground = self::role( $scope['ground'], $scope['bind'] );
@@ -283,17 +313,23 @@ final class ContrastCensus {
 				$own = self::ground_of( $rule['decl'], $scope['bind'] );
 
 				foreach ( $rule['decl'] as $prop => $value ) {
-					$kind = self::is_text( $prop ) ? ( $graphic ? 'graphic' : 'text' ) : ( self::is_border( $prop ) ? 'border' : null );
-					$fg   = null === $kind ? null : self::role( $value, $scope['bind'] );
+					$kinds = self::is_text( $prop ) ? $text_kinds : ( self::is_border( $prop ) ? array( 'border' ) : array() );
+					$fg    = array() === $kinds ? null : self::role( $value, $scope['bind'] );
 					if ( null === $fg || ( null === $own && ! $inside && ! str_contains( $value, '--salt-section-' ) && 'the page' !== $scope['name'] ) ) {
 						continue;
 					}
-					$add( (string) $kind, $fg, $own ?? $ground, "{$rule['file']} {$rule['selectors'][0]} ({$prop}) in {$scope['name']}" );
+					foreach ( $kinds as $kind ) {
+						$add( $kind, $fg, $own ?? $ground, "{$rule['file']} {$rule['selectors'][0]} ({$prop}) in {$scope['name']}" );
+					}
 				}
 			}
 		}
 
-		// A utility is one declaration, so what it is drawn on is what the\n\t\t// class list beside it names: its own `bg-*`, else one the same file\n\t\t// draws elsewhere (a template's divider sits on whichever band it is\n\t\t// printed in), else the page's.\n       $utilities = array();
+		// A utility is one declaration, so what it is drawn on is what the
+		// class list beside it names: its own `bg-*`, else one the same file
+		// draws elsewhere (a template's divider sits on whichever band it is
+		// printed in), else the page's.
+		$utilities = array();
 		foreach ( $rules as $rule ) {
 			if ( self::is_utility( $rule ) && 1 === count( $rule['selectors'] ) && 1 === preg_match( '/^\.([\w\\\\-]+)$/', $rule['selectors'][0], $class ) ) {
 				$utilities[ stripslashes( $class[1] ) ] = $rule['decl'];
@@ -480,35 +516,46 @@ final class ContrastCensus {
 	}
 
 	/**
-	 * Where each class is printed in the contract's fixture pages: whether
-	 * some element with it sits inside an element carrying a band's classes,
-	 * and the tags it is printed on.
+	 * The markup parsed once: one XPath per document.
 	 *
-	 * @param list<string> $files        Fixture HTML files.
+	 * @param list<string> $markup HTML documents.
+	 * @return list<DOMXPath>
+	 */
+	private static function documents( array $markup ): array {
+		static $cache = array();
+
+		$key = md5( implode( "\0", $markup ) );
+		if ( ! isset( $cache[ $key ] ) ) {
+			$cache[ $key ] = array();
+			libxml_use_internal_errors( true );
+			foreach ( $markup as $html ) {
+				if ( '' === trim( $html ) ) {
+					continue;
+				}
+				$document = new DOMDocument();
+				$document->loadHTML( $html );
+				$cache[ $key ][] = new DOMXPath( $document );
+			}
+			libxml_clear_errors();
+		}
+
+		return $cache[ $key ];
+	}
+
+	/**
+	 * Where each class is printed in the markup: whether some element with it
+	 * sits inside an element carrying a band's classes, and the tags it is
+	 * printed on.
+	 *
+	 * @param list<string> $markup       HTML documents.
 	 * @param list<string> $band_classes Class names of the bands (a section, the footer).
 	 * @return array<string, array{band: bool, tags: array<string, true>}>
 	 */
-	private static function placements( array $files, array $band_classes ): array {
-		static $cache = array();
-
-		$key = md5( implode( "\n", $files ) . "\0" . implode( ',', $band_classes ) );
-		if ( isset( $cache[ $key ] ) ) {
-			return $cache[ $key ];
-		}
-
+	private static function placements( array $markup, array $band_classes ): array {
 		$seen  = array();
 		$bands = array_flip( $band_classes );
-		foreach ( $files as $file ) {
-			$html = (string) file_get_contents( $file );
-			if ( '' === trim( $html ) ) {
-				continue;
-			}
-			$document = new DOMDocument();
-			libxml_use_internal_errors( true );
-			$document->loadHTML( $html );
-			libxml_clear_errors();
-
-			foreach ( ( new DOMXPath( $document ) )->query( '//*[@class]' ) as $element ) {
+		foreach ( self::documents( $markup ) as $xpath ) {
+			foreach ( $xpath->query( '//*[@class]' ) as $element ) {
 				$inside = false;
 				for ( $up = $element->parentNode; $up instanceof DOMElement; $up = $up->parentNode ) {
 					if ( array() !== array_intersect_key( $bands, array_flip( preg_split( '/\s+/', trim( $up->getAttribute( 'class' ) ) ) ) ) ) {
@@ -523,9 +570,247 @@ final class ContrastCensus {
 			}
 		}
 
-		$cache[ $key ] = $seen;
-
 		return $seen;
+	}
+
+	/**
+	 * For each rule that can set the colour of an icon (an `svg` in the
+	 * markup), which icons it wins on: the ones that are aria-hidden
+	 * (`hidden`), and the ones that are not, which carry a name (`labelled`),
+	 * and whether it reaches any icon at all (`matched`).
+	 *
+	 * Each icon's colour is the rule that wins the cascade among every rule
+	 * that matches it: an unlayered rule over a layered one, then the more
+	 * specific selector, then the later rule. So a rule an override beats on
+	 * every icon it reaches wins on none, and its pair is not drawn.
+	 *
+	 * @param list<array{selectors: list<string>, decl: array<string, string>, at: list<string>, file: string}> $drawn  Drawn rules.
+	 * @param list<string>                                                                                   $markup HTML documents.
+	 * @param array<string, array{band: bool, tags: array<string, true>}>                                      $seen   placements().
+	 * @return array<int, array{labelled: bool, hidden: bool, matched: bool}> Keyed by index in $drawn.
+	 */
+	private static function icon_verdicts( array $drawn, array $markup, array $seen ): array {
+		$icon_classes = array_keys( array_filter( $seen, static fn( array $placed ): bool => isset( $placed['tags']['svg'] ) ) );
+
+		$candidates = array();
+		foreach ( $drawn as $index => $rule ) {
+			if ( ! isset( $rule['decl']['color'] ) ) {
+				continue;
+			}
+			foreach ( $rule['selectors'] as $selector ) {
+				$parts     = self::compounds( $selector );
+				$rightmost = (string) end( $parts )[1];
+				preg_match_all( '/\.([\w-]+)/', (string) preg_replace( '/:(?:is|where|not|has)\((?:[^()]|\([^()]*\))*\)/', '', $rightmost ), $classes );
+				$bare = array() === $classes[1] && 1 === preg_match( '/^(?:svg|\*)(?![\w-])/i', $rightmost );
+				if ( array() === array_intersect( $classes[1], $icon_classes ) && ! $bare ) {
+					continue;
+				}
+				$xpath = self::xpath( $parts );
+				if ( null === $xpath ) {
+					self::fail( "{$rule['file']} sets `color` in `{$selector}`, which can paint an icon, and this census cannot match that selector against the markup. It matches types, classes, attributes, `>`, `+`, `~`, descendants, `:is()`, `:where()`, `:not()`, `:first-child` and `:last-child`; teach it the selector." );
+				}
+				$candidates[] = array( $index, $xpath, self::specificity( $selector ), in_array( '@layer', array_map( static fn( string $frame ): string => (string) strtok( $frame, ' ' ), $rule['at'] ), true ) ? 0 : 1 );
+			}
+		}
+
+		$verdicts = array();
+		foreach ( $candidates as list( $index ) ) {
+			$verdicts[ $index ] = array(
+				'labelled' => false,
+				'hidden'   => false,
+				'matched'  => false,
+			);
+		}
+
+		foreach ( self::documents( $markup ) as $document ) {
+			$hits = array();
+			foreach ( $candidates as list( $index, $path, $specificity, $unlayered ) ) {
+				foreach ( $document->query( $path ) as $node ) {
+					if ( 'svg' === $node->nodeName ) {
+						$hits[ $node->getNodePath() ][] = array( $unlayered, $specificity, $index );
+						$verdicts[ $index ]['matched']  = true;
+					}
+				}
+			}
+			foreach ( $document->query( '//svg' ) as $icon ) {
+				$won = $hits[ $icon->getNodePath() ] ?? array();
+				if ( array() === $won ) {
+					continue;
+				}
+				rsort( $won );
+				$hidden = $icon instanceof DOMElement && 'true' === $icon->getAttribute( 'aria-hidden' );
+				$verdicts[ $won[0][2] ][ $hidden ? 'hidden' : 'labelled' ] = true;
+			}
+		}
+
+		return $verdicts;
+	}
+
+	/**
+	 * A selector cut into its compounds, each with the combinator before it
+	 * (a space, `>`, `+` or `~`).
+	 *
+	 * @param string $selector Selector.
+	 * @return list<array{0: string, 1: string}>
+	 */
+	private static function compounds( string $selector ): array {
+		$parts      = array();
+		$combinator = ' ';
+		$buffer     = '';
+		$depth      = 0;
+		$quote      = '';
+		foreach ( str_split( trim( $selector ) ) as $char ) {
+			if ( '' !== $quote ) {
+				$quote   = $char === $quote ? '' : $quote;
+				$buffer .= $char;
+				continue;
+			}
+			if ( '"' === $char || "'" === $char ) {
+				$quote = $char;
+			} elseif ( '(' === $char || '[' === $char ) {
+				++$depth;
+			} elseif ( ')' === $char || ']' === $char ) {
+				--$depth;
+			}
+			if ( 0 === $depth && '' === $quote && ( ctype_space( $char ) || str_contains( '>+~', $char ) ) ) {
+				if ( '' !== $buffer ) {
+					$parts[]    = array( $combinator, $buffer );
+					$buffer     = '';
+					$combinator = ' ';
+				}
+				if ( ! ctype_space( $char ) ) {
+					$combinator = $char;
+				}
+				continue;
+			}
+			$buffer .= $char;
+		}
+		if ( '' !== $buffer ) {
+			$parts[] = array( $combinator, $buffer );
+		}
+
+		return $parts;
+	}
+
+	/**
+	 * The XPath of the elements a selector matches, or null for a selector
+	 * with a part this census does not read.
+	 *
+	 * @param list<array{0: string, 1: string}> $parts compounds().
+	 * @return string|null
+	 */
+	private static function xpath( array $parts ): ?string {
+		$path = '';
+		foreach ( $parts as list( $combinator, $compound ) ) {
+			$test = self::predicate( $compound );
+			if ( null === $test ) {
+				return null;
+			}
+			$path .= match ( $combinator ) {
+				'>'     => '/*',
+				'+'     => '/following-sibling::*[1]',
+				'~'     => '/following-sibling::*',
+				default => '//*',
+			} . "[{$test}]";
+		}
+
+		return '' === $path ? null : $path;
+	}
+
+	/**
+	 * One compound as an XPath predicate, or null for a part this census does
+	 * not read (`:has()`, `:hover` and the other pseudo-classes, a case-flagged
+	 * or substring attribute match).
+	 *
+	 * @param string $compound Compound selector.
+	 * @return string|null
+	 */
+	private static function predicate( string $compound ): ?string {
+		$tests = array();
+		$rest  = $compound;
+		if ( 1 === preg_match( '/^(\*|[a-zA-Z][\w-]*)/', $rest, $type ) ) {
+			if ( '*' !== $type[1] ) {
+				$tests[] = 'self::' . strtolower( $type[1] );
+			}
+			$rest = substr( $rest, strlen( $type[0] ) );
+		}
+
+		while ( '' !== $rest ) {
+			if ( 1 === preg_match( '/^\.([\w-]+)/', $rest, $found ) ) {
+				$tests[] = "contains(concat(' ',normalize-space(@class),' '),' {$found[1]} ')";
+			} elseif ( 1 === preg_match( '/^#([\w-]+)/', $rest, $found ) ) {
+				$tests[] = "@id='{$found[1]}'";
+			} elseif ( 1 === preg_match( '/^\[\s*([\w-]+)\s*(?:=\s*(?:"([^"\']*)"|\'([^"\']*)\'|([^\]\s"\']+))\s*)?\]/', $rest, $found ) ) {
+				$value   = trim( ( $found[2] ?? '' ) . ( $found[3] ?? '' ) . ( $found[4] ?? '' ) );
+				$tests[] = '' === $value ? "@{$found[1]}" : "@{$found[1]}='{$value}'";
+			} elseif ( 1 === preg_match( '/^:(is|where|not)\(/', $rest, $found ) ) {
+				$depth = 0;
+				$close = null;
+				for ( $i = strlen( $found[0] ) - 1, $length = strlen( $rest ); $i < $length; $i++ ) {
+					$depth += '(' === $rest[ $i ] ? 1 : ( ')' === $rest[ $i ] ? -1 : 0 );
+					if ( 0 === $depth ) {
+						$close = $i;
+						break;
+					}
+				}
+				if ( null === $close ) {
+					return null;
+				}
+				$arguments = array();
+				foreach ( self::split( substr( $rest, strlen( $found[0] ), $close - strlen( $found[0] ) ), ',' ) as $argument ) {
+					$inner = 1 === count( self::compounds( $argument ) ) ? self::predicate( $argument ) : null;
+					if ( null === $inner ) {
+						return null;
+					}
+					$arguments[] = $inner;
+				}
+				$tests[] = 'not' === $found[1] ? 'not(' . implode( ' or ', $arguments ) . ')' : '(' . implode( ' or ', $arguments ) . ')';
+				$rest    = substr( $rest, $close + 1 );
+				continue;
+			} elseif ( 1 === preg_match( '/^:first-child(?![\w-])/', $rest, $found ) ) {
+				$tests[] = 'not(preceding-sibling::*)';
+			} elseif ( 1 === preg_match( '/^:last-child(?![\w-])/', $rest, $found ) ) {
+				$tests[] = 'not(following-sibling::*)';
+			} else {
+				return null;
+			}
+			$rest = substr( $rest, strlen( $found[0] ) );
+		}
+
+		return array() === $tests ? 'true()' : implode( ' and ', $tests );
+	}
+
+	/**
+	 * A selector's specificity as one number (ids, then classes, attributes
+	 * and pseudo-classes, then types and pseudo-elements, a hundred to a
+	 * place). `:is()` and `:not()` weigh their most specific argument and
+	 * `:where()` nothing.
+	 *
+	 * @param string $selector Selector.
+	 * @return int
+	 */
+	private static function specificity( string $selector ): int {
+		$weight = 0;
+		foreach ( self::compounds( $selector ) as list( , $compound ) ) {
+			while ( 1 === preg_match( '/:(is|where|not)\(/', $compound, $found, PREG_OFFSET_CAPTURE ) ) {
+				$start = $found[0][1];
+				$open  = $start + strlen( $found[0][0] );
+				$depth = 1;
+				for ( $i = $open, $length = strlen( $compound ); $i < $length && $depth > 0; $i++ ) {
+					$depth += '(' === $compound[ $i ] ? 1 : ( ')' === $compound[ $i ] ? -1 : 0 );
+				}
+				if ( 'where' !== $found[1][0] ) {
+					$weight += max( array_merge( array( 0 ), array_map( array( self::class, 'specificity' ), self::split( substr( $compound, $open, $i - 1 - $open ), ',' ) ) ) );
+				}
+				$compound = substr( $compound, 0, $start ) . substr( $compound, $i );
+			}
+			$compound = (string) preg_replace( '/\[[^\]]*\]/', '[]', $compound );
+			$weight  += 10000 * preg_match_all( '/#[\w-]+/', $compound );
+			$weight  += 100 * ( preg_match_all( '/\.[\w-]+|\[\]|(?<!:):(?!:)[\w-]+/', $compound ) );
+			$weight  += preg_match_all( '/::[\w-]+/', $compound ) + (int) ( 1 === preg_match( '/^[a-zA-Z]/', $compound ) );
+		}
+
+		return $weight;
 	}
 
 	/**

@@ -1173,17 +1173,31 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	}
 
 	/**
-	 * The contract's fixture pages: where each class is printed.
+	 * The contract's fixture pages and the theme's own rendered markup (its
+	 * committed snapshots): what the census reads to see where each class is
+	 * printed and whether an icon is named.
 	 *
 	 * @return list<string>
 	 */
-	private static function fixture_pages(): array {
-		$pages = (array) glob( __DIR__ . '/../../node_modules/@lightlysaltedhq/salt-contract/fixtures/*/*.html' );
-		if ( array() === $pages ) {
-			self::fail( 'salt-contract ships no fixture pages, so the census cannot place a rule on the grounds its element sits on.' );
+	private static function markup_files(): array {
+		$files = array_merge(
+			(array) glob( __DIR__ . '/../../node_modules/@lightlysaltedhq/salt-contract/fixtures/*/*.html' ),
+			(array) glob( __DIR__ . '/../snapshot/__snapshots__/*.snap.html' )
+		);
+		if ( array() === (array) glob( __DIR__ . '/../../node_modules/@lightlysaltedhq/salt-contract/fixtures/*/*.html' ) || array() === (array) glob( __DIR__ . '/../snapshot/__snapshots__/*.snap.html' ) ) {
+			self::fail( 'Either salt-contract ships no fixture pages or the theme has no committed snapshots, so the census cannot place a rule on the grounds its element sits on or tell a named icon from a decorative one.' );
 		}
 
-		return $pages;
+		return $files;
+	}
+
+	/**
+	 * The HTML of markup_files().
+	 *
+	 * @return list<string>
+	 */
+	private static function markup(): array {
+		return array_map( static fn( string $file ): string => (string) file_get_contents( $file ), self::markup_files() );
 	}
 
 	/**
@@ -1196,7 +1210,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		static $cache = array();
 
 		if ( ! isset( $cache[ (int) $dark ] ) ) {
-			$cache[ (int) $dark ] = ContrastCensus::pairs( self::drawn_rules(), self::template_class_groups(), $dark, self::hairline_properties(), self::fixture_pages() );
+			$cache[ (int) $dark ] = ContrastCensus::pairs( self::drawn_rules(), self::template_class_groups(), $dark, self::hairline_properties(), self::markup() );
 			if ( array() === $cache[ (int) $dark ] ) {
 				self::fail( 'The stylesheets draw no foreground and ground pair this census can read, so a green run would verify nothing.' );
 			}
@@ -1387,7 +1401,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	public function test_the_census_catches_a_failing_pair_added_to_the_stylesheets(): void {
 		$real  = self::census( false );
 		$added = ContrastCensus::rules( '.salt-new-label{color:var(--color-ink-muted-inverse)}.salt-new-card{background-color:var(--color-brand-strong);color:var(--color-ink)}', 'control.css' );
-		$with  = ContrastCensus::pairs( array_merge( self::drawn_rules(), $added ), self::template_class_groups(), false, self::hairline_properties(), self::fixture_pages() );
+		$with  = ContrastCensus::pairs( array_merge( self::drawn_rules(), $added ), self::template_class_groups(), false, self::hairline_properties(), self::markup() );
 		$new   = array_diff_key( $with, $real );
 
 		$this->assertSame(
@@ -1419,6 +1433,48 @@ final class FoundationsConformanceTest extends SaltTestCase {
 		foreach ( array( 'text --color-on-brand on --color-brand', 'text --color-ink-muted on --color-brand-tint', 'boundary --color-border-strong on --color-surface-alt', 'text --color-ink-inverse on --color-surface-inverse' ) as $named ) {
 			$this->assertArrayHasKey( $named, $real );
 		}
+	}
+
+	/**
+	 * Negative control for icons: the markup decides whether an icon is held
+	 * to a floor. A named icon (not aria-hidden) is held to 3:1 and a
+	 * low-contrast one fails, an aria-hidden icon is named and held to none,
+	 * and a more specific rule that gives the colour back to the link (the
+	 * shape the contract's 1.0.1 takes for social icons) removes the pair for
+	 * the icons it reaches and no others.
+	 */
+	public function test_the_census_holds_a_named_icon_to_three_to_one_and_not_a_hidden_one(): void {
+		// ink.muted.inverse on a light band is about 2.6:1: under 3:1, and not the pair of any real rule.
+		$css    = '.salt-new-icon{color:var(--color-ink-muted-inverse)}.salt-showcase__social-link .salt-new-icon{color:inherit}';
+		$named  = '<div class="salt-section" data-tone="surface"><svg class="salt-new-icon" role="img" aria-label="New"></svg></div>';
+		$hidden = '<div class="salt-section" data-tone="surface"><svg class="salt-new-icon" aria-hidden="true"></svg></div>';
+		$linked = '<div class="salt-section" data-tone="surface"><a class="salt-showcase__social-link"><svg class="salt-new-icon" role="img" aria-label="New"></svg></a></div>';
+		$added  = static fn( string $html ): array => array_diff_key(
+			ContrastCensus::pairs( array_merge( self::drawn_rules(), ContrastCensus::rules( $css, 'control.css' ) ), array(), false, self::hairline_properties(), array( $html ) ),
+			ContrastCensus::pairs( self::drawn_rules(), array(), false, self::hairline_properties(), array( $html ) )
+		);
+		$kinds  = static fn( array $pairs ): array => array_values( array_unique( array_column( $pairs, 'kind' ) ) );
+
+		$new = $added( $named );
+		$this->assertSame( array( 'graphic' ), $kinds( $new ), 'A named icon is held to the icon floor.' );
+		$this->assertArrayHasKey( 'graphic --color-ink-muted-inverse on --color-surface', $new );
+		$this->assertSame( 3.0, $new['graphic --color-ink-muted-inverse on --color-surface']['min'] );
+
+		$checks = array();
+		foreach ( $new as $label => $pair ) {
+			$checks[] = array( $label, $pair['fg'], $pair['bg'], $pair['min'] );
+		}
+		$ties     = array();
+		$failures = self::failures( $checks, self::colour_rules(), array(), array( 'compiled defaults' => array() ), $ties );
+		$this->assertArrayHasKey( 'graphic --color-ink-muted-inverse on --color-surface', $failures, 'A named icon below 3:1 fails.' );
+		$this->assertArrayHasKey( 'below', $failures['graphic --color-ink-muted-inverse on --color-surface'] );
+
+		$new = $added( $hidden );
+		$this->assertSame( array( 'decorative' ), $kinds( $new ), 'An aria-hidden icon is named, and held to no floor.' );
+		$this->assertSame( array( 1.0 ), array_values( array_unique( array_column( $new, 'min' ) ) ) );
+
+		$this->assertSame( array(), $added( $linked ), 'A named icon whose colour a more specific rule gives to its link draws no pair of its own.' );
+		$this->assertSame( array( 'graphic' ), $kinds( $added( $linked . $named ) ), 'The override does not reach a named icon outside the link.' );
 	}
 
 	/**
@@ -1460,7 +1516,7 @@ final class FoundationsConformanceTest extends SaltTestCase {
 	public function test_no_markup_prints_a_placeholder(): void {
 		$root  = dirname( __DIR__, 2 );
 		$files = array_merge(
-			self::fixture_pages(),
+			self::markup_files(),
 			(array) glob( $root . '/*.php' ),
 			iterator_to_array( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root . '/template-parts', FilesystemIterator::SKIP_DOTS ) ), false ),
 			iterator_to_array( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root . '/assets/src/js', FilesystemIterator::SKIP_DOTS ) ), false )
