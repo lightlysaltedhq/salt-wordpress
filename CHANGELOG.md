@@ -11,6 +11,20 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
+### Fixed: links in the post, search and not-found views looked like plain text (ID-4078)
+
+`@lightlysaltedhq/salt-contract` is pinned at exactly 3.0.0 (was 2.0.0), and `assets/dist`
+serves its `salt.css`. 3.0.0 changes only the stylesheet: a post's breadcrumb, category, byline,
+tags and previous and next links, the author box's name, search result titles, the not-found
+page's link home and an office's phone and email are underlined, as a link in body copy is. They
+had the text's colour and no underline, so only the pointer told them from text (WCAG 1.4.1).
+
+- No markup, field, fixture or child override changes.
+- **Child themes.** A child's own rule on one of these links still wins where it outranks the
+  contract's. An unclassed link a child template writes straight into `<main>` is now
+  underlined, because the contract matches the link home as `main > a`; give it a class to
+  style it otherwise.
+
 ## [6.0.0] — 2026-11-25
 
 Salt for WordPress conforms to `@lightlysaltedhq/salt-contract` 2.0.0, published from the

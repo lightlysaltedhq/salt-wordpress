@@ -1,4 +1,4 @@
-# Salt conformance: wordpress 6.0.0 against @lightlysaltedhq/salt-contract 2.0.0
+# Salt conformance: wordpress 6.0.0 against @lightlysaltedhq/salt-contract 3.0.0
 
 **Pass.** 16 section(s) pass, 0 fail, 0 incomplete, 1 not shipped. Chrome, views and page: 9 pass, 0 fail, 0 not shipped. Adapter: command `php tests/contract-adapter/adapter.php`.
 
@@ -36,7 +36,7 @@
 
 ## Stylesheet pin
 
-Pass: `assets/dist/salt.721fad818f/salt.css` against this contract's `styles/salt.css` (2.0.0): identical.
+Pass: `assets/dist/salt.a2f7a31e39/salt.css` against this contract's `styles/salt.css` (3.0.0): identical.
 
 ## Field parity
 
