@@ -462,6 +462,61 @@ img:is([sizes="auto" i], [sizes^="auto," i]) {
 }
 
 /*
+ * The page inset: what <main> draws outside a section band. The contract's
+ * not-found, search and archive views put their title, text, search form and
+ * link home straight into <main> and set no width of their own
+ * (salt-contract markup/search.json, ruling 7A: they keep the platform's page
+ * measure and one left edge), and salt.css has no rule for them, so without
+ * this they start at the screen's edge, under the header (6.0.0).
+ *
+ * The measure is a default band's: the title starts where a band's heading
+ * does, so an archive's title lines up with its listing. A margin, not a
+ * width, so the link home (an inline box) takes it too. The first and last
+ * stand off the header and the footer by a small band's space, and the rest
+ * off each other.
+ *
+ * By element, so a band, an article or a child theme's own block in <main>
+ * is left alone, and inside :where(), so any rule of the contract's or a
+ * child's wins over these.
+ */
+
+/* stylelint-disable selector-class-pattern */
+:where(#main) > :where(h1:not(.salt-sr-only), header, p, a, search, section:not(.salt-section), .salt-archive__profile) {
+	margin-inline: calc(max(0px, (100% - var(--container-5xl)) / 2) + var(--space-gutter));
+}
+
+/* stylelint-enable selector-class-pattern */
+
+/* The generic single's title, on its content's column (.salt-single above). */
+:where(#main) > :where(h1:has(+ .salt-single)) {
+	margin-inline: calc(max(0px, (100% - 48rem) / 2) + var(--space-gutter));
+}
+
+:where(#main) > :where(h1:not(.salt-sr-only), header, p, a, search, section:not(.salt-section)) + :where(p, a, search, section:not(.salt-section)) {
+	margin-block-start: var(--space-4);
+}
+
+:where(#main) > :where(h1:not(.salt-sr-only), header, p, a, search, section:not(.salt-section)):first-child {
+	margin-block-start: var(--space-section-sm);
+}
+
+:where(#main) > :where(h1:not(.salt-sr-only), p, a, search, section:not(.salt-section)):last-child {
+	margin-block-end: var(--space-section-sm);
+}
+
+/*
+ * The not-found page's link home stands alone, so WCAG 2.5.8's exception for
+ * a link in a sentence does not reach it: it is at least 24px tall, as Salt
+ * for Next.js draws it, and only as wide as its words.
+ */
+:where(#main) > :where(a) {
+	display: flex;
+	align-items: center;
+	inline-size: fit-content;
+	min-block-size: 24px;
+}
+
+/*
  * The editor-only marker for a section layout with no template
  * (template-parts/sections/fallback.php), drawn in a contract band.
  */
