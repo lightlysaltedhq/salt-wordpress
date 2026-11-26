@@ -18,10 +18,29 @@ tag serving traffic. Rollback is verified on the canary at every release
 
 ## A. wp-admin is reachable (non-fatal breakage)
 
-**Git Updater transport:**
-1. Themes → salt → re-pin to the prior tag (Git Updater branch/tag switcher)
-   → reinstall. Verify the version in the theme header.
+**Tag zip install (the rollback path):**
+1. Over SSH, from the WordPress root, install the prior tag's zip in place:
+   `wp theme install https://github.com/lightlysaltedhq/salt-wordpress/archive/refs/tags/<prior-tag>.zip --force && wp cache flush`
+   (and purge the page cache, e.g. `wp breeze purge --cache=all`).
+   The zip's top-level folder is `salt-wordpress-<version>`; WP-CLI renames a
+   GitHub archive to the repository name ("Renamed Github-based project from
+   'salt-wordpress-5.0.0' to 'salt-wordpress'"), so it replaces
+   `wp-content/themes/salt-wordpress` with no manual rename. Confirm with
+   `wp theme list`: one `salt-wordpress`, active, at the prior version, and no
+   `salt-wordpress-<version>` folder. If one appears (another installer), move
+   it into place as in §B step 2.
 2. Spot-check the pages that were broken + one composed page + one archive.
+
+This is a plain download, not a GitHub API request, so it needs no token and
+does not use the server's 60-an-hour API limit (measured on the canary: 0
+requests per install). Run it as the SSH user PHP runs as, so the folder
+keeps the owner Git Updater needs for later updates.
+
+**Do not roll back with Git Updater's install.** `wp theme install-git` took
+about 16 API requests per install on the canary (the WP Admin branch/tag
+switcher also goes through the API; its count was not measured), out of 60 an hour shared by every
+site on the server. Keep Git Updater for routine updates, where one refresh is
+cached for 12 hours; use the zip for rollbacks and reinstalls.
 
 **git-deploy transport:**
 1. `cd wp-content/themes/salt-wordpress && git fetch --tags && git checkout <prior-tag>`
@@ -155,11 +174,25 @@ to expire, rotate or revoke.
   nothing needs a token. To confirm from the server:
   `curl -s https://api.github.com/rate_limit` (this call is free) shows
   `core.remaining` and the `core.reset` time in epoch seconds. If the shared
-  address stays exhausted, wait for the reset, or install the release by hand
-  with the zip steps in §B.
+  address stays exhausted, wait for the reset, or install the release with the
+  tag zip install in §A, which uses none of the limit.
 
 ## Rehearsal
 
 "Rollback rehearsed on canary" is a named line on the release checklist:
 before promoting any release beyond the canary, perform step A (and step B
 once per quarter) on the canary site and record the time taken.
+
+### Rehearsal record
+
+| Date | Release | Path | Back to prior tag | Forward again | Token on site | Result |
+| --- | --- | --- | --- | --- | --- | --- |
+| 26/11/2026 | v6.0.0 → v5.0.0 → v6.0.0 | B: public tag zip over SSH | 2 s | 1 s (snapshot restore) | none | Site and wp-login 200 throughout; no PHP warning or fatal; restored folder identical to the snapshot |
+| 26/11/2026 | v6.0.0 → v5.0.0 → v6.0.0 | Git Updater `install-git`, tag `v5.0.0` then `v6.0.0` (no longer a rollback path) | 6 s | 6 s | none | As above, but used 24 of the server's 60 API requests (16 for the first install) |
+| 26/11/2026 | v6.0.0 → v5.0.0 → v6.0.0 | A: `wp theme install <tag zip> --force` | 3 s | 4 s | none | Site and wp-login 200 throughout; no PHP warning or fatal; folder renamed to `salt-wordpress` by WP-CLI; final folder identical to the snapshot; API requests left 36 before and 36 after both installs |
+
+Found during that rehearsal, on a shared host:
+
+- **The 60-an-hour limit is per server address, shared with every site on it.** Before the rehearsal the canary's server had 0 of 60 requests left. One Git Updater install of a tag used 16 requests, and the reinstall used 8. The tag zip install (§A) used none, measured before and after, so it is the rollback path.
+- **WP-CLI's `wp theme install-git` will not overwrite an existing folder** ("Destination folder already exists"). `wp theme install <zip> --force` does, and renames the GitHub archive's folder to `salt-wordpress`.
+- **Install the parent as the user PHP runs as.** On Cloudways that is the application user, not the server's master user. A parent folder copied in over SSH as another user with `755` permissions cannot be replaced by Git Updater from WP Admin, so the next update fails. Check with `stat -c %U wp-content/themes/salt-wordpress` against the owner of `wp-content/cache` or `wp-content/uploads`.
