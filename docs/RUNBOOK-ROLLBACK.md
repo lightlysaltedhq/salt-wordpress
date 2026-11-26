@@ -163,3 +163,16 @@ to expire, rotate or revoke.
 "Rollback rehearsed on canary" is a named line on the release checklist:
 before promoting any release beyond the canary, perform step A (and step B
 once per quarter) on the canary site and record the time taken.
+
+### Rehearsal record
+
+| Date | Release | Path | Back to prior tag | Forward again | Token on site | Result |
+| --- | --- | --- | --- | --- | --- | --- |
+| 26/11/2026 | v6.0.0 → v5.0.0 → v6.0.0 | B: public tag zip over SSH | 2 s | 1 s (snapshot restore) | none | Site and wp-login 200 throughout; no PHP warning or fatal; restored folder identical to the snapshot |
+| 26/11/2026 | v6.0.0 → v5.0.0 → v6.0.0 | A: Git Updater, tag `v5.0.0` then `v6.0.0` | 6 s | 6 s | none | As above; Git Updater fetched both tags unauthenticated |
+
+Found during that rehearsal, on a shared host:
+
+- **The 60-an-hour limit is per server address, shared with every site on it.** Before the rehearsal the canary's server had 0 of 60 requests left. One Git Updater install of a tag used 16 requests, and the reinstall used 8. Path B's plain zip download needs none, so it is the path to use when `curl -s https://api.github.com/rate_limit` shows `core.remaining` near 0.
+- **WP-CLI's `wp theme install-git` will not overwrite an existing folder** ("Destination folder already exists"). To use it, move the current folder aside first, as in §B step 1. The WP Admin tag switcher reinstalls in place.
+- **Install the parent as the user PHP runs as.** On Cloudways that is the application user, not the server's master user. A parent folder copied in over SSH as another user with `755` permissions cannot be replaced by Git Updater from WP Admin, so the next update fails. Check with `stat -c %U wp-content/themes/salt-wordpress` against the owner of `wp-content/cache` or `wp-content/uploads`.
