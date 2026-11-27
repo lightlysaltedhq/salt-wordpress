@@ -2,7 +2,7 @@
   "format": "salt-conformance/1",
   "contract": {
     "package": "@lightlysaltedhq/salt-contract",
-    "version": "2.0.0"
+    "version": "3.0.0"
   },
   "platform": "wordpress",
   "implementation": {
@@ -33,9 +33,9 @@
     "problems": []
   },
   "stylesheets": {
-    "served": "assets/dist/salt.721fad818f/salt.css",
+    "served": "assets/dist/salt.a2f7a31e39/salt.css",
     "bundle": "styles/salt.css",
-    "contract": "2.0.0",
+    "contract": "3.0.0",
     "ok": true,
     "status": "identical"
   },
