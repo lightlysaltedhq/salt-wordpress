@@ -11,10 +11,10 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
-## [6.0.1] — 2026-11-26
+## [6.0.1] — 2026-11-27
 
-PATCH per RELEASE-POLICY: a stylesheet fix that changes no markup. Found on the canary
-(ID-4068).
+PATCH per RELEASE-POLICY: two stylesheet fixes that change no markup. Both were found on the
+canary (ID-4068, ID-4078).
 
 ### Fixed: the not-found page, the search page and archive titles ran to the screen's edge
 
@@ -39,6 +39,20 @@ replaced it, so they started at the left edge of the screen, directly under the 
 
 No section, article or composed page changes. `tests/real-acf/page-inset.mjs` measures the
 inset in Chromium and fails without the rules.
+
+### Fixed: links in the post, search and not-found views looked like plain text (ID-4078)
+
+`@lightlysaltedhq/salt-contract` is pinned at exactly 3.0.0 (was 2.0.0), and `assets/dist`
+serves its `salt.css`. 3.0.0 changes only the stylesheet: a post's breadcrumb, category, byline,
+tags and previous and next links, the author box's name, search result titles, the not-found
+page's link home and an office's phone and email are underlined, as a link in body copy is. They
+had the text's colour and no underline, so only the pointer told them from text (WCAG 1.4.1).
+
+- No markup, field, fixture or child override changes.
+- **Child themes.** A child's own rule on one of these links still wins where it outranks the
+  contract's. An unclassed link a child template writes straight into `<main>` is now
+  underlined, because the contract matches the link home as `main > a`; give it a class to
+  style it otherwise.
 
 ## [6.0.0] — 2026-11-25
 
