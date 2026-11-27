@@ -179,6 +179,16 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    24px tall and nothing scrolls sideways. A control serves the stylesheet without the inset's
    rules and expects the title back at the screen's edge. `SALT_HARNESS_SCREENSHOTS` keeps
    each view.
+   **Link underlines** (`php/link-underlines-pages.php`, `link-underlines.mjs`): on a seeded
+   post, a search that finds it, the not-found page and a page of offices, at 320px and 1280px,
+   the post's breadcrumb, category, byline, tags, previous and next links and author box name,
+   the search result's title, the link home and an office's phone and email are underlined
+   (computed on the link) and the browser draws the line (the link's pixels change when the
+   line alone is taken away); the current breadcrumb and the logo's link keep none. The theme's
+   reset strips a link's line and the contract's stylesheet puts it back, which the contract's
+   own gate cannot see. A control serves the contract's stylesheet without its rules for these
+   links and expects every one of them back to no line. `SALT_HARNESS_SCREENSHOTS` keeps each
+   view.
 7. **The editor, in headless Chromium** against the same server (`browser.mjs`):
    - the fixtures page's classic edit screen renders every row and layout with no console errors;
    - the faq section's collection query mode shows categories or items, and order and count unless

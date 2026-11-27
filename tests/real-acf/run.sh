@@ -317,6 +317,7 @@ if [ "$BROWSER" = 1 ]; then
 	phase "no style the CSP refuses on the representative pages, signed out and in (Chromium)" node "$HERE/inline-styles.mjs"
 	phase "design dials: admin form, each choice on the page, CSP nonce, Editor refused (Chromium)" node "$HERE/dials.mjs"
 	phase "the page inset on the not-found, search and archive views (Chromium)" node "$HERE/page-inset.mjs"
+	phase "link underlines on the post, search, not-found and offices views (Chromium)" node "$HERE/link-underlines.mjs"
 	phase "editor in a real browser (Chromium)" node "$HERE/browser.mjs"
 else
 	PHASES+=("SKIP  editor in a real browser (--no-browser)")
