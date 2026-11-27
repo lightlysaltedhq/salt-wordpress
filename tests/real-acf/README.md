@@ -172,6 +172,13 @@ and rerun on both PHP versions. Only `--offline` skips it, and the summary then 
    padding, density also at 600px), with the brand `<style>` carrying the CSP nonce and no
    refusal; an Editor gets no Brand & Design link, a 403 on the page, and through ACF's own
    save neither a drawn nor a stored dial. `SALT_HARNESS_SCREENSHOTS` keeps each state.
+   **The page inset** (`page-inset.mjs`): on the not-found page, a search with no result and
+   the services archive, at 320px and 1280px, what `<main>` draws outside a section band keeps the
+   header's gutter on both sides, the title starts where a default band's heading does, the
+   first and last stand off the header and footer, the not-found page's link home is at least
+   24px tall and nothing scrolls sideways. A control serves the stylesheet without the inset's
+   rules and expects the title back at the screen's edge. `SALT_HARNESS_SCREENSHOTS` keeps
+   each view.
 7. **The editor, in headless Chromium** against the same server (`browser.mjs`):
    - the fixtures page's classic edit screen renders every row and layout with no console errors;
    - the faq section's collection query mode shows categories or items, and order and count unless

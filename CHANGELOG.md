@@ -11,6 +11,35 @@ markup granularity (cross-reference your site's override manifest).
 
 ## [Unreleased]
 
+## [6.0.1] — 2026-11-27
+
+PATCH per RELEASE-POLICY: two stylesheet fixes that change no markup. Both were found on the
+canary (ID-4068, ID-4078).
+
+### Fixed: the not-found page, the search page and archive titles ran to the screen's edge
+
+6.0.0 draws these views as the contract's markup, whose title, text, search form and link home
+are `<main>`'s own children, and removed the padded container 5.0.0 wrapped them in. Nothing
+replaced it, so they started at the left edge of the screen, directly under the header.
+
+- **The page inset.** app.css now insets what `<main>` draws outside a section band: a title,
+  an archive's header and profile, a paragraph, the search form, the results and the link home.
+  They take a default band's measure, so an archive's title lines up with its listing, and
+  stand off the header, the footer and each other. The contract leaves this to the platform
+  (salt-contract `markup/search.json`, ruling 7A), as Salt for Next.js sets it in its site
+  stylesheet.
+- **The link home on the not-found page** is at least 24px tall (WCAG 2.5.8), as on Salt for
+  Next.js.
+- **The generic single's title** (`single.php`, a child's or plugin's post types) sits on its
+  content's column; it was at the screen's edge in 5.0.0 too.
+- **Child themes.** The rules match by element (`h1`, `header`, `p`, `a`, `search`, a
+  `section` that is not a band) as a direct child of `<main>`, and carry no specificity
+  (`:where()`), so any rule of the child's own wins. A child template that draws one of those
+  straight into `<main>` and wants it edge to edge sets its own `margin-inline`.
+
+No section, article or composed page changes. `tests/real-acf/page-inset.mjs` measures the
+inset in Chromium and fails without the rules.
+
 ### Fixed: links in the post, search and not-found views looked like plain text (ID-4078)
 
 `@lightlysaltedhq/salt-contract` is pinned at exactly 3.0.0 (was 2.0.0), and `assets/dist`
